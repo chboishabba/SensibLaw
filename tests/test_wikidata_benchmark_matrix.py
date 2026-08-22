@@ -11,17 +11,35 @@ def test_wikidata_benchmark_matrix_cache_only_default_fixture() -> None:
     assert report["schema"] == "sensiblaw.wikidata_benchmark_matrix.v0_1"
     assert report["network_mode"] == "cache-only"
     assert report["status"] == "ok"
-    assert {row["lane"] for row in report["lanes"]} == {"projection", "review", "live-cached", "hotspot-eval", "baseline-compare"}
+    assert {row["lane"] for row in report["lanes"]} == {
+        "projection",
+        "review",
+        "live-cached",
+        "hotspot-eval",
+        "baseline-compare",
+    }
     assert all(row["non_authoritative"] for row in report["lanes"])
 
 
-def test_wikidata_benchmark_matrix_structural_drift_is_regression(tmp_path: Path) -> None:
+def test_wikidata_benchmark_matrix_structural_drift_is_regression(
+    tmp_path: Path,
+) -> None:
     manifest = {
         "manifest_id": "drift",
         "lanes": {
             "projection": {
-                "expected": {"structural_hash": "a", "provenance_count": 1, "disposition": "review", "non_authoritative": True},
-                "observed": {"structural_hash": "b", "provenance_count": 1, "disposition": "review", "non_authoritative": True},
+                "expected": {
+                    "structural_hash": "a",
+                    "provenance_count": 1,
+                    "disposition": "review",
+                    "non_authoritative": True,
+                },
+                "observed": {
+                    "structural_hash": "b",
+                    "provenance_count": 1,
+                    "disposition": "review",
+                    "non_authoritative": True,
+                },
             }
         },
     }

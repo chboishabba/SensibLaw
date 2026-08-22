@@ -4,7 +4,10 @@ from pathlib import Path
 from typing import Any
 
 from src.wiki_timeline.numeric_projection import apply_numeric_projection
-from src.wiki_timeline.source_registry import normalize_source_key, resolve_source_config
+from src.wiki_timeline.source_registry import (
+    normalize_source_key,
+    resolve_source_config,
+)
 from src.storage.sqlite_runtime import resolve_sqlite_db_path
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 from src.wiki_timeline.timeline_view_projection import build_timeline_view_projection
@@ -53,7 +56,9 @@ def load_projection_payload(
     if projection == "timeline_view":
         return build_timeline_view_projection(payload)
     if projection == "fact_timeline":
-        from src.wiki_timeline.fact_timeline_projection import build_fact_timeline_projection
+        from src.wiki_timeline.fact_timeline_projection import (
+            build_fact_timeline_projection,
+        )
 
         return build_fact_timeline_projection(payload)
     return payload

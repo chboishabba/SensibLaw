@@ -14,7 +14,10 @@ def test_operational_structure_detects_chat_shell_and_transcript_refs():
         "Q: Where were you?\n"
         "A: At 01:23:45.\n"
     )
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert ("role:user", "role_ref") in pairs
     assert ("role:assistant", "role_ref") in pairs
     assert ("cmd:npm", "command_ref") in pairs
@@ -28,7 +31,10 @@ def test_operational_structure_detects_chat_shell_and_transcript_refs():
 
 def test_operational_structure_detects_bracketed_chat_transcript_turns():
     text = "1/1/21, 10:00 AM - Alice: Happy New Year!\n1/1/21, 10:01 AM - Bob: <Media omitted>\n"
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert ("speaker:alice", "speaker_ref") in pairs
     assert ("speaker:bob", "speaker_ref") in pairs
     assert ("ts:2021_01_01_10_00", "timestamp_ref") in pairs
@@ -43,7 +49,10 @@ def test_operational_structure_detects_telegram_style_bracketed_transcript_turns
         "[6/3/26 10:00\u202fam] [[wikilinksbot]]: Q21169592 (https://www.wikidata.org/entity/Q21169592)\n"
         "[6/3/26 10:42\u202fam] chb: https://netflixtechblog.com/uda-unified-data-architecture-6a6aee261d8d\n"
     )
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert ("speaker:dave", "speaker_ref") in pairs
     assert ("speaker:wikilinksbot", "speaker_ref") in pairs
     assert ("speaker:chb", "speaker_ref") in pairs
@@ -52,12 +61,18 @@ def test_operational_structure_detects_telegram_style_bracketed_transcript_turns
     assert ("ts:2026_03_06_10_42", "timestamp_ref") in pairs
     assert ("msg:dave", "message_boundary_ref") in pairs
     assert ("msg:wikilinksbot", "message_boundary_ref") in pairs
-    assert ("path:netflixtechblog_com_uda_unified_data_architecture_6a6aee261d8d", "path_ref") in pairs
+    assert (
+        "path:netflixtechblog_com_uda_unified_data_architecture_6a6aee261d8d",
+        "path_ref",
+    ) in pairs
 
 
 def test_operational_structure_detects_transcript_time_ranges():
     text = "[00:00:00,030 -> 00:00:21,970] Thanks.\n"
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert ("tsrange:00_00_00_030__00_00_21_970", "timestamp_range_ref") in pairs
     assert ("ts:00:00:00", "timestamp_ref") not in pairs
     assert ("ts:00:00:21", "timestamp_ref") not in pairs
@@ -82,24 +97,42 @@ def test_operational_structure_does_not_emit_shell_refs_for_plain_prose():
 
 def test_operational_structure_does_not_treat_dates_or_all_caps_slashes_as_paths():
     text = "Dates like 30/10/25 and labels like JSON/CSV or L0/L1/L2 should not be path refs."
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert all(kind != "path_ref" for _, kind in pairs)
 
 
 def test_operational_structure_does_not_treat_plain_slash_prose_as_paths():
     text = "He struggles with dates/recollection/identity and conversation/answer in ordinary prose."
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert all(kind != "path_ref" for _, kind in pairs)
 
 
 def test_operational_structure_does_not_treat_short_rate_like_strings_as_paths():
     text = "Rent was 240/wk and the shorthand should stay plain prose."
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
     assert all(kind != "path_ref" for _, kind in pairs)
 
 
 def test_operational_structure_normalizes_concatenated_http_urls_more_cleanly():
     text = "https://chatgpt.com/share/6731905f-2d84-8010-bf3a-2d3cfa1764a0Includes transcript."
-    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
-    assert ("path:chatgpt_com_share_6731905f_2d84_8010_bf3a_2d3cfa1764a0", "path_ref") in pairs
-    assert all(norm != "path:chatgpt_com_share_6731905f_2d84_8010_bf3a_2d3cfa1764a0includes" for norm, _ in pairs)
+    pairs = {
+        (occ.norm_text, occ.kind)
+        for occ in collect_operational_structure_occurrences(text)
+    }
+    assert (
+        "path:chatgpt_com_share_6731905f_2d84_8010_bf3a_2d3cfa1764a0",
+        "path_ref",
+    ) in pairs
+    assert all(
+        norm != "path:chatgpt_com_share_6731905f_2d84_8010_bf3a_2d3cfa1764a0includes"
+        for norm, _ in pairs
+    )

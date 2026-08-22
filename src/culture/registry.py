@@ -21,7 +21,13 @@ class CulturalFlagMetadata:
     policy_text: str
     aliases: Tuple[str, ...] = ()
 
-    def render_policy(self, *, redaction: Optional[str] = None, consent: Optional[bool] = None, transform: Optional[str] = None) -> str:
+    def render_policy(
+        self,
+        *,
+        redaction: Optional[str] = None,
+        consent: Optional[bool] = None,
+        transform: Optional[str] = None,
+    ) -> str:
         """Render a policy string for annotations."""
 
         if self.policy_text:
@@ -30,7 +36,9 @@ class CulturalFlagMetadata:
         applied_redaction = redaction if redaction is not None else self.redaction
         applied_consent = consent if consent is not None else self.consent_required
         applied_transform = transform or "none"
-        consent_text = "requires consent" if applied_consent else "does not require consent"
+        consent_text = (
+            "requires consent" if applied_consent else "does not require consent"
+        )
         return (
             f"{self.canonical_name}: {self.description} "
             f"(redaction={applied_redaction}, {consent_text}, transform={applied_transform})"
@@ -74,7 +82,9 @@ def load_registry(path: Path) -> CulturalFlagRegistry:
 
 
 def _parse_flag(identifier: str, raw: Mapping[str, object]) -> CulturalFlagMetadata:
-    canonical_name = str(raw.get("canonical_name") or identifier.replace("_", " ").title())
+    canonical_name = str(
+        raw.get("canonical_name") or identifier.replace("_", " ").title()
+    )
     description = str(raw.get("description") or "")
     defaults = raw.get("defaults")
     redaction = "none"
@@ -106,4 +116,3 @@ __all__ = [
     "CulturalFlagRegistry",
     "load_registry",
 ]
-

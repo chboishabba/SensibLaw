@@ -38,7 +38,11 @@ def test_aggregate_is_order_independent():
         outcome="defendant",
     )
 
-    slice_decl = {"filters": {}, "group_by": ["jurisdiction_id", "court_id", "court_level"], "time_bounds_declared": {"start": None, "end": None}}
+    slice_decl = {
+        "filters": {},
+        "group_by": ["jurisdiction_id", "court_id", "court_level"],
+        "time_bounds_declared": {"start": None, "end": None},
+    }
     out1 = aggregate_outcomes([a, b, c], slice=slice_decl)
     out2 = aggregate_outcomes([c, b, a], slice=slice_decl)
     assert out1 == out2
@@ -59,7 +63,11 @@ def test_individual_level_grouping_is_disabled_by_default():
         aggregate_outcomes(
             [a],
             group_by=("judge_id",),
-            slice={"filters": {}, "group_by": ["judge_id"], "time_bounds_declared": {"start": None, "end": None}},
+            slice={
+                "filters": {},
+                "group_by": ["judge_id"],
+                "time_bounds_declared": {"start": None, "end": None},
+            },
         )
 
 
@@ -76,18 +84,35 @@ def test_individual_level_grouping_requires_opt_in():
         [a],
         group_by=("judge_id",),
         allow_individuals=True,
-        slice={"filters": {}, "group_by": ["judge_id"], "time_bounds_declared": {"start": None, "end": None}},
+        slice={
+            "filters": {},
+            "group_by": ["judge_id"],
+            "time_bounds_declared": {"start": None, "end": None},
+        },
     )
     assert out["allow_individuals"] is True
     assert out["groups"][0]["outcomes"]["plaintiff"] == 1
 
 
 def test_slice_declaration_is_required():
-    a = CaseObservation(case_id="c1", jurisdiction_id="AU-NSW", court_id="NSWSC", court_level="trial", outcome="plaintiff")
+    a = CaseObservation(
+        case_id="c1",
+        jurisdiction_id="AU-NSW",
+        court_id="NSWSC",
+        court_level="trial",
+        outcome="plaintiff",
+    )
     with pytest.raises(SliceDeclarationError):
         aggregate_outcomes([a])
     with pytest.raises(SliceDeclarationError):
-        aggregate_outcomes([a], slice={"filters": {}, "group_by": ["wrong"], "time_bounds_declared": {"start": None, "end": None}})
+        aggregate_outcomes(
+            [a],
+            slice={
+                "filters": {},
+                "group_by": ["wrong"],
+                "time_bounds_declared": {"start": None, "end": None},
+            },
+        )
 
 
 def test_beta_cdf_basic_uniform():
@@ -126,7 +151,11 @@ def test_beta_binomial_aggregate_is_order_independent():
         wrong_type_id="negligence",
         outcome="plaintiff",
     )
-    slice_decl = {"filters": {}, "group_by": ["jurisdiction_id", "court_id", "court_level"], "time_bounds_declared": {"start": None, "end": None}}
+    slice_decl = {
+        "filters": {},
+        "group_by": ["jurisdiction_id", "court_id", "court_level"],
+        "time_bounds_declared": {"start": None, "end": None},
+    }
     out1 = aggregate_beta_binomial([a, b, c], kappa=10.0, slice=slice_decl)
     out2 = aggregate_beta_binomial([c, b, a], kappa=10.0, slice=slice_decl)
     assert out1 == out2
@@ -152,11 +181,19 @@ def test_ridge_logistic_requires_slice_declaration_and_is_deterministic():
         predicate_keys=("cla.s5b_applied",),
         outcome="defendant",
     )
-    slice_decl = {"filters": {}, "group_by": ["jurisdiction_id", "court_id", "court_level"], "time_bounds_declared": {"start": None, "end": None}}
+    slice_decl = {
+        "filters": {},
+        "group_by": ["jurisdiction_id", "court_id", "court_level"],
+        "time_bounds_declared": {"start": None, "end": None},
+    }
     with pytest.raises(SliceDeclarationError):
         aggregate_ridge_logistic_map([a, b])
-    out1 = aggregate_ridge_logistic_map([a, b], slice=slice_decl, max_features=50, max_iter=10)
-    out2 = aggregate_ridge_logistic_map([b, a], slice=slice_decl, max_features=50, max_iter=10)
+    out1 = aggregate_ridge_logistic_map(
+        [a, b], slice=slice_decl, max_features=50, max_iter=10
+    )
+    out2 = aggregate_ridge_logistic_map(
+        [b, a], slice=slice_decl, max_features=50, max_iter=10
+    )
     assert out1 == out2
     assert out1["mode"] == "descriptive_only"
     assert "interpretation_guard" in out1
@@ -180,11 +217,19 @@ def test_lognormal_tail_requires_slice_declaration_and_is_deterministic():
         decision_date="2020-06-01",
         outcome="defendant",
     )
-    slice_decl = {"filters": {}, "group_by": ["jurisdiction_id", "court_id", "court_level"], "time_bounds_declared": {"start": "2020-01-01", "end": "2020-12-31"}}
+    slice_decl = {
+        "filters": {},
+        "group_by": ["jurisdiction_id", "court_id", "court_level"],
+        "time_bounds_declared": {"start": "2020-01-01", "end": "2020-12-31"},
+    }
     with pytest.raises(SliceDeclarationError):
         aggregate_lognormal_tail([(a, 100.0), (b, 200.0)])
-    out1 = aggregate_lognormal_tail([(a, 100.0), (b, 200.0)], slice=slice_decl, threshold=150.0)
-    out2 = aggregate_lognormal_tail([(b, 200.0), (a, 100.0)], slice=slice_decl, threshold=150.0)
+    out1 = aggregate_lognormal_tail(
+        [(a, 100.0), (b, 200.0)], slice=slice_decl, threshold=150.0
+    )
+    out2 = aggregate_lognormal_tail(
+        [(b, 200.0), (a, 100.0)], slice=slice_decl, threshold=150.0
+    )
     assert out1 == out2
     assert out1["method"] == "lognormal_tail"
     assert out1["corpus"]["n_total"] == 2

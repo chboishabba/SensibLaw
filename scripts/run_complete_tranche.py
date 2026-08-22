@@ -40,6 +40,9 @@ from src.policy.postgres_corpus_compilation import (  # noqa: E402
     OPERATIONAL_COMPILER_CONTRACT,
     compile_directory_postgres,
 )
+from src.policy.work_conserving_ordered_compilation import (  # noqa: E402
+    compile_directory_postgres_work_conserving_ordered,
+)
 from src.runtime.progress import PhaseRecorder  # noqa: E402
 from src.runtime.execution_resource_ledger import (  # noqa: E402
     ExecutionResourceLedger,
@@ -664,6 +667,11 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
                 else "local-compatibility-replay"
             ),
         }
+        compiler = (
+            compile_directory_postgres_work_conserving_ordered
+            if args.strict_exact
+            else compile_directory_postgres
+        )
         if args.calibration:
             # ``PostgresCompilerStore.transaction`` nests as savepoints under
             # this outer transaction, so this exercises source, partition,
@@ -671,7 +679,7 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             # the final exception rolls every write back atomically.
             try:
                 with store.connection.transaction():
-                    calibration_compilation = compile_directory_postgres(
+                    calibration_compilation = compiler(
                         output_dir / "source_projection" / "canonical",
                         **compile_kwargs,
                     )
@@ -679,7 +687,7 @@ def _run_one(args: argparse.Namespace, tranche: str) -> dict[str, Any]:
             except _CalibrationRollback as rollback:
                 compilation = rollback.compilation
         else:
-            compilation = compile_directory_postgres(
+            compilation = compiler(
                 output_dir / "source_projection" / "canonical",
                 **compile_kwargs,
             )

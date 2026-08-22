@@ -35,7 +35,9 @@ def empirical_bayes_gamma_prior(mu: float, kappa: float) -> Tuple[float, float]:
     return (m * k, k)
 
 
-def gamma_poisson_posterior(y: int, exposure: float, alpha0: float, beta0: float) -> GammaPosterior:
+def gamma_poisson_posterior(
+    y: int, exposure: float, alpha0: float, beta0: float
+) -> GammaPosterior:
     yy = max(0, int(y))
     e = float(exposure)
     if not math.isfinite(e) or e < 0:
@@ -49,7 +51,9 @@ def gamma_poisson_posterior(y: int, exposure: float, alpha0: float, beta0: float
     return GammaPosterior(alpha0=a0, beta0=b0, alpha=a0 + yy, beta=b0 + e)
 
 
-def _gammainc_series(a: float, x: float, eps: float = 1e-14, max_iter: int = 2000) -> float:
+def _gammainc_series(
+    a: float, x: float, eps: float = 1e-14, max_iter: int = 2000
+) -> float:
     # Regularized lower incomplete gamma P(a,x) via series (x < a+1).
     gln = math.lgamma(a)
     ap = a
@@ -118,7 +122,11 @@ def gamma_ppf(p: float, alpha: float, beta: float, *, tol: float = 2e-10) -> flo
         return float("inf")
     a = float(alpha)
     b = float(beta)
-    if not (math.isfinite(pp) and math.isfinite(a) and math.isfinite(b)) or a <= 0 or b <= 0:
+    if (
+        not (math.isfinite(pp) and math.isfinite(a) and math.isfinite(b))
+        or a <= 0
+        or b <= 0
+    ):
         return float("nan")
 
     # Bracket hi by doubling until CDF(hi) >= p.
@@ -147,8 +155,9 @@ def gamma_ppf(p: float, alpha: float, beta: float, *, tol: float = 2e-10) -> flo
     return (lo + hi) / 2.0
 
 
-def gamma_credible_interval(alpha: float, beta: float, q_lo: float, q_hi: float) -> Tuple[float, float]:
+def gamma_credible_interval(
+    alpha: float, beta: float, q_lo: float, q_hi: float
+) -> Tuple[float, float]:
     lo = gamma_ppf(float(q_lo), alpha, beta)
     hi = gamma_ppf(float(q_hi), alpha, beta)
     return (lo, hi)
-

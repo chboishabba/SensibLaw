@@ -16,17 +16,30 @@ from src.models.nat_claim import (
     build_nat_claim_dict,
     build_nat_claim_from_candidate,
 )
-from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_policy_record
+from src.models.action_policy import (
+    ACTION_POLICY_SCHEMA_VERSION,
+    build_action_policy_record,
+)
 from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
 from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
 from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
 
 
-AUTOMATION_GRADUATION_EVAL_SCHEMA_VERSION = "sl.wikidata_nat_automation_graduation_eval.v0_1"
-AUTOMATION_GRADUATION_REPORT_SCHEMA_VERSION = "sl.wikidata_nat_automation_graduation_report.v0_1"
-AUTOMATION_GRADUATION_BATCH_REPORT_SCHEMA_VERSION = "sl.wikidata_nat_automation_graduation_batch_report.v0_1"
-AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION = "sl.wikidata_nat_automation_graduation_evidence_report.v0_1"
-AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION = "sl.wikidata_nat_automation_graduation_governance_index.v0_1"
+AUTOMATION_GRADUATION_EVAL_SCHEMA_VERSION = (
+    "sl.wikidata_nat_automation_graduation_eval.v0_1"
+)
+AUTOMATION_GRADUATION_REPORT_SCHEMA_VERSION = (
+    "sl.wikidata_nat_automation_graduation_report.v0_1"
+)
+AUTOMATION_GRADUATION_BATCH_REPORT_SCHEMA_VERSION = (
+    "sl.wikidata_nat_automation_graduation_batch_report.v0_1"
+)
+AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION = (
+    "sl.wikidata_nat_automation_graduation_evidence_report.v0_1"
+)
+AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION = (
+    "sl.wikidata_nat_automation_graduation_governance_index.v0_1"
+)
 AUTOMATION_GRADUATION_GOVERNANCE_SUMMARY_SCHEMA_VERSION = (
     "sl.wikidata_nat_automation_graduation_governance_summary.v0_1"
 )
@@ -185,13 +198,19 @@ def _normalize_claim_bundle(bundle: Mapping[str, Any] | None) -> dict[str, Any]:
         return {}
     qualifiers = bundle.get("qualifiers", {})
     references = bundle.get("references", [])
-    normalized_qualifiers = {
-        _as_text(key): sorted(_as_text_list(value))
-        for key, value in qualifiers.items()
-        if _as_text(key)
-    } if isinstance(qualifiers, Mapping) else {}
+    normalized_qualifiers = (
+        {
+            _as_text(key): sorted(_as_text_list(value))
+            for key, value in qualifiers.items()
+            if _as_text(key)
+        }
+        if isinstance(qualifiers, Mapping)
+        else {}
+    )
     normalized_references: list[dict[str, list[str]]] = []
-    if isinstance(references, Sequence) and not isinstance(references, (str, bytes, bytearray)):
+    if isinstance(references, Sequence) and not isinstance(
+        references, (str, bytes, bytearray)
+    ):
         for reference in references:
             if not isinstance(reference, Mapping):
                 continue
@@ -249,11 +268,7 @@ def _normalize_contract_value(value: Any) -> dict[str, Any]:
 def _normalize_optional_mapping(value: Any) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
-    return {
-        _as_text(key): value[key]
-        for key in value
-        if _as_text(key)
-    }
+    return {_as_text(key): value[key] for key in value if _as_text(key)}
 
 
 def _normalize_model_validation(validation: Any) -> dict[str, Any]:
@@ -264,7 +279,13 @@ def _normalize_model_validation(validation: Any) -> dict[str, Any]:
         normalized["valid"] = bool(validation.get("valid"))
     if "issues" in validation:
         normalized["issues"] = _as_text_list(validation.get("issues"))
-    for field in ("resolved_year", "resolved_scope", "resolved_unit_qid", "suggested_action", "execution_ready"):
+    for field in (
+        "resolved_year",
+        "resolved_scope",
+        "resolved_unit_qid",
+        "suggested_action",
+        "execution_ready",
+    ):
         value = validation.get(field)
         if value is None:
             continue
@@ -303,12 +324,16 @@ def _normalize_split_plan(split_plan: Any) -> dict[str, Any]:
         normalized["execution_ready"] = bool(split_plan.get("execution_ready"))
     if "proposed_bundle_count" in split_plan:
         try:
-            normalized["proposed_bundle_count"] = int(split_plan.get("proposed_bundle_count", 0) or 0)
+            normalized["proposed_bundle_count"] = int(
+                split_plan.get("proposed_bundle_count", 0) or 0
+            )
         except (TypeError, ValueError):
             normalized["proposed_bundle_count"] = 0
     if "proposed_target_bundles" in split_plan:
         bundles = split_plan.get("proposed_target_bundles", [])
-        if isinstance(bundles, Sequence) and not isinstance(bundles, (str, bytes, bytearray)):
+        if isinstance(bundles, Sequence) and not isinstance(
+            bundles, (str, bytes, bytearray)
+        ):
             normalized["proposed_target_bundles"] = [
                 _normalize_claim_bundle(bundle)
                 for bundle in bundles
@@ -333,7 +358,10 @@ def _candidate_model_execution_metadata(candidate: Mapping[str, Any]) -> dict[st
         execution_ready = bool(model_validation.get("execution_ready"))
     if not execution_ready and split_plan.get("execution_ready") is not None:
         execution_ready = bool(split_plan.get("execution_ready"))
-    if not execution_ready and model_classification in MODEL_EXECUTION_SAFE_CLASSIFICATIONS:
+    if (
+        not execution_ready
+        and model_classification in MODEL_EXECUTION_SAFE_CLASSIFICATIONS
+    ):
         execution_ready = True
     if not execution_backend:
         execution_backend = _optional_text(
@@ -374,9 +402,16 @@ def _candidate_is_eligible_for_execution(candidate: Mapping[str, Any]) -> bool:
     if classification in LEGACY_EXECUTION_SAFE_CLASSIFICATIONS:
         return True
     metadata = _candidate_model_execution_metadata(candidate)
-    if metadata["model_classification"] in MODEL_EXECUTION_SAFE_CLASSIFICATIONS and metadata["execution_ready"]:
+    if (
+        metadata["model_classification"] in MODEL_EXECUTION_SAFE_CLASSIFICATIONS
+        and metadata["execution_ready"]
+    ):
         return True
-    if metadata["execution_ready"] and metadata["model_aware"] and metadata["split_plan"]:
+    if (
+        metadata["execution_ready"]
+        and metadata["model_aware"]
+        and metadata["split_plan"]
+    ):
         return True
     return False
 
@@ -440,7 +475,9 @@ def _candidate_lookup_from_verification_runs(
     verification_runs: Mapping[str, Any],
 ) -> dict[str, Mapping[str, Any]]:
     raw_runs = verification_runs.get("runs", [])
-    if not isinstance(raw_runs, Sequence) or isinstance(raw_runs, (str, bytes, bytearray)):
+    if not isinstance(raw_runs, Sequence) or isinstance(
+        raw_runs, (str, bytes, bytearray)
+    ):
         raw_runs = []
     if not raw_runs and isinstance(verification_runs.get("migration_pack"), Mapping):
         raw_runs = [verification_runs]
@@ -453,7 +490,9 @@ def _candidate_lookup_from_verification_runs(
         if not isinstance(migration_pack, Mapping):
             continue
         candidates = migration_pack.get("candidates", [])
-        if not isinstance(candidates, Sequence) or isinstance(candidates, (str, bytes, bytearray)):
+        if not isinstance(candidates, Sequence) or isinstance(
+            candidates, (str, bytes, bytearray)
+        ):
             continue
         for candidate in candidates:
             if not isinstance(candidate, Mapping):
@@ -532,7 +571,9 @@ def _build_subject_aware_summary(
     executed_receipts: Sequence[Mapping[str, Any]],
     verification_runs: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    candidates_by_id = _candidate_lookup_from_verification_runs({"runs": list(executed_receipts)})
+    candidates_by_id = _candidate_lookup_from_verification_runs(
+        {"runs": list(executed_receipts)}
+    )
     subject_status: dict[str, str] = {}
     subject_family_by_id: dict[str, str] = {}
     uses_subject_resolution = False
@@ -556,7 +597,9 @@ def _build_subject_aware_summary(
                 continue
             prior_status = subject_status.get(entity_qid)
             if prior_status != "drift":
-                subject_status[entity_qid] = "verified" if status == "verified" else "drift"
+                subject_status[entity_qid] = (
+                    "verified" if status == "verified" else "drift"
+                )
             candidate = candidates_by_id.get(candidate_id, {})
             subject_family = _candidate_subject_family(candidate)
             if subject_family != "unknown":
@@ -565,10 +608,14 @@ def _build_subject_aware_summary(
 
     subject_ids = sorted(subject_status)
     verified_subject_ids = sorted(
-        subject_id for subject_id, status in subject_status.items() if status == "verified"
+        subject_id
+        for subject_id, status in subject_status.items()
+        if status == "verified"
     )
     drift_subject_ids = sorted(
-        subject_id for subject_id, status in subject_status.items() if status != "verified"
+        subject_id
+        for subject_id, status in subject_status.items()
+        if status != "verified"
     )
     company_subject_ids = sorted(
         subject_id
@@ -598,7 +645,9 @@ def _build_subject_aware_summary(
             and not unknown_subject_ids
         )
     else:
-        subject_aware_ready = bool(subject_ids) and len(subject_ids) == len(verified_subject_ids)
+        subject_aware_ready = bool(subject_ids) and len(subject_ids) == len(
+            verified_subject_ids
+        )
 
     return {
         "subject_count": len(subject_ids),
@@ -652,7 +701,13 @@ def _normalize_subject_resolution(subject_resolution: Any) -> dict[str, Any]:
         status = "known"
     elif status_text in {"known", "resolved", "ready"}:
         status = "known"
-    elif status_text in {"unknown", "unresolved", "ambiguous", "uncertain", "not_known"}:
+    elif status_text in {
+        "unknown",
+        "unresolved",
+        "ambiguous",
+        "uncertain",
+        "not_known",
+    }:
         status = "unknown"
     else:
         status = "unknown"
@@ -663,7 +718,11 @@ def _normalize_subject_resolution(subject_resolution: Any) -> dict[str, Any]:
         soft_defects: list[str] = []
         reason = status_text or "subject_resolution_unknown"
     else:
-        instance_of_allowed = True if explicit_instance_of_allowed is None else bool(explicit_instance_of_allowed)
+        instance_of_allowed = (
+            True
+            if explicit_instance_of_allowed is None
+            else bool(explicit_instance_of_allowed)
+        )
         hard_defects = []
         soft_defects = []
         reason = "subject_resolution_known"
@@ -739,7 +798,8 @@ def _subject_resolution_summary_from_contracts(
         "subject_resolution_hard_defect_count": hard_defect_count,
         "subject_resolution_soft_defect_count": soft_defect_count,
         "subject_resolution_distribution_by_promotion_class": distribution_by_promotion_class,
-        "subject_resolution_coverage": subject_resolution_count / max(total_candidates, 1),
+        "subject_resolution_coverage": subject_resolution_count
+        / max(total_candidates, 1),
     }
 
 
@@ -767,14 +827,19 @@ def _augment_promotion_gate_with_subject_resolution(
         )
         eligibility["instance_of_allowed"] = instance_of_allowed
         eligibility["subject_resolution_ready"] = ready
-        eligibility["subject_resolution_status"] = _as_text(normalized_subject_resolution.get("status"))
+        eligibility["subject_resolution_status"] = _as_text(
+            normalized_subject_resolution.get("status")
+        )
         if hard_defects:
             eligibility["eligible"] = False
             eligibility["review_only"] = True
             eligibility["semi_auto"] = False
             eligibility["full_auto"] = False
             normalized_gate["decision"] = "review_only"
-            normalized_gate["reason"] = _as_text(normalized_subject_resolution.get("reason")) or "subject_resolution_hard_defect"
+            normalized_gate["reason"] = (
+                _as_text(normalized_subject_resolution.get("reason"))
+                or "subject_resolution_hard_defect"
+            )
         elif "eligible" not in eligibility:
             eligibility["eligible"] = True
     if readiness:
@@ -889,7 +954,11 @@ def _build_same_family_query_shape(
 ) -> dict[str, Any]:
     candidate_parts = candidate_id.split("|")
     entity_qid = candidate_parts[0] if candidate_parts else ""
-    property_id = candidate_parts[1] if len(candidate_parts) > 1 else _as_text(canonical_form.get("property"))
+    property_id = (
+        candidate_parts[1]
+        if len(candidate_parts) > 1
+        else _as_text(canonical_form.get("property"))
+    )
     value_qid = _as_text(canonical_form.get("value"))
     lowered = entity_qid.lower()
     hint = _as_text(archetype_hint)
@@ -899,7 +968,12 @@ def _build_same_family_query_shape(
         "added_or_removed_qualifier",
         "statement_rank_change",
     ]
-    if hint in {"city_or_municipality", "district_or_subdivision"} or "city" in lowered or "district" in lowered or "subset" in lowered:
+    if (
+        hint in {"city_or_municipality", "district_or_subdivision"}
+        or "city" in lowered
+        or "district" in lowered
+        or "subset" in lowered
+    ):
         look_for.append("containment_cleanup_against_neighboring_admin_properties")
     if hint == "class_or_type_ontology" or "class" in lowered or "type" in lowered:
         look_for.append("ontology_cleanup_against_neighboring_membership_properties")
@@ -926,7 +1000,11 @@ def _normalize_numeric_text(value: str) -> str:
 
 def _is_live_target_property(property_id: str) -> bool:
     property_text = _as_text(property_id)
-    return bool(property_text) and property_text.startswith("P") and property_text != "P99999"
+    return (
+        bool(property_text)
+        and property_text.startswith("P")
+        and property_text != "P99999"
+    )
 
 
 def _extract_climate_year(qualifiers: Mapping[str, Any]) -> str:
@@ -946,23 +1024,41 @@ def _extract_climate_year(qualifiers: Mapping[str, Any]) -> str:
 
 def _select_primary_run(verification_runs: Mapping[str, Any]) -> Mapping[str, Any]:
     runs = verification_runs.get("runs", [])
-    if not isinstance(runs, Sequence) or isinstance(runs, (str, bytes, bytearray)) or not runs:
+    if (
+        not isinstance(runs, Sequence)
+        or isinstance(runs, (str, bytes, bytearray))
+        or not runs
+    ):
         return {}
     return runs[0] if isinstance(runs[0], Mapping) else {}
 
 
-def _select_migration_candidates(verification_runs: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+def _select_migration_candidates(
+    verification_runs: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
     primary_run = _select_primary_run(verification_runs)
-    migration_pack = primary_run.get("migration_pack", {}) if isinstance(primary_run, Mapping) else {}
-    candidates = migration_pack.get("candidates", []) if isinstance(migration_pack, Mapping) else []
-    if not isinstance(candidates, Sequence) or isinstance(candidates, (str, bytes, bytearray)):
+    migration_pack = (
+        primary_run.get("migration_pack", {})
+        if isinstance(primary_run, Mapping)
+        else {}
+    )
+    candidates = (
+        migration_pack.get("candidates", [])
+        if isinstance(migration_pack, Mapping)
+        else []
+    )
+    if not isinstance(candidates, Sequence) or isinstance(
+        candidates, (str, bytes, bytearray)
+    ):
         return []
     return [candidate for candidate in candidates if isinstance(candidate, Mapping)]
 
 
 def _count_split_axes(candidate: Mapping[str, Any]) -> int:
     split_axes = candidate.get("merged_split_axes") or candidate.get("split_axes") or []
-    if not isinstance(split_axes, Sequence) or isinstance(split_axes, (str, bytes, bytearray)):
+    if not isinstance(split_axes, Sequence) or isinstance(
+        split_axes, (str, bytes, bytearray)
+    ):
         return 0
     return sum(1 for axis in split_axes if isinstance(axis, Mapping) or _as_text(axis))
 
@@ -1015,7 +1111,9 @@ def classify_nat_p5991_semantic_bucket(
     year_derivable = bool(_extract_climate_year(qualifiers))
     has_part_scope = bool(_as_text_list(qualifiers.get("P518")))
     has_role_scope = bool(_as_text_list(qualifiers.get("P3831")))
-    has_interval = any(_as_text_list(qualifiers.get(property_id)) for property_id in ("P580", "P582"))
+    has_interval = any(
+        _as_text_list(qualifiers.get(property_id)) for property_id in ("P580", "P582")
+    )
     has_references = bool(canonical_bundle.get("references"))
     live_target_supported = _is_live_target_property(target_property)
 
@@ -1051,7 +1149,11 @@ def classify_nat_p5991_semantic_bucket(
     if migration_signal and source_property == "P5991":
         semantic_bucket = "migration_pending"
         bucket_reason = "upstream_migration_protocol_active"
-    elif classification == "split_required" or split_axis_count > 0 or multi_value_qualifiers:
+    elif (
+        classification == "split_required"
+        or split_axis_count > 0
+        or multi_value_qualifiers
+    ):
         semantic_bucket = "split_required"
         bucket_reason = "row_contains_multi_axis_or_split_shape"
     elif source_property != "P5991" or not live_target_supported:
@@ -1060,7 +1162,10 @@ def classify_nat_p5991_semantic_bucket(
     elif requires_review:
         semantic_bucket = "needs_review"
         bucket_reason = "review_flag_present"
-    elif classification in {"safe_equivalent", "safe_with_reference_transfer"} and year_derivable:
+    elif (
+        classification in {"safe_equivalent", "safe_with_reference_transfer"}
+        and year_derivable
+    ):
         semantic_bucket = "direct_migrate"
         bucket_reason = "safe_shape_with_derivable_year"
     elif classification:
@@ -1087,12 +1192,16 @@ def classify_nat_p5991_semantic_bucket(
         "has_interval": has_interval,
         "split_axis_count": split_axis_count,
         "multi_value_qualifier_properties": multi_value_qualifiers,
-        "qualifier_properties": sorted(_as_text(key) for key in qualifiers if _as_text(key)),
+        "qualifier_properties": sorted(
+            _as_text(key) for key in qualifiers if _as_text(key)
+        ),
         "semantic_signals": semantic_signals,
     }
 
 
-def build_nat_climate_claim_signature(canonical_form: Mapping[str, Any]) -> dict[str, Any]:
+def build_nat_climate_claim_signature(
+    canonical_form: Mapping[str, Any],
+) -> dict[str, Any]:
     qualifiers = canonical_form.get("qualifiers", {})
     if not isinstance(qualifiers, Mapping):
         qualifiers = {}
@@ -1101,7 +1210,9 @@ def build_nat_climate_claim_signature(canonical_form: Mapping[str, Any]) -> dict
         "subject_class": "enterprise",
         "metric_kind": "annual_greenhouse_gas_emissions",
         "property_family": "annual_greenhouse_gas_emissions",
-        "normalized_value": _normalize_numeric_text(_as_text(canonical_form.get("value"))),
+        "normalized_value": _normalize_numeric_text(
+            _as_text(canonical_form.get("value"))
+        ),
         "year": _extract_climate_year(qualifiers),
         "unit": "co2e",
         "determination_method": sorted(_as_text_list(qualifiers.get("P459"))),
@@ -1135,17 +1246,22 @@ def verify_nat_climate_cross_source_confirmation(
     )
     root_artifact_id = _as_text(migrated_candidate_source_unit.get("root_artifact_id"))
     property_id = _as_text(candidate_signature.get("property_family"))
-    same_metric_kind = (
-        _as_text(original_signature.get("metric_kind"))
-        == _as_text(candidate_signature.get("metric_kind"))
+    same_metric_kind = _as_text(original_signature.get("metric_kind")) == _as_text(
+        candidate_signature.get("metric_kind")
     )
-    same_year = _as_text(original_signature.get("year")) == _as_text(candidate_signature.get("year"))
+    same_year = _as_text(original_signature.get("year")) == _as_text(
+        candidate_signature.get("year")
+    )
     same_value = _as_text(original_signature.get("normalized_value")) == _as_text(
         candidate_signature.get("normalized_value")
     )
     independent_root = bool(root_artifact_id)
     migrated_property = _as_text(
-        (migrated_candidate_source_unit.get("canonical_form", {}) if isinstance(migrated_candidate_source_unit.get("canonical_form"), Mapping) else migrated_candidate_source_unit).get("property")
+        (
+            migrated_candidate_source_unit.get("canonical_form", {})
+            if isinstance(migrated_candidate_source_unit.get("canonical_form"), Mapping)
+            else migrated_candidate_source_unit
+        ).get("property")
     )
     confirmed = all(
         (
@@ -1227,7 +1343,8 @@ def build_nat_climate_cross_row_acquisition_plan(
     intake_rows = contract.get("intake_rows", [])
     climate_row = next(
         (
-            row for row in intake_rows
+            row
+            for row in intake_rows
             if isinstance(row, Mapping)
             and _as_text(row.get("family_id")).startswith("climate_family")
         ),
@@ -1235,7 +1352,9 @@ def build_nat_climate_cross_row_acquisition_plan(
     )
     candidate_plans: list[dict[str, Any]] = []
     if climate_row is not None:
-        for index, row in enumerate(climate_family_v2_seed.get("candidate_rows", []), start=1):
+        for index, row in enumerate(
+            climate_family_v2_seed.get("candidate_rows", []), start=1
+        ):
             if not isinstance(row, Mapping):
                 continue
             candidate_plans.append(
@@ -1259,7 +1378,9 @@ def build_nat_climate_cross_row_acquisition_plan(
         "candidate_plans": candidate_plans,
         "summary": {
             "candidate_count": len(candidate_plans),
-            "supports_claim_id": _as_text(climate_row.get("claim_id")) if isinstance(climate_row, Mapping) else "",
+            "supports_claim_id": _as_text(climate_row.get("claim_id"))
+            if isinstance(climate_row, Mapping)
+            else "",
         },
     }
 
@@ -1300,7 +1421,8 @@ def _build_qs_preview_row(
             for reference in references
             if isinstance(reference, Mapping)
         ]
-        if isinstance(references, Sequence) and not isinstance(references, (str, bytes, bytearray))
+        if isinstance(references, Sequence)
+        and not isinstance(references, (str, bytes, bytearray))
         else [],
     }
     if model_metadata["model_aware"]:
@@ -1354,7 +1476,11 @@ def build_nat_migration_execution_payload(
         "UNKNOWN",
     )
     runs = verification_runs.get("runs", [])
-    if not isinstance(runs, Sequence) or isinstance(runs, (str, bytes, bytearray)) or not runs:
+    if (
+        not isinstance(runs, Sequence)
+        or isinstance(runs, (str, bytes, bytearray))
+        or not runs
+    ):
         return {
             "schema_version": AUTOMATION_GRADUATION_MIGRATION_EXECUTION_PAYLOAD_SCHEMA_VERSION,
             "family_id": family_id,
@@ -1363,13 +1489,29 @@ def build_nat_migration_execution_payload(
             "payload_status": "no_runs",
             "openrefine_rows": [],
             "quickstatements_v1_rows": [],
-            "summary": {"row_count": 0, "target_property": "", "execution_mode": "review_first"},
+            "summary": {
+                "row_count": 0,
+                "target_property": "",
+                "execution_mode": "review_first",
+            },
         }
     first_run = runs[0] if isinstance(runs[0], Mapping) else {}
-    migration_pack = first_run.get("migration_pack", {}) if isinstance(first_run, Mapping) else {}
-    target_property = _as_text(migration_pack.get("target_property")) if isinstance(migration_pack, Mapping) else ""
-    candidates = migration_pack.get("candidates", []) if isinstance(migration_pack, Mapping) else []
-    if not isinstance(candidates, Sequence) or isinstance(candidates, (str, bytes, bytearray)):
+    migration_pack = (
+        first_run.get("migration_pack", {}) if isinstance(first_run, Mapping) else {}
+    )
+    target_property = (
+        _as_text(migration_pack.get("target_property"))
+        if isinstance(migration_pack, Mapping)
+        else ""
+    )
+    candidates = (
+        migration_pack.get("candidates", [])
+        if isinstance(migration_pack, Mapping)
+        else []
+    )
+    if not isinstance(candidates, Sequence) or isinstance(
+        candidates, (str, bytes, bytearray)
+    ):
         candidates = []
 
     eligible: list[Mapping[str, Any]] = []
@@ -1479,7 +1621,9 @@ def build_nat_migration_batch_export(
         require_live_target_property=require_live_target_property,
     )
     openrefine_rows = execution_payload.get("openrefine_rows", [])
-    if not isinstance(openrefine_rows, Sequence) or isinstance(openrefine_rows, (str, bytes, bytearray)):
+    if not isinstance(openrefine_rows, Sequence) or isinstance(
+        openrefine_rows, (str, bytes, bytearray)
+    ):
         openrefine_rows = []
     quickstatements_rows = execution_payload.get("quickstatements_v1_rows", [])
     if not isinstance(quickstatements_rows, Sequence) or isinstance(
@@ -1503,7 +1647,9 @@ def build_nat_migration_batch_export(
     )
     export_status = "ready_for_review_export"
     if _as_text(execution_payload.get("payload_status")) != "ready_for_review_payload":
-        export_status = _as_text(execution_payload.get("payload_status")) or "not_ready_for_export"
+        export_status = (
+            _as_text(execution_payload.get("payload_status")) or "not_ready_for_export"
+        )
 
     return {
         "schema_version": AUTOMATION_GRADUATION_MIGRATION_BATCH_EXPORT_SCHEMA_VERSION,
@@ -1513,7 +1659,8 @@ def build_nat_migration_batch_export(
         "family_state": _as_text(execution_payload.get("family_state")),
         "payload_status": _as_text(execution_payload.get("payload_status")),
         "export_status": export_status,
-        "execution_mode": _as_text(execution_payload.get("execution_mode")) or "review_first",
+        "execution_mode": _as_text(execution_payload.get("execution_mode"))
+        or "review_first",
         "target_property": target_property,
         "live_target_supported": bool(execution_payload.get("live_target_supported")),
         "candidate_ids": candidate_ids_from_payload,
@@ -1571,8 +1718,12 @@ def build_nat_migration_candidate_contracts(
         model_validation = _normalize_model_validation(row.get("model_validation"))
         split_plan = _normalize_split_plan(row.get("split_plan"))
         execution_profile = _normalize_optional_mapping(row.get("execution_profile"))
-        promotion_class = _optional_text(original_candidate.get("promotion_class")) or "review_only"
-        promotion_gate = _normalize_candidate_promotion_gate(original_candidate.get("promotion_gate"))
+        promotion_class = (
+            _optional_text(original_candidate.get("promotion_class")) or "review_only"
+        )
+        promotion_gate = _normalize_candidate_promotion_gate(
+            original_candidate.get("promotion_gate")
+        )
         if not promotion_gate:
             promotion_gate = {
                 "decision": promotion_class,
@@ -1585,9 +1736,13 @@ def build_nat_migration_candidate_contracts(
                     "reason": "legacy_candidate_contract_surface",
                 },
             }
-        subject_resolution = _normalize_subject_resolution(original_candidate.get("subject_resolution"))
+        subject_resolution = _normalize_subject_resolution(
+            original_candidate.get("subject_resolution")
+        )
         if subject_resolution:
-            promotion_gate = _augment_promotion_gate_with_subject_resolution(promotion_gate, subject_resolution)
+            promotion_gate = _augment_promotion_gate_with_subject_resolution(
+                promotion_gate, subject_resolution
+            )
         promotion_counts[promotion_class] = promotion_counts.get(promotion_class, 0) + 1
         source_bundle = {
             "subject": _as_text(row.get("entity_qid")),
@@ -1599,12 +1754,20 @@ def build_nat_migration_candidate_contracts(
             "window_id": _as_text(target_bundle.get("window_id")),
         }
         target_bundle = {
-            "subject": _as_text(target_bundle.get("subject")) or _as_text(row.get("entity_qid")),
-            "property": _as_text(target_bundle.get("property")) or _as_text(row.get("to_property")),
+            "subject": _as_text(target_bundle.get("subject"))
+            or _as_text(row.get("entity_qid")),
+            "property": _as_text(target_bundle.get("property"))
+            or _as_text(row.get("to_property")),
             "value": target_bundle.get("value", row.get("value")),
-            "rank": _as_text(target_bundle.get("rank")) or _as_text(row.get("rank")) or "normal",
-            "qualifiers": target_bundle.get("qualifiers", row.get("qualifiers_json", {})),
-            "references": target_bundle.get("references", row.get("references_json", [])),
+            "rank": _as_text(target_bundle.get("rank"))
+            or _as_text(row.get("rank"))
+            or "normal",
+            "qualifiers": target_bundle.get(
+                "qualifiers", row.get("qualifiers_json", {})
+            ),
+            "references": target_bundle.get(
+                "references", row.get("references_json", [])
+            ),
             "window_id": _as_text(target_bundle.get("window_id")),
         }
         candidate_contracts.append(
@@ -1629,16 +1792,30 @@ def build_nat_migration_candidate_contracts(
                     "references": target_bundle.get("references", []),
                     "rank": _as_text(target_bundle.get("rank")) or "normal",
                 },
-                **({"subject_resolution": subject_resolution} if subject_resolution else {}),
+                **(
+                    {"subject_resolution": subject_resolution}
+                    if subject_resolution
+                    else {}
+                ),
                 "normalization": {
                     "year_basis": _year_basis_for_bundle(target_bundle),
-                    "quantity_unit_normalized": "unit_qid" in _normalize_contract_value(target_bundle.get("value")),
+                    "quantity_unit_normalized": "unit_qid"
+                    in _normalize_contract_value(target_bundle.get("value")),
                     "fiscal_year_edge_case": False,
                     **(
                         {
-                            "resolved_year": _as_text(model_validation.get("resolved_year") or split_plan.get("resolved_year")),
-                            "resolved_scope": _as_text(model_validation.get("resolved_scope") or split_plan.get("resolved_scope")),
-                            "resolved_unit_qid": _as_text(model_validation.get("resolved_unit_qid") or split_plan.get("resolved_unit_qid")),
+                            "resolved_year": _as_text(
+                                model_validation.get("resolved_year")
+                                or split_plan.get("resolved_year")
+                            ),
+                            "resolved_scope": _as_text(
+                                model_validation.get("resolved_scope")
+                                or split_plan.get("resolved_scope")
+                            ),
+                            "resolved_unit_qid": _as_text(
+                                model_validation.get("resolved_unit_qid")
+                                or split_plan.get("resolved_unit_qid")
+                            ),
                         }
                         if (model_validation or split_plan)
                         else {}
@@ -1651,13 +1828,20 @@ def build_nat_migration_candidate_contracts(
                         "split_plan": split_plan,
                         "execution_profile": execution_profile,
                     }
-                    if (promotion_gate or model_validation or split_plan or execution_profile)
+                    if (
+                        promotion_gate
+                        or model_validation
+                        or split_plan
+                        or execution_profile
+                    )
                     else {}
                 ),
             }
         )
 
-    subject_resolution_summary = _subject_resolution_summary_from_contracts(candidate_contracts)
+    subject_resolution_summary = _subject_resolution_summary_from_contracts(
+        candidate_contracts
+    )
 
     report = {
         "schema_version": AUTOMATION_GRADUATION_MIGRATION_CANDIDATE_CONTRACT_SCHEMA_VERSION,
@@ -1673,11 +1857,20 @@ def build_nat_migration_candidate_contracts(
             **(
                 {
                     "subject_resolution_counts": {
-                        "known": subject_resolution_summary["subject_resolution_known_count"],
-                        "unknown": subject_resolution_summary["subject_resolution_unknown_count"],
-                        "absent": subject_resolution_summary["subject_resolution_absent_count"],
+                        "known": subject_resolution_summary[
+                            "subject_resolution_known_count"
+                        ],
+                        "unknown": subject_resolution_summary[
+                            "subject_resolution_unknown_count"
+                        ],
+                        "absent": subject_resolution_summary[
+                            "subject_resolution_absent_count"
+                        ],
                     },
-                    "subject_resolution_gate_ready": subject_resolution_summary["subject_resolution_unknown_count"] == 0,
+                    "subject_resolution_gate_ready": subject_resolution_summary[
+                        "subject_resolution_unknown_count"
+                    ]
+                    == 0,
                 }
                 if subject_resolution_summary
                 else {}
@@ -1700,9 +1893,13 @@ def build_nat_migration_backend_plan(
     )
     openrefine_rows = execution_payload.get("openrefine_rows", [])
     quickstatements_rows = execution_payload.get("quickstatements_v1_rows", [])
-    if not isinstance(openrefine_rows, Sequence) or isinstance(openrefine_rows, (str, bytes, bytearray)):
+    if not isinstance(openrefine_rows, Sequence) or isinstance(
+        openrefine_rows, (str, bytes, bytearray)
+    ):
         openrefine_rows = []
-    if not isinstance(quickstatements_rows, Sequence) or isinstance(quickstatements_rows, (str, bytes, bytearray)):
+    if not isinstance(quickstatements_rows, Sequence) or isinstance(
+        quickstatements_rows, (str, bytes, bytearray)
+    ):
         quickstatements_rows = []
 
     qs_by_candidate = {
@@ -1748,15 +1945,20 @@ def build_nat_migration_backend_plan(
                 "execution_backend": execution_backend,
                 "execution_reason": execution_reason,
                 "openrefine_row": row if execution_backend == "openrefine" else None,
-                "quickstatements_row": qs_by_candidate.get(candidate_id) if execution_backend == "qs3" else None,
+                "quickstatements_row": qs_by_candidate.get(candidate_id)
+                if execution_backend == "qs3"
+                else None,
                 **(
                     {
                         "execution_strategy": _as_text(row.get("execution_strategy")),
-                        "model_classification": _as_text(row.get("model_classification")),
+                        "model_classification": _as_text(
+                            row.get("model_classification")
+                        ),
                         "model_validation": row.get("model_validation", {}),
                         "split_plan": row.get("split_plan", {}),
                     }
-                    if _as_text(row.get("model_classification")) or row.get("split_plan")
+                    if _as_text(row.get("model_classification"))
+                    or row.get("split_plan")
                     else {}
                 ),
             }
@@ -1813,9 +2015,7 @@ def build_nat_execution_receipt_contract(
                     "split_plan": split_plan,
                 }
             )
-        receipt_rows.append(
-            receipt_row
-        )
+        receipt_rows.append(receipt_row)
 
     family_id = _as_text(backend_plan.get("family_id"))
     batch_id = f"{family_id}:migration_batch"
@@ -1850,14 +2050,19 @@ def build_nat_execution_receipt_contract(
                 {
                     _as_text(row.get("execution_backend"))
                     for row in backend_plan.get("backend_rows", [])
-                if isinstance(row, Mapping) and _as_text(row.get("execution_backend"))
+                    if isinstance(row, Mapping)
+                    and _as_text(row.get("execution_backend"))
                 }
             ),
         },
     }
     if any(
         isinstance(row, Mapping)
-        and (row.get("model_classification") or row.get("model_validation") or row.get("split_plan"))
+        and (
+            row.get("model_classification")
+            or row.get("model_validation")
+            or row.get("split_plan")
+        )
         for row in receipt_rows
     ):
         receipt_contract["required_fields"] = receipt_contract["required_fields"] + [
@@ -1896,15 +2101,21 @@ def build_nat_post_write_contract(
         if isinstance(contract.get("subject_resolution"), Mapping):
             must_verify.append("subject_resolution_match")
         if isinstance(model_validation, Mapping) and model_validation:
-            must_verify.extend(["resolved_year_match", "resolved_scope_match", "resolved_unit_match"])
+            must_verify.extend(
+                ["resolved_year_match", "resolved_scope_match", "resolved_unit_match"]
+            )
         if isinstance(split_plan, Mapping) and split_plan:
             must_verify.append("split_plan_match")
         entity_checks.append(
             {
                 "candidate_id": _as_text(contract.get("candidate_id")),
                 "entity_qid": _as_text(contract.get("entity_qid")),
-                "target_property": _as_text(contract.get("target_statement", {}).get("property")),
-                "expected_rank": _as_text(contract.get("target_statement", {}).get("rank")),
+                "target_property": _as_text(
+                    contract.get("target_statement", {}).get("property")
+                ),
+                "expected_rank": _as_text(
+                    contract.get("target_statement", {}).get("rank")
+                ),
                 "must_verify": must_verify,
                 "verification_status": "awaiting_observed_after_state",
                 "execution_lifecycle_state": "ready",
@@ -1936,21 +2147,38 @@ def build_nat_post_write_contract(
         "total_claims": 0,
     }
     if subject_resolution_summary:
-        readiness_surface["ready_for_external_execution"] = subject_resolution_summary["subject_resolution_unknown_count"] == 0
+        readiness_surface["ready_for_external_execution"] = (
+            subject_resolution_summary["subject_resolution_unknown_count"] == 0
+        )
         readiness_surface.update(
             {
-                "subject_resolution_gate_ready": subject_resolution_summary["subject_resolution_unknown_count"] == 0,
+                "subject_resolution_gate_ready": subject_resolution_summary[
+                    "subject_resolution_unknown_count"
+                ]
+                == 0,
                 "subject_resolution_counts": {
-                    "known": subject_resolution_summary["subject_resolution_known_count"],
-                    "unknown": subject_resolution_summary["subject_resolution_unknown_count"],
-                    "absent": subject_resolution_summary["subject_resolution_absent_count"],
+                    "known": subject_resolution_summary[
+                        "subject_resolution_known_count"
+                    ],
+                    "unknown": subject_resolution_summary[
+                        "subject_resolution_unknown_count"
+                    ],
+                    "absent": subject_resolution_summary[
+                        "subject_resolution_absent_count"
+                    ],
                 },
-                "subject_resolution_hard_defect_count": subject_resolution_summary["subject_resolution_hard_defect_count"],
-                "subject_resolution_soft_defect_count": subject_resolution_summary["subject_resolution_soft_defect_count"],
+                "subject_resolution_hard_defect_count": subject_resolution_summary[
+                    "subject_resolution_hard_defect_count"
+                ],
+                "subject_resolution_soft_defect_count": subject_resolution_summary[
+                    "subject_resolution_soft_defect_count"
+                ],
                 "subject_resolution_distribution_by_promotion_class": subject_resolution_summary[
                     "subject_resolution_distribution_by_promotion_class"
                 ],
-                "subject_resolution_coverage": subject_resolution_summary["subject_resolution_coverage"],
+                "subject_resolution_coverage": subject_resolution_summary[
+                    "subject_resolution_coverage"
+                ],
             }
         )
     return {
@@ -1978,11 +2206,20 @@ def build_nat_post_write_contract(
             **(
                 {
                     "subject_resolution_counts": {
-                        "known": subject_resolution_summary["subject_resolution_known_count"],
-                        "unknown": subject_resolution_summary["subject_resolution_unknown_count"],
-                        "absent": subject_resolution_summary["subject_resolution_absent_count"],
+                        "known": subject_resolution_summary[
+                            "subject_resolution_known_count"
+                        ],
+                        "unknown": subject_resolution_summary[
+                            "subject_resolution_unknown_count"
+                        ],
+                        "absent": subject_resolution_summary[
+                            "subject_resolution_absent_count"
+                        ],
                     },
-                    "subject_resolution_gate_ready": subject_resolution_summary["subject_resolution_unknown_count"] == 0,
+                    "subject_resolution_gate_ready": subject_resolution_summary[
+                        "subject_resolution_unknown_count"
+                    ]
+                    == 0,
                 }
                 if subject_resolution_summary
                 else {}
@@ -2000,11 +2237,20 @@ def build_nat_post_write_contract(
             **(
                 {
                     "subject_resolution_counts": {
-                        "known": subject_resolution_summary["subject_resolution_known_count"],
-                        "unknown": subject_resolution_summary["subject_resolution_unknown_count"],
-                        "absent": subject_resolution_summary["subject_resolution_absent_count"],
+                        "known": subject_resolution_summary[
+                            "subject_resolution_known_count"
+                        ],
+                        "unknown": subject_resolution_summary[
+                            "subject_resolution_unknown_count"
+                        ],
+                        "absent": subject_resolution_summary[
+                            "subject_resolution_absent_count"
+                        ],
                     },
-                    "subject_resolution_gate_ready": subject_resolution_summary["subject_resolution_unknown_count"] == 0,
+                    "subject_resolution_gate_ready": subject_resolution_summary[
+                        "subject_resolution_unknown_count"
+                    ]
+                    == 0,
                     "subject_resolution_hard_defect_count": subject_resolution_summary[
                         "subject_resolution_hard_defect_count"
                     ],
@@ -2064,12 +2310,18 @@ def build_nat_migration_simulation_contract(
         candidate_contracts.get("candidate_contracts", [])
     )
     readiness_contract = {
-        "promotion_status": _as_text(lifecycle_contract.get("promotion_status")) or "hold",
-        "execution_lifecycle_state": _as_text(lifecycle_contract.get("current_state")) or "not_started",
-        "post_write_verification_status": _as_text(verification_contract.get("verification_status"))
+        "promotion_status": _as_text(lifecycle_contract.get("promotion_status"))
+        or "hold",
+        "execution_lifecycle_state": _as_text(lifecycle_contract.get("current_state"))
+        or "not_started",
+        "post_write_verification_status": _as_text(
+            verification_contract.get("verification_status")
+        )
         or "awaiting_observed_after_state",
         "review_first": True,
-        "ready_for_external_execution": _as_text(post_write_contract.get("verification_status"))
+        "ready_for_external_execution": _as_text(
+            post_write_contract.get("verification_status")
+        )
         == "awaiting_observed_after_state",
     }
     if subject_resolution_summary:
@@ -2078,16 +2330,27 @@ def build_nat_migration_simulation_contract(
         )
         readiness_contract.update(
             {
-                "subject_resolution_gate_ready": subject_resolution_summary["subject_resolution_unknown_count"] == 0,
+                "subject_resolution_gate_ready": subject_resolution_summary[
+                    "subject_resolution_unknown_count"
+                ]
+                == 0,
                 "subject_resolution_counts": {
-                    "known": subject_resolution_summary["subject_resolution_known_count"],
-                    "unknown": subject_resolution_summary["subject_resolution_unknown_count"],
-                    "absent": subject_resolution_summary["subject_resolution_absent_count"],
+                    "known": subject_resolution_summary[
+                        "subject_resolution_known_count"
+                    ],
+                    "unknown": subject_resolution_summary[
+                        "subject_resolution_unknown_count"
+                    ],
+                    "absent": subject_resolution_summary[
+                        "subject_resolution_absent_count"
+                    ],
                 },
                 "subject_resolution_distribution_by_promotion_class": subject_resolution_summary[
                     "subject_resolution_distribution_by_promotion_class"
                 ],
-                "subject_resolution_coverage": subject_resolution_summary["subject_resolution_coverage"],
+                "subject_resolution_coverage": subject_resolution_summary[
+                    "subject_resolution_coverage"
+                ],
             }
         )
     return {
@@ -2104,18 +2367,28 @@ def build_nat_migration_simulation_contract(
             "candidate_count": int(candidate_summary.get("candidate_count", 0)),
             "openrefine_count": int(backend_summary.get("openrefine_count", 0)),
             "qs3_count": int(backend_summary.get("qs3_count", 0)),
-            "counts_by_promotion_class": dict(candidate_summary.get("counts_by_promotion_class", {})),
+            "counts_by_promotion_class": dict(
+                candidate_summary.get("counts_by_promotion_class", {})
+            ),
             **(
                 {
                     "subject_resolution_counts": {
-                        "known": subject_resolution_summary["subject_resolution_known_count"],
-                        "unknown": subject_resolution_summary["subject_resolution_unknown_count"],
-                        "absent": subject_resolution_summary["subject_resolution_absent_count"],
+                        "known": subject_resolution_summary[
+                            "subject_resolution_known_count"
+                        ],
+                        "unknown": subject_resolution_summary[
+                            "subject_resolution_unknown_count"
+                        ],
+                        "absent": subject_resolution_summary[
+                            "subject_resolution_absent_count"
+                        ],
                     },
                     "subject_resolution_distribution_by_promotion_class": subject_resolution_summary[
                         "subject_resolution_distribution_by_promotion_class"
                     ],
-                    "subject_resolution_coverage": subject_resolution_summary["subject_resolution_coverage"],
+                    "subject_resolution_coverage": subject_resolution_summary[
+                        "subject_resolution_coverage"
+                    ],
                 }
                 if subject_resolution_summary
                 else {}
@@ -2162,7 +2435,9 @@ def _summarize_post_write_runs(
         "verified_claims": verified_claims,
         "drift_claims": drift_claims,
         "pending_drift_run_ids": pending_drift_run_ids,
-        "fixed_point_state": "verified" if verification_ready else ("executed" if total_runs else "not_started"),
+        "fixed_point_state": "verified"
+        if verification_ready
+        else ("executed" if total_runs else "not_started"),
         "stable_fixed_point": verification_ready,
         "promotion_ready": verification_ready,
     }
@@ -2176,14 +2451,21 @@ def _build_post_write_readiness_surface(
 ) -> dict[str, Any]:
     verification_ready = bool(summary.get("verification_ready"))
     return {
-        "execution_lifecycle_state": _as_text(lifecycle_contract.get("current_state")) or "not_started",
-        "promotion_status": _as_text(lifecycle_contract.get("promotion_status")) or "hold",
-        "verification_status": _as_text(verification_contract.get("verification_status"))
-        or "awaiting_observed_after_state",
-        "fixed_point_state": "verified" if verification_ready else _as_text(lifecycle_contract.get("current_state"))
+        "execution_lifecycle_state": _as_text(lifecycle_contract.get("current_state"))
         or "not_started",
+        "promotion_status": _as_text(lifecycle_contract.get("promotion_status"))
+        or "hold",
+        "verification_status": _as_text(
+            verification_contract.get("verification_status")
+        )
+        or "awaiting_observed_after_state",
+        "fixed_point_state": "verified"
+        if verification_ready
+        else _as_text(lifecycle_contract.get("current_state")) or "not_started",
         "stable_fixed_point": verification_ready,
-        "ready_for_external_execution": _as_text(verification_contract.get("verification_status"))
+        "ready_for_external_execution": _as_text(
+            verification_contract.get("verification_status")
+        )
         == "awaiting_observed_after_state",
         "verification_ready": verification_ready,
         "run_count": int(summary.get("run_count", 0)),
@@ -2210,7 +2492,8 @@ def _build_post_write_pilot_metrics(
         "run_count": run_count,
         "verified_run_count": verified_run_count,
         "verification_ready": bool(summary.get("verification_ready")),
-        "fixed_point_state": _as_text(readiness_surface.get("fixed_point_state")) or "not_started",
+        "fixed_point_state": _as_text(readiness_surface.get("fixed_point_state"))
+        or "not_started",
         "stable_fixed_point": bool(readiness_surface.get("stable_fixed_point")),
         "promotion_ready": bool(readiness_surface.get("promotion_ready")),
         "total_claims": total_claims,
@@ -2252,7 +2535,8 @@ def build_nat_migration_executed_rows(
                     "cohort_id": cohort_id,
                     "candidate_id": candidate_id,
                     "export_id": export_id,
-                    "execution_mode": _as_text(batch_export.get("execution_mode")) or "review_first",
+                    "execution_mode": _as_text(batch_export.get("execution_mode"))
+                    or "review_first",
                     "artifact_kinds": [],
                 },
             )
@@ -2275,7 +2559,9 @@ def build_nat_migration_executed_rows(
         "executed_rows": executed_rows,
         "summary": {
             "row_count": len(executed_rows),
-            "artifact_count": sum(len(row.get("artifact_kinds", [])) for row in executed_rows),
+            "artifact_count": sum(
+                len(row.get("artifact_kinds", [])) for row in executed_rows
+            ),
         },
     }
 
@@ -2304,7 +2590,11 @@ def build_nat_migration_batch_finder_report(
         family_row = state_by_family.get(family_id, {})
         execution_payload = build_nat_migration_execution_payload(verification_runs)
         row_count = int(execution_payload.get("summary", {}).get("row_count", 0))
-        if _as_text(execution_payload.get("payload_status")) == "ready_for_review_payload" and row_count > 0:
+        if (
+            _as_text(execution_payload.get("payload_status"))
+            == "ready_for_review_payload"
+            and row_count > 0
+        ):
             candidate_batches.append(
                 {
                     "family_id": family_id,
@@ -2312,11 +2602,14 @@ def build_nat_migration_batch_finder_report(
                     "family_state": _as_text(family_row.get("state")),
                     "state_basis": _as_text(family_row.get("state_basis")),
                     "row_count": row_count,
-                    "target_property": _as_text(execution_payload.get("target_property")),
+                    "target_property": _as_text(
+                        execution_payload.get("target_property")
+                    ),
                     "candidate_ids": [
                         _as_text(row.get("candidate_id"))
                         for row in execution_payload.get("openrefine_rows", [])
-                        if isinstance(row, Mapping) and _as_text(row.get("candidate_id"))
+                        if isinstance(row, Mapping)
+                        and _as_text(row.get("candidate_id"))
                     ],
                 }
             )
@@ -2327,13 +2620,22 @@ def build_nat_migration_batch_finder_report(
                     "cohort_id": _as_text(verification_runs.get("cohort_id")),
                     "family_state": _as_text(family_row.get("state")),
                     "state_basis": _as_text(family_row.get("state_basis")),
-                    "blocking_reason": _as_text(execution_payload.get("payload_status")) or "not_ready_for_execution",
-                    "target_property": _as_text(execution_payload.get("target_property")),
+                    "blocking_reason": _as_text(execution_payload.get("payload_status"))
+                    or "not_ready_for_execution",
+                    "target_property": _as_text(
+                        execution_payload.get("target_property")
+                    ),
                 }
             )
 
-    candidate_batches.sort(key=lambda row: (-int(row.get("row_count", 0)), _as_text(row.get("family_id"))))
-    processed_families = {row.get("family_id") for row in candidate_batches if isinstance(row.get("family_id"), str)}
+    candidate_batches.sort(
+        key=lambda row: (-int(row.get("row_count", 0)), _as_text(row.get("family_id")))
+    )
+    processed_families = {
+        row.get("family_id")
+        for row in candidate_batches
+        if isinstance(row.get("family_id"), str)
+    }
     machine_generated_batches: list[dict[str, Any]] = []
     for family_id, state_row in state_by_family.items():
         if not family_id or family_id in processed_families:
@@ -2360,7 +2662,9 @@ def build_nat_migration_batch_finder_report(
             "family_count": len(candidate_batches) + len(held_families),
             "ready_batch_count": len(candidate_batches),
             "held_family_count": len(held_families),
-            "ready_row_count": sum(int(row.get("row_count", 0)) for row in candidate_batches),
+            "ready_row_count": sum(
+                int(row.get("row_count", 0)) for row in candidate_batches
+            ),
             "machine_generated_count": len(machine_generated_batches),
         },
     }
@@ -2386,23 +2690,35 @@ def build_nat_migration_lifecycle_report(
     for batch in post_execution_batches or []:
         if not isinstance(batch, Mapping):
             continue
-        convergence = build_nat_claim_convergence_report(batch, min_independent_paths=min_independent_paths)
+        convergence = build_nat_claim_convergence_report(
+            batch, min_independent_paths=min_independent_paths
+        )
         family_id = _as_text(convergence.get("family_id"))
         promoted = {
             _as_text(claim.get("claim_id"))
             for claim in convergence.get("claims", [])
-            if isinstance(claim, Mapping) and _as_text(claim.get("status")) == "PROMOTED"
+            if isinstance(claim, Mapping)
+            and _as_text(claim.get("status")) == "PROMOTED"
         }
         if family_id and promoted:
             verified_candidates_by_family[family_id] = promoted
 
     rows: list[dict[str, Any]] = []
-    summary = {"ready_count": 0, "executed_count": 0, "verified_count": 0, "not_started_count": 0}
+    summary = {
+        "ready_count": 0,
+        "executed_count": 0,
+        "verified_count": 0,
+        "not_started_count": 0,
+    }
     finder = build_nat_migration_batch_finder_report(
         verification_run_batches,
         min_independent_paths=min_independent_paths,
     )
-    ready_families = {row["family_id"]: row for row in finder.get("candidate_batches", []) if isinstance(row, Mapping)}
+    ready_families = {
+        row["family_id"]: row
+        for row in finder.get("candidate_batches", [])
+        if isinstance(row, Mapping)
+    }
 
     for batch in verification_run_batches:
         if not isinstance(batch, Mapping):
@@ -2418,7 +2734,9 @@ def build_nat_migration_lifecycle_report(
             summary["ready_count"] += 1
         executed_ids = executed_by_family.get(family_id, set())
         verified_ids = verified_candidates_by_family.get(family_id, set())
-        if candidate_ids and all(candidate_id in verified_ids for candidate_id in candidate_ids):
+        if candidate_ids and all(
+            candidate_id in verified_ids for candidate_id in candidate_ids
+        ):
             lifecycle_state = "VERIFIED"
             summary["verified_count"] += 1
             summary["ready_count"] -= 1
@@ -2473,7 +2791,8 @@ def build_nat_migration_execution_proof(
             row
             for row in lifecycle_report.get("families", [])
             if isinstance(row, Mapping)
-            and _as_text(row.get("family_id")) == _as_text(verification_runs.get("family_id"))
+            and _as_text(row.get("family_id"))
+            == _as_text(verification_runs.get("family_id"))
         ),
         {},
     )
@@ -2488,7 +2807,9 @@ def build_nat_migration_execution_proof(
             "export_status": _as_text(batch_export.get("export_status")),
             "execution_status": _as_text(executed_rows_report.get("execution_status")),
             "lifecycle_state": _as_text(lifecycle_row.get("lifecycle_state")),
-            "candidate_count": int(batch_export.get("summary", {}).get("candidate_count", 0)),
+            "candidate_count": int(
+                batch_export.get("summary", {}).get("candidate_count", 0)
+            ),
         },
     }
 
@@ -2512,7 +2833,9 @@ def _build_gate_b_metrics_from_verification_report(
 ) -> dict[str, Any]:
     checked_safe_count = max(_count_checked_safe_candidates(migration_pack), 0)
     verification_summary = (
-        verification_report.get("summary", {}) if isinstance(verification_report.get("summary"), Mapping) else {}
+        verification_report.get("summary", {})
+        if isinstance(verification_report.get("summary"), Mapping)
+        else {}
     )
     counts_by_status = (
         verification_summary.get("counts_by_status", {})
@@ -2520,10 +2843,18 @@ def _build_gate_b_metrics_from_verification_report(
         else {}
     )
     verified_count = int(verification_summary.get("verified_candidate_count", 0))
-    total_verified_rows = sum(int(value) for value in counts_by_status.values()) if counts_by_status else verified_count
-    denominator = checked_safe_count if checked_safe_count > 0 else max(total_verified_rows, 1)
+    total_verified_rows = (
+        sum(int(value) for value in counts_by_status.values())
+        if counts_by_status
+        else verified_count
+    )
+    denominator = (
+        checked_safe_count if checked_safe_count > 0 else max(total_verified_rows, 1)
+    )
 
-    non_verified_count = max(total_verified_rows - int(counts_by_status.get("verified", 0)), 0)
+    non_verified_count = max(
+        total_verified_rows - int(counts_by_status.get("verified", 0)), 0
+    )
     candidate_rows = verification_report.get("rows", [])
     if not isinstance(candidate_rows, Sequence):
         candidate_rows = []
@@ -2542,8 +2873,12 @@ def _build_gate_b_metrics_from_verification_report(
         "direct_safe_yield_by_family": {"observed": verified_count / denominator},
         "split_required_rate_by_family": {"observed": 0.0},
         "hold_abstain_rate_and_reason_distribution": {"observed": 0.0},
-        "after_state_verification_pass_rate": {"observed": verified_count / denominator},
-        "false_positive_rate_and_severity": {"observed": non_verified_count / denominator},
+        "after_state_verification_pass_rate": {
+            "observed": verified_count / denominator
+        },
+        "false_positive_rate_and_severity": {
+            "observed": non_verified_count / denominator
+        },
         "rollback_invocation_and_recovery_success": {"observed": 1.0},
         "receipt_completeness_coverage": {"observed": receipt_coverage},
     }
@@ -2559,7 +2894,9 @@ def _build_bounded_promotion_scope(
         "scope_status": "pilot_ready_only",
         "family_id": family_id,
         "cohort_id": cohort_id,
-        "candidate_ids": [candidate_id for candidate_id in candidate_ids if _as_text(candidate_id)],
+        "candidate_ids": [
+            candidate_id for candidate_id in candidate_ids if _as_text(candidate_id)
+        ],
         "generalization_allowed": False,
         "generalization_requires_new_evidence": True,
         "promotion_statement": (
@@ -2574,14 +2911,18 @@ def build_nat_gate_b_proposal_batches_from_verification_runs(
     verification_runs: Mapping[str, Any],
 ) -> dict[str, Any]:
     raw_runs = verification_runs.get("runs", [])
-    if not isinstance(raw_runs, Sequence) or isinstance(raw_runs, (str, bytes, bytearray)):
+    if not isinstance(raw_runs, Sequence) or isinstance(
+        raw_runs, (str, bytes, bytearray)
+    ):
         raw_runs = []
     if not raw_runs and isinstance(verification_runs.get("migration_pack"), Mapping):
         raw_runs = [verification_runs]
     family_id = _as_text(verification_runs.get("family_id"))
     cohort_id = _as_text(verification_runs.get("cohort_id"))
     candidate_ids_raw = verification_runs.get("candidate_ids", [])
-    candidate_ids = [str(value).strip() for value in candidate_ids_raw if str(value).strip()]
+    candidate_ids = [
+        str(value).strip() for value in candidate_ids_raw if str(value).strip()
+    ]
     bounded_scope = _build_bounded_promotion_scope(family_id, cohort_id, candidate_ids)
     gate_families_passed = [
         "evidence_grounding",
@@ -2604,23 +2945,34 @@ def build_nat_gate_b_proposal_batches_from_verification_runs(
                 continue
             migration_pack = run.get("migration_pack", {})
             after_payload = run.get("after_payload", {})
-            if not isinstance(migration_pack, Mapping) or not isinstance(after_payload, Mapping):
+            if not isinstance(migration_pack, Mapping) or not isinstance(
+                after_payload, Mapping
+            ):
                 continue
 
-            verification_report = verify_migration_pack_against_after_state(migration_pack, after_payload)
+            verification_report = verify_migration_pack_against_after_state(
+                migration_pack, after_payload
+            )
             counts_by_status = (
                 verification_report.get("summary", {}).get("counts_by_status", {})
                 if isinstance(verification_report.get("summary"), Mapping)
                 else {}
             )
             risk_signals: list[str] = []
-            if any(int(value) > 0 for key, value in counts_by_status.items() if key != "verified"):
+            if any(
+                int(value) > 0
+                for key, value in counts_by_status.items()
+                if key != "verified"
+            ):
                 risk_signals.append("after_state_verification_drift_present")
 
             proposal_id = _as_text(run.get("proposal_id")) or (
                 f"{family_id or 'nat-gate-b-family'}-proposal-{index + 1}"
             )
-            batch_id = _as_text(run.get("batch_id")) or f"{family_id or 'nat-gate-b-family'}-batch-{index + 1}"
+            batch_id = (
+                _as_text(run.get("batch_id"))
+                or f"{family_id or 'nat-gate-b-family'}-batch-{index + 1}"
+            )
             run_id = _as_text(run.get("run_id")) or f"run-{index + 1}"
             proposal = {
                 "proposal_id": proposal_id,
@@ -2633,12 +2985,16 @@ def build_nat_gate_b_proposal_batches_from_verification_runs(
                 "gate_families_passed": gate_families_passed,
                 "evidence_signals": evidence_signals,
                 "risk_signals": risk_signals,
-                "metrics": _build_gate_b_metrics_from_verification_report(migration_pack, verification_report),
+                "metrics": _build_gate_b_metrics_from_verification_report(
+                    migration_pack, verification_report
+                ),
                 "recommendation": "promote",
                 "promotion_scope": bounded_scope,
                 "verification_report": verification_report,
             }
-            runs.append({"run_id": run_id, "batch_id": batch_id, "proposals": [proposal]})
+            runs.append(
+                {"run_id": run_id, "batch_id": batch_id, "proposals": [proposal]}
+            )
 
     return {
         "evidence_batch_id": _as_text(verification_runs.get("evidence_batch_id"))
@@ -2654,13 +3010,19 @@ def build_nat_gate_b_proposal_batches_from_verification_runs(
 def _normalize_sandbox_claim_bundle(bundle: Mapping[str, Any]) -> dict[str, Any]:
     qualifiers = bundle.get("qualifiers", {})
     references = bundle.get("references", [])
-    normalized_qualifiers = {
-        _as_text(key): _as_text_list(value)
-        for key, value in qualifiers.items()
-        if _as_text(key)
-    } if isinstance(qualifiers, Mapping) else {}
+    normalized_qualifiers = (
+        {
+            _as_text(key): _as_text_list(value)
+            for key, value in qualifiers.items()
+            if _as_text(key)
+        }
+        if isinstance(qualifiers, Mapping)
+        else {}
+    )
     normalized_references: list[dict[str, list[str]]] = []
-    if isinstance(references, Sequence) and not isinstance(references, (str, bytes, bytearray)):
+    if isinstance(references, Sequence) and not isinstance(
+        references, (str, bytes, bytearray)
+    ):
         for reference in references:
             if not isinstance(reference, Mapping):
                 continue
@@ -2687,16 +3049,23 @@ def build_nat_sandbox_post_write_runs(
     observed_after_state: Mapping[str, Any],
 ) -> dict[str, Any]:
     packet_id = _as_text(sandbox_packet.get("packet_id")) or "nat-sandbox-packet"
-    capture_id = _as_text(observed_after_state.get("capture_id")) or f"{packet_id}-capture"
+    capture_id = (
+        _as_text(observed_after_state.get("capture_id")) or f"{packet_id}-capture"
+    )
     target_item = _as_text(
-        observed_after_state.get("target_item") or sandbox_packet.get("target_item", {}).get("qid")
+        observed_after_state.get("target_item")
+        or sandbox_packet.get("target_item", {}).get("qid")
     )
 
     packet_rows = sandbox_packet.get("rows", [])
-    if not isinstance(packet_rows, Sequence) or isinstance(packet_rows, (str, bytes, bytearray)):
+    if not isinstance(packet_rows, Sequence) or isinstance(
+        packet_rows, (str, bytes, bytearray)
+    ):
         packet_rows = []
     observed_rows = observed_after_state.get("observed_rows", [])
-    if not isinstance(observed_rows, Sequence) or isinstance(observed_rows, (str, bytes, bytearray)):
+    if not isinstance(observed_rows, Sequence) or isinstance(
+        observed_rows, (str, bytes, bytearray)
+    ):
         observed_rows = []
 
     packet_rows_by_id = {
@@ -2730,13 +3099,17 @@ def build_nat_sandbox_post_write_runs(
         )
 
         observed_row = observed_rows_by_id.get(row_id, {})
-        observed_bundle = observed_row.get("observed") if isinstance(observed_row, Mapping) else {}
+        observed_bundle = (
+            observed_row.get("observed") if isinstance(observed_row, Mapping) else {}
+        )
         if isinstance(observed_bundle, Mapping):
             statement_bundles.append(_normalize_sandbox_claim_bundle(observed_bundle))
 
     migration_pack = {
-        "source_property": _optional_text(sandbox_packet.get("source_property")) or "P14143",
-        "target_property": _optional_text(sandbox_packet.get("target_property")) or "P14143",
+        "source_property": _optional_text(sandbox_packet.get("source_property"))
+        or "P14143",
+        "target_property": _optional_text(sandbox_packet.get("target_property"))
+        or "P14143",
         "candidates": candidate_rows,
     }
     after_payload = {
@@ -2801,16 +3174,24 @@ def build_nat_post_write_verification_report(
         batch_id = _as_text(receipt.get("batch_id"))
         migration_pack = receipt.get("migration_pack")
         after_payload = receipt.get("after_payload")
-        if not isinstance(migration_pack, Mapping) or not isinstance(after_payload, Mapping):
+        if not isinstance(migration_pack, Mapping) or not isinstance(
+            after_payload, Mapping
+        ):
             continue
-        verification_report = verify_migration_pack_against_after_state(migration_pack, after_payload)
+        verification_report = verify_migration_pack_against_after_state(
+            migration_pack, after_payload
+        )
         counts_by_status = (
             verification_report.get("summary", {}).get("counts_by_status", {})
             if isinstance(verification_report.get("summary"), Mapping)
             else {}
         )
         claim_total = sum(int(value) for value in counts_by_status.values())
-        status = "verified" if claim_total and int(counts_by_status.get("verified", 0)) == claim_total else "verification_drift"
+        status = (
+            "verified"
+            if claim_total and int(counts_by_status.get("verified", 0)) == claim_total
+            else "verification_drift"
+        )
         lifecycle_state = "verified" if status == "verified" else "executed"
         if status == "verified":
             verified_runs += 1
@@ -2836,7 +3217,9 @@ def build_nat_post_write_verification_report(
         "schema_version": AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
         "state_order": list(POST_WRITE_LIFECYCLE_STATES),
         "current_state": lifecycle_state,
-        "promotion_status": "ready" if verified_runs == len(runs) and len(runs) > 0 else "hold",
+        "promotion_status": "ready"
+        if verified_runs == len(runs) and len(runs) > 0
+        else "hold",
         "fail_closed_on_mismatch": True,
         "run_count": len(runs),
         "verified_run_count": verified_runs,
@@ -2848,11 +3231,15 @@ def build_nat_post_write_verification_report(
         "total_claims": total_claims,
     }
     if require_all_verified and runs and verified_runs != len(runs):
-        summary["pending_drifts"] = [run["run_id"] for run in runs if run["verification_status"] != "verified"]
+        summary["pending_drifts"] = [
+            run["run_id"] for run in runs if run["verification_status"] != "verified"
+        ]
     readiness_surface = _build_post_write_readiness_surface(
         lifecycle_contract,
         {
-            "verification_status": "verified" if summary["verification_ready"] else "verification_drift",
+            "verification_status": "verified"
+            if summary["verification_ready"]
+            else "verification_drift",
         },
         summary=summary,
     )
@@ -2867,7 +3254,9 @@ def build_nat_post_write_verification_report(
         "execution_lifecycle_contract": lifecycle_contract,
         "verification_contract": {
             "schema_version": AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
-            "verification_status": "verified" if summary["verification_ready"] else "verification_drift",
+            "verification_status": "verified"
+            if summary["verification_ready"]
+            else "verification_drift",
             "require_all_verified": bool(require_all_verified),
             "fail_closed_on_mismatch": True,
             "promotion_status": "ready" if summary["verification_ready"] else "hold",
@@ -2886,7 +3275,9 @@ def build_nat_claim_convergence_report(
     min_independent_paths: int = 2,
 ) -> dict[str, Any]:
     raw_runs = verification_runs.get("runs", [])
-    if not isinstance(raw_runs, Sequence) or isinstance(raw_runs, (str, bytes, bytearray)):
+    if not isinstance(raw_runs, Sequence) or isinstance(
+        raw_runs, (str, bytes, bytearray)
+    ):
         raw_runs = []
     if not raw_runs and isinstance(verification_runs.get("migration_pack"), Mapping):
         raw_runs = [verification_runs]
@@ -2900,9 +3291,13 @@ def build_nat_claim_convergence_report(
             continue
         migration_pack = run.get("migration_pack", {})
         after_payload = run.get("after_payload", {})
-        if not isinstance(migration_pack, Mapping) or not isinstance(after_payload, Mapping):
+        if not isinstance(migration_pack, Mapping) or not isinstance(
+            after_payload, Mapping
+        ):
             continue
-        verification_report = verify_migration_pack_against_after_state(migration_pack, after_payload)
+        verification_report = verify_migration_pack_against_after_state(
+            migration_pack, after_payload
+        )
         verified_rows = {
             _as_text(row.get("candidate_id")): row
             for row in verification_report.get("rows", [])
@@ -2911,7 +3306,9 @@ def build_nat_claim_convergence_report(
             and _as_text(row.get("status")) == "verified"
         }
         candidate_list = migration_pack.get("candidates", [])
-        if not isinstance(candidate_list, Sequence) or isinstance(candidate_list, (str, bytes, bytearray)):
+        if not isinstance(candidate_list, Sequence) or isinstance(
+            candidate_list, (str, bytes, bytearray)
+        ):
             continue
         for candidate in candidate_list:
             if not isinstance(candidate, Mapping):
@@ -2948,7 +3345,8 @@ def build_nat_claim_convergence_report(
                 {
                     "evidence_path_id": f"{candidate_id}:{run_id}",
                     "run_id": run_id,
-                    "source_unit_id": _as_text(row.get("target_slot_id")) or _as_text(row.get("source_slot_id")),
+                    "source_unit_id": _as_text(row.get("target_slot_id"))
+                    or _as_text(row.get("source_slot_id")),
                     "root_artifact_id": root_artifact_id,
                     "authority_level": "after_state_verification",
                     "provenance_chain": {
@@ -2976,7 +3374,13 @@ def build_nat_claim_convergence_report(
     for claim_id in sorted(claim_records):
         claim = claim_records[claim_id]
         evidence_paths = claim["evidence_paths"]
-        root_artifact_ids = sorted({_as_text(path.get("root_artifact_id")) for path in evidence_paths if _as_text(path.get("root_artifact_id"))})
+        root_artifact_ids = sorted(
+            {
+                _as_text(path.get("root_artifact_id"))
+                for path in evidence_paths
+                if _as_text(path.get("root_artifact_id"))
+            }
+        )
         independent_count = len(root_artifact_ids)
         evidence_count = len(evidence_paths)
         if evidence_count == 0:
@@ -3047,7 +3451,9 @@ def build_nat_claim_convergence_report(
     summary["total_claims"] = len(claims)
     if claims:
         summary["avg_evidence_paths_per_claim"] = total_evidence_paths / len(claims)
-        summary["avg_independent_paths_per_claim"] = total_independent_paths / len(claims)
+        summary["avg_independent_paths_per_claim"] = total_independent_paths / len(
+            claims
+        )
 
     return {
         "schema_version": AUTOMATION_GRADUATION_CLAIM_CONVERGENCE_SCHEMA_VERSION,
@@ -3087,10 +3493,14 @@ def build_nat_confirmation_follow_queue(
                 "cohort_id": _as_text(claim.get("cohort_id")),
                 "current_independent_count": int(claim.get("independent_count", 0)),
                 "required_independent_count": min_independent_paths,
-                "missing_independent_count": max(min_independent_paths - int(claim.get("independent_count", 0)), 0),
+                "missing_independent_count": max(
+                    min_independent_paths - int(claim.get("independent_count", 0)), 0
+                ),
                 "follow_goal": "find_independent_confirmation",
                 "blocking_reason": "insufficient_independent_evidence",
-                "seen_root_artifact_ids": list(claim.get("independent_root_artifact_ids", [])),
+                "seen_root_artifact_ids": list(
+                    claim.get("independent_root_artifact_ids", [])
+                ),
                 "canonical_form": claim.get("canonical_form", {}),
             }
         )
@@ -3102,9 +3512,13 @@ def build_nat_confirmation_follow_queue(
         "minimum_independent_paths_required": min_independent_paths,
         "queue_rows": queue_rows,
         "summary": {
-            "claim_count": int(convergence_report.get("summary", {}).get("total_claims", 0)),
+            "claim_count": int(
+                convergence_report.get("summary", {}).get("total_claims", 0)
+            ),
             "single_run_queue_count": len(queue_rows),
-            "promoted_count": int(convergence_report.get("summary", {}).get("promoted_count", 0)),
+            "promoted_count": int(
+                convergence_report.get("summary", {}).get("promoted_count", 0)
+            ),
         },
     }
 
@@ -3133,7 +3547,9 @@ def build_nat_confirmation_intake_contract(
                 "family_id": family_id,
                 "cohort_id": cohort_id,
                 "status": "awaiting_independent_evidence",
-                "missing_independent_count": int(queue_row.get("missing_independent_count", 0)),
+                "missing_independent_count": int(
+                    queue_row.get("missing_independent_count", 0)
+                ),
                 "existing_root_artifact_ids": seen_root_artifact_ids,
                 "canonical_form": queue_row.get("canonical_form", {}),
                 "required_artifact_contract": {
@@ -3180,9 +3596,13 @@ def build_nat_confirmation_intake_contract(
         "minimum_independent_paths_required": min_independent_paths,
         "intake_rows": intake_rows,
         "summary": {
-            "claim_count": int(confirmation_queue.get("summary", {}).get("claim_count", 0)),
+            "claim_count": int(
+                confirmation_queue.get("summary", {}).get("claim_count", 0)
+            ),
             "intake_request_count": len(intake_rows),
-            "promoted_count": int(confirmation_queue.get("summary", {}).get("promoted_count", 0)),
+            "promoted_count": int(
+                confirmation_queue.get("summary", {}).get("promoted_count", 0)
+            ),
         },
     }
 
@@ -3237,7 +3657,9 @@ def build_nat_acquisition_task_queue(
         if not isinstance(row, Mapping):
             continue
         suggested_routes = row.get("suggested_evidence_routes", [])
-        if not isinstance(suggested_routes, Sequence) or isinstance(suggested_routes, (str, bytes, bytearray)):
+        if not isinstance(suggested_routes, Sequence) or isinstance(
+            suggested_routes, (str, bytes, bytearray)
+        ):
             continue
         for route in suggested_routes:
             if not isinstance(route, Mapping):
@@ -3255,19 +3677,27 @@ def build_nat_acquisition_task_queue(
                     "priority": int(route.get("priority", 0)),
                     "status": "PENDING",
                     "why": _as_text(route.get("why")),
-                    "required_artifact_contract": row.get("required_artifact_contract", {}),
+                    "required_artifact_contract": row.get(
+                        "required_artifact_contract", {}
+                    ),
                 }
             )
 
-    tasks.sort(key=lambda item: (int(item.get("priority", 0)), _as_text(item.get("task_id"))))
+    tasks.sort(
+        key=lambda item: (int(item.get("priority", 0)), _as_text(item.get("task_id")))
+    )
     return {
         "schema_version": AUTOMATION_GRADUATION_ACQUISITION_TASK_QUEUE_SCHEMA_VERSION,
         "minimum_independent_paths_required": min_independent_paths,
         "tasks": tasks,
         "summary": {
             "task_count": len(tasks),
-            "family_count": int(intake_report.get("summary", {}).get("family_count", 0)),
-            "families_with_requests": int(intake_report.get("summary", {}).get("families_with_requests", 0)),
+            "family_count": int(
+                intake_report.get("summary", {}).get("family_count", 0)
+            ),
+            "families_with_requests": int(
+                intake_report.get("summary", {}).get("families_with_requests", 0)
+            ),
         },
     }
 
@@ -3289,7 +3719,9 @@ def build_nat_family_acquisition_plan(
     for family in state_report.get("families", []):
         if not isinstance(family, Mapping):
             continue
-        if _as_text(family.get("family_id")) == _as_text(verification_runs.get("family_id")):
+        if _as_text(family.get("family_id")) == _as_text(
+            verification_runs.get("family_id")
+        ):
             family_state = _as_text(family.get("state"))
             break
 
@@ -3345,7 +3777,9 @@ def build_nat_family_acquisition_plan(
                 "expected_success_band": archetype["expected_success_band"],
                 "candidate_archetype": archetype["archetype_id"],
                 "why": archetype["why"],
-                "placeholder_candidate": _is_fixture_placeholder_qid(candidate_id.split("|", 1)[0]),
+                "placeholder_candidate": _is_fixture_placeholder_qid(
+                    candidate_id.split("|", 1)[0]
+                ),
                 "query": _build_same_family_query_shape(
                     candidate_id,
                     canonical_form,
@@ -3372,15 +3806,23 @@ def build_nat_family_acquisition_plan(
         "family_state": family_state,
         "minimum_independent_paths_required": min_independent_paths,
         "current_blocker": "missing_independent_after_state_artifact",
-        "plan_status": "ready_for_acquisition" if candidate_plans else "no_candidate_plan",
+        "plan_status": "ready_for_acquisition"
+        if candidate_plans
+        else "no_candidate_plan",
         "family_kind": "archetypal_fixture_seed"
         if any(item.get("placeholder_candidate") for item in candidate_plans)
         else "concrete_candidate_family",
         "candidate_plans": candidate_plans,
         "summary": {
             "candidate_count": len(candidate_plans),
-            "placeholder_candidate_count": sum(1 for item in candidate_plans if item.get("placeholder_candidate")),
-            "top_priority_candidate_id": _as_text(candidate_plans[0].get("candidate_id")) if candidate_plans else "",
+            "placeholder_candidate_count": sum(
+                1 for item in candidate_plans if item.get("placeholder_candidate")
+            ),
+            "top_priority_candidate_id": _as_text(
+                candidate_plans[0].get("candidate_id")
+            )
+            if candidate_plans
+            else "",
         },
     }
 
@@ -3408,7 +3850,9 @@ def fetch_wikidata_recent_revisions(
         return []
     page = next(iter(pages.values()))
     revisions = page.get("revisions", [])
-    if not isinstance(revisions, Sequence) or isinstance(revisions, (str, bytes, bytearray)):
+    if not isinstance(revisions, Sequence) or isinstance(
+        revisions, (str, bytes, bytearray)
+    ):
         return []
     return [
         {
@@ -3431,7 +3875,9 @@ def fetch_wikidata_entity_export_for_revision(
         timeout_seconds=timeout_seconds,
     )
     if not isinstance(payload, dict):
-        raise ValueError(f"entity export must be an object for {_as_text(entity_qid)}@{revision_id}")
+        raise ValueError(
+            f"entity export must be an object for {_as_text(entity_qid)}@{revision_id}"
+        )
     payload.setdefault("_source_revision", int(revision_id))
     return payload
 
@@ -3471,7 +3917,9 @@ def _build_statement_bundles_from_entity_export(
         if not property_text:
             continue
         statements = claims.get(property_text, [])
-        if not isinstance(statements, Sequence) or isinstance(statements, (str, bytes, bytearray)):
+        if not isinstance(statements, Sequence) or isinstance(
+            statements, (str, bytes, bytearray)
+        ):
             continue
         for statement in statements:
             if not isinstance(statement, Mapping):
@@ -3484,7 +3932,9 @@ def _build_statement_bundles_from_entity_export(
             datavalue = mainsnak.get("datavalue", {})
             if not isinstance(datavalue, Mapping):
                 continue
-            normalized_value = _normalize_entity_export_datavalue(datavalue.get("value"))
+            normalized_value = _normalize_entity_export_datavalue(
+                datavalue.get("value")
+            )
             qualifiers_raw = statement.get("qualifiers", {})
             qualifiers: dict[str, list[str]] = {}
             if isinstance(qualifiers_raw, Mapping):
@@ -3507,7 +3957,9 @@ def _build_statement_bundles_from_entity_export(
                         if qualifier_value:
                             normalized_qualifier_values.append(qualifier_value)
                     if normalized_qualifier_values:
-                        qualifiers[_as_text(qualifier_property)] = normalized_qualifier_values
+                        qualifiers[_as_text(qualifier_property)] = (
+                            normalized_qualifier_values
+                        )
 
             references_raw = statement.get("references", [])
             references: list[dict[str, list[str]]] = []
@@ -3541,7 +3993,9 @@ def _build_statement_bundles_from_entity_export(
                             if reference_value:
                                 normalized_reference_values.append(reference_value)
                         if normalized_reference_values:
-                            normalized_reference[_as_text(reference_property)] = normalized_reference_values
+                            normalized_reference[_as_text(reference_property)] = (
+                                normalized_reference_values
+                            )
                     if normalized_reference:
                         references.append(normalized_reference)
 
@@ -3593,7 +4047,9 @@ def build_nat_same_family_after_state_verification_run_from_entity_export(
     source_property = _as_text(base_migration_pack.get("source_property"))
     target_property = _as_text(base_migration_pack.get("target_property"))
     if not entity_qid or not source_property or not target_property:
-        raise ValueError("verification runs must provide entity_qid, source_property, and target_property")
+        raise ValueError(
+            "verification runs must provide entity_qid, source_property, and target_property"
+        )
 
     source_revision = _as_text(entity_export_payload.get("_source_revision"))
     if not source_revision:
@@ -3616,11 +4072,19 @@ def build_nat_same_family_after_state_verification_run_from_entity_export(
         after_window_id = f"after-{entity_qid.lower()}-{source_revision or run_id}"
 
     source_bundle = next(
-        (bundle for bundle in bundles if _as_text(bundle.get("property")) == source_property),
+        (
+            bundle
+            for bundle in bundles
+            if _as_text(bundle.get("property")) == source_property
+        ),
         None,
     )
     target_bundle = next(
-        (bundle for bundle in bundles if _as_text(bundle.get("property")) == target_property),
+        (
+            bundle
+            for bundle in bundles
+            if _as_text(bundle.get("property")) == target_property
+        ),
         None,
     )
     migration_candidate = dict(base_candidate)
@@ -3685,7 +4149,9 @@ def run_nat_acquisition_tasks(
         candidate_id = _as_text(task.get("candidate_id"))
         required_contract = task.get("required_artifact_contract", {})
         seen_root_ids = (
-            _as_text_list(required_contract.get("must_be_independent_of_root_artifact_ids"))
+            _as_text_list(
+                required_contract.get("must_be_independent_of_root_artifact_ids")
+            )
             if isinstance(required_contract, Mapping)
             else []
         )
@@ -3736,7 +4202,11 @@ def run_nat_acquisition_tasks(
 
         root_artifact_id = ""
         runs = verification_run.get("runs", [])
-        if isinstance(runs, Sequence) and not isinstance(runs, (str, bytes, bytearray)) and runs:
+        if (
+            isinstance(runs, Sequence)
+            and not isinstance(runs, (str, bytes, bytearray))
+            and runs
+        ):
             first_run = runs[0]
             if isinstance(first_run, Mapping):
                 run_root = _as_text(first_run.get("root_artifact_id"))
@@ -3744,11 +4214,21 @@ def run_nat_acquisition_tasks(
                     root_artifact_id = run_root
                 else:
                     migration_pack = first_run.get("migration_pack", {})
-                    candidates = migration_pack.get("candidates", []) if isinstance(migration_pack, Mapping) else []
-                    if isinstance(candidates, Sequence) and not isinstance(candidates, (str, bytes, bytearray)) and candidates:
+                    candidates = (
+                        migration_pack.get("candidates", [])
+                        if isinstance(migration_pack, Mapping)
+                        else []
+                    )
+                    if (
+                        isinstance(candidates, Sequence)
+                        and not isinstance(candidates, (str, bytes, bytearray))
+                        and candidates
+                    ):
                         first_candidate = candidates[0]
                         if isinstance(first_candidate, Mapping):
-                            root_artifact_id = _resolve_root_artifact_id(first_run, first_candidate)
+                            root_artifact_id = _resolve_root_artifact_id(
+                                first_run, first_candidate
+                            )
 
         if root_artifact_id and root_artifact_id in seen_root_ids:
             events.append(
@@ -3784,8 +4264,12 @@ def run_nat_acquisition_tasks(
         "events": events,
         "summary": {
             "task_count": len(events),
-            "success_count": sum(1 for event in events if _as_text(event.get("status")) == "SUCCESS"),
-            "failed_count": sum(1 for event in events if _as_text(event.get("status")) == "FAILED"),
+            "success_count": sum(
+                1 for event in events if _as_text(event.get("status")) == "SUCCESS"
+            ),
+            "failed_count": sum(
+                1 for event in events if _as_text(event.get("status")) == "FAILED"
+            ),
         },
     }
 
@@ -3876,13 +4360,17 @@ def run_nat_same_family_after_state_acquisition_tasks(
             continue
 
         try:
-            verification_run = build_nat_same_family_after_state_verification_run_from_entity_export(
-                verification_runs,
-                candidate_id=candidate_id,
-                entity_export_payload=entity_export_payload,
-                run_id=_as_text(supplied.get("run_id")) or f"{task_id}:entity_export",
-                batch_id=_as_text(supplied.get("batch_id")) or f"{family_id}:entity_export",
-                window_id=_as_text(supplied.get("window_id")) or "",
+            verification_run = (
+                build_nat_same_family_after_state_verification_run_from_entity_export(
+                    verification_runs,
+                    candidate_id=candidate_id,
+                    entity_export_payload=entity_export_payload,
+                    run_id=_as_text(supplied.get("run_id"))
+                    or f"{task_id}:entity_export",
+                    batch_id=_as_text(supplied.get("batch_id"))
+                    or f"{family_id}:entity_export",
+                    window_id=_as_text(supplied.get("window_id")) or "",
+                )
             )
         except ValueError as exc:
             events.append(
@@ -3907,11 +4395,16 @@ def run_nat_same_family_after_state_acquisition_tasks(
             (
                 row
                 for row in verification_report.get("rows", [])
-                if isinstance(row, Mapping) and _as_text(row.get("candidate_id")) == candidate_id
+                if isinstance(row, Mapping)
+                and _as_text(row.get("candidate_id")) == candidate_id
             ),
             None,
         )
-        verification_status = _as_text(verification_row.get("status")) if isinstance(verification_row, Mapping) else ""
+        verification_status = (
+            _as_text(verification_row.get("status"))
+            if isinstance(verification_row, Mapping)
+            else ""
+        )
         if verification_status != "verified":
             events.append(
                 {
@@ -3929,7 +4422,9 @@ def run_nat_same_family_after_state_acquisition_tasks(
 
         required_contract = task.get("required_artifact_contract", {})
         seen_root_ids = (
-            _as_text_list(required_contract.get("must_be_independent_of_root_artifact_ids"))
+            _as_text_list(
+                required_contract.get("must_be_independent_of_root_artifact_ids")
+            )
             if isinstance(required_contract, Mapping)
             else []
         )
@@ -3969,8 +4464,12 @@ def run_nat_same_family_after_state_acquisition_tasks(
         "events": events,
         "summary": {
             "task_count": len(events),
-            "success_count": sum(1 for event in events if _as_text(event.get("status")) == "SUCCESS"),
-            "failed_count": sum(1 for event in events if _as_text(event.get("status")) == "FAILED"),
+            "success_count": sum(
+                1 for event in events if _as_text(event.get("status")) == "SUCCESS"
+            ),
+            "failed_count": sum(
+                1 for event in events if _as_text(event.get("status")) == "FAILED"
+            ),
         },
     }
 
@@ -3986,14 +4485,19 @@ def run_nat_live_same_family_acquisition_sweep(
     fetch_recent_revisions_fn: Callable[..., Sequence[Mapping[str, Any]]] | None = None,
     fetch_entity_export_fn: Callable[..., Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    fetch_recent_revisions_impl = fetch_recent_revisions_fn or fetch_wikidata_recent_revisions
-    fetch_entity_export_impl = fetch_entity_export_fn or fetch_wikidata_entity_export_for_revision
+    fetch_recent_revisions_impl = (
+        fetch_recent_revisions_fn or fetch_wikidata_recent_revisions
+    )
+    fetch_entity_export_impl = (
+        fetch_entity_export_fn or fetch_wikidata_entity_export_for_revision
+    )
     plan_family_id = _as_text(family_acquisition_plan.get("family_id"))
     verification_runs = next(
         (
             batch
             for batch in verification_run_batches
-            if isinstance(batch, Mapping) and _as_text(batch.get("family_id")) == plan_family_id
+            if isinstance(batch, Mapping)
+            and _as_text(batch.get("family_id")) == plan_family_id
         ),
         None,
     )
@@ -4038,7 +4542,9 @@ def run_nat_live_same_family_acquisition_sweep(
             )
             continue
 
-        entity_qid = _as_text(candidate_plan.get("entity_qid")) or candidate_id.split("|", 1)[0]
+        entity_qid = (
+            _as_text(candidate_plan.get("entity_qid")) or candidate_id.split("|", 1)[0]
+        )
         source_revision = _as_text(candidate_plan.get("source_revision"))
         try:
             recent_revisions = fetch_recent_revisions_impl(
@@ -4046,7 +4552,9 @@ def run_nat_live_same_family_acquisition_sweep(
                 revision_limit=revision_limit,
                 timeout_seconds=timeout_seconds,
             )
-        except Exception as exc:  # pragma: no cover - exercised with injected failures if needed
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - exercised with injected failures if needed
             failed_count += 1
             events.append(
                 {
@@ -4074,7 +4582,9 @@ def run_nat_live_same_family_acquisition_sweep(
                     revision_id,
                     timeout_seconds=timeout_seconds,
                 )
-            except Exception as exc:  # pragma: no cover - exercised with injected failures if needed
+            except (
+                Exception
+            ) as exc:  # pragma: no cover - exercised with injected failures if needed
                 failed_count += 1
                 events.append(
                     {
@@ -4109,9 +4619,19 @@ def run_nat_live_same_family_acquisition_sweep(
                 if isinstance(event, Mapping)
             ]
             events.extend(candidate_events)
-            success_count += sum(1 for event in candidate_events if _as_text(event.get("status")) == "SUCCESS")
-            failed_count += sum(1 for event in candidate_events if _as_text(event.get("status")) == "FAILED")
-            if any(_as_text(event.get("status")) == "SUCCESS" for event in candidate_events):
+            success_count += sum(
+                1
+                for event in candidate_events
+                if _as_text(event.get("status")) == "SUCCESS"
+            )
+            failed_count += sum(
+                1
+                for event in candidate_events
+                if _as_text(event.get("status")) == "FAILED"
+            )
+            if any(
+                _as_text(event.get("status")) == "SUCCESS" for event in candidate_events
+            ):
                 candidate_succeeded = True
                 if stop_on_first_success:
                     return {
@@ -4168,17 +4688,28 @@ def merge_nat_acquired_evidence(
         if not isinstance(verification_runs, Mapping):
             continue
         family_id = _as_text(verification_runs.get("family_id"))
-        merged_runs = list(verification_runs.get("runs", [])) if isinstance(verification_runs.get("runs"), Sequence) else []
+        merged_runs = (
+            list(verification_runs.get("runs", []))
+            if isinstance(verification_runs.get("runs"), Sequence)
+            else []
+        )
         for event in success_events_by_family.get(family_id, []):
             acquired_bundle = event.get("verification_run")
             if not isinstance(acquired_bundle, Mapping):
                 continue
             acquired_runs = acquired_bundle.get("runs", [])
-            provenance_kind = _as_text(event.get("evidence_provenance_kind")) or "supplied_acquired_artifact"
-            if isinstance(acquired_runs, Sequence) and not isinstance(acquired_runs, (str, bytes, bytearray)):
+            provenance_kind = (
+                _as_text(event.get("evidence_provenance_kind"))
+                or "supplied_acquired_artifact"
+            )
+            if isinstance(acquired_runs, Sequence) and not isinstance(
+                acquired_runs, (str, bytes, bytearray)
+            ):
                 for run in acquired_runs:
                     if isinstance(run, Mapping):
-                        merged_runs.append({**run, "evidence_provenance_kind": provenance_kind})
+                        merged_runs.append(
+                            {**run, "evidence_provenance_kind": provenance_kind}
+                        )
         merged_batches.append({**verification_runs, "runs": merged_runs})
 
     return merged_batches
@@ -4232,20 +4763,29 @@ def build_nat_state_machine_report(
         cohort_id = _as_text(convergence_report.get("cohort_id"))
         claims = convergence_report.get("claims", [])
         intake_rows = intake_contract.get("intake_rows", [])
-        if not isinstance(claims, Sequence) or isinstance(claims, (str, bytes, bytearray)):
+        if not isinstance(claims, Sequence) or isinstance(
+            claims, (str, bytes, bytearray)
+        ):
             claims = []
-        if not isinstance(intake_rows, Sequence) or isinstance(intake_rows, (str, bytes, bytearray)):
+        if not isinstance(intake_rows, Sequence) or isinstance(
+            intake_rows, (str, bytes, bytearray)
+        ):
             intake_rows = []
 
         family_state = "READY_TO_RERUN"
         family_provenance_kinds = {
-            (_as_text(run.get("evidence_provenance_kind")) if run.get("evidence_provenance_kind") is not None else "")
+            (
+                _as_text(run.get("evidence_provenance_kind"))
+                if run.get("evidence_provenance_kind") is not None
+                else ""
+            )
             or "baseline_runtime"
             for run in verification_runs.get("runs", [])
             if isinstance(run, Mapping)
         }
         family_provenance_kinds.update(
-            _as_text(event.get("evidence_provenance_kind")) or "supplied_acquired_artifact"
+            _as_text(event.get("evidence_provenance_kind"))
+            or "supplied_acquired_artifact"
             for event in successful_events_by_family.get(family_id, [])
             if isinstance(event, Mapping)
         )
@@ -4265,12 +4805,20 @@ def build_nat_state_machine_report(
             )
             for claim in claims
         )
-        if claims and all(_as_text(claim.get("status")) == "PROMOTED" for claim in claims if isinstance(claim, Mapping)):
+        if claims and all(
+            _as_text(claim.get("status")) == "PROMOTED"
+            for claim in claims
+            if isinstance(claim, Mapping)
+        ):
             family_state = "PROMOTED"
             summary["promoted_family_count"] += 1
             promoted_by_basis = summary["promoted_family_count_by_basis"]
-            promoted_by_basis[state_basis] = int(promoted_by_basis.get(state_basis, 0)) + 1
-        elif claim_ids and any(claim_id in acquired_claim_ids for claim_id in claim_ids):
+            promoted_by_basis[state_basis] = (
+                int(promoted_by_basis.get(state_basis, 0)) + 1
+            )
+        elif claim_ids and any(
+            claim_id in acquired_claim_ids for claim_id in claim_ids
+        ):
             family_state = "READY_TO_RERUN"
             summary["ready_to_rerun_family_count"] += 1
             rerun_by_basis = summary["ready_to_rerun_family_count_by_basis"]
@@ -4295,8 +4843,12 @@ def build_nat_state_machine_report(
                 "migration_signal": migration_signal,
                 "evidence_provenance_kinds": sorted(family_provenance_kinds),
                 "claim_count": len(claims),
-                "promoted_claim_count": int(convergence_report.get("summary", {}).get("promoted_count", 0)),
-                "single_run_claim_count": int(convergence_report.get("summary", {}).get("single_run_count", 0)),
+                "promoted_claim_count": int(
+                    convergence_report.get("summary", {}).get("promoted_count", 0)
+                ),
+                "single_run_claim_count": int(
+                    convergence_report.get("summary", {}).get("single_run_count", 0)
+                ),
                 "intake_request_count": len(intake_rows),
             }
         )
@@ -4344,12 +4896,16 @@ def build_nat_broader_batch_selector(
         }
         parked = bool(entry.get("parked"))
         if parked or row_count < min_row_count:
-            batch["parked_reason"] = _as_text(entry.get("parked_reason")) or "parked_by_policy"
+            batch["parked_reason"] = (
+                _as_text(entry.get("parked_reason")) or "parked_by_policy"
+            )
             parked_batches.append(batch)
         else:
             candidate_batches.append(batch)
 
-    candidate_batches.sort(key=lambda row: (-int(row.get("row_count", 0)), row.get("family_id", "")))
+    candidate_batches.sort(
+        key=lambda row: (-int(row.get("row_count", 0)), row.get("family_id", ""))
+    )
     return {
         "schema_version": AUTOMATION_GRADUATION_BROADER_BATCH_SELECTOR_SCHEMA_VERSION,
         "candidate_batches": candidate_batches,
@@ -4357,7 +4913,9 @@ def build_nat_broader_batch_selector(
         "summary": {
             "candidate_family_count": len(candidate_batches),
             "parked_family_count": len(parked_batches),
-            "candidate_row_count": sum(int(row.get("row_count", 0)) for row in candidate_batches),
+            "candidate_row_count": sum(
+                int(row.get("row_count", 0)) for row in candidate_batches
+            ),
         },
     }
 
@@ -4380,8 +4938,16 @@ def build_nat_p5991_semantic_triage_report(
         family_id = _as_text(verification_runs.get("family_id"))
         cohort_id = _as_text(verification_runs.get("cohort_id"))
         primary_run = _select_primary_run(verification_runs)
-        migration_pack = primary_run.get("migration_pack", {}) if isinstance(primary_run, Mapping) else {}
-        target_property = _as_text(migration_pack.get("target_property")) if isinstance(migration_pack, Mapping) else ""
+        migration_pack = (
+            primary_run.get("migration_pack", {})
+            if isinstance(primary_run, Mapping)
+            else {}
+        )
+        target_property = (
+            _as_text(migration_pack.get("target_property"))
+            if isinstance(migration_pack, Mapping)
+            else ""
+        )
         for candidate in _select_migration_candidates(verification_runs):
             triage = classify_nat_p5991_semantic_bucket(
                 candidate,
@@ -4432,8 +4998,18 @@ def build_nat_p5991_semantic_family_selector(
         state_row = state_by_family.get(family_id, {})
         row_count = len(triage_rows)
         counts_by_bucket = {
-            bucket: sum(1 for row in triage_rows if _as_text(row.get("semantic_bucket")) == bucket)
-            for bucket in ("direct_migrate", "split_required", "migration_pending", "out_of_scope", "needs_review")
+            bucket: sum(
+                1
+                for row in triage_rows
+                if _as_text(row.get("semantic_bucket")) == bucket
+            )
+            for bucket in (
+                "direct_migrate",
+                "split_required",
+                "migration_pending",
+                "out_of_scope",
+                "needs_review",
+            )
         }
         parked_reason = ""
         if row_count < min_row_count:
@@ -4451,7 +5027,8 @@ def build_nat_p5991_semantic_family_selector(
 
         selector_row = {
             "family_id": family_id,
-            "cohort_id": _as_text(state_row.get("cohort_id")) or _as_text(triage_rows[0].get("cohort_id")),
+            "cohort_id": _as_text(state_row.get("cohort_id"))
+            or _as_text(triage_rows[0].get("cohort_id")),
             "family_state": _as_text(state_row.get("state")),
             "state_basis": _as_text(state_row.get("state_basis")),
             "row_count": row_count,
@@ -4459,7 +5036,8 @@ def build_nat_p5991_semantic_family_selector(
             "candidate_ids": [
                 _as_text(row.get("candidate_id"))
                 for row in triage_rows
-                if _as_text(row.get("semantic_bucket")) == "direct_migrate" and _as_text(row.get("candidate_id"))
+                if _as_text(row.get("semantic_bucket")) == "direct_migrate"
+                and _as_text(row.get("candidate_id"))
             ],
             "machine_generated": True,
         }
@@ -4469,7 +5047,9 @@ def build_nat_p5991_semantic_family_selector(
         else:
             candidate_families.append(selector_row)
 
-    candidate_families.sort(key=lambda row: (-int(row.get("row_count", 0)), _as_text(row.get("family_id"))))
+    candidate_families.sort(
+        key=lambda row: (-int(row.get("row_count", 0)), _as_text(row.get("family_id")))
+    )
     parked_families.sort(key=lambda row: _as_text(row.get("family_id")))
     return {
         "schema_version": AUTOMATION_GRADUATION_P5991_SEMANTIC_FAMILY_SELECTOR_SCHEMA_VERSION,
@@ -4478,7 +5058,9 @@ def build_nat_p5991_semantic_family_selector(
         "summary": {
             "candidate_family_count": len(candidate_families),
             "parked_family_count": len(parked_families),
-            "candidate_row_count": sum(int(row.get("row_count", 0)) for row in candidate_families),
+            "candidate_row_count": sum(
+                int(row.get("row_count", 0)) for row in candidate_families
+            ),
         },
     }
 
@@ -4623,12 +5205,16 @@ def build_nat_automation_graduation_batch_report(
     if isinstance(proposals_raw, Sequence):
         for proposal in proposals_raw:
             if isinstance(proposal, Mapping):
-                reports.append(build_nat_automation_graduation_report(criteria, proposal))
+                reports.append(
+                    build_nat_automation_graduation_report(criteria, proposal)
+                )
 
     approved_count = sum(1 for report in reports if report.get("status") == "approved")
     held_count = sum(1 for report in reports if report.get("status") == "held")
     rejected_count = sum(1 for report in reports if report.get("status") == "rejected")
-    fail_closed_count = sum(1 for report in reports if not bool(report.get("promotion_allowed")))
+    fail_closed_count = sum(
+        1 for report in reports if not bool(report.get("promotion_allowed"))
+    )
 
     return {
         "schema_version": AUTOMATION_GRADUATION_BATCH_REPORT_SCHEMA_VERSION,
@@ -4660,15 +5246,30 @@ def build_nat_automation_graduation_evidence_report(
                 continue
             report = build_nat_automation_graduation_batch_report(criteria, run)
             report_with_run = dict(report)
-            report_with_run["run_id"] = _as_text(run.get("run_id")) or f"run-{index + 1}"
+            report_with_run["run_id"] = (
+                _as_text(run.get("run_id")) or f"run-{index + 1}"
+            )
             batch_reports.append(report_with_run)
 
     run_count = len(batch_reports)
-    proposal_count = sum(int(report.get("proposal_count", 0)) for report in batch_reports)
-    approved_count = sum(int(report.get("summary", {}).get("approved_count", 0)) for report in batch_reports)
-    held_count = sum(int(report.get("summary", {}).get("held_count", 0)) for report in batch_reports)
-    rejected_count = sum(int(report.get("summary", {}).get("rejected_count", 0)) for report in batch_reports)
-    fail_closed_count = sum(int(report.get("summary", {}).get("fail_closed_count", 0)) for report in batch_reports)
+    proposal_count = sum(
+        int(report.get("proposal_count", 0)) for report in batch_reports
+    )
+    approved_count = sum(
+        int(report.get("summary", {}).get("approved_count", 0))
+        for report in batch_reports
+    )
+    held_count = sum(
+        int(report.get("summary", {}).get("held_count", 0)) for report in batch_reports
+    )
+    rejected_count = sum(
+        int(report.get("summary", {}).get("rejected_count", 0))
+        for report in batch_reports
+    )
+    fail_closed_count = sum(
+        int(report.get("summary", {}).get("fail_closed_count", 0))
+        for report in batch_reports
+    )
 
     all_gate_ids = {
         _as_text(item.get("gate_id"))
@@ -4735,7 +5336,9 @@ def build_nat_automation_graduation_governance_index(
         for index, snapshot in enumerate(raw_snapshots):
             if not isinstance(snapshot, Mapping):
                 continue
-            snapshot_id = _as_text(snapshot.get("snapshot_id")) or f"snapshot-{index + 1}"
+            snapshot_id = (
+                _as_text(snapshot.get("snapshot_id")) or f"snapshot-{index + 1}"
+            )
             if isinstance(snapshot.get("evidence_report"), Mapping):
                 report = dict(snapshot["evidence_report"])
             elif isinstance(snapshot.get("proposal_batches"), Mapping):
@@ -4765,8 +5368,12 @@ def build_nat_automation_graduation_governance_index(
     snapshot_count = len(reports)
     ready_count = sum(1 for report in reports if bool(report.get("promotion_ready")))
     not_ready_count = snapshot_count - ready_count
-    rejected_total = sum(int(report.get("summary", {}).get("rejected_count", 0)) for report in reports)
-    fail_closed_total = sum(int(report.get("summary", {}).get("fail_closed_count", 0)) for report in reports)
+    rejected_total = sum(
+        int(report.get("summary", {}).get("rejected_count", 0)) for report in reports
+    )
+    fail_closed_total = sum(
+        int(report.get("summary", {}).get("fail_closed_count", 0)) for report in reports
+    )
 
     gate_ids = {
         _as_text(report.get("readiness_scope", {}).get("gate_id"))
@@ -4830,7 +5437,10 @@ def build_nat_automation_graduation_governance_summary(
         for index, snapshot in enumerate(raw_snapshots):
             if not isinstance(snapshot, Mapping):
                 continue
-            snapshot_id = _as_text(snapshot.get("snapshot_id")) or f"governance-snapshot-{index + 1}"
+            snapshot_id = (
+                _as_text(snapshot.get("snapshot_id"))
+                or f"governance-snapshot-{index + 1}"
+            )
             if isinstance(snapshot.get("governance_index"), Mapping):
                 report = dict(snapshot["governance_index"])
             elif isinstance(snapshot.get("evidence_snapshots"), Mapping):
@@ -4860,8 +5470,12 @@ def build_nat_automation_graduation_governance_summary(
     index_count = len(reports)
     ready_count = sum(1 for report in reports if bool(report.get("promotion_ready")))
     not_ready_count = index_count - ready_count
-    rejected_total = sum(int(report.get("summary", {}).get("rejected_count", 0)) for report in reports)
-    fail_closed_total = sum(int(report.get("summary", {}).get("fail_closed_count", 0)) for report in reports)
+    rejected_total = sum(
+        int(report.get("summary", {}).get("rejected_count", 0)) for report in reports
+    )
+    fail_closed_total = sum(
+        int(report.get("summary", {}).get("fail_closed_count", 0)) for report in reports
+    )
 
     gate_ids = {
         _as_text(report.get("scope", {}).get("gate_id"))
@@ -4892,7 +5506,9 @@ def build_nat_automation_graduation_governance_summary(
     return {
         "schema_version": AUTOMATION_GRADUATION_GOVERNANCE_SUMMARY_SCHEMA_VERSION,
         "lane": _as_text(criteria.get("lane")),
-        "governance_summary_id": _as_text(governance_snapshots.get("governance_summary_id")),
+        "governance_summary_id": _as_text(
+            governance_snapshots.get("governance_summary_id")
+        ),
         "status": status,
         "decision": decision,
         "promotion_ready": promotion_ready,

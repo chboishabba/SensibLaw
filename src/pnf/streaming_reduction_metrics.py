@@ -29,13 +29,10 @@ def _aggregate_metrics(reductions: Iterable[ProposalReduction]) -> dict[str, Any
         int(row.metrics.get("candidate_comparisons") or 0) for row in rows
     )
     potential = sum(
-        int(row.metrics.get("potential_candidate_comparisons") or 0)
-        for row in rows
+        int(row.metrics.get("potential_candidate_comparisons") or 0) for row in rows
     )
     avoided = sum(int(row.metrics.get("comparisons_avoided") or 0) for row in rows)
-    duplicates = sum(
-        int(row.metrics.get("duplicates_collapsed") or 0) for row in rows
-    )
+    duplicates = sum(int(row.metrics.get("duplicates_collapsed") or 0) for row in rows)
     alternatives = sum(
         int(row.metrics.get("alternatives_retained") or 0) for row in rows
     )

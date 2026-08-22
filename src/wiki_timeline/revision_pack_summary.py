@@ -8,7 +8,13 @@ def severity_rank(value: Any) -> int:
     return {"high": 3, "medium": 2, "low": 1, "none": 0}.get(str(value or "none"), 0)
 
 
-def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: int = 5, pair_limit: int = 8, section_limit: int = 10) -> dict[str, Any]:
+def build_pack_triage(
+    article_results: list[dict[str, Any]],
+    *,
+    article_limit: int = 5,
+    pair_limit: int = 8,
+    section_limit: int = 10,
+) -> dict[str, Any]:
     top_articles: list[dict[str, Any]] = []
     top_pairs: list[dict[str, Any]] = []
     top_sections: dict[str, dict[str, Any]] = {}
@@ -31,7 +37,11 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                 "candidate_pairs_selected": row.get("candidate_pairs_selected", 0),
             }
         )
-        graph_summary = row.get("contested_graph_summary") if isinstance(row.get("contested_graph_summary"), Mapping) else None
+        graph_summary = (
+            row.get("contested_graph_summary")
+            if isinstance(row.get("contested_graph_summary"), Mapping)
+            else None
+        )
         if graph_summary:
             top_graphs.append(
                 {
@@ -73,7 +83,9 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                         "highest_severity": region.get("highest_severity", "none"),
                     }
                     existing = top_regions.get(key)
-                    if existing is None or int(candidate.get("total_touched_bytes") or 0) > int(existing.get("total_touched_bytes") or 0):
+                    if existing is None or int(
+                        candidate.get("total_touched_bytes") or 0
+                    ) > int(existing.get("total_touched_bytes") or 0):
                         top_regions[key] = candidate
         for pair in row.get("pair_reports") or []:
             if not isinstance(pair, Mapping):
@@ -108,15 +120,60 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                     "pair_kind": pair.get("pair_kind"),
                     "top_severity": pair.get("top_severity", "none"),
                 }
-                if existing is None or touched > int(existing.get("max_touched_bytes") or 0):
+                if existing is None or touched > int(
+                    existing.get("max_touched_bytes") or 0
+                ):
                     top_sections[name] = candidate
 
-    top_articles.sort(key=lambda item: (-severity_rank(item.get("top_severity")), -float(item.get("selected_primary_pair_score") or 0.0), -int(item.get("candidate_pairs_selected") or 0), str(item.get("article_id") or "")))
-    top_pairs.sort(key=lambda item: (-severity_rank(item.get("top_severity")), -float(item.get("candidate_score") or 0.0), str(item.get("article_id") or ""), str(item.get("pair_id") or "")))
-    ranked_sections = sorted(top_sections.values(), key=lambda item: (-int(item.get("max_touched_bytes") or 0), -severity_rank(item.get("top_severity")), str(item.get("section") or "")))
-    top_graphs.sort(key=lambda item: (-severity_rank(item.get("top_severity")), -float(item.get("graph_heat") or 0.0), -int(item.get("cycle_count") or 0), str(item.get("article_id") or "")))
-    top_cycles.sort(key=lambda item: (-severity_rank(item.get("highest_severity")), -int(item.get("touch_count") or 0), str(item.get("article_id") or ""), str(item.get("cycle_id") or "")))
-    ranked_regions = sorted(top_regions.values(), key=lambda item: (-severity_rank(item.get("highest_severity")), -int(item.get("total_touched_bytes") or 0), -int(item.get("touch_count") or 0), str(item.get("region_title") or "")))
+    top_articles.sort(
+        key=lambda item: (
+            -severity_rank(item.get("top_severity")),
+            -float(item.get("selected_primary_pair_score") or 0.0),
+            -int(item.get("candidate_pairs_selected") or 0),
+            str(item.get("article_id") or ""),
+        )
+    )
+    top_pairs.sort(
+        key=lambda item: (
+            -severity_rank(item.get("top_severity")),
+            -float(item.get("candidate_score") or 0.0),
+            str(item.get("article_id") or ""),
+            str(item.get("pair_id") or ""),
+        )
+    )
+    ranked_sections = sorted(
+        top_sections.values(),
+        key=lambda item: (
+            -int(item.get("max_touched_bytes") or 0),
+            -severity_rank(item.get("top_severity")),
+            str(item.get("section") or ""),
+        ),
+    )
+    top_graphs.sort(
+        key=lambda item: (
+            -severity_rank(item.get("top_severity")),
+            -float(item.get("graph_heat") or 0.0),
+            -int(item.get("cycle_count") or 0),
+            str(item.get("article_id") or ""),
+        )
+    )
+    top_cycles.sort(
+        key=lambda item: (
+            -severity_rank(item.get("highest_severity")),
+            -int(item.get("touch_count") or 0),
+            str(item.get("article_id") or ""),
+            str(item.get("cycle_id") or ""),
+        )
+    )
+    ranked_regions = sorted(
+        top_regions.values(),
+        key=lambda item: (
+            -severity_rank(item.get("highest_severity")),
+            -int(item.get("total_touched_bytes") or 0),
+            -int(item.get("touch_count") or 0),
+            str(item.get("region_title") or ""),
+        ),
+    )
     return {
         "top_changed_articles": top_articles[:article_limit],
         "top_high_severity_pairs": top_pairs[:pair_limit],
@@ -192,11 +249,32 @@ def human_summary(payload: Mapping[str, Any]) -> str:
     top_pairs = triage.get("top_high_severity_pairs") or []
     top_sections = triage.get("top_sections_changed") or []
     if top_articles:
-        lines.append("top_articles=" + ", ".join(f"{row.get('article_id')}:{row.get('top_severity')}:{row.get('selected_primary_pair_kind')}" for row in top_articles[:3] if isinstance(row, Mapping)))
+        lines.append(
+            "top_articles="
+            + ", ".join(
+                f"{row.get('article_id')}:{row.get('top_severity')}:{row.get('selected_primary_pair_kind')}"
+                for row in top_articles[:3]
+                if isinstance(row, Mapping)
+            )
+        )
     if top_pairs:
-        lines.append("top_pairs=" + ", ".join(f"{row.get('article_id')}:{row.get('pair_kind')}:{row.get('top_severity')}" for row in top_pairs[:3] if isinstance(row, Mapping)))
+        lines.append(
+            "top_pairs="
+            + ", ".join(
+                f"{row.get('article_id')}:{row.get('pair_kind')}:{row.get('top_severity')}"
+                for row in top_pairs[:3]
+                if isinstance(row, Mapping)
+            )
+        )
     if top_sections:
-        lines.append("top_sections=" + ", ".join(f"{row.get('section')}:{row.get('max_touched_bytes')}" for row in top_sections[:3] if isinstance(row, Mapping)))
+        lines.append(
+            "top_sections="
+            + ", ".join(
+                f"{row.get('section')}:{row.get('max_touched_bytes')}"
+                for row in top_sections[:3]
+                if isinstance(row, Mapping)
+            )
+        )
     for row in payload.get("articles") or []:
         if not isinstance(row, Mapping):
             continue

@@ -348,11 +348,14 @@ def test_actor_hole_resolves_uniquely_then_preserves_ambiguity() -> None:
                 first_actor_id,
             )
             assert int(candidate_count) == 1
-            assert _outcome(
-                cursor,
-                demand_id=demand_id,
-                interface_id=root_interface_id,
-            ) == 2
+            assert (
+                _outcome(
+                    cursor,
+                    demand_id=demand_id,
+                    interface_id=root_interface_id,
+                )
+                == 2
+            )
             cursor.execute(
                 """
                 SELECT count(*)
@@ -410,11 +413,14 @@ def test_actor_hole_resolves_uniquely_then_preserves_ambiguity() -> None:
             assert int(state) == 1
             assert target_id is None
             assert int(candidate_count) == 2
-            assert _outcome(
-                cursor,
-                demand_id=demand_id,
-                interface_id=root_interface_id,
-            ) == 3
+            assert (
+                _outcome(
+                    cursor,
+                    demand_id=demand_id,
+                    interface_id=root_interface_id,
+                )
+                == 3
+            )
 
             cursor.execute(
                 """
@@ -448,11 +454,14 @@ def test_actor_hole_resolves_uniquely_then_preserves_ambiguity() -> None:
             assert int(state) == 3
             assert target_id is None
             assert int(candidate_count) == 0
-            assert _outcome(
-                cursor,
-                demand_id=demand_id,
-                interface_id=root_interface_id,
-            ) == 7
+            assert (
+                _outcome(
+                    cursor,
+                    demand_id=demand_id,
+                    interface_id=root_interface_id,
+                )
+                == 7
+            )
 
             cursor.execute(
                 "SELECT execution.refresh_pnf_global_lookup(%s, %s)",

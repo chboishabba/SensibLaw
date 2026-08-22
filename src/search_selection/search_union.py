@@ -21,13 +21,18 @@ def _language_rank(language: str, preference: Sequence[str]) -> int:
 
 
 def merge_search_results(
-    results: Iterable[SearchResult], *, limit: int | None = None, language_preference: Sequence[str] = ("en",)
+    results: Iterable[SearchResult],
+    *,
+    limit: int | None = None,
+    language_preference: Sequence[str] = ("en",),
 ) -> list[SearchResult]:
     sorted_results = sorted(
         results,
         key=lambda result: (
             -int(result.metadata.get("priority_score") or 0),
-            _language_rank(result.metadata.get("language") or "en", language_preference),
+            _language_rank(
+                result.metadata.get("language") or "en", language_preference
+            ),
             result.metadata.get("resolution_mode"),
             result.source_label,
         ),
@@ -61,11 +66,16 @@ LANGUAGE_SOURCE_MAP: Mapping[str, str] = {
 
 def canonicalize_multilingual_query(query: SearchQuery) -> SearchQuery:
     canonical = LANGUAGE_SOURCE_MAP.get(query.language, query.source_label)
-    return SearchQuery(source_label=canonical, query_text=query.query_text, language=query.language)
+    return SearchQuery(
+        source_label=canonical, query_text=query.query_text, language=query.language
+    )
 
 
 def rank_sources(
-    queries: Iterable[SearchQuery], *, authority_order: Iterable[str], language_preference: Sequence[str] = ("en",)
+    queries: Iterable[SearchQuery],
+    *,
+    authority_order: Iterable[str],
+    language_preference: Sequence[str] = ("en",),
 ) -> list[SearchQuery]:
     authority_rank = {name: index for index, name in enumerate(authority_order)}
     return sorted(

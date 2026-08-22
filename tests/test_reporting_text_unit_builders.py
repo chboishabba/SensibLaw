@@ -37,7 +37,9 @@ def test_build_timestamped_speaker_text_and_header_body_text_are_stable() -> Non
     assert header_body == "[Firefox] Example\nBody text"
 
 
-def test_build_canonical_conversation_text_shapes_generic_context_reply_and_speaker() -> None:
+def test_build_canonical_conversation_text_shapes_generic_context_reply_and_speaker() -> (
+    None
+):
     text = build_canonical_conversation_text(
         text="What is distllm?",
         speaker="alice",

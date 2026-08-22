@@ -88,9 +88,7 @@ def ingest_pdf_from_search(
     if "pdf" not in content_type and not fetched.url.lower().endswith(".pdf"):
         raise ValueError("Fetched content is not a PDF")
 
-    with tempfile.NamedTemporaryFile(
-        suffix=".pdf", dir=temp_dir, delete=False
-    ) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".pdf", dir=temp_dir, delete=False) as tmp:
         tmp.write(fetched.content)
         pdf_path = Path(tmp.name)
 

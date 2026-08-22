@@ -47,5 +47,5 @@ def test_as_at_filters_edges():
     g = build_graph()
     nodes, edges = build_subgraph(g, ["A"], hops=3, as_at=datetime(2022, 1, 1))
     dot = to_dot(nodes, edges)
-    assert 'REJECTS' not in dot
-    assert 'LEADS_TO' in dot
+    assert "REJECTS" not in dot
+    assert "LEADS_TO" in dot

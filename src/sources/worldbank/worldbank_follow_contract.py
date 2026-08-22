@@ -30,7 +30,9 @@ class WorldBankFollowInput:
     translation_notes: list[str]
 
 
-def normalize_worldbank_follow_input(payload: Mapping[str, Any]) -> WorldBankFollowInput:
+def normalize_worldbank_follow_input(
+    payload: Mapping[str, Any],
+) -> WorldBankFollowInput:
     return WorldBankFollowInput(
         document_id=str(payload.get("document_id") or ""),
         title=str(payload.get("title") or ""),

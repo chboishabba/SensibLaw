@@ -37,7 +37,9 @@ REAL_INSTANCE_CONTRADICTION_FIXTURE_PATH = (
 )
 
 
-def test_project_wikidata_disjointness_payload_reports_pairs_violations_and_culprits() -> None:
+def test_project_wikidata_disjointness_payload_reports_pairs_violations_and_culprits() -> (
+    None
+):
     payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
     report = project_wikidata_disjointness_payload(payload)
@@ -80,7 +82,10 @@ def test_project_wikidata_disjointness_payload_reports_pairs_violations_and_culp
         "QDuckBoat",
         "QJetSkiCar",
     ]
-    assert report["instance_violations"][0]["explained_by_culprit_class_qid"] == "QAmphibiousVehicle"
+    assert (
+        report["instance_violations"][0]["explained_by_culprit_class_qid"]
+        == "QAmphibiousVehicle"
+    )
     assert report["instance_violations"][1]["explained_by_culprit_class_qid"] is None
     assert [row["qid"] for row in report["culprit_items"]] == ["QJetSkiCar"]
 
@@ -155,12 +160,16 @@ def test_real_fixed_construction_pack_reports_real_subclass_contradiction() -> N
     assert culprit["qid"] == "Q27096213"
     assert culprit["downstream_subclass_violation_count"] == 3
     assert culprit["downstream_instance_violation_count"] == 0
-    downstream = next(row for row in report["subclass_violations"] if row["qid"] == "Q811430")
+    downstream = next(
+        row for row in report["subclass_violations"] if row["qid"] == "Q811430"
+    )
     assert downstream["explained_by_culprit_class_qid"] == "Q27096213"
 
 
 def test_real_working_fluid_pack_reports_real_instance_contradiction() -> None:
-    payload = json.loads(REAL_INSTANCE_CONTRADICTION_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(
+        REAL_INSTANCE_CONTRADICTION_FIXTURE_PATH.read_text(encoding="utf-8")
+    )
 
     report = project_wikidata_disjointness_payload(payload)
 

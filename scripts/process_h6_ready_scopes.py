@@ -5,13 +5,16 @@ Execution remains document-scoped semantically; this driver only batches those
 independent scopes operationally. It never creates external needs or performs H9
 provider I/O.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 from time import perf_counter
 
-from src.storage.postgres.consumer_sufficient_runtime_store import ConsumerSufficientRuntimeStore
+from src.storage.postgres.consumer_sufficient_runtime_store import (
+    ConsumerSufficientRuntimeStore,
+)
 from src.storage.postgres.spacy_parser_model import connect
 
 

@@ -15,6 +15,7 @@ Usage
 The ``weights`` file is optional. If omitted, each metric receives a
 weight of ``1``.
 """
+
 from __future__ import annotations
 
 import json
@@ -49,13 +50,13 @@ def load_metrics(directory: Path) -> Metrics:
             raise ValueError(f"Invalid JSON in {path}") from exc
 
         name = data.get("stakeholder") or path.stem
-        metrics[name] = {
-            k: float(v) for k, v in data.get("metrics", {}).items()
-        }
+        metrics[name] = {k: float(v) for k, v in data.get("metrics", {}).items()}
     return metrics
 
 
-def compute_scores(metrics: Metrics, weights: Mapping[str, float] | None = None) -> Scores:
+def compute_scores(
+    metrics: Metrics, weights: Mapping[str, float] | None = None
+) -> Scores:
     """Compute weighted scores for each stakeholder."""
     weights = weights or {}
     scores: Scores = {}
@@ -135,9 +136,7 @@ def main() -> None:  # pragma: no cover - CLI wrapper
     )
     args = parser.parse_args()
 
-    weights = (
-        json.loads(Path(args.weights).read_text()) if args.weights else None
-    )
+    weights = json.loads(Path(args.weights).read_text()) if args.weights else None
     compute_harm_index(
         data_dir=args.data_dir,
         weights=weights,

@@ -67,9 +67,7 @@ def _report(store: PostgresCompilerStore, corpus_ref: str) -> dict[str, Any]:
         return collect_binding_report(cursor, corpus_ref=corpus_ref)
 
 
-def _coordinate_report(
-    store: PostgresCompilerStore, corpus_ref: str
-) -> dict[str, int]:
+def _coordinate_report(store: PostgresCompilerStore, corpus_ref: str) -> dict[str, int]:
     """Measure source/canonical separation and persisted span/token parity."""
 
     with store.transaction() as cursor:
@@ -268,9 +266,7 @@ def _assert_reuse(
         "refinements_unchanged": (
             second_factors["refinements"] == first_factors["refinements"]
         ),
-        "demands_unchanged": (
-            second_demands["demands"] == first_demands["demands"]
-        ),
+        "demands_unchanged": (second_demands["demands"] == first_demands["demands"]),
         "canonical_coordinates_unchanged": (
             second_coordinate_report == first_coordinate_report
         ),

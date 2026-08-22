@@ -22,7 +22,9 @@ from src.policy.world_model_projections import (
     project_timeline,
 )
 
-GWB_NARRATIVE_TIMELINE_WORLD_MODEL_SCHEMA_VERSION = "sl.gwb_narrative_timeline_world_model.v0_1"
+GWB_NARRATIVE_TIMELINE_WORLD_MODEL_SCHEMA_VERSION = (
+    "sl.gwb_narrative_timeline_world_model.v0_1"
+)
 GWB_NARRATIVE_TIMELINE_PROFILE_ID = "gwb_narrative_timeline"
 
 
@@ -47,16 +49,28 @@ def _relation_rows(report: Mapping[str, Any]) -> list[dict[str, Any]]:
     ]
     return build_claim_nodes_from_mapping(
         relation_rows,
-        predicate=lambda row, _context: bool(_text(row.get("event_id")) and _text(row.get("candidate_id"))),
+        predicate=lambda row, _context: bool(
+            _text(row.get("event_id")) and _text(row.get("candidate_id"))
+        ),
         mapping=StateNodeMapping(
-            node_id=lambda row, _context: f"relation:{_text(row.get('event_id'))}:{_text(row.get('candidate_id'))}",
+            node_id=lambda row, _context: (
+                f"relation:{_text(row.get('event_id'))}:{_text(row.get('candidate_id'))}"
+            ),
             node_kind=lambda _row, _context: "relation_candidate",
-            label=lambda row, _context: _text(row.get("display_label"))
-            or _text(row.get("predicate_key"))
-            or _text(row.get("candidate_id")),
-            status=lambda row, _context: _text(row.get("promotion_status")) or "candidate",
-            source_anchor_ids=lambda row, _context: [_text(row.get("event_id"))] if _text(row.get("event_id")) else [],
-            promotion_status=lambda row, _context: _text(row.get("promotion_status")) or "candidate_only",
+            label=lambda row, _context: (
+                _text(row.get("display_label"))
+                or _text(row.get("predicate_key"))
+                or _text(row.get("candidate_id"))
+            ),
+            status=lambda row, _context: (
+                _text(row.get("promotion_status")) or "candidate"
+            ),
+            source_anchor_ids=lambda row, _context: (
+                [_text(row.get("event_id"))] if _text(row.get("event_id")) else []
+            ),
+            promotion_status=lambda row, _context: (
+                _text(row.get("promotion_status")) or "candidate_only"
+            ),
             metadata=lambda row, _context: {
                 "event_id": _text(row.get("event_id")),
                 "candidate_id": _text(row.get("candidate_id")),
@@ -72,10 +86,14 @@ def _raw_report(source: Any, *, run_id: str | None = None) -> dict[str, Any]:
         payload = deepcopy(dict(source))
         payload_run_id = _text(payload.get("run_id"))
         if run_id and payload_run_id and payload_run_id != run_id:
-            raise ValueError("gwb narrative world model received mismatched run_id for semantic report")
+            raise ValueError(
+                "gwb narrative world model received mismatched run_id for semantic report"
+            )
         return payload
     if not run_id:
-        raise ValueError("gwb narrative world model requires run_id when loading from a database connection")
+        raise ValueError(
+            "gwb narrative world model requires run_id when loading from a database connection"
+        )
     return build_gwb_semantic_report(source, run_id=run_id)
 
 
@@ -85,10 +103,22 @@ def build_world_model(conn: Any, *, run_id: str | None = None) -> dict[str, Any]
     profile = build_profile(
         profile_id=GWB_NARRATIVE_TIMELINE_PROFILE_ID,
         lane_family="gwb",
-        source_kinds=["book_pdf", "wikipedia", "wikidata", "public_bio", "archive_record"],
+        source_kinds=[
+            "book_pdf",
+            "wikipedia",
+            "wikidata",
+            "public_bio",
+            "archive_record",
+        ],
         authority_surfaces=["gwb_narrative_review_surface", "workflow_tranche_anchor"],
         promotion_policy="candidate_only",
-        default_projection_kinds=["report", "claim_table", "timeline", "review_surface", "linkage_case"],
+        default_projection_kinds=[
+            "report",
+            "claim_table",
+            "timeline",
+            "review_surface",
+            "linkage_case",
+        ],
         metadata={"lane_id": "gwb", "profile_role": "narrative_timeline"},
     )
     per_event_rows = _mapping_rows(raw_report.get("per_event"))
@@ -104,10 +134,14 @@ def build_world_model(conn: Any, *, run_id: str | None = None) -> dict[str, Any]
     timelines = build_timeline_nodes_from_mapping(
         [{}],
         field_mapping={
-            "timeline_id": lambda _row, context: f"timeline:{_text(context.get('run_id'))}",
+            "timeline_id": lambda _row, context: (
+                f"timeline:{_text(context.get('run_id'))}"
+            ),
             "status": lambda _row, _context: "candidate",
             "event_ids": lambda _row, context: [
-                _text(row.get("event_id")) for row in _mapping_rows(context.get("per_event_rows")) if _text(row.get("event_id"))
+                _text(row.get("event_id"))
+                for row in _mapping_rows(context.get("per_event_rows"))
+                if _text(row.get("event_id"))
             ],
         },
         context={"run_id": resolved_run_id, "per_event_rows": per_event_rows},
@@ -125,19 +159,33 @@ def build_world_model(conn: Any, *, run_id: str | None = None) -> dict[str, Any]
         summary={
             "claim_count": len(claims),
             "event_count": len(events),
-            "promoted_relation_count": len(_mapping_rows(raw_report.get("promoted_relations"))),
-            "candidate_only_relation_count": len(_mapping_rows(raw_report.get("candidate_only_relations"))),
+            "promoted_relation_count": len(
+                _mapping_rows(raw_report.get("promoted_relations"))
+            ),
+            "candidate_only_relation_count": len(
+                _mapping_rows(raw_report.get("candidate_only_relations"))
+            ),
         },
         metadata={
             "artifact_id": resolved_run_id,
             "run_id": resolved_run_id,
             "lane_id": "gwb",
             "profile": profile,
-            "adapter_stack": ["claim_nodes_from_mapping", "event_nodes_from_mapping", "timeline_nodes_from_mapping"],
+            "adapter_stack": [
+                "claim_nodes_from_mapping",
+                "event_nodes_from_mapping",
+                "timeline_nodes_from_mapping",
+            ],
             "raw_report": deepcopy(dict(raw_report)),
             "review_inputs": build_review_inputs(
                 raw_report,
-                field_names=("per_event", "promoted_relations", "candidate_only_relations", "source_documents", "review_summary"),
+                field_names=(
+                    "per_event",
+                    "promoted_relations",
+                    "candidate_only_relations",
+                    "source_documents",
+                    "review_summary",
+                ),
                 extra_fields={"run_id": resolved_run_id},
             ),
         },
@@ -146,18 +194,29 @@ def build_world_model(conn: Any, *, run_id: str | None = None) -> dict[str, Any]
 
 def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     model = dict(world_model)
-    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
-    raw_report = metadata.get("raw_report") if isinstance(metadata.get("raw_report"), Mapping) else {}
+    metadata = (
+        model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    )
+    raw_report = (
+        metadata.get("raw_report")
+        if isinstance(metadata.get("raw_report"), Mapping)
+        else {}
+    )
     report = dict(raw_report)
     report.update(
         _project_report(
             world_model=model,
             schema_version=GWB_NARRATIVE_TIMELINE_WORLD_MODEL_SCHEMA_VERSION,
-            artifact_id=_text(metadata.get("artifact_id")) or _text(model.get("model_id")),
+            artifact_id=_text(metadata.get("artifact_id"))
+            or _text(model.get("model_id")),
             lane_id=_text(metadata.get("lane_id")) or "gwb",
             family_id=_text(model.get("lane_family")) or "gwb",
-            claims=model.get("claims") if isinstance(model.get("claims"), Sequence) else None,
-            summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+            claims=model.get("claims")
+            if isinstance(model.get("claims"), Sequence)
+            else None,
+            summary=model.get("summary")
+            if isinstance(model.get("summary"), Mapping)
+            else None,
         )
     )
     report["claim_table"] = project_claim_table(model)

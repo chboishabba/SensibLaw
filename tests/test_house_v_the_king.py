@@ -28,14 +28,14 @@ def test_house_v_the_king_yields_obligation():
     )
     doc = _doc(body)
     obligations = list(extract_obligations_from_document(doc))
-    assert obligations, "Expected at least one obligation from the canonical formulation."
+    assert obligations, (
+        "Expected at least one obligation from the canonical formulation."
+    )
     assert any("must" in ob.modality for ob in obligations)
 
 
 def test_house_v_the_king_identities_are_stable():
-    body = (
-        "The appellate court must not interfere with the exercise of a discretion unless error is shown."
-    )
+    body = "The appellate court must not interfere with the exercise of a discretion unless error is shown."
     doc = _doc(body)
     obs1 = list(extract_obligations_from_document(doc))
     ids1 = {oid.identity_hash for oid in compute_identities(obs1)}

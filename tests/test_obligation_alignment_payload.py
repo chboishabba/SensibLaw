@@ -1,10 +1,16 @@
-from src.obligation_alignment import ALIGNMENT_SCHEMA_VERSION, align_obligations, alignment_to_payload
+from src.obligation_alignment import (
+    ALIGNMENT_SCHEMA_VERSION,
+    align_obligations,
+    alignment_to_payload,
+)
 from src.obligations import extract_obligations_from_text
 
 
 def test_alignment_payload_changes_list():
     old = extract_obligations_from_text("The operator must keep records within 7 days.")
-    new = extract_obligations_from_text("The operator must keep records within 14 days.")
+    new = extract_obligations_from_text(
+        "The operator must keep records within 14 days."
+    )
 
     report = align_obligations(old, new)
     payload = alignment_to_payload(report)

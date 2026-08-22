@@ -2,7 +2,6 @@ from pathlib import Path
 
 import sys
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT))
@@ -49,4 +48,3 @@ def test_as_at_queries(tmp_path):
     assert store.fetch_node_as_at(n1, "2021-01-01") is None
 
     store.close()
-

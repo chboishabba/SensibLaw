@@ -63,7 +63,9 @@ def test_build_canonical_sentence_units_uses_sentence_local_spans() -> None:
     assert all(unit.boundary_state.page == 7 for unit in units)
 
 
-def test_build_canonical_sentence_units_does_not_mark_closed_page_boundary_as_continuation() -> None:
+def test_build_canonical_sentence_units_does_not_mark_closed_page_boundary_as_continuation() -> (
+    None
+):
     pages = [
         {
             "page": 1,

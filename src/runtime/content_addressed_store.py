@@ -58,7 +58,9 @@ class FilesystemContentAddressedStore:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, digest: str) -> Path:
-        if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+        if len(digest) != 64 or any(
+            character not in "0123456789abcdef" for character in digest
+        ):
             raise ValueError("content digest must be lower-case SHA-256")
         return self.root / "sha256" / digest[:2] / digest
 

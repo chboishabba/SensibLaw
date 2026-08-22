@@ -58,7 +58,11 @@ def _parse_title(html: str) -> Optional[str]:
 
 def _fetch_live_metadata(celex_id: str) -> Optional[dict[str, str]]:
     url = build_celex_url(celex_id)
-    enabled = os.environ.get("SENSIBLAW_EUR_LEX_LIVE", "0").strip().lower() in {"1", "true", "yes"}
+    enabled = os.environ.get("SENSIBLAW_EUR_LEX_LIVE", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     if not enabled:
         return None
     try:
@@ -95,7 +99,11 @@ class EurLexHierarchyAdapter(LegalSourceAdapter):
         }
 
         live_metadata = _fetch_live_metadata(celex)
-        metadata_attrs = {"source_family": "eur_lex", "authority_yield": "high", "celex_id": celex}
+        metadata_attrs = {
+            "source_family": "eur_lex",
+            "authority_yield": "high",
+            "celex_id": celex,
+        }
         if live_metadata:
             payload.update(live_metadata)
             metadata_attrs["resolution_mode"] = "live"
@@ -103,7 +111,9 @@ class EurLexHierarchyAdapter(LegalSourceAdapter):
         else:
             metadata_attrs["resolution_mode"] = "static_catalog"
 
-        content = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        content = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode(
+            "utf-8"
+        )
         return FetchResult(
             content=content,
             content_type="application/json",

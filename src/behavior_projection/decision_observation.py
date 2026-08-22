@@ -41,7 +41,9 @@ class DecisionObservation:
             jurisdiction_id=str(self.jurisdiction_id or "").strip(),
             institution_id=str(self.institution_id or "").strip(),
             date=str(self.date).strip() if self.date else None,
-            matter_type_id=str(self.matter_type_id).strip() if self.matter_type_id else None,
+            matter_type_id=str(self.matter_type_id).strip()
+            if self.matter_type_id
+            else None,
             predicate_keys=uniq_sorted(self.predicate_keys),
             normative_reference_ids=uniq_sorted(self.normative_reference_ids),
             output_label=str(self.output_label or "").strip(),
@@ -58,7 +60,9 @@ def project_case_observation(case_obs: object) -> DecisionObservation:
         raise ProjectionError("expected CaseObservation")
     o = case_obs.normalized()
     if not o.judge_id:
-        raise ProjectionError("CaseObservation.judge_id required for DecisionObservation projection")
+        raise ProjectionError(
+            "CaseObservation.judge_id required for DecisionObservation projection"
+        )
     out = DecisionObservation(
         decision_id=o.case_id,
         actor_id=o.judge_id,
@@ -84,7 +88,9 @@ def project_action_observation(action_obs: object) -> DecisionObservation:
         raise ProjectionError("expected ActionObservation")
     o = action_obs.normalized()
     if not o.official_id:
-        raise ProjectionError("ActionObservation.official_id required for DecisionObservation projection")
+        raise ProjectionError(
+            "ActionObservation.official_id required for DecisionObservation projection"
+        )
     out = DecisionObservation(
         decision_id=o.action_id,
         actor_id=o.official_id,
@@ -100,4 +106,3 @@ def project_action_observation(action_obs: object) -> DecisionObservation:
         context_keys=o.context_keys,
     )
     return out.normalized()
-

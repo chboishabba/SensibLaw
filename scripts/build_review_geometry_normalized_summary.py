@@ -12,12 +12,42 @@ SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 ARTIFACT_VERSION = "review_geometry_normalized_summary_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 SOURCE_ARTIFACTS = [
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "au_affidavit_coverage_review_v1" / "affidavit_coverage_review_v1.json",
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "au_dense_affidavit_coverage_review_v1" / "affidavit_coverage_review_v1.json",
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "wikidata_structural_review_v1" / "wikidata_structural_review_v1.json",
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "wikidata_dense_structural_review_v1" / "wikidata_dense_structural_review_v1.json",
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_public_review_v1" / "gwb_public_review_v1.json",
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_broader_review_v1" / "gwb_broader_review_v1.json",
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "au_affidavit_coverage_review_v1"
+    / "affidavit_coverage_review_v1.json",
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "au_dense_affidavit_coverage_review_v1"
+    / "affidavit_coverage_review_v1.json",
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "wikidata_structural_review_v1"
+    / "wikidata_structural_review_v1.json",
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "wikidata_dense_structural_review_v1"
+    / "wikidata_dense_structural_review_v1.json",
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "gwb_public_review_v1"
+    / "gwb_public_review_v1.json",
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "gwb_broader_review_v1"
+    / "gwb_broader_review_v1.json",
 ]
 
 
@@ -39,7 +69,9 @@ def build_normalized_summary(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str,
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
     return {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
 
@@ -69,14 +101,20 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build the normalized cross-lane review-geometry summary.")
+    parser = argparse.ArgumentParser(
+        description="Build the normalized cross-lane review-geometry summary."
+    )
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),
         help="Directory where the normalized summary artifact will be written.",
     )
     args = parser.parse_args()
-    print(json.dumps(build_normalized_summary(Path(args.output_dir)), indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            build_normalized_summary(Path(args.output_dir)), indent=2, sort_keys=True
+        )
+    )
 
 
 if __name__ == "__main__":

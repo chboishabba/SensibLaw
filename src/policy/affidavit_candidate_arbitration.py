@@ -1,4 +1,5 @@
 """Shared affidavit candidate arbitration helpers."""
+
 from __future__ import annotations
 
 from typing import Any, Mapping
@@ -36,14 +37,16 @@ def promote_duplicate_root_alternate(
     if comparison_mode != "contested_narrative":
         return best_candidate, duplicate_match_excerpt
     if not (
-        best_candidate["response_role"] == "restatement_only" or best_candidate["is_duplicate_excerpt"]
+        best_candidate["response_role"] == "restatement_only"
+        or best_candidate["is_duplicate_excerpt"]
     ):
         return best_candidate, duplicate_match_excerpt
     substantive_candidates = [
         candidate
         for candidate in candidates
         if (
-            candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"}
+            candidate["response_role"]
+            in {"dispute", "admission", "explanation", "support_or_corroboration"}
             or float(candidate.get("predicate_alignment_score") or 0.0) >= 0.5
         )
         and not candidate["is_duplicate_excerpt"]
@@ -62,7 +65,9 @@ def promote_non_echo_alternate(
     best_candidate: dict[str, Any],
     duplicate_match_excerpt: str | None,
 ) -> tuple[dict[str, Any], str | None]:
-    if comparison_mode != "contested_narrative" or not best_candidate.get("is_proposition_echo"):
+    if comparison_mode != "contested_narrative" or not best_candidate.get(
+        "is_proposition_echo"
+    ):
         return best_candidate, duplicate_match_excerpt
     substantive_candidates = [
         candidate
@@ -70,14 +75,17 @@ def promote_non_echo_alternate(
         if not candidate.get("is_proposition_echo")
         and not candidate.get("is_duplicate_excerpt")
         and (
-            candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"}
+            candidate["response_role"]
+            in {"dispute", "admission", "explanation", "support_or_corroboration"}
             or float(candidate.get("predicate_alignment_score") or 0.0) >= 0.5
         )
     ]
     if not substantive_candidates:
         return best_candidate, duplicate_match_excerpt
     alternate_candidate = max(substantive_candidates, key=candidate_rank_key)
-    duplicate_match_excerpt = duplicate_match_excerpt or str(best_candidate["match_excerpt"] or "").strip()
+    duplicate_match_excerpt = (
+        duplicate_match_excerpt or str(best_candidate["match_excerpt"] or "").strip()
+    )
     return alternate_candidate, duplicate_match_excerpt
 
 
@@ -90,7 +98,9 @@ def preserve_duplicate_match_excerpt(
         return duplicate_match_excerpt
     for candidate in candidates:
         if candidate.get("is_proposition_echo"):
-            duplicate_match_excerpt = str(candidate.get("match_excerpt") or "").strip() or None
+            duplicate_match_excerpt = (
+                str(candidate.get("match_excerpt") or "").strip() or None
+            )
             if duplicate_match_excerpt:
                 break
     return duplicate_match_excerpt
@@ -109,7 +119,12 @@ def promote_clause_alternate(
         return best_candidate
     if best_candidate.get("match_basis") != "segment":
         return best_candidate
-    if best_candidate.get("response_role") not in {"admission", "explanation", "support_or_corroboration", "procedural_frame"}:
+    if best_candidate.get("response_role") not in {
+        "admission",
+        "explanation",
+        "support_or_corroboration",
+        "procedural_frame",
+    }:
         return best_candidate
     best_adjusted = float(best_candidate.get("adjusted_score") or 0.0)
     best_predicate = float(best_candidate.get("predicate_alignment_score") or 0.0)
@@ -120,8 +135,10 @@ def promote_clause_alternate(
         and not candidate.get("is_proposition_echo")
         and not candidate.get("is_duplicate_excerpt")
         and candidate.get("response_role") == best_candidate.get("response_role")
-        and float(candidate.get("adjusted_score") or 0.0) >= max(best_adjusted - 0.08, 0.0)
-        and float(candidate.get("predicate_alignment_score") or 0.0) >= max(best_predicate - 0.15, 0.0)
+        and float(candidate.get("adjusted_score") or 0.0)
+        >= max(best_adjusted - 0.08, 0.0)
+        and float(candidate.get("predicate_alignment_score") or 0.0)
+        >= max(best_predicate - 0.15, 0.0)
     ]
     if not clause_alternates:
         return best_candidate
@@ -141,7 +158,9 @@ def finalize_candidate_selection(
         "duplicate_match_excerpt": duplicate_match_excerpt,
         "response_role": str(best_candidate["response_role"]),
         "response_cues": best_candidate["response_cues"],
-        "predicate_alignment_score": float(best_candidate.get("predicate_alignment_score") or 0.0),
+        "predicate_alignment_score": float(
+            best_candidate.get("predicate_alignment_score") or 0.0
+        ),
         "is_proposition_echo": best_candidate.get("is_proposition_echo", False),
     }
 
@@ -151,15 +170,21 @@ def resolve_duplicate_match_excerpt(
     selected_candidate: Mapping[str, Any],
     top_duplicate_candidate: Mapping[str, Any] | None = None,
 ) -> str | None:
-    duplicate_match_excerpt = str(selected_candidate.get("duplicate_match_excerpt") or "").strip() or None
+    duplicate_match_excerpt = (
+        str(selected_candidate.get("duplicate_match_excerpt") or "").strip() or None
+    )
     if duplicate_match_excerpt is not None:
         return duplicate_match_excerpt
     if not isinstance(top_duplicate_candidate, Mapping):
         return None
-    duplicate_candidate_excerpt = str(top_duplicate_candidate.get("match_excerpt") or "").strip() or None
+    duplicate_candidate_excerpt = (
+        str(top_duplicate_candidate.get("match_excerpt") or "").strip() or None
+    )
     if not duplicate_candidate_excerpt:
         return None
-    selected_excerpt = str(selected_candidate.get("match_excerpt") or "").strip() or None
+    selected_excerpt = (
+        str(selected_candidate.get("match_excerpt") or "").strip() or None
+    )
     if duplicate_candidate_excerpt == selected_excerpt:
         return None
     return duplicate_candidate_excerpt

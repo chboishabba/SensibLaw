@@ -12,6 +12,7 @@ from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, wait
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from functools import wraps
 import json
 import os
 from pathlib import Path
@@ -1574,9 +1575,7 @@ def install_parallel_semantic_execution() -> bool:
                     phase="started",
                     counts={
                         "proposal_count": len(batch),
-                        "accepted_proposal_count": len(
-                            result.accepted_proposal_refs
-                        ),
+                        "accepted_proposal_count": len(result.accepted_proposal_refs),
                     },
                     details={
                         "stage": stage,
@@ -1603,9 +1602,7 @@ def install_parallel_semantic_execution() -> bool:
                     phase="completed",
                     counts={
                         "proposal_count": len(batch),
-                        "accepted_proposal_count": len(
-                            result.accepted_proposal_refs
-                        ),
+                        "accepted_proposal_count": len(result.accepted_proposal_refs),
                     },
                     details={
                         "stage": stage,
@@ -1931,6 +1928,7 @@ def install_parallel_semantic_execution() -> bool:
             )
         return result
 
+    @wraps(original_compile)
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
         context = _build_context(args, kwargs)
         token = _CONTEXT.set(context)

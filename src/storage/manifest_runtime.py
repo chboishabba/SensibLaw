@@ -19,7 +19,9 @@ def load_json_object(path: str | Path) -> dict[str, Any]:
     return dict(payload)
 
 
-def load_versioned_json_object(path: str | Path, *, expected_version: str) -> dict[str, Any]:
+def load_versioned_json_object(
+    path: str | Path, *, expected_version: str
+) -> dict[str, Any]:
     payload = load_json_object(path)
     if payload.get("version") != expected_version:
         raise ValueError(f"unsupported manifest version: {payload.get('version')}")

@@ -1,4 +1,5 @@
 """Lightweight processing pipeline utilities."""
+
 from __future__ import annotations
 
 import json
@@ -18,7 +19,7 @@ from src.tools.glossary import rewrite_text
 
 from src.tools.harm_index import compute_harm_index as harm_index
 
-from .tokens import Token, TokenStream, spacy_adapter
+from .tokens import TokenStream, spacy_adapter
 from src import logic_tree
 
 try:
@@ -92,7 +93,9 @@ class Token:
     _extension_values: Dict[str, object] = field(
         init=False, repr=False, compare=False, hash=False
     )
-    _: _TokenExtensionAccessor = field(init=False, repr=False, compare=False, hash=False)
+    _: _TokenExtensionAccessor = field(
+        init=False, repr=False, compare=False, hash=False
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -189,7 +192,21 @@ _DETERMINERS = {
 
 _CONJUNCTIONS = {"and", "or", "but", "nor", "yet", "so"}
 _PREPOSITIONS = {"in", "on", "at", "by", "for", "with", "of", "to", "from"}
-_AUXILIARIES = {"is", "are", "was", "were", "be", "been", "being", "do", "does", "did", "have", "has", "had"}
+_AUXILIARIES = {
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "do",
+    "does",
+    "did",
+    "have",
+    "has",
+    "had",
+}
 _ADVERB_SUFFIXES = ("ly", "wise")
 _ADJECTIVE_SUFFIXES = ("al", "able", "ible", "ous", "ive", "ful", "less", "ary", "ory")
 _VERB_PARTICIPLE_SUFFIXES = ("ing",)
@@ -218,7 +235,10 @@ def _guess_pos(token: str) -> str:
         return "ADP"
     if token in _AUXILIARIES:
         return "AUX"
-    if any(token.endswith(suffix) for suffix in _VERB_PARTICIPLE_SUFFIXES + _VERB_PAST_SUFFIXES):
+    if any(
+        token.endswith(suffix)
+        for suffix in _VERB_PARTICIPLE_SUFFIXES + _VERB_PAST_SUFFIXES
+    ):
         return "VERB"
     if any(token.endswith(suffix) for suffix in _ADVERB_SUFFIXES):
         return "ADV"
@@ -247,7 +267,9 @@ def _guess_morph(token: str, pos: str) -> str:
             return "VerbForm=Fin|Tense=Past"
         return "VerbForm=Inf"
     if pos in {"NOUN", "PROPN"}:
-        return "Number=Plur" if token.endswith("s") and len(token) > 2 else "Number=Sing"
+        return (
+            "Number=Plur" if token.endswith("s") and len(token) > 2 else "Number=Sing"
+        )
     return ""
 
 
@@ -319,7 +341,6 @@ def build_cloud(concepts: List[str]) -> Dict[str, int]:
     return dict(Counter(concepts))
 
 
-
 def tokenise(normalised_text: str) -> TokenStream:
     """Tokenise ``normalised_text`` using the configured spaCy adapter."""
 
@@ -385,7 +406,9 @@ def build_and_persist_logic_tree(
             logic_tree.project_logic_tree_to_sqlite(tree, connection, doc_id=source_id)
             if enable_fts:
                 logic_tree.prepare_fts_schema(connection)
-                logic_tree.index_tokens_for_fts(connection, doc_id=source_id, tokens=tokens)
+                logic_tree.index_tokens_for_fts(
+                    connection, doc_id=source_id, tokens=tokens
+                )
             connection.close()
         except Exception:
             # FTS is optional; avoid failing ingestion if SQLite/FTS is unavailable.

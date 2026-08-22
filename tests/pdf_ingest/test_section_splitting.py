@@ -69,7 +69,8 @@ def test_parse_sections_logs_fallback(monkeypatch, caplog):
     record = matching_records[-1]
     assert record.section_parser_available is False
     assert "section_parser_available=False" in record.message
-    
+
+
 def test_parse_sections_falls_back_to_regex(pdf_ingest):
     text = (
         "Introductory text.\n"

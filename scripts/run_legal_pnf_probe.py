@@ -59,9 +59,7 @@ def _parse_args() -> argparse.Namespace:
     if not 1 <= args.owner_partitions <= 128:
         parser.error("--owner-partitions must be between 1 and 128")
     if args.run_wikidata and not args.compare_legacy:
-        parser.error(
-            "--run-wikidata requires --compare-legacy for an auditable probe"
-        )
+        parser.error("--run-wikidata requires --compare-legacy for an auditable probe")
     return args
 
 
@@ -146,12 +144,8 @@ def _aggregate_timings(rows: list[dict[str, Any]]) -> dict[str, Any]:
         totals[stage] = totals.get(stage, 0) + elapsed
         counts[stage] = counts.get(stage, 0) + 1
     return {
-        "stage_totals_ms": {
-            key: totals[key] for key in sorted(totals)
-        },
-        "stage_means_ms": {
-            key: totals[key] / counts[key] for key in sorted(totals)
-        },
+        "stage_totals_ms": {key: totals[key] for key in sorted(totals)},
+        "stage_means_ms": {key: totals[key] / counts[key] for key in sorted(totals)},
         "slowest": sorted(
             rows,
             key=lambda row: (
@@ -199,9 +193,7 @@ def main() -> int:
         streaming = artifacts.get("streaming_semantic_build") or {}
         certificate = streaming.get("fixed_point_certificate") or {}
         if certificate.get("local_fixed_point") != "reached":
-            raise ValueError(
-                "Legal IR projection requires a reached local fixed point"
-            )
+            raise ValueError("Legal IR projection requires a reached local fixed point")
         if not streaming.get("one_reduction_authority"):
             raise ValueError(
                 "Legal IR projection requires the fibred reduction authority"
@@ -234,28 +226,20 @@ def main() -> int:
         from src.pnf.legal_adjunct import project_legal_ir
 
         refined_graph = (
-            artifacts.get("refined_pnf_graph")
-            or artifacts.get("pnf_graph")
-            or {}
+            artifacts.get("refined_pnf_graph") or artifacts.get("pnf_graph") or {}
         )
         legal_ir_objects = _timed(
             document_timings,
             document_ref=document_ref,
             stage="legal_ir_projection",
-            operation=lambda: project_legal_ir(
-                refined_graph.get("factors") or ()
-            ),
+            operation=lambda: project_legal_ir(refined_graph.get("factors") or ()),
             backend_ref="legal-ir-projection:v0_1",
             details={
-                "fixed_point_certificate_ref": certificate.get(
-                    "certificate_ref"
-                ),
+                "fixed_point_certificate_ref": certificate.get("certificate_ref"),
                 "fibre_ledger_ref": streaming.get("fibre_ledger_ref"),
             },
         )
-        projection_receipt = artifacts.get(
-            "streaming_reduction_projection"
-        ) or {}
+        projection_receipt = artifacts.get("streaming_reduction_projection") or {}
         semantic_build = _timed(
             document_timings,
             document_ref=document_ref,
@@ -271,8 +255,8 @@ def main() -> int:
             ),
         )
 
-        document_dir = output_dir / "documents" / (
-            f"{index:04d}_{row.canonical_sha256[:12]}"
+        document_dir = (
+            output_dir / "documents" / (f"{index:04d}_{row.canonical_sha256[:12]}")
         )
         _write_json(document_dir / "compilation.json", compilation)
         _write_json(
@@ -345,16 +329,12 @@ def main() -> int:
                 "source_ref": row.source_ref,
                 "document_ref": compilation.get("document_ref"),
                 "probe_ref": probe["probe_ref"],
-                "legal_semantic_build_ref": semantic_build["build"][
-                    "build_ref"
-                ],
+                "legal_semantic_build_ref": semantic_build["build"]["build_ref"],
                 "summary": {**probe["summary"], **semantic_build["summary"]},
                 "document_output_dir": str(document_dir),
                 "parser_receipt": artifacts.get("parser_receipt") or {},
                 "streaming_reduction_projection": projection_receipt,
-                "fixed_point_certificate_ref": certificate.get(
-                    "certificate_ref"
-                ),
+                "fixed_point_certificate_ref": certificate.get("certificate_ref"),
                 "fibre_ledger_ref": streaming.get("fibre_ledger_ref"),
                 "integrated_producer_receipt_ref": (
                     streaming.get("integrated_producer_receipt") or {}
@@ -387,11 +367,7 @@ def main() -> int:
             for row in wikidata_demands
         )
         runner = WikimediaMicrobatchRunner(
-            [
-                WikidataProvider(
-                    candidate_limit=args.wikidata_candidate_limit
-                )
-            ],
+            [WikidataProvider(candidate_limit=args.wikidata_candidate_limit)],
             microbatch_size=args.microbatch_size,
             request_budget_per_provider=args.wikidata_request_budget,
         )
@@ -425,38 +401,30 @@ def main() -> int:
         "document_count": len(probe_rows),
         "projection_failure_count": len(manifest.failures),
         "legal_ir_observation_count": sum(
-            int(row["summary"]["legal_ir_observation_count"])
-            for row in probe_rows
+            int(row["summary"]["legal_ir_observation_count"]) for row in probe_rows
         ),
         "coverage_gap_count": sum(
-            int(row["summary"]["coverage_gap_count"])
-            for row in probe_rows
+            int(row["summary"]["coverage_gap_count"]) for row in probe_rows
         ),
         "coverage_demand_count": sum(
-            int(row["summary"]["coverage_demand_count"])
-            for row in probe_rows
+            int(row["summary"]["coverage_demand_count"]) for row in probe_rows
         ),
         "operator_factor_count": sum(
             int(
-                (row.get("streaming_reduction_projection") or {}).get(
-                    "factor_count"
-                )
+                (row.get("streaming_reduction_projection") or {}).get("factor_count")
                 or 0
             )
             for row in probe_rows
         ),
         "local_fixed_point_count": sum(
-            bool(row.get("fixed_point_certificate_ref"))
-            for row in probe_rows
+            bool(row.get("fixed_point_certificate_ref")) for row in probe_rows
         ),
         "fibred_build_count": sum(
             bool(row.get("fibre_ledger_ref")) for row in probe_rows
         ),
         "semantic_stage_timings": "semantic_stage_timings.json",
         "wikidata_lookup_demand_count": len(wikidata_demands),
-        "wikidata_network_performed": wikidata_output[
-            "network_performed"
-        ],
+        "wikidata_network_performed": wikidata_output["network_performed"],
         "identity_closure_count": 0,
         "legal_conclusion_promotion_count": 0,
         "one_proposal_contract": True,

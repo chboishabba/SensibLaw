@@ -4,10 +4,14 @@ import json
 from pathlib import Path
 import sqlite3
 
-from scripts.build_google_docs_contested_narrative_review import build_google_docs_contested_narrative_review
+from scripts.build_google_docs_contested_narrative_review import (
+    build_google_docs_contested_narrative_review,
+)
 
 
-def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp_path: Path) -> None:
+def test_google_docs_contested_narrative_review_builds_artifact(
+    monkeypatch, tmp_path: Path
+) -> None:
     from scripts import build_google_docs_contested_narrative_review as module
     from scripts import build_affidavit_coverage_review as review_module
 
@@ -33,15 +37,19 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
         "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
         "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
     }
-    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        module, "fetch_google_public_export_text", lambda url: lookup[url]
+    )
     monkeypatch.setattr(
         review_module,
         "_analyze_structural_sentence",
         lambda text: {
             "subject_texts": ["I"] if text.casefold().startswith("i ") else [],
             "verb_lemmas": (
-                ["dispute"] if "i dispute" in text.casefold()
-                else ["cut"] if text.casefold().startswith("i cut off")
+                ["dispute"]
+                if "i dispute" in text.casefold()
+                else ["cut"]
+                if text.casefold().startswith("i cut off")
                 else []
             ),
             "has_negation": "i dispute" in text.casefold(),
@@ -58,25 +66,68 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
     summary = Path(payload["summary_path"]).read_text(encoding="utf-8")
     assert artifact["summary"]["affidavit_proposition_count"] == 2
     assert artifact["summary"]["semantic_basis_counts"]["structural"] == 2
-    assert artifact["source_input"]["path"] == "https://docs.google.com/document/d/resp/edit?usp=sharing"
+    assert (
+        artifact["source_input"]["path"]
+        == "https://docs.google.com/document/d/resp/edit?usp=sharing"
+    )
     first_row = artifact["affidavit_rows"][0]
     second_row = artifact["affidavit_rows"][1]
     assert first_row["coverage_status"] in {"partial", "covered"}
-    assert first_row["best_response_role"] in {"admission", "dispute", "other", "procedural_frame", "restatement_only"}
-    assert "router outage" in first_row["best_match_excerpt"] or "internet" in first_row["best_match_excerpt"]
-    assert first_row["support_status"] in {"responsive_but_non_substantive", "substantively_addressed", "evidentially_grounded_response"}
-    assert first_row["semantic_candidate"]["schema_version"] == "contested.semantic_candidate.v1"
+    assert first_row["best_response_role"] in {
+        "admission",
+        "dispute",
+        "other",
+        "procedural_frame",
+        "restatement_only",
+    }
+    assert (
+        "router outage" in first_row["best_match_excerpt"]
+        or "internet" in first_row["best_match_excerpt"]
+    )
+    assert first_row["support_status"] in {
+        "responsive_but_non_substantive",
+        "substantively_addressed",
+        "evidentially_grounded_response",
+    }
+    assert (
+        first_row["semantic_candidate"]["schema_version"]
+        == "contested.semantic_candidate.v1"
+    )
     assert first_row["semantic_candidate"]["candidate_kind"] == "contested_claim"
-    assert first_row["semantic_candidate"]["basis"] in {"structural", "heuristic", "mixed"}
-    assert first_row["semantic_candidate"]["target_component"] in {"predicate_text", "characterization", "time"}
+    assert first_row["semantic_candidate"]["basis"] in {
+        "structural",
+        "heuristic",
+        "mixed",
+    }
+    assert first_row["semantic_candidate"]["target_component"] in {
+        "predicate_text",
+        "characterization",
+        "time",
+    }
     assert first_row["semantic_basis"] in {"structural", "heuristic", "mixed"}
-    assert first_row["promotion_status"] in {"promoted_true", "promoted_false", "candidate_conflict", "abstained"}
+    assert first_row["promotion_status"] in {
+        "promoted_true",
+        "promoted_false",
+        "candidate_conflict",
+        "abstained",
+    }
     assert first_row["promotion_basis"] == first_row["semantic_basis"]
     assert isinstance(first_row["response_acts"], list)
     assert isinstance(first_row["legal_significance_signals"], list)
     assert first_row["support_direction"] in {"for", "mixed", "against", "none"}
-    assert first_row["conflict_state"] in {"unanswered", "undisputed", "disputed", "partially_reconciled", "unresolved"}
-    assert first_row["evidentiary_state"] in {"unassessed", "unproven", "weakly_supported", "supported"}
+    assert first_row["conflict_state"] in {
+        "unanswered",
+        "undisputed",
+        "disputed",
+        "partially_reconciled",
+        "unresolved",
+    }
+    assert first_row["evidentiary_state"] in {
+        "unassessed",
+        "unproven",
+        "weakly_supported",
+        "supported",
+    }
     assert first_row["operational_status"] in {
         "claim_only",
         "claim_with_support",
@@ -86,14 +137,19 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
         "resolved_but_unproven",
     }
     assert first_row["claim"]["text_span"]["text"] == first_row["text"]
-    assert first_row["claim"]["components"]["predicate_text"]["text"] == first_row["text"]
+    assert (
+        first_row["claim"]["components"]["predicate_text"]["text"] == first_row["text"]
+    )
     assert first_row["claim"]["components"]["time"][0]["text"] == "November 2024"
     assert first_row["response"]["target_span"]["text"] == first_row["text"]
     assert first_row["response"]["speech_act"] in {"deny", "explain", "admit", "other"}
     assert isinstance(first_row["response"]["modifiers"], list)
     assert isinstance(first_row["response"]["component_bindings"], list)
     assert "predicate_text" in first_row["response"]["component_targets"]
-    assert any(binding["component"] == "predicate_text" for binding in first_row["response"]["component_bindings"])
+    assert any(
+        binding["component"] == "predicate_text"
+        for binding in first_row["response"]["component_bindings"]
+    )
     assert isinstance(first_row["justifications"], list)
     assert second_row["best_response_role"] in {"admission", "dispute"}
     assert any(
@@ -112,7 +168,12 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
     assert zelph_fact["response_speech_act"] in {"deny", "explain", "admit", "other"}
     assert zelph_fact["response_polarity"] in {"negative", "positive", "qualified"}
     assert zelph_fact["semantic_basis"] in {"structural", "heuristic"}
-    assert zelph_fact["promotion_status"] in {"promoted_true", "promoted_false", "candidate_conflict", "abstained"}
+    assert zelph_fact["promotion_status"] in {
+        "promoted_true",
+        "promoted_false",
+        "candidate_conflict",
+        "abstained",
+    }
     assert zelph_fact["promotion_basis"] == zelph_fact["semantic_basis"]
     assert isinstance(zelph_fact["response_modifiers"], list)
     assert isinstance(zelph_fact["claim_time_spans"], list)
@@ -132,18 +193,24 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
     assert "Unsupported affidavit propositions" in summary
 
 
-def test_google_docs_contested_narrative_review_reports_progress(monkeypatch, tmp_path: Path) -> None:
+def test_google_docs_contested_narrative_review_reports_progress(
+    monkeypatch, tmp_path: Path
+) -> None:
     from scripts import build_google_docs_contested_narrative_review as module
     from scripts import build_affidavit_coverage_review as review_module
 
-    affidavit_text = "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    affidavit_text = (
+        "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    )
     response_text = "Summary of Response\n\nI dispute that allegation."
     lookup = {
         "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
         "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
     }
     seen: list[tuple[str, dict[str, object]]] = []
-    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        module, "fetch_google_public_export_text", lambda url: lookup[url]
+    )
     monkeypatch.setattr(
         review_module,
         "_analyze_structural_sentence",
@@ -175,18 +242,24 @@ def test_google_docs_contested_narrative_review_reports_progress(monkeypatch, tm
     assert "google_affidavit_review_finished" in stages
 
 
-def test_google_docs_contested_narrative_review_reports_trace(monkeypatch, tmp_path: Path) -> None:
+def test_google_docs_contested_narrative_review_reports_trace(
+    monkeypatch, tmp_path: Path
+) -> None:
     from scripts import build_google_docs_contested_narrative_review as module
     from scripts import build_affidavit_coverage_review as review_module
 
-    affidavit_text = "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    affidavit_text = (
+        "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    )
     response_text = "Summary of Response\n\nI dispute that allegation."
     lookup = {
         "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
         "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
     }
     seen: list[tuple[str, dict[str, object]]] = []
-    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        module, "fetch_google_public_export_text", lambda url: lookup[url]
+    )
     monkeypatch.setattr(
         review_module,
         "_analyze_structural_sentence",
@@ -215,7 +288,9 @@ def test_google_docs_contested_narrative_review_reports_trace(monkeypatch, tmp_p
     assert "proposition_classified" in stages
 
 
-def test_google_docs_contested_narrative_review_groups_duplicate_heading_blocks(monkeypatch, tmp_path: Path) -> None:
+def test_google_docs_contested_narrative_review_groups_duplicate_heading_blocks(
+    monkeypatch, tmp_path: Path
+) -> None:
     from scripts import build_google_docs_contested_narrative_review as module
     from scripts import build_affidavit_coverage_review as review_module
 
@@ -235,13 +310,19 @@ def test_google_docs_contested_narrative_review_groups_duplicate_heading_blocks(
         "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
         "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
     }
-    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        module, "fetch_google_public_export_text", lambda url: lookup[url]
+    )
     monkeypatch.setattr(
         review_module,
         "_analyze_structural_sentence",
         lambda text: {
             "subject_texts": ["I"] if text.casefold().startswith("i ") else [],
-            "verb_lemmas": ["dispute"] if "dispute" in text.casefold() else ["cut"] if "cut off" in text.casefold() else [],
+            "verb_lemmas": ["dispute"]
+            if "dispute" in text.casefold()
+            else ["cut"]
+            if "cut off" in text.casefold()
+            else [],
             "has_negation": "dispute" in text.casefold(),
             "has_first_person_subject": text.casefold().startswith("i "),
             "has_hedge_verb": False,
@@ -258,10 +339,14 @@ def test_google_docs_contested_narrative_review_groups_duplicate_heading_blocks(
     assert meta["response_unit_count"] == 3
 
 
-def test_google_docs_contested_narrative_review_persists_sqlite_without_bulky_artifacts(monkeypatch, tmp_path: Path) -> None:
+def test_google_docs_contested_narrative_review_persists_sqlite_without_bulky_artifacts(
+    monkeypatch, tmp_path: Path
+) -> None:
     from scripts import build_google_docs_contested_narrative_review as module
 
-    affidavit_text = "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    affidavit_text = (
+        "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    )
     response_text = (
         "Summary of Response\n\n"
         "1. The respondent cut off my internet in November 2024.\n\n"
@@ -271,7 +356,9 @@ def test_google_docs_contested_narrative_review_persists_sqlite_without_bulky_ar
         "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
         "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
     }
-    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        module, "fetch_google_public_export_text", lambda url: lookup[url]
+    )
 
     db_path = tmp_path / "itir.sqlite"
     output_dir = tmp_path / "out"

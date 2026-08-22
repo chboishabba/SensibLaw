@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 import re
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
 
 _UNIT_ALIASES = {
@@ -194,7 +194,9 @@ def significant_figures_from_surface(surface: str) -> int:
     s = s.lstrip("+$-")
 
     # Strip known suffix/units so we count only value digits.
-    s = re.sub(r"\b(percent|usd|dollars?|thousand|million|billion|trillion)\b", "", s).strip()
+    s = re.sub(
+        r"\b(percent|usd|dollars?|thousand|million|billion|trillion)\b", "", s
+    ).strip()
     m = re.match(r"^([0-9]+(?:\.[0-9]+)?)(?:[kmbt])?$", s)
     if not m:
         return 0
@@ -215,7 +217,9 @@ def significant_figures_from_surface(surface: str) -> int:
     return len(digits)
 
 
-def interval_from_sigfig(value: Decimal, significant_figures: int) -> Tuple[Decimal, Decimal]:
+def interval_from_sigfig(
+    value: Decimal, significant_figures: int
+) -> Tuple[Decimal, Decimal]:
     if significant_figures <= 0:
         raise ValueError("significant_figures must be positive")
 
@@ -282,13 +286,17 @@ def classify_claim_relation(a: QuantifiedClaim, b: QuantifiedClaim) -> ClaimRela
     return ClaimRelation.CONFLICT
 
 
-def graduate_magnitude_anchor(usage: MagnitudeUsage, policy: GraduationPolicy = GraduationPolicy()) -> AnchorStatus:
+def graduate_magnitude_anchor(
+    usage: MagnitudeUsage, policy: GraduationPolicy = GraduationPolicy()
+) -> AnchorStatus:
     meets_recurrence = usage.recurrence_count >= policy.recurrence_threshold
     meets_cross_actor = usage.cross_actor_count >= policy.cross_actor_threshold
     meets_boundary = usage.boundary_usage_count >= policy.boundary_usage_threshold
     meets_priority_dimension = usage.dimension in policy.priority_dimensions
 
-    if meets_recurrence and (meets_cross_actor or meets_boundary or meets_priority_dimension):
+    if meets_recurrence and (
+        meets_cross_actor or meets_boundary or meets_priority_dimension
+    ):
         return AnchorStatus.ANCHOR
 
     if usage.recurrence_count >= max(1, policy.recurrence_threshold - 1):
@@ -300,11 +308,23 @@ def graduate_magnitude_anchor(usage: MagnitudeUsage, policy: GraduationPolicy = 
 def authority_edges_for_quantified_claim(claim: QuantifiedClaim) -> List[AuthorityEdge]:
     claim_node = f"qclaim:{claim.id}"
     out = [
-        AuthorityEdge(src=f"actor:{claim.actor_id}", predicate=claim.predicate, dst=claim_node),
-        AuthorityEdge(src=claim_node, predicate="quantified_by", dst=claim.magnitude_id),
-        AuthorityEdge(src=claim_node, predicate="about", dst=f"subject:{claim.subject_id}"),
-        AuthorityEdge(src=claim_node, predicate="time_scope", dst=f"time:{claim.time_scope}"),
-        AuthorityEdge(src=claim_node, predicate="source_event", dst=f"event:{claim.source_event_id}"),
+        AuthorityEdge(
+            src=f"actor:{claim.actor_id}", predicate=claim.predicate, dst=claim_node
+        ),
+        AuthorityEdge(
+            src=claim_node, predicate="quantified_by", dst=claim.magnitude_id
+        ),
+        AuthorityEdge(
+            src=claim_node, predicate="about", dst=f"subject:{claim.subject_id}"
+        ),
+        AuthorityEdge(
+            src=claim_node, predicate="time_scope", dst=f"time:{claim.time_scope}"
+        ),
+        AuthorityEdge(
+            src=claim_node,
+            predicate="source_event",
+            dst=f"event:{claim.source_event_id}",
+        ),
     ]
     return out
 
@@ -312,28 +332,42 @@ def authority_edges_for_quantified_claim(claim: QuantifiedClaim) -> List[Authori
 def authority_edges_for_range_claim(claim: RangeClaim) -> List[AuthorityEdge]:
     node = f"rclaim:{claim.id}"
     return [
-        AuthorityEdge(src=f"actor:{claim.actor_id}", predicate=claim.predicate, dst=node),
+        AuthorityEdge(
+            src=f"actor:{claim.actor_id}", predicate=claim.predicate, dst=node
+        ),
         AuthorityEdge(src=node, predicate="lower_bound", dst=claim.lower_magnitude_id),
         AuthorityEdge(src=node, predicate="upper_bound", dst=claim.upper_magnitude_id),
         AuthorityEdge(src=node, predicate="about", dst=f"subject:{claim.subject_id}"),
         AuthorityEdge(src=node, predicate="time_scope", dst=f"time:{claim.time_scope}"),
-        AuthorityEdge(src=node, predicate="source_event", dst=f"event:{claim.source_event_id}"),
+        AuthorityEdge(
+            src=node, predicate="source_event", dst=f"event:{claim.source_event_id}"
+        ),
     ]
 
 
 def authority_edges_for_ratio_claim(claim: RatioClaim) -> List[AuthorityEdge]:
     node = f"ratio:{claim.id}"
     return [
-        AuthorityEdge(src=f"actor:{claim.actor_id}", predicate=claim.predicate, dst=node),
-        AuthorityEdge(src=node, predicate="numerator", dst=claim.numerator_magnitude_id),
-        AuthorityEdge(src=node, predicate="denominator", dst=claim.denominator_magnitude_id),
+        AuthorityEdge(
+            src=f"actor:{claim.actor_id}", predicate=claim.predicate, dst=node
+        ),
+        AuthorityEdge(
+            src=node, predicate="numerator", dst=claim.numerator_magnitude_id
+        ),
+        AuthorityEdge(
+            src=node, predicate="denominator", dst=claim.denominator_magnitude_id
+        ),
         AuthorityEdge(src=node, predicate="about", dst=f"subject:{claim.subject_id}"),
         AuthorityEdge(src=node, predicate="time_scope", dst=f"time:{claim.time_scope}"),
-        AuthorityEdge(src=node, predicate="source_event", dst=f"event:{claim.source_event_id}"),
+        AuthorityEdge(
+            src=node, predicate="source_event", dst=f"event:{claim.source_event_id}"
+        ),
     ]
 
 
-def parse_surface_magnitude(surface: str, default_unit: str = "") -> Optional[Magnitude]:
+def parse_surface_magnitude(
+    surface: str, default_unit: str = ""
+) -> Optional[Magnitude]:
     raw = re.sub(r"\s+", " ", str(surface or "").strip())
     if not raw:
         return None
@@ -350,7 +384,11 @@ def parse_surface_magnitude(surface: str, default_unit: str = "") -> Optional[Ma
     if compact:
         value = Decimal(compact.group(1))
         exp = _SCALE_EXPONENT[compact.group(2)]
-        return Magnitude(value=value.scaleb(exp), unit=unit, dimension="currency" if unit == "usd" else "unknown")
+        return Magnitude(
+            value=value.scaleb(exp),
+            unit=unit,
+            dimension="currency" if unit == "usd" else "unknown",
+        )
 
     m = re.match(
         r"^([+-]?\d+(?:\.\d+)?)(?:\s+(percent|usd|dollars?|thousand|million|billion|trillion))?$",
@@ -372,7 +410,9 @@ def parse_surface_magnitude(surface: str, default_unit: str = "") -> Optional[Ma
     elif suffix in _SCALE_EXPONENT:
         value = value.scaleb(_SCALE_EXPONENT[suffix])
 
-    return Magnitude(value=value, unit=unit, dimension="currency" if unit == "usd" else "unknown")
+    return Magnitude(
+        value=value, unit=unit, dimension="currency" if unit == "usd" else "unknown"
+    )
 
 
 __all__ = [

@@ -19,7 +19,10 @@ def test_mapper_does_not_depend_on_synset_map_iteration_order() -> None:
 
     # Single-action mapping so canonical path selects deterministically.
     synset_action_map_a = {"bn:0002": "died", "bn:0009": "died"}
-    synset_action_map_b = {"bn:0009": "died", "bn:0002": "died"}  # reversed insertion order
+    synset_action_map_b = {
+        "bn:0009": "died",
+        "bn:0002": "died",
+    }  # reversed insertion order
 
     m1 = DeterministicSynsetActionMapper(
         resource="babelnet",

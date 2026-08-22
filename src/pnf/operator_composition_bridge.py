@@ -28,7 +28,9 @@ def _parsed_document_from_layer(layer: Mapping[str, Any]) -> dict[str, Any]:
         annotation_type = str(row.get("annotation_type") or "")
         if not annotation_type.startswith("parser."):
             continue
-        values.setdefault(index, {})[annotation_type.removeprefix("parser.")] = row.get("value")
+        values.setdefault(index, {})[annotation_type.removeprefix("parser.")] = row.get(
+            "value"
+        )
 
     token_ref_by_index: dict[int, str] = {}
     for row in layer.get("span_annotations") or ():
@@ -95,7 +97,9 @@ def _projection_ready_factor(row: Mapping[str, Any]) -> dict[str, Any]:
         {
             "factor_type_ref": factor_type,
             "factor_revision_ref": str(metadata.get("factor_revision_ref") or ""),
-            "structural_signature_ref": str(metadata.get("structural_signature_ref") or ""),
+            "structural_signature_ref": str(
+                metadata.get("structural_signature_ref") or ""
+            ),
             "predicate_ref": str(metadata.get("predicate_ref") or factor_type),
             "role_bindings": dict(metadata.get("role_bindings") or {}),
             "qualifier_state": dict(metadata.get("qualifier_state") or {}),
@@ -107,18 +111,25 @@ def _projection_ready_factor(row: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
-def _proposal_from_factor(*, document_ref: str, row: Mapping[str, Any]) -> FactorProposal:
+def _proposal_from_factor(
+    *, document_ref: str, row: Mapping[str, Any]
+) -> FactorProposal:
     metadata = dict(row.get("metadata") or {})
     provenance_refs = tuple(str(ref) for ref in metadata.get("provenance_refs") or ())
     alternatives = tuple(row.get("alternatives") or ())
     candidate_payload = {
         "factor_ref": str(row.get("factor_ref") or ""),
-        "alternatives": [dict(item) for item in alternatives if isinstance(item, Mapping)],
-        "predicate_ref": str(metadata.get("predicate_ref") or row.get("factor_type") or ""),
+        "alternatives": [
+            dict(item) for item in alternatives if isinstance(item, Mapping)
+        ],
+        "predicate_ref": str(
+            metadata.get("predicate_ref") or row.get("factor_type") or ""
+        ),
     }
     return FactorProposal(
         document_ref=document_ref,
-        source_revision_ref="source-revision:" + canonical_sha256(
+        source_revision_ref="source-revision:"
+        + canonical_sha256(
             {"document_ref": document_ref, "provenance_refs": sorted(provenance_refs)}
         ),
         factor_type_ref=str(row.get("factor_type") or ""),
@@ -128,7 +139,10 @@ def _proposal_from_factor(*, document_ref: str, row: Mapping[str, Any]) -> Facto
         structural_signature=str(metadata.get("structural_signature_ref") or ""),
         role_bindings=dict(metadata.get("role_bindings") or {}),
         qualifier_state=dict(metadata.get("qualifier_state") or {}),
-        producer_contract=str(metadata.get("composition_contract_ref") or OPERATOR_COMPOSITION_BRIDGE_CONTRACT),
+        producer_contract=str(
+            metadata.get("composition_contract_ref")
+            or OPERATOR_COMPOSITION_BRIDGE_CONTRACT
+        ),
         declaration_revision="v0_1",
         candidate_payload=candidate_payload,
         residuals=tuple(str(value) for value in row.get("residuals") or ()),
@@ -151,10 +165,13 @@ def apply_operator_composition_to_compilation(
     )
     factor_rows = tuple(_projection_ready_factor(row.to_dict()) for row in factors)
     proposals = tuple(
-        _proposal_from_factor(document_ref=document_ref, row=row.to_dict()) for row in factors
+        _proposal_from_factor(document_ref=document_ref, row=row.to_dict())
+        for row in factors
     )
     known_observations = tuple(
-        sorted({ref for proposal in proposals for ref in proposal.input_observation_refs})
+        sorted(
+            {ref for proposal in proposals for ref in proposal.input_observation_refs}
+        )
     )
     reduction = reduce_factor_proposals(
         document_ref=document_ref,

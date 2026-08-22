@@ -8,7 +8,9 @@ from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Report deterministic legal + operational structure across chat/context/transcript/shell corpora.")
+    parser = argparse.ArgumentParser(
+        description="Report deterministic legal + operational structure across chat/context/transcript/shell corpora."
+    )
     parser.add_argument("--chat-db")
     parser.add_argument("--messenger-db")
     parser.add_argument("--run-id")

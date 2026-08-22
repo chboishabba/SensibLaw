@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from xml.etree import ElementTree as ET
-from typing import Any, Callable, Iterable, List, Optional
+from typing import Any, Callable, Iterable, List
 
 _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
@@ -46,7 +46,9 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+def _emit_progress(
+    progress_callback: ProgressCallback | None, stage: str, **details: Any
+) -> None:
     if progress_callback is None:
         return
     progress_callback(stage, details)
@@ -84,6 +86,7 @@ class _TextExtractor(HTMLParser):
 def _collapse_ws(s: str) -> str:
     # Collapse whitespace without regex (keeps the ingestion layer deterministic and lightweight).
     return " ".join((s or "").split()).strip()
+
 
 _BOILERPLATE_MARKERS = [
     "all rights reserved",
@@ -209,12 +212,27 @@ def _epub_spine_items(zf: zipfile.ZipFile, opf_path: str) -> List[str]:
         if "nav" in props.split():
             continue
 
-        full = posixpath.normpath(posixpath.join(base_dir, href)) if base_dir else posixpath.normpath(href)
+        full = (
+            posixpath.normpath(posixpath.join(base_dir, href))
+            if base_dir
+            else posixpath.normpath(href)
+        )
         low = full.lower()
         if not low.endswith((".xhtml", ".html", ".htm")):
             continue
         # Common frontmatter filenames.
-        if any(k in low for k in ("toc", "contents", "title", "cover", "copyright", "dedication", "colophon")):
+        if any(
+            k in low
+            for k in (
+                "toc",
+                "contents",
+                "title",
+                "cover",
+                "copyright",
+                "dedication",
+                "colophon",
+            )
+        ):
             continue
 
         out.append(full)
@@ -246,21 +264,33 @@ def _sentence_signal_score(s: str) -> int:
             score += 1
     if "signed" in low and ("act" in low or "law" in low or "proclamation" in low):
         score += 2
-    if "nominated" in low and ("john roberts" in low or "samuel alito" in low or "harriet miers" in low):
+    if "nominated" in low and (
+        "john roberts" in low or "samuel alito" in low or "harriet miers" in low
+    ):
         score += 2
-    if "surveillance" in low and ("fisa" in low or "foreign intelligence surveillance act" in low):
+    if "surveillance" in low and (
+        "fisa" in low or "foreign intelligence surveillance act" in low
+    ):
         score += 2
     return score
 
 
-def _chunk_snippets(sentences: List[str], *, max_snippets: int, snippet_chars: int) -> List[str]:
+def _chunk_snippets(
+    sentences: List[str], *, max_snippets: int, snippet_chars: int
+) -> List[str]:
     if not sentences:
         return []
 
     scored = [(idx, _sentence_signal_score(sent)) for idx, sent in enumerate(sentences)]
-    priority_indices = [idx for idx, score in sorted(scored, key=lambda item: (-item[1], item[0])) if score > 0]
+    priority_indices = [
+        idx
+        for idx, score in sorted(scored, key=lambda item: (-item[1], item[0]))
+        if score > 0
+    ]
     priority_set = set(priority_indices)
-    ordered = [sentences[idx] for idx in priority_indices] + [sent for idx, sent in enumerate(sentences) if idx not in priority_set]
+    ordered = [sentences[idx] for idx in priority_indices] + [
+        sent for idx, sent in enumerate(sentences) if idx not in priority_set
+    ]
 
     snippets: List[str] = []
     buf = ""
@@ -334,7 +364,11 @@ def _epub_text(path: Path, *, limit_chars: int) -> str:
                 # Many books still have 1-2 non-content spine items up front.
                 names = names[2:]
             except Exception:
-                names = [n for n in zf.namelist() if n.lower().endswith((".xhtml", ".html", ".htm"))]
+                names = [
+                    n
+                    for n in zf.namelist()
+                    if n.lower().endswith((".xhtml", ".html", ".htm"))
+                ]
                 names.sort()
             out_parts: List[str] = []
             total = 0
@@ -414,7 +448,14 @@ def build_corpus_timeline(
     events: List[dict] = []
     ev_i = 0
     per_doc_snips: List[tuple[_Doc, List[str]]] = []
-    _emit_progress(progress_callback, "docs_started", section="corpus_docs", completed=0, total=len(docs), message="Scanning corpus docs.")
+    _emit_progress(
+        progress_callback,
+        "docs_started",
+        section="corpus_docs",
+        completed=0,
+        total=len(docs),
+        message="Scanning corpus docs.",
+    )
 
     for index, d in enumerate(docs, start=1):
         LOGGER.info("Processing corpus doc %s", d.title)
@@ -477,34 +518,88 @@ def build_corpus_timeline(
             events.append(row)
 
     payload = {
-        "snapshot": {"title": "GWB corpus v1", "wiki": "gwb_corpus_v1", "revid": None, "source_url": None},
+        "snapshot": {
+            "title": "GWB corpus v1",
+            "wiki": "gwb_corpus_v1",
+            "revid": None,
+            "source_url": None,
+        },
         "events": events,
         "generated_at": generated_at,
         "corpus_root": str(root),
         "notes": "Auto-built from local PDF/EPUB corpus. Events are snippet windows for AAO extraction; non-authoritative.",
     }
 
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True), encoding="utf-8")
-    _emit_progress(progress_callback, "docs_finished", section="corpus_docs", completed=len(docs), total=len(docs), message="Corpus timeline written.", event_count=len(events))
+    out_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True),
+        encoding="utf-8",
+    )
+    _emit_progress(
+        progress_callback,
+        "docs_finished",
+        section="corpus_docs",
+        completed=len(docs),
+        total=len(docs),
+        message="Corpus timeline written.",
+        event_count=len(events),
+    )
     return {"ok": True, "out": str(out_path), "docs": len(docs), "events": len(events)}
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Build a local corpus wiki_timeline JSON for AAO extraction.")
-    ap.add_argument("--root", type=Path, default=Path("SensibLaw/demo/ingest/gwb"), help="Corpus root (default: %(default)s)")
+    ap = argparse.ArgumentParser(
+        description="Build a local corpus wiki_timeline JSON for AAO extraction."
+    )
+    ap.add_argument(
+        "--root",
+        type=Path,
+        default=Path("SensibLaw/demo/ingest/gwb"),
+        help="Corpus root (default: %(default)s)",
+    )
     ap.add_argument(
         "--out",
         type=Path,
-        default=Path("SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json"),
+        default=Path(
+            "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json"
+        ),
         help="Output timeline JSON path (default: %(default)s)",
     )
-    ap.add_argument("--max-docs", type=int, default=20, help="Max docs processed (default: %(default)s)")
-    ap.add_argument("--max-snippets-per-doc", type=int, default=80, help="Max snippet events per doc (default: %(default)s)")
-    ap.add_argument("--snippet-chars", type=int, default=420, help="Max characters per snippet event (default: %(default)s)")
-    ap.add_argument("--extract-chars-per-doc", type=int, default=1_200_000, help="Max extracted chars per doc (default: %(default)s)")
+    ap.add_argument(
+        "--max-docs",
+        type=int,
+        default=20,
+        help="Max docs processed (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--max-snippets-per-doc",
+        type=int,
+        default=80,
+        help="Max snippet events per doc (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--snippet-chars",
+        type=int,
+        default=420,
+        help="Max characters per snippet event (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--extract-chars-per-doc",
+        type=int,
+        default=1_200_000,
+        help="Max extracted chars per doc (default: %(default)s)",
+    )
     ap.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
-    ap.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
-    ap.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
+    ap.add_argument(
+        "--progress-format",
+        choices=("human", "json"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
+    ap.add_argument(
+        "--log-level",
+        default="INFO",
+        help="stderr logging level (default: %(default)s).",
+    )
     args = ap.parse_args()
     configure_cli_logging(args.log_level)
     result = build_corpus_timeline(
@@ -514,7 +609,9 @@ def main() -> int:
         max_snippets_per_doc=int(args.max_snippets_per_doc),
         snippet_chars=int(args.snippet_chars),
         extract_chars_per_doc=int(args.extract_chars_per_doc),
-        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+        progress_callback=build_progress_callback(
+            enabled=bool(args.progress), fmt=str(args.progress_format)
+        ),
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

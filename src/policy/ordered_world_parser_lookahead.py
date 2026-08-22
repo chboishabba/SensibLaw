@@ -471,12 +471,10 @@ def _lookahead_candidates(
             source_text = (root / relative_path).read_bytes().decode("utf-8")
         else:
             _source_bytes, source_text = prepared
-        canonical_text, _canonical_sha256, _adapter_ref = (
-            _canonical_source_coordinates(
-                media_type=str(entry["media_type"]),
-                source_text=source_text,
-                source_ref=f"document-source:{document_ref}",
-            )
+        canonical_text, _canonical_sha256, _adapter_ref = _canonical_source_coordinates(
+            media_type=str(entry["media_type"]),
+            source_text=source_text,
+            source_ref=f"document-source:{document_ref}",
         )
         if not parser_policy.should_partition(canonical_text):
             continue

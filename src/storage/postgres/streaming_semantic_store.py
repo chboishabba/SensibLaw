@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from src.policy.carriers.canonical import canonical_sha256
 
@@ -246,7 +246,9 @@ def persist_streaming_semantic_artifacts(
             str(ledger["ledger_ref"]),
             int(materialized.get("proposal_count", 0)),
             _json([row.get("factor_ref") for row in materialized.get("factors") or ()]),
-            _json([row.get("residual_ref") for row in materialized.get("residuals") or ()]),
+            _json(
+                [row.get("residual_ref") for row in materialized.get("residuals") or ()]
+            ),
         ),
     )
 

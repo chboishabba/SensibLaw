@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 try:  # pragma: no cover - FastAPI is optional
     from fastapi import APIRouter, HTTPException, Query
 except Exception:  # pragma: no cover
+
     class HTTPException(Exception):
         def __init__(self, status_code: int, detail: str) -> None:
             self.status_code = status_code
@@ -18,10 +19,12 @@ except Exception:  # pragma: no cover
         def get(self, *args, **kwargs):
             def decorator(func):
                 return func
+
             return decorator
 
     def Query(*args, **kwargs):  # type: ignore[misc]
         return None
+
 
 from ontology.tagger import tag_text
 from pipeline import build_cloud, match_concepts, normalise
@@ -110,15 +113,23 @@ def _logic_tree_search(
     use_offsets: bool = True,
     sqlite_path: str | Path | None = None,
 ) -> List[Dict[str, Any]]:
-    path = Path(sqlite_path) if sqlite_path is not None else Path("artifacts/logic_tree.sqlite")
+    path = (
+        Path(sqlite_path)
+        if sqlite_path is not None
+        else Path("artifacts/logic_tree.sqlite")
+    )
     if not path.exists():
-        raise HTTPException(status_code=404, detail="logic tree SQLite database not found")
+        raise HTTPException(
+            status_code=404, detail="logic tree SQLite database not found"
+        )
     try:
         conn = sqlite3.connect(path)
     except sqlite3.Error as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     try:
-        return logic_tree.search_fts_over_logic_tree(conn, query, limit=limit, use_offsets=use_offsets)
+        return logic_tree.search_fts_over_logic_tree(
+            conn, query, limit=limit, use_offsets=use_offsets
+        )
     finally:
         conn.close()
 
@@ -132,7 +143,9 @@ def api_logic_tree_search(
 ) -> Dict[str, Any]:
     """Search logic tree FTS index and return doc/node hits."""
 
-    results = _logic_tree_search(query, limit=limit, use_offsets=use_offsets, sqlite_path=sqlite_path)
+    results = _logic_tree_search(
+        query, limit=limit, use_offsets=use_offsets, sqlite_path=sqlite_path
+    )
     return {"results": results}
 
 

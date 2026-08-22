@@ -96,9 +96,7 @@ def annotate_assessment_fibre_elements(
     """Expose aggregate support states without rewriting the canonical ledger."""
 
     proposal_state = {
-        str(row.get("proposal_ref") or ""): str(
-            row.get("support_state") or "candidate"
-        )
+        str(row.get("proposal_ref") or ""): str(row.get("support_state") or "candidate")
         for row in proposals
         if row.get("proposal_ref")
     }

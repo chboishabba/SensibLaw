@@ -25,7 +25,9 @@ class _TrackingBackend:
         return SimpleDoc(f"{self.name}:{text}")
 
 
-def _backend_factory(prefix: str, store: dict[str, _TrackingBackend]) -> Callable[[str], _TrackingBackend]:
+def _backend_factory(
+    prefix: str, store: dict[str, _TrackingBackend]
+) -> Callable[[str], _TrackingBackend]:
     def factory(lang: str) -> _TrackingBackend:
         backend = _TrackingBackend(name=f"{prefix}-{lang}")
         store[f"{prefix}-{lang}"] = backend
@@ -118,8 +120,9 @@ def test_tika_language_detector_handles_missing_dependency() -> None:
 
 
 def test_tika_language_detector_with_custom_callable() -> None:
-    detector = TikaLanguageDetector(detector=lambda text: "de" if "hallo" in text else None)
+    detector = TikaLanguageDetector(
+        detector=lambda text: "de" if "hallo" in text else None
+    )
 
     assert detector.available is True
     assert detector("hallo welt") == "de"
-

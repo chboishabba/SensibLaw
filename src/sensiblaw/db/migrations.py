@@ -12,9 +12,13 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[3] / "database" / "migrations"
 class MigrationRunner:
     """Apply SQL migrations bundled with the repository."""
 
-    def __init__(self, connection: Connection, migration_paths: Iterable[Path] | None = None):
+    def __init__(
+        self, connection: Connection, migration_paths: Iterable[Path] | None = None
+    ):
         self.connection = connection
-        self.migration_paths = list(migration_paths) if migration_paths else self._default_paths()
+        self.migration_paths = (
+            list(migration_paths) if migration_paths else self._default_paths()
+        )
 
     def _default_paths(self) -> list[Path]:
         if not MIGRATIONS_DIR.exists():

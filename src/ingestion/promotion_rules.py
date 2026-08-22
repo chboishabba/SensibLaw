@@ -9,7 +9,9 @@ from src.models.promotion import PromotionCandidate, PromotionReceipt
 from src.models.span_role_hypothesis import SpanRoleHypothesis
 from src.models.span_signal_hypothesis import SpanSignalHypothesis
 
-_MODAL_PATTERN = re.compile(r"\b(must not|must|may|shall|is liable to|is guilty of)\b", re.IGNORECASE)
+_MODAL_PATTERN = re.compile(
+    r"\b(must not|must|may|shall|is liable to|is guilty of)\b", re.IGNORECASE
+)
 
 
 @dataclass(frozen=True)
@@ -232,7 +234,12 @@ def _is_blocked_by_signal(
     for signal in signal_hypotheses:
         if signal.span_source != hypothesis.span_source:
             continue
-        if _overlaps(hypothesis.span_start, hypothesis.span_end, signal.span_start, signal.span_end):
+        if _overlaps(
+            hypothesis.span_start,
+            hypothesis.span_end,
+            signal.span_start,
+            signal.span_end,
+        ):
             blocked.append(signal)
     return blocked
 

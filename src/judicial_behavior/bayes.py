@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Tuple
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +33,9 @@ def empirical_bayes_prior(mu: float, kappa: float) -> Tuple[float, float]:
     return (m * k, (1.0 - m) * k)
 
 
-def beta_binomial_posterior(y: int, n: int, alpha0: float, beta0: float) -> BetaPosterior:
+def beta_binomial_posterior(
+    y: int, n: int, alpha0: float, beta0: float
+) -> BetaPosterior:
     yy = max(0, int(y))
     nn = max(0, int(n))
     a0 = float(alpha0)
@@ -50,7 +52,9 @@ def _log_beta(a: float, b: float) -> float:
     return math.lgamma(a) + math.lgamma(b) - math.lgamma(a + b)
 
 
-def _betacf(a: float, b: float, x: float, max_iter: int = 200, eps: float = 3e-14) -> float:
+def _betacf(
+    a: float, b: float, x: float, max_iter: int = 200, eps: float = 3e-14
+) -> float:
     # Continued fraction for incomplete beta (Numerical Recipes / Cephes-style).
     qab = a + b
     qap = a + 1.0
@@ -148,8 +152,9 @@ def beta_ppf(p: float, a: float, b: float, *, tol: float = 2e-10) -> float:
     return (lo + hi) / 2.0
 
 
-def beta_credible_interval(a: float, b: float, q_lo: float, q_hi: float) -> Tuple[float, float]:
+def beta_credible_interval(
+    a: float, b: float, q_lo: float, q_hi: float
+) -> Tuple[float, float]:
     lo = beta_ppf(q_lo, a, b)
     hi = beta_ppf(q_hi, a, b)
     return (lo, hi)
-

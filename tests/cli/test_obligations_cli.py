@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 import sys
 
-import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
@@ -44,7 +43,9 @@ def test_obligations_cli_alignment(monkeypatch, capsys, tmp_path):
     old = tmp_path / "old.txt"
     new = tmp_path / "new.txt"
     old.write_text("The operator must keep records.")
-    new.write_text("The operator must keep records.\nThe licence holder must notify on commencement.")
+    new.write_text(
+        "The operator must keep records.\nThe licence holder must notify on commencement."
+    )
 
     run_cli(
         monkeypatch,
@@ -68,7 +69,14 @@ def test_obligations_cli_activation(monkeypatch, capsys, tmp_path):
     text_file = tmp_path / "text.txt"
     facts_file = tmp_path / "facts.json"
     text_file.write_text("The licence holder must notify upon commencement.")
-    facts_file.write_text(json.dumps({"version": "fact.envelope.v1", "facts": [{"key": "upon commencement", "value": True}]}))
+    facts_file.write_text(
+        json.dumps(
+            {
+                "version": "fact.envelope.v1",
+                "facts": [{"key": "upon commencement", "value": True}],
+            }
+        )
+    )
 
     run_cli(
         monkeypatch,

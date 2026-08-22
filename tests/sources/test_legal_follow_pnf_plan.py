@@ -66,7 +66,10 @@ def test_provider_ref_can_narrow_to_one_declared_endpoint() -> None:
 
 def test_blocked_plan_performs_no_follow() -> None:
     result = follow_legal_source_plan(
-        _plan(state="blocked_missing_context", blocked_reasons=("jurisdiction_unresolved",))
+        _plan(
+            state="blocked_missing_context",
+            blocked_reasons=("jurisdiction_unresolved",),
+        )
     )
 
     assert result is None

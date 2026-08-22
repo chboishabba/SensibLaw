@@ -99,7 +99,9 @@ def _dependency_group_assessment(value: Any) -> dict[str, Any] | None:
     return payload
 
 
-def _dependency_group_inventory(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _dependency_group_inventory(
+    rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     """Group consistent profile assessments without imposing domain semantics."""
 
     grouped: dict[str, list[Mapping[str, Any]]] = {}
@@ -117,7 +119,9 @@ def _dependency_group_inventory(rows: Sequence[Mapping[str, Any]]) -> list[dict[
                 assessment, ensure_ascii=False, sort_keys=True, separators=(",", ":")
             )
             for member in members
-            if isinstance((assessment := member.get("dependency_group_assessment")), Mapping)
+            if isinstance(
+                (assessment := member.get("dependency_group_assessment")), Mapping
+            )
         }
         if len(assessments) != 1:
             raise ValueError("dependency group members require one shared assessment")
@@ -126,8 +130,7 @@ def _dependency_group_inventory(rows: Sequence[Mapping[str, Any]]) -> list[dict[
             {
                 "dependency_group_ref": group_ref,
                 "candidate_refs": sorted(
-                    {_text(member.get("candidate_ref")) for member in members}
-                    - {""}
+                    {_text(member.get("candidate_ref")) for member in members} - {""}
                 ),
                 "candidate_count": len(members),
                 **assessment,
@@ -332,8 +335,13 @@ def build_rule_detector_result(
             raise ValueError("detector predicate has unsupported state")
         if not reason_code:
             raise ValueError("detector predicate requires reason_code")
-        if incomplete_evidence_kind and incomplete_evidence_kind not in INCOMPLETE_EVIDENCE_KINDS:
-            raise ValueError("detector predicate has unsupported incomplete evidence kind")
+        if (
+            incomplete_evidence_kind
+            and incomplete_evidence_kind not in INCOMPLETE_EVIDENCE_KINDS
+        ):
+            raise ValueError(
+                "detector predicate has unsupported incomplete evidence kind"
+            )
         if state != "unresolved" and incomplete_evidence_kind:
             raise ValueError("only unresolved predicates may name incomplete evidence")
         seen_predicates.add(predicate_ref)
@@ -530,7 +538,9 @@ def build_rule_coverage_report(
                         dependency_group
                     )
                 if evidence_kind:
-                    incomplete_kind_rows.setdefault(evidence_kind, set()).add(candidate_ref)
+                    incomplete_kind_rows.setdefault(evidence_kind, set()).add(
+                        candidate_ref
+                    )
                     if dependency_group:
                         incomplete_kind_groups.setdefault(evidence_kind, set()).add(
                             dependency_group
@@ -568,7 +578,9 @@ def build_rule_coverage_report(
         "incomplete_reason_counts": {
             reason: {
                 "candidate_count": len(incomplete_reason_rows[reason]),
-                "dependency_group_count": len(incomplete_reason_groups.get(reason, set())),
+                "dependency_group_count": len(
+                    incomplete_reason_groups.get(reason, set())
+                ),
             }
             for reason in sorted(incomplete_reason_rows)
         },
@@ -701,7 +713,9 @@ def build_cumulative_rule_coverage_report(
             name = _text(dimension)
             member = _text(value) or "unknown"
             if name:
-                outcome_counts = strata_counts.setdefault(name, {}).setdefault(member, {})
+                outcome_counts = strata_counts.setdefault(name, {}).setdefault(
+                    member, {}
+                )
                 outcome = _text(row.get("outcome"))
                 outcome_counts[outcome] = outcome_counts.get(outcome, 0) + 1
         if _text(row.get("outcome")) == "incomplete_coverage":
@@ -723,7 +737,9 @@ def build_cumulative_rule_coverage_report(
                         dependency_group
                     )
                 if evidence_kind:
-                    incomplete_kind_rows.setdefault(evidence_kind, set()).add(candidate_ref)
+                    incomplete_kind_rows.setdefault(evidence_kind, set()).add(
+                        candidate_ref
+                    )
                     if dependency_group:
                         incomplete_kind_groups.setdefault(evidence_kind, set()).add(
                             dependency_group
@@ -735,7 +751,9 @@ def build_cumulative_rule_coverage_report(
                     continue
                 exclusion_rows.setdefault(reason_text, set()).add(candidate_ref)
                 if dependency_group:
-                    exclusion_groups.setdefault(reason_text, set()).add(dependency_group)
+                    exclusion_groups.setdefault(reason_text, set()).add(
+                        dependency_group
+                    )
         if _text(row.get("outcome")) == "no_rule":
             failed_reasons = {
                 _text(predicate.get("reason_code"))
@@ -776,7 +794,9 @@ def build_cumulative_rule_coverage_report(
         "incomplete_reason_counts": {
             reason: {
                 "candidate_count": len(incomplete_reason_rows[reason]),
-                "dependency_group_count": len(incomplete_reason_groups.get(reason, set())),
+                "dependency_group_count": len(
+                    incomplete_reason_groups.get(reason, set())
+                ),
             }
             for reason in sorted(incomplete_reason_rows)
         },

@@ -98,13 +98,17 @@ class ParserDeltaExecution:
 class ParserDeltaExecutor(Protocol):
     executor_ref: str
 
-    def execute(self, *, document_ref: str, canonical_text: str) -> ParserDeltaExecution: ...
+    def execute(
+        self, *, document_ref: str, canonical_text: str
+    ) -> ParserDeltaExecution: ...
 
 
 class WholeDocumentSentenceParserExecutor:
     executor_ref = "parser-delta-executor:whole-document-sentences:v0_1"
 
-    def execute(self, *, document_ref: str, canonical_text: str) -> ParserDeltaExecution:
+    def execute(
+        self, *, document_ref: str, canonical_text: str
+    ) -> ParserDeltaExecution:
         parsed = parse_canonical_text(canonical_text)
         deltas = parser_sentence_deltas(
             document_ref=document_ref,
@@ -207,7 +211,9 @@ class PresegmentedRegionParserExecutor:
         self.workers = workers
         self.parser = parser
 
-    def execute(self, *, document_ref: str, canonical_text: str) -> ParserDeltaExecution:
+    def execute(
+        self, *, document_ref: str, canonical_text: str
+    ) -> ParserDeltaExecution:
         if any(row.document_ref != document_ref for row in self.regions):
             raise ValueError("parser regions cross document boundaries")
         ordered_text = "".join(row.canonical_text for row in self.regions)

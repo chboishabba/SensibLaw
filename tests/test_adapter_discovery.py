@@ -17,7 +17,6 @@ import pytest
 
 from sensiblaw import build_world_model
 from src.policy.adapter_discovery import (
-    AdapterChainResult,
     AdapterRegistration,
     AmbiguousInputError,
     InputDiagnostic,
@@ -32,11 +31,13 @@ from src.policy.world_model_inputs import normalize_input_envelope
 
 # -- Helpers ------------------------------------------------------------------
 
+
 def _envelope(payload):
     return normalize_input_envelope(payload)
 
 
 # -- Registry mechanics -------------------------------------------------------
+
 
 class TestRegistryMechanics:
     """Test the adapter registry in isolation."""
@@ -107,6 +108,7 @@ class TestRegistryMechanics:
 
 # -- Content sniffing ---------------------------------------------------------
 
+
 class TestContentSniffing:
     """Test that the built-in adapters discover input from content."""
 
@@ -138,8 +140,18 @@ class TestContentSniffing:
 
     def test_brexit_records_detected(self):
         records = [
-            {"doc_id": "d1", "title": "T1", "collection": "c1", "url": "http://example.com"},
-            {"doc_id": "d2", "title": "T2", "collection": "c2", "url": "http://example.com"},
+            {
+                "doc_id": "d1",
+                "title": "T1",
+                "collection": "c1",
+                "url": "http://example.com",
+            },
+            {
+                "doc_id": "d2",
+                "title": "T2",
+                "collection": "c2",
+                "url": "http://example.com",
+            },
         ]
         result = discover_adapter(_envelope(records))
         assert result.adapter_id == "brexit_records"
@@ -167,6 +179,7 @@ class TestContentSniffing:
 
 # -- Product boundary ---------------------------------------------------------
 
+
 class TestProductBoundary:
     """Enforce that the public API accepts data, not adapter names."""
 
@@ -174,10 +187,13 @@ class TestProductBoundary:
         sig = inspect.signature(build_world_model)
         forbidden = {"adapter_hint", "profile", "kind", "lane", "adapter"}
         intersection = forbidden & set(sig.parameters)
-        assert not intersection, f"build_world_model has forbidden parameters: {intersection}"
+        assert not intersection, (
+            f"build_world_model has forbidden parameters: {intersection}"
+        )
 
 
 # -- Diagnostic structure -----------------------------------------------------
+
 
 class TestDiagnosticStructure:
     """Validate diagnostic serialisation."""

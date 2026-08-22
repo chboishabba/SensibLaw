@@ -28,6 +28,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.runtime.strict_postgres_execution import strict_execution_metadata  # noqa: E402
+from src.runtime.accepted_metric_ledger import build_accepted_metric_ledger  # noqa: E402
+from src.storage.postgres.runtime_churn_audit import (  # noqa: E402
+    build_runtime_churn_audit,
+    build_runtime_churn_delta,
+)
 
 MIB = 1024 * 1024
 
@@ -41,7 +46,9 @@ def _parse_args() -> argparse.Namespace:
         "--database-url", default=os.environ.get("DATABASE_URL"), required=False
     )
     parser.add_argument(
-        "--postgres-mode", choices=("local", "existing"), default="local",
+        "--postgres-mode",
+        choices=("local", "existing"),
+        default="local",
         help="Use a retained operator database (existing) or the configured local PostgreSQL endpoint (local).",
     )
     parser.add_argument("--output-root", type=Path, required=True)
@@ -77,6 +84,14 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use the committed PostgreSQL leased execution contract; never local replay.",
     )
+    parser.add_argument(
+        "--enable-pg-stat-statements",
+        action="store_true",
+        help=(
+            "Require pg_stat_statements SQL-template attribution for this fresh "
+            "strict database. The server must already preload the extension."
+        ),
+    )
     args = parser.parse_args()
     if args.postgres_mode == "existing" and not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -107,6 +122,108 @@ def _atomic_json(path: Path, payload: Mapping[str, Any]) -> None:
         os.fsync(handle.fileno())
         temporary = Path(handle.name)
     temporary.replace(path)
+
+
+def _load_json_mapping(path: Path) -> Mapping[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, Mapping) else {}
+
+
+def _numeric_timing_from_progress(args: argparse.Namespace) -> dict[str, Any]:
+    """Load one direct timing receipt; never infer timing from outer phase wall."""
+
+    progress_path = (
+        args.output_root / args.tranche.lower() / "local_pnf_compile_progress.json"
+    )
+    payload = _load_json_mapping(progress_path)
+    timings: list[Mapping[str, Any]] = []
+    for event in payload.get("events") or ():
+        if not isinstance(event, Mapping):
+            continue
+        details = event.get("details")
+        if not isinstance(details, Mapping):
+            continue
+        timing = details.get("numeric_work_timing")
+        if isinstance(timing, Mapping):
+            timings.append(timing)
+    if len(timings) != 1:
+        return {
+            "state": "unknown",
+            "reason": "requires exactly one durable numeric timing receipt",
+            "evidence_path": str(progress_path),
+            "timing_record_count": len(timings),
+        }
+    return {
+        "state": "measured",
+        "evidence_path": str(progress_path),
+        "timing_record_count": 1,
+        "numeric_work_timing": dict(timings[0]),
+    }
+
+
+def _safe_churn_audit(database_url: str | None) -> dict[str, Any]:
+    if not database_url:
+        return {"state": "unknown", "reason": "postgresql authority missing"}
+    try:
+        return {"state": "measured", "audit": build_runtime_churn_audit(database_url)}
+    except Exception as error:
+        return {"state": "unknown", "reason": str(error)}
+
+
+def _enable_pg_stat_statements(database_url: str) -> dict[str, Any]:
+    """Register the preloaded diagnostic extension in one fresh authority DB."""
+
+    import psycopg
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")
+            cursor.execute(
+                """
+                SELECT EXISTS (
+                           SELECT 1
+                             FROM pg_extension
+                            WHERE extname = 'pg_stat_statements'
+                       ),
+                       current_setting('shared_preload_libraries', true)
+                """
+            )
+            extension_exists, preloaded = cursor.fetchone()
+    libraries = {
+        item.strip() for item in str(preloaded or "").split(",") if item.strip()
+    }
+    if not extension_exists or "pg_stat_statements" not in libraries:
+        raise RuntimeError("pg_stat_statements is not registered and preloaded")
+    return {
+        "state": "enabled",
+        "extension": "pg_stat_statements",
+        "shared_preload_libraries": sorted(libraries),
+    }
+
+
+def _strict_performance_outcome(
+    *, semantic_accepted: bool, timing_evidence: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Apply the strict parser-relative gate to direct durable timing only."""
+
+    timing_run = {"numeric_work_timing": timing_evidence.get("numeric_work_timing", {})}
+    accepted_metric = build_accepted_metric_ledger(timing_run).to_dict()
+    performance_gate = accepted_metric["gate"]
+    accepted = semantic_accepted and performance_gate == "pass"
+    failure_reason = None
+    if semantic_accepted and performance_gate == "unknown":
+        failure_reason = "parser_relative_performance_unmeasured"
+    elif semantic_accepted and performance_gate == "fail":
+        failure_reason = "parser_relative_performance_target_exceeded"
+    return {
+        "accepted": accepted,
+        "performance_gate": performance_gate,
+        "accepted_metric_ledger": accepted_metric,
+        "failure_reason": failure_reason,
+    }
 
 
 def _git_value(*args: str) -> str:
@@ -145,17 +262,35 @@ def _authority_summary(database_url: str | None) -> dict[str, Any]:
                 )
                 runs = [
                     {
-                        "run_ref": str(row[0]), "document_ref": str(row[1]),
-                        "authority_backend": str(row[2]), "owner_revision": int(row[3]),
-                        "lifecycle": str(row[4]), "sealed": bool(row[5]),
+                        "run_ref": str(row[0]),
+                        "document_ref": str(row[1]),
+                        "authority_backend": str(row[2]),
+                        "owner_revision": int(row[3]),
+                        "lifecycle": str(row[4]),
+                        "sealed": bool(row[5]),
                     }
                     for row in cursor.fetchall()
                 ]
-                cursor.execute("SELECT migration_name, content_sha256 FROM public.sensiblaw_schema_migration ORDER BY migration_name")
-                migrations = [{"name": str(row[0]), "sha256": str(row[1])} for row in cursor.fetchall()]
-        return {"state": "verified", "database": identity[0], "user": identity[1], "runs": runs, "migrations": migrations}
+                cursor.execute(
+                    "SELECT migration_name, content_sha256 FROM public.sensiblaw_schema_migration ORDER BY migration_name"
+                )
+                migrations = [
+                    {"name": str(row[0]), "sha256": str(row[1])}
+                    for row in cursor.fetchall()
+                ]
+        return {
+            "state": "verified",
+            "database": identity[0],
+            "user": identity[1],
+            "runs": runs,
+            "migrations": migrations,
+        }
     except Exception as error:
-        return {"state": "missing", "failure_reason": "postgresql_authority_missing", "diagnostic_path": str(error)}
+        return {
+            "state": "missing",
+            "failure_reason": "postgresql_authority_missing",
+            "diagnostic_path": str(error),
+        }
 
 
 def _process_memory(pid: int) -> dict[str, int | None]:
@@ -407,6 +542,29 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
                     (list(document_refs),),
                 )
                 projections = [(str(row[0]), int(row[1])) for row in cursor.fetchall()]
+                numeric_states = {"compiled_numeric_pnf", "reused_numeric_pnf"}
+                numeric_occurrences = bool(occurrences) and all(
+                    state in numeric_states for _ref, state in occurrences
+                )
+                interfaces: list[tuple[str, int]] = []
+                if numeric_occurrences:
+                    cursor.execute(
+                        """
+                        SELECT region.document_ref, COUNT(*)
+                        FROM execution.semantic_pnf_interface AS interface
+                        JOIN execution.semantic_pnf_region AS region
+                          ON region.region_id = interface.region_id
+                        WHERE region.document_ref = ANY(%s)
+                          AND region.region_kind = 10
+                          AND region.closure_state = 3
+                        GROUP BY region.document_ref
+                        ORDER BY region.document_ref
+                        """,
+                        (list(document_refs),),
+                    )
+                    interfaces = [
+                        (str(row[0]), int(row[1])) for row in cursor.fetchall()
+                    ]
     except Exception as error:
         return {
             "state": "not_verified",
@@ -414,14 +572,29 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         }
 
     expected_refs = sorted(document_refs)
-    verified = (
+    compatibility_publication = (
         sorted(row[0] for row in occurrences) == expected_refs
-        and all(state == "compiled" for _ref, state in occurrences)
+        # A content-addressed build may be reused after its immutable
+        # publication already completed.  It carries the same final
+        # authority boundary as a newly compiled occurrence.
+        and all(
+            state in {"compiled", "reused_compilation"} for _ref, state in occurrences
+        )
         and builds == [(ref, 1) for ref in expected_refs]
         and len(manifests) == len(expected_refs)
         and all(count > 0 and digest_valid for _ref, count, digest_valid in manifests)
         and projections == [(ref, 1) for ref in expected_refs]
     )
+    numeric_publication = (
+        sorted(row[0] for row in occurrences) == expected_refs
+        and all(
+            state in {"compiled_numeric_pnf", "reused_numeric_pnf"}
+            for _ref, state in occurrences
+        )
+        and builds == [(ref, 1) for ref in expected_refs]
+        and interfaces == [(ref, 1) for ref in expected_refs]
+    )
+    verified = compatibility_publication or numeric_publication
     return {
         "state": "verified" if verified else "not_verified",
         "corpus_ref": compilation["corpus_ref"],
@@ -430,6 +603,10 @@ def _verify_explicit_publication(args: argparse.Namespace) -> dict[str, Any]:
         "builds": builds,
         "artifact_manifests": manifests,
         "projection_manifests": projections,
+        "numeric_document_interfaces": interfaces,
+        "publication_authority": (
+            "numeric_pnf" if numeric_publication else "compatibility"
+        ),
         "expected_raw_sha256": expected_hashes,
     }
 
@@ -444,7 +621,11 @@ def main() -> int:
             args.database_url, _database_name = provision_local_postgres(
                 admin_url=args.database_url,
                 migration_root=ROOT / "database" / "postgres_migrations",
-                run_ref=f"{args.tranche.lower()}-{args.acceptance_root.name}",
+                run_ref=(
+                    f"{args.tranche.lower()}-"
+                    f"{args.acceptance_root.parent.name}-"
+                    f"{args.acceptance_root.name}"
+                ),
             )
         except Exception as error:
             provisioning_error = str(error)
@@ -457,6 +638,10 @@ def main() -> int:
     stderr_path = acceptance_root / "stderr.log"
     rss_path = acceptance_root / "rss.jsonl"
     receipt_path = acceptance_root / "acceptance-receipt.json"
+    churn_before_path = acceptance_root / "postgres-runtime-churn-before.json"
+    churn_after_path = acceptance_root / "postgres-runtime-churn-after.json"
+    churn_delta_path = acceptance_root / "postgres-runtime-churn-delta.json"
+    statement_metrics: dict[str, Any] = {"state": "not_requested"}
 
     if args.strict_exact and not args.database_url:
         receipt = {
@@ -473,6 +658,31 @@ def main() -> int:
         _atomic_json(receipt_path, receipt)
         print(json.dumps(receipt, indent=2, sort_keys=True))
         return 1
+
+    if args.strict_exact and args.enable_pg_stat_statements:
+        try:
+            statement_metrics = _enable_pg_stat_statements(args.database_url)
+        except Exception as error:
+            statement_metrics = {"state": "unavailable", "reason": str(error)}
+            receipt = {
+                "schema_version": "sl.strict_tranche_acceptance.v0_3",
+                "state": "failed",
+                "accepted": False,
+                "failure_reason": "pg_stat_statements_unavailable",
+                "database_provisioning_mode": args.postgres_mode,
+                "pg_stat_statements": statement_metrics,
+                "execution": strict_execution_metadata(),
+            }
+            _atomic_json(receipt_path, receipt)
+            print(json.dumps(receipt, indent=2, sort_keys=True))
+            return 1
+
+    churn_before = (
+        _safe_churn_audit(args.database_url)
+        if args.strict_exact
+        else {"state": "not_requested"}
+    )
+    _atomic_json(churn_before_path, churn_before)
 
     environment = os.environ.copy()
     environment.update(
@@ -519,12 +729,15 @@ def main() -> int:
             "accepted": False,
             "started_at": started_at,
             "command": command,
-            "execution": strict_execution_metadata() if args.strict_exact else {
+            "execution": strict_execution_metadata()
+            if args.strict_exact
+            else {
                 "execution_strategy": "local-compatibility-replay",
                 "authority_backend": "postgresql",
                 "local_replay": "compatibility-only",
             },
             "database_provisioning_mode": args.postgres_mode,
+            "pg_stat_statements": statement_metrics,
         },
     )
     process: subprocess.Popen[bytes] | None = None
@@ -606,7 +819,7 @@ def main() -> int:
         and terminal_signal is None
         and (args.calibration or not observed_hard_breach)
     )
-    accepted = not args.calibration and run_succeeded
+    semantic_accepted = not args.calibration and run_succeeded
     failure_reason = None
     if args.calibration and run_succeeded:
         failure_reason = None
@@ -625,7 +838,7 @@ def main() -> int:
     elif observed_hard_breach:
         failure_reason = "observed process-tree RSS exceeded the hard limit"
     if observed_hard_breach and not checkpoint_files:
-        accepted = False
+        semantic_accepted = False
         failure_reason = "hard memory breach had no resource checkpoint"
     publication = (
         {"state": "not_requested", "publication_mode": "rolled_back"}
@@ -637,12 +850,63 @@ def main() -> int:
         )
     )
     if not args.calibration and publication["state"] == "not_verified":
-        accepted = False
+        semantic_accepted = False
         failure_reason = "explicit input publication verification failed"
-    authority = _authority_summary(args.database_url) if args.strict_exact else {"state": "compatibility-only"}
-    if args.strict_exact and authority.get("state") != "verified" and failure_reason is None:
-        accepted = False
+    authority = (
+        _authority_summary(args.database_url)
+        if args.strict_exact
+        else {"state": "compatibility-only"}
+    )
+    if (
+        args.strict_exact
+        and authority.get("state") != "verified"
+        and failure_reason is None
+    ):
+        semantic_accepted = False
         failure_reason = "postgresql_authority_missing"
+
+    churn_after = (
+        _safe_churn_audit(args.database_url)
+        if args.strict_exact
+        else {"state": "not_requested"}
+    )
+    _atomic_json(churn_after_path, churn_after)
+    if (
+        churn_before.get("state") == "measured"
+        and churn_after.get("state") == "measured"
+    ):
+        churn_delta = build_runtime_churn_delta(
+            churn_before["audit"], churn_after["audit"]
+        )
+    else:
+        churn_delta = {
+            "state": "unknown",
+            "reason": "before or after PostgreSQL churn audit was unavailable",
+        }
+    _atomic_json(churn_delta_path, churn_delta)
+
+    timing_evidence = (
+        _numeric_timing_from_progress(args)
+        if args.strict_exact and run_succeeded
+        else {
+            "state": "unknown",
+            "reason": "strict numeric compilation did not complete",
+        }
+    )
+    strict_performance = _strict_performance_outcome(
+        semantic_accepted=semantic_accepted,
+        timing_evidence=timing_evidence,
+    )
+    accepted_metric = strict_performance["accepted_metric_ledger"]
+    performance_gate = strict_performance["performance_gate"]
+    accepted_performance = strict_performance["accepted"]
+    if strict_performance["failure_reason"] is not None:
+        failure_reason = strict_performance["failure_reason"]
+    accepted = (
+        accepted_performance
+        if args.strict_exact and not args.calibration
+        else semantic_accepted
+    )
 
     receipt = {
         "schema_version": "sl.strict_tranche_acceptance.v0_3",
@@ -651,17 +915,26 @@ def main() -> int:
             if args.calibration and run_succeeded
             else (
                 "completed"
-                if accepted
+                if semantic_accepted
                 else ("signalled" if terminal_signal is not None else "failed")
             )
         ),
         "accepted": accepted,
+        "semantic_gate": "pass" if semantic_accepted else "fail",
+        "performance_gate": performance_gate,
+        "accepted_performance": accepted_performance,
+        "accepted_metric_ledger": accepted_metric,
+        "timing_evidence": timing_evidence,
         "failure_reason": failure_reason,
         "diagnostic_path": (
-            "strict.connection" if failure_reason == "postgresql_authority_missing" else None
+            "strict.connection"
+            if failure_reason == "postgresql_authority_missing"
+            else None
         ),
         "kernel_key": (
-            "strict.connection" if failure_reason == "postgresql_authority_missing" else None
+            "strict.connection"
+            if failure_reason == "postgresql_authority_missing"
+            else None
         ),
         "authority": authority,
         "started_at": started_at,
@@ -686,7 +959,9 @@ def main() -> int:
         },
         "database_url_redacted": args.database_url.split("@")[-1],
         "database_provisioning_mode": args.postgres_mode,
-        "execution": strict_execution_metadata() if args.strict_exact else {
+        "execution": strict_execution_metadata()
+        if args.strict_exact
+        else {
             "execution_strategy": "local-compatibility-replay",
             "authority_backend": "postgresql",
             "local_replay": "compatibility-only",
@@ -701,6 +976,7 @@ def main() -> int:
             for path in args.input_path or ()
         ],
         "migration_sha256": _migration_hashes(),
+        "pg_stat_statements": statement_metrics,
         "publication_verification": publication,
         "resources": {
             "sample_count": sample_count,
@@ -730,11 +1006,20 @@ def main() -> int:
             "rss_samples": str(rss_path),
             "resource_checkpoints": checkpoint_files,
             "tranche_output_root": str(args.output_root.resolve()),
+            "postgres_runtime_churn_before": str(churn_before_path),
+            "postgres_runtime_churn_after": str(churn_after_path),
+            "postgres_runtime_churn_delta": str(churn_delta_path),
+        },
+        "postgresql_churn": {
+            "before": churn_before,
+            "after": churn_after,
+            "delta": churn_delta,
+            "semantics": "diagnostic-only read-only PostgreSQL statistics; not an acceptance gate",
         },
     }
     _atomic_json(receipt_path, receipt)
     print(json.dumps(receipt, indent=2, sort_keys=True))
-    return 0 if run_succeeded else 1
+    return 0 if (args.calibration and run_succeeded) or accepted else 1
 
 
 if __name__ == "__main__":

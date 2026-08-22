@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
 
 from .wikidata_lane_status import build_wikidata_lane_artifacts
 
@@ -58,7 +58,9 @@ def build_wikidata_lane_flatness_audit() -> dict[str, Any]:
         diagnosis = _lane_non_visual_diagnosis(
             flatness_posture=flatness_posture,
             branching_factor=float(metrics["branching_factor"]),
-            duplicate_node_emission_count=int(emission["duplicate_node_emission_count"]),
+            duplicate_node_emission_count=int(
+                emission["duplicate_node_emission_count"]
+            ),
         )
         if flatness_posture == "projection_flat":
             projection_flat_lane_ids.append(lane_id)

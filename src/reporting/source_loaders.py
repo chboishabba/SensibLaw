@@ -13,11 +13,15 @@ def list_message_export_json_paths(export_path: str | Path) -> list[Path]:
     if resolved.is_file():
         return [resolved]
     if resolved.is_dir():
-        return sorted(path for path in resolved.rglob("message_*.json") if path.is_file())
+        return sorted(
+            path for path in resolved.rglob("message_*.json") if path.is_file()
+        )
     raise FileNotFoundError(str(resolved))
 
 
-def fetch_text_url(url: str, *, headers: dict[str, str] | None = None, timeout: int = 20) -> str:
+def fetch_text_url(
+    url: str, *, headers: dict[str, str] | None = None, timeout: int = 20
+) -> str:
     request = Request(str(url), headers=headers or {})
     with urlopen(request, timeout=timeout) as response:
         return response.read().decode("utf-8", errors="replace")

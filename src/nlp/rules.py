@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, List, Sequence
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
@@ -76,7 +76,20 @@ _CONDITION_PATTERNS: Sequence[Sequence[Dict[str, object]]] = [
 
 _REFERENCE_PATTERNS: Sequence[Sequence[Dict[str, object]]] = [
     [
-        {"LOWER": {"IN": ["s", "ss", "section", "sections", "rule", "rules", "regulation", "regulations"]}},
+        {
+            "LOWER": {
+                "IN": [
+                    "s",
+                    "ss",
+                    "section",
+                    "sections",
+                    "rule",
+                    "rules",
+                    "regulation",
+                    "regulations",
+                ]
+            }
+        },
         {"TEXT": {"REGEX": r"^\d+[A-Za-z]*(?:\([^)]*\))*\.?$"}},
     ],
     [

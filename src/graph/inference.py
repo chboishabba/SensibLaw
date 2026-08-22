@@ -8,7 +8,17 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from .models import EdgeType, LegalGraph, NodeType
 
@@ -64,10 +74,16 @@ class PredictionSet:
     predictions: List[PredictionRecord]
     non_deterministic: bool = True
 
-    def for_case(self, case_id: str, *, top_k: Optional[int] = None) -> List[PredictionRecord]:
+    def for_case(
+        self, case_id: str, *, top_k: Optional[int] = None
+    ) -> List[PredictionRecord]:
         """Return ranked predictions for ``case_id`` limited to ``top_k`` results."""
 
-        items = [prediction for prediction in self.predictions if prediction.case_id == case_id]
+        items = [
+            prediction
+            for prediction in self.predictions
+            if prediction.case_id == case_id
+        ]
         if top_k is not None:
             return items[:top_k]
         return items
@@ -476,7 +492,9 @@ def score_applies_predictions(
                 score = _to_score(model.predict_hrt([(head_id, relation_id, tail_id)]))
             else:
                 raise ValueError("The trained model does not support scoring triples")
-            predictions.append(RawPrediction(case_id=case_id, provision_id=provision_id, score=score))
+            predictions.append(
+                RawPrediction(case_id=case_id, provision_id=provision_id, score=score)
+            )
     return predictions
 
 
@@ -562,7 +580,8 @@ def infer_semantic_recommendations(
         event_labels = [
             f"event:{identifier}"
             for identifier, node in graph.nodes.items()
-            if getattr(node, "type", None) in {NodeType.CASE, NodeType.DOCUMENT, NodeType.EVENT}
+            if getattr(node, "type", None)
+            in {NodeType.CASE, NodeType.DOCUMENT, NodeType.EVENT}
         ]
     events = [
         SemanticRecommendation(

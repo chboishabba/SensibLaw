@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from src.text.lexeme_index import collect_lexeme_occurrences
-from src.text.operational_structure import StructureOccurrence, collect_operational_structure_occurrences
+from src.text.operational_structure import (
+    StructureOccurrence,
+    collect_operational_structure_occurrences,
+)
 
 
 def collect_structure_occurrences(

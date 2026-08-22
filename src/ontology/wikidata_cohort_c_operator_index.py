@@ -35,7 +35,9 @@ def build_nat_cohort_c_operator_index(
         qualifier_hint = _safe_sequence(row.get("qualifier_hint"))
         for qualifier in qualifier_hint:
             qualifiers_by_ref[reference_anchor].add(qualifier)
-        hold_reason = str(row.get("operator_hold_reason") or row.get("preview_hold_reason") or "").strip()
+        hold_reason = str(
+            row.get("operator_hold_reason") or row.get("preview_hold_reason") or ""
+        ).strip()
         if hold_reason:
             hold_reasons[hold_reason] += 1
         candidate_index.append(
@@ -44,7 +46,9 @@ def build_nat_cohort_c_operator_index(
                 "statement_id": str(row.get("statement_id") or "").strip(),
                 "reference_anchor": reference_anchor,
                 "qualifier_hint": qualifier_hint,
-                "hold_gate": str(row.get("hold_gate") or "review_first_population_scan"),
+                "hold_gate": str(
+                    row.get("hold_gate") or "review_first_population_scan"
+                ),
                 "promotion_guard": str(row.get("promotion_guard") or "hold"),
             }
         )

@@ -27,12 +27,12 @@ def test_omit_without_override():
 def test_transform_hook():
     transformed = []
     policy = {
-        "rules": [
-            {"flag": CulturalFlags.PUBLIC_DOMAIN.name, "action": "transform"}
-        ],
+        "rules": [{"flag": CulturalFlags.PUBLIC_DOMAIN.name, "action": "transform"}],
         "default": "allow",
     }
-    engine = PolicyEngine(policy, inference_hook=lambda f, a: transformed.append((f, a)))
+    engine = PolicyEngine(
+        policy, inference_hook=lambda f, a: transformed.append((f, a))
+    )
     action = engine.evaluate({CulturalFlags.PUBLIC_DOMAIN})
     assert action == "transform"
     assert transformed == [(CulturalFlags.PUBLIC_DOMAIN, "transform")]
@@ -65,6 +65,7 @@ def test_nested_policy_require():
 
 def test_enforce_redacts_without_consent():
     engine = PolicyEngine({})
+
 
 def test_redact_without_consent():
     engine = PolicyEngine.from_yaml(str(RULES))

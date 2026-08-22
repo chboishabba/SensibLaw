@@ -101,7 +101,9 @@ def build_abstentions(fact_report: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _legal_follow_queue_and_pressure(operator_views: Mapping[str, Any]) -> tuple[int, int, int]:
+def _legal_follow_queue_and_pressure(
+    operator_views: Mapping[str, Any],
+) -> tuple[int, int, int]:
     legal_follow_graph = (
         operator_views.get("legal_follow_graph")
         if isinstance(operator_views.get("legal_follow_graph"), Mapping)
@@ -124,7 +126,11 @@ def _legal_follow_queue_and_pressure(operator_views: Mapping[str, Any]) -> tuple
     )
     queue_count = int(legal_follow_summary.get("queue_count") or len(queue))
     promote_count = int(edge_counts.get("promote") or 0)
-    review_pressure = int(edge_counts.get("audit") or 0) + int(edge_counts.get("abstain") or 0) + int(edge_counts.get("unknown") or 0)
+    review_pressure = (
+        int(edge_counts.get("audit") or 0)
+        + int(edge_counts.get("abstain") or 0)
+        + int(edge_counts.get("unknown") or 0)
+    )
     return queue_count, promote_count, review_pressure
 
 
@@ -137,7 +143,9 @@ def build_bundle_workflow_summary(
 ) -> dict[str, Any]:
     normalized_promotion_gate = normalize_product_gate(promotion_gate)
     summary_counts = (
-        review_summary.get("summary") if isinstance(review_summary.get("summary"), Mapping) else {}
+        review_summary.get("summary")
+        if isinstance(review_summary.get("summary"), Mapping)
+        else {}
     )
     chronology_summary = (
         review_summary.get("chronology_summary")
@@ -185,14 +193,14 @@ def build_bundle_workflow_summary(
     authority_follow_queue_count = int(
         authority_follow_summary.get("queue_count") or len(authority_follow_queue)
     )
-    legal_follow_queue_count, legal_follow_promote_count, legal_follow_review_pressure = _legal_follow_queue_and_pressure(
-        operator_views
-    )
+    (
+        legal_follow_queue_count,
+        legal_follow_promote_count,
+        legal_follow_review_pressure,
+    ) = _legal_follow_queue_and_pressure(operator_views)
     undated_event_count = int(chronology_summary.get("undated_event_count") or 0)
     no_event_fact_count = int(chronology_summary.get("no_event_fact_count") or 0)
-    gate_decision = (
-        str(normalized_promotion_gate.get("decision") or "").strip() or None
-    )
+    gate_decision = str(normalized_promotion_gate.get("decision") or "").strip() or None
 
     counts = {
         "review_queue_count": review_queue_count,
@@ -205,7 +213,10 @@ def build_bundle_workflow_summary(
         "no_event_fact_count": no_event_fact_count,
     }
 
-    if legal_follow_queue_count > 0 and legal_follow_review_pressure > legal_follow_promote_count:
+    if (
+        legal_follow_queue_count > 0
+        and legal_follow_review_pressure > legal_follow_promote_count
+    ):
         return {
             "stage": "follow_up",
             "title": "Resolve legal-follow admissibility items",
@@ -242,7 +253,9 @@ def build_bundle_workflow_summary(
             "promotion_gate": normalized_promotion_gate,
         }
     if review_queue_count > 0:
-        gate_note = " The current promotion gate is audit." if gate_decision == "audit" else ""
+        gate_note = (
+            " The current promotion gate is audit." if gate_decision == "audit" else ""
+        )
         return {
             "stage": "decide",
             "title": "Review unresolved facts",

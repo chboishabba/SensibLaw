@@ -98,7 +98,9 @@ def segment_sentences(text: str) -> List[Sentence]:
         if not text:
             return []
         # Minimal fallback: split on sentence terminators to maintain structure without spaCy.
-        parts = [part.strip() for part in text.replace("\n", " ").split(".") if part.strip()]
+        parts = [
+            part.strip() for part in text.replace("\n", " ").split(".") if part.strip()
+        ]
         return [
             Sentence(text=part, start_char=0, end_char=len(part), index=idx)
             for idx, part in enumerate(parts)
@@ -152,9 +154,9 @@ def _page_boundary_continuation(
     current_body = str(current_page.get("text") or "").strip()
     if not previous_body or not current_body:
         return False
-    return (not _ends_with_terminal_punctuation(previous_body)) and _starts_with_lowercase(
-        current_body
-    )
+    return (
+        not _ends_with_terminal_punctuation(previous_body)
+    ) and _starts_with_lowercase(current_body)
 
 
 def build_canonical_sentence_units(
@@ -181,24 +183,36 @@ def build_canonical_sentence_units(
         next_page = page_units[index + 1][0] if index + 1 < len(page_units) else None
         heading = _normalize_heading(page.get("heading"))
         repeated_with_previous = bool(
-            heading and previous_page is not None and heading == _normalize_heading(previous_page.get("heading"))
+            heading
+            and previous_page is not None
+            and heading == _normalize_heading(previous_page.get("heading"))
         )
         repeated_with_next = bool(
-            heading and next_page is not None and heading == _normalize_heading(next_page.get("heading"))
+            heading
+            and next_page is not None
+            and heading == _normalize_heading(next_page.get("heading"))
         )
         continues_from_previous = _page_boundary_continuation(previous_page, page)
-        continues_to_next = _page_boundary_continuation(page, next_page) if next_page is not None else False
+        continues_to_next = (
+            _page_boundary_continuation(page, next_page)
+            if next_page is not None
+            else False
+        )
         page_number = int(page.get("page") or (index + 1))
 
         for sentence_index, sentence in enumerate(sentences):
             boundary_state = CanonicalBoundaryState(
                 page=page_number,
-                continues_from_previous_page=continues_from_previous and sentence_index == 0,
-                continues_to_next_page=continues_to_next and sentence_index == (len(sentences) - 1),
+                continues_from_previous_page=continues_from_previous
+                and sentence_index == 0,
+                continues_to_next_page=continues_to_next
+                and sentence_index == (len(sentences) - 1),
                 repeated_heading_with_previous=repeated_with_previous,
                 repeated_heading_with_next=repeated_with_next,
             )
-            units.append(CanonicalSentenceUnit(sentence=sentence, boundary_state=boundary_state))
+            units.append(
+                CanonicalSentenceUnit(sentence=sentence, boundary_state=boundary_state)
+            )
 
     return units
 

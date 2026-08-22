@@ -76,6 +76,7 @@ def test_focus_lane_filters_by_explicit_targets():
         _paragraph("p3", "Deadline", deadlines=("lodgement",)),
     ]
 
-    focused = focus_lane(paragraphs, focus_issues=["liability"], focus_deadlines=["lodgement"])
+    focused = focus_lane(
+        paragraphs, focus_issues=["liability"], focus_deadlines=["lodgement"]
+    )
     assert [p.pid for p in focused] == ["p2", "p3"]
-

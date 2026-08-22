@@ -28,7 +28,11 @@ def persist_source_admission_receipts(
     rows: list[tuple[Any, ...]] = []
     refs: list[str] = []
     for value in receipts:
-        payload = value.to_dict() if isinstance(value, SourceAdmissionReceipt) else dict(value)
+        payload = (
+            value.to_dict()
+            if isinstance(value, SourceAdmissionReceipt)
+            else dict(value)
+        )
         refs.append(str(payload["receipt_ref"]))
         rows.append(
             (
@@ -63,7 +67,9 @@ def persist_legal_source_revision(
     cursor: Any,
     source: RegisteredLegalSource | Mapping[str, Any],
 ) -> str:
-    payload = source.to_dict() if isinstance(source, RegisteredLegalSource) else dict(source)
+    payload = (
+        source.to_dict() if isinstance(source, RegisteredLegalSource) else dict(source)
+    )
     cursor.execute(
         """
         INSERT INTO legal_source_revision
@@ -131,10 +137,9 @@ def load_compatible_legal_sources(
             and not set(demand.temporal_refs).intersection(temporal_refs)
         ):
             continue
-        if (
+        if demand.provider_profile_refs and not set(
             demand.provider_profile_refs
-            and not set(demand.provider_profile_refs).intersection(provider_refs)
-        ):
+        ).intersection(provider_refs):
             continue
         rows.append(
             RegisteredLegalSource(

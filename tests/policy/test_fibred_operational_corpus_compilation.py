@@ -108,13 +108,9 @@ def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     factor = artifacts["pnf_graph"]["factors"][0]
     receipt = artifacts["streaming_reduction_projection"]
 
-    assert artifacts["pnf_graph"]["graph_ref"].startswith(
-        "pnf-fibred-graph:"
-    )
+    assert artifacts["pnf_graph"]["graph_ref"].startswith("pnf-fibred-graph:")
     assert factor["factor_ref"] == "factor:source"
-    assert factor["metadata"]["fibre_summary_ref"] == (
-        reduction.factors[0].factor_ref
-    )
+    assert factor["metadata"]["fibre_summary_ref"] == (reduction.factors[0].factor_ref)
     assert factor_revision_ref(factor) == factor["metadata"]["factor_revision_ref"]
     assert receipt["replaced_factor_count"] == 1
     assert receipt["added_factor_count"] == 0
@@ -125,9 +121,9 @@ def test_fibred_wrapper_replaces_existing_compatibility_coordinate(
     assert artifacts["fibred_semantic_build"]["one_proposal_contract"] is True
     assert artifacts["streaming_semantic_build"]["one_reduction_authority"] is True
     assert artifacts["phase_boundary"]["fibred_semantic_state"] is True
-    assert artifacts["phase_boundary"][
-        "constraints_after_fibre_materialisation"
-    ] is True
+    assert (
+        artifacts["phase_boundary"]["constraints_after_fibre_materialisation"] is True
+    )
     assert artifacts["resolution_demands"]
     assert all(isinstance(row, dict) for row in artifacts["resolution_demands"])
 

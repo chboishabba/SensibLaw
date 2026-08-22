@@ -76,9 +76,14 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
     funnel = dict(
         zip(
             (
-                "demands", "with_represented_candidates", "with_active_candidates",
-                "with_residual_candidates", "with_refuted_candidates", "with_evidence",
-                "with_admitted_identity_witness", "outside_model_possible",
+                "demands",
+                "with_represented_candidates",
+                "with_active_candidates",
+                "with_residual_candidates",
+                "with_refuted_candidates",
+                "with_evidence",
+                "with_admitted_identity_witness",
+                "outside_model_possible",
                 "resource_limited",
             ),
             (int(value or 0) for value in row),
@@ -248,7 +253,9 @@ def collect(cursor: Any, *, run_id: int, document_id: int) -> RuntimeObservatory
         """
     )
     ratio_row = cursor.fetchone()
-    parser_ratio = float(ratio_row[0]) if ratio_row and ratio_row[0] is not None else None
+    parser_ratio = (
+        float(ratio_row[0]) if ratio_row and ratio_row[0] is not None else None
+    )
 
     return RuntimeObservatory(
         run_id=run_id,

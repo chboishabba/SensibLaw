@@ -15,7 +15,10 @@ def _flatten(dependencies):
 def test_dependency_candidates_simple_sentence():
     try:
         parses = get_dependencies("A person must not sell spray paint.")
-    except (RuntimeError, ModuleNotFoundError) as exc:  # pragma: no cover - handled as skipped test
+    except (
+        RuntimeError,
+        ModuleNotFoundError,
+    ) as exc:  # pragma: no cover - handled as skipped test
         pytest.skip(str(exc))
     assert len(parses) == 1
 

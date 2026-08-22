@@ -3,12 +3,8 @@ from pathlib import Path
 
 MIGRATION_ROOT = Path("database/postgres_migrations")
 SPARSE_FRONTIER = MIGRATION_ROOT / "062_sparse_fibred_pnf_frontiers.sql"
-ACTOR_NORMALISATION = (
-    MIGRATION_ROOT / "063_sparse_actor_profile_null_normalisation.sql"
-)
-ANAPHOR_SURFACE = (
-    MIGRATION_ROOT / "064_anaphor_surface_lexical_evidence.sql"
-)
+ACTOR_NORMALISATION = MIGRATION_ROOT / "063_sparse_actor_profile_null_normalisation.sql"
+ANAPHOR_SURFACE = MIGRATION_ROOT / "064_anaphor_surface_lexical_evidence.sql"
 
 
 def _source() -> str:
@@ -52,12 +48,10 @@ def test_closed_fibres_have_typed_sparse_boundary_objects() -> None:
 def test_parent_frontier_is_rebuilt_set_wise_and_not_copied_wholesale() -> None:
     source = _source()
     start = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.rebuild_numeric_pnf_parent_frontier"
+        "CREATE OR REPLACE FUNCTION execution.rebuild_numeric_pnf_parent_frontier"
     )
     end = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.reduce_numeric_pnf_interface_on_close",
+        "CREATE OR REPLACE FUNCTION execution.reduce_numeric_pnf_interface_on_close",
         start,
     )
     function_source = source[start:end]
@@ -111,12 +105,10 @@ def test_frontier_reduction_runs_at_region_closure() -> None:
 def test_global_lookup_is_root_only_and_incremental() -> None:
     source = _source()
     start = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.refresh_pnf_global_lookup_ids"
+        "CREATE OR REPLACE FUNCTION execution.refresh_pnf_global_lookup_ids"
     )
     end = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.refresh_pnf_visible_lookup",
+        "CREATE OR REPLACE FUNCTION execution.refresh_pnf_visible_lookup",
         start,
     )
     function_source = source[start:end]
@@ -132,12 +124,10 @@ def test_global_lookup_is_root_only_and_incremental() -> None:
 def test_visible_projection_contains_only_the_closed_root_frontier() -> None:
     source = _source()
     start = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.refresh_pnf_visible_lookup"
+        "CREATE OR REPLACE FUNCTION execution.refresh_pnf_visible_lookup"
     )
     end = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.plan_numeric_pnf_demand_candidates_ids",
+        "CREATE OR REPLACE FUNCTION execution.plan_numeric_pnf_demand_candidates_ids",
         start,
     )
     function_source = source[start:end]
@@ -152,8 +142,7 @@ def test_visible_projection_contains_only_the_closed_root_frontier() -> None:
 def test_compatibility_planner_no_longer_scans_global_inventory() -> None:
     source = _source()
     start = source.index(
-        "CREATE OR REPLACE FUNCTION "
-        "execution.plan_numeric_pnf_demand_candidates_ids"
+        "CREATE OR REPLACE FUNCTION execution.plan_numeric_pnf_demand_candidates_ids"
     )
     function_source = source[start:]
     assert "reduce_numeric_pnf_document_frontiers" in function_source

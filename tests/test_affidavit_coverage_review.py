@@ -20,7 +20,9 @@ from scripts.build_affidavit_coverage_review import (
 )
 
 
-def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path) -> None:
+def test_build_affidavit_coverage_review_from_fact_review_bundle(
+    tmp_path: Path,
+) -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "au_semantic:test-run"},
@@ -107,42 +109,93 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert payload["summary"]["abstained_source_count"] == 1
     assert payload["summary"]["semantic_basis_counts"]
     assert payload["compiler_contract"]["lane"] == "affidavit"
-    assert payload["compiler_contract"]["evidence_bundle"]["source_family"] == "fact_review_bundle"
+    assert (
+        payload["compiler_contract"]["evidence_bundle"]["source_family"]
+        == "fact_review_bundle"
+    )
     assert payload["compiler_contract"]["promoted_outcomes"]["promoted_count"] == 0
     assert payload["compiler_contract"]["promoted_outcomes"]["review_count"] == 1
     assert payload["compiler_contract"]["promoted_outcomes"]["abstained_count"] == 2
-    assert "candidate_conflict" in payload["compiler_contract"]["promoted_outcomes"]["outcome_labels"]
-    assert "abstained" in payload["compiler_contract"]["promoted_outcomes"]["outcome_labels"]
+    assert (
+        "candidate_conflict"
+        in payload["compiler_contract"]["promoted_outcomes"]["outcome_labels"]
+    )
+    assert (
+        "abstained"
+        in payload["compiler_contract"]["promoted_outcomes"]["outcome_labels"]
+    )
     assert payload["promotion_gate"]["decision"] == "abstain"
     assert payload["promotion_gate"]["product_ref"] == "affidavit_coverage_review_v1"
     assert payload["workflow_summary"]["stage"] == "follow_up"
     assert payload["workflow_summary"]["recommended_view"] == "source_review_rows"
-    assert payload["workflow_summary"]["counts"]["missing_review_count"] == payload["summary"]["missing_review_count"]
-    review_claim_records = {row["claim_id"]: row for row in payload["review_claim_records"]}
-    assert review_claim_records["aff-prop:p1-s1"]["target_proposition_identity"]["identity_basis"]["basis_kind"] == (
-        "best_source_row_id"
+    assert (
+        payload["workflow_summary"]["counts"]["missing_review_count"]
+        == payload["summary"]["missing_review_count"]
     )
-    assert review_claim_records["aff-prop:p1-s1"]["proposition_relation"]["relation_kind"] == "addresses"
-    assert review_claim_records["aff-prop:p1-s1"]["proposition_relation"]["provenance"]["anchor_refs"][
-        "best_source_row_id"
-    ] == "fact:f1"
-    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["candidate_kind"] == "affidavit_proposition_row"
-    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["selection_basis"]["coverage_status"] == "covered"
-    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["anchor_refs"]["paragraph_id"] == "p1"
-    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["target_proposition_id"] == (
-        review_claim_records["aff-prop:p1-s1"]["target_proposition_identity"]["proposition_id"]
+    review_claim_records = {
+        row["claim_id"]: row for row in payload["review_claim_records"]
+    }
+    assert review_claim_records["aff-prop:p1-s1"]["target_proposition_identity"][
+        "identity_basis"
+    ]["basis_kind"] == ("best_source_row_id")
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["proposition_relation"]["relation_kind"]
+        == "addresses"
     )
-    assert review_claim_records["aff-prop:p1-s1"]["review_text"]["text_role"] == "claim_text"
-    assert review_claim_records["aff-prop:p1-s1"]["review_text"]["source_kind"] == "affidavit_row"
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["proposition_relation"]["provenance"][
+            "anchor_refs"
+        ]["best_source_row_id"]
+        == "fact:f1"
+    )
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["review_candidate"]["candidate_kind"]
+        == "affidavit_proposition_row"
+    )
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["review_candidate"]["selection_basis"][
+            "coverage_status"
+        ]
+        == "covered"
+    )
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["review_candidate"]["anchor_refs"][
+            "paragraph_id"
+        ]
+        == "p1"
+    )
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["review_candidate"][
+            "target_proposition_id"
+        ]
+        == (
+            review_claim_records["aff-prop:p1-s1"]["target_proposition_identity"][
+                "proposition_id"
+            ]
+        )
+    )
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["review_text"]["text_role"]
+        == "claim_text"
+    )
+    assert (
+        review_claim_records["aff-prop:p1-s1"]["review_text"]["source_kind"]
+        == "affidavit_row"
+    )
     assert "target_proposition_identity" in review_claim_records["aff-prop:p2-s1"]
     assert "proposition_relation" in review_claim_records["aff-prop:p2-s1"]
     assert "target_proposition_identity" in review_claim_records["aff-prop:p3-s1"]
-    assert review_claim_records["aff-prop:p3-s1"]["proposition_relation"]["relation_kind"] == "addresses"
+    assert (
+        review_claim_records["aff-prop:p3-s1"]["proposition_relation"]["relation_kind"]
+        == "addresses"
+    )
 
     affidavit_rows = {row["proposition_id"]: row for row in payload["affidavit_rows"]}
     assert affidavit_rows["aff-prop:p1-s1"]["coverage_status"] == "covered"
     assert affidavit_rows["aff-prop:p2-s1"]["coverage_status"] == "contested_source"
-    assert affidavit_rows["aff-prop:p3-s1"]["coverage_status"] == "unsupported_affidavit"
+    assert (
+        affidavit_rows["aff-prop:p3-s1"]["coverage_status"] == "unsupported_affidavit"
+    )
 
     source_rows = {row["source_row_id"]: row for row in payload["source_review_rows"]}
     assert source_rows["fact:f1"]["review_status"] == "covered"
@@ -152,14 +205,26 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert source_rows["fact:f4"]["workload_classes"] == ["chronology_gap"]
     assert source_rows["fact:f4"]["has_calendar_reference_hint"] is True
     assert source_rows["fact:f4"]["has_procedural_event_cue"] is True
-    assert any(anchor["anchor_kind"] == "calendar_reference" for anchor in source_rows["fact:f4"]["candidate_anchors"])
-    assert any(anchor["anchor_kind"] == "procedural_event_keywords" for anchor in source_rows["fact:f4"]["candidate_anchors"])
-    assert source_rows["fact:f4"]["recommended_next_action"] == "promote existing event/date cues into structured anchors"
+    assert any(
+        anchor["anchor_kind"] == "calendar_reference"
+        for anchor in source_rows["fact:f4"]["candidate_anchors"]
+    )
+    assert any(
+        anchor["anchor_kind"] == "procedural_event_keywords"
+        for anchor in source_rows["fact:f4"]["candidate_anchors"]
+    )
+    assert (
+        source_rows["fact:f4"]["recommended_next_action"]
+        == "promote existing event/date cues into structured anchors"
+    )
     assert any(
         row["source_row_id"] == "fact:f4" and row["anchor_kind"] == "calendar_reference"
         for row in payload["provisional_structured_anchors"]
     )
-    assert all("priority_rank" in row and "priority_score" in row for row in payload["provisional_structured_anchors"])
+    assert all(
+        "priority_rank" in row and "priority_score" in row
+        for row in payload["provisional_structured_anchors"]
+    )
     assert payload["provisional_anchor_bundles"][0]["source_row_id"] == "fact:f4"
     assert payload["provisional_anchor_bundles"][0]["anchor_count"] == 2
     normalized = payload["normalized_metrics_v1"]
@@ -185,27 +250,59 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert normalized_artifact["artifact_role"] == "derived_product"
     assert normalized_artifact["authority"]["derived"] is True
     assert normalized_artifact["summary"]["lane"] == "affidavit"
-    assert normalized_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
-    assert normalized_artifact["summary"]["workflow_stage"] == payload["workflow_summary"]["stage"]
-    assert normalized_artifact["summary"]["recommended_view"] == payload["workflow_summary"]["recommended_view"]
+    assert (
+        normalized_artifact["summary"]["gate_decision"]
+        == payload["promotion_gate"]["decision"]
+    )
+    assert (
+        normalized_artifact["summary"]["workflow_stage"]
+        == payload["workflow_summary"]["stage"]
+    )
+    assert (
+        normalized_artifact["summary"]["recommended_view"]
+        == payload["workflow_summary"]["recommended_view"]
+    )
     assert "graph_diagnostics" not in normalized_artifact
     reasoner_input_artifact = payload["reasoner_input_artifact"]
     assert reasoner_input_artifact["schema_version"] == "sl.reasoner_input.v0_1"
     assert reasoner_input_artifact["source_system"] == "SensibLaw"
     assert reasoner_input_artifact["source_lane"] == "affidavit"
-    assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
-    assert reasoner_input_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
-    assert reasoner_input_artifact["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
-    assert reasoner_input_artifact["summary"]["abstained_count"] == payload["compiler_contract"]["promoted_outcomes"]["abstained_count"]
+    assert (
+        reasoner_input_artifact["normalized_artifact"]["artifact_id"]
+        == normalized_artifact["artifact_id"]
+    )
+    assert (
+        reasoner_input_artifact["summary"]["gate_decision"]
+        == payload["promotion_gate"]["decision"]
+    )
+    assert (
+        reasoner_input_artifact["summary"]["review_count"]
+        == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
+    )
+    assert (
+        reasoner_input_artifact["summary"]["abstained_count"]
+        == payload["compiler_contract"]["promoted_outcomes"]["abstained_count"]
+    )
 
 
-def test_split_affidavit_text_splits_semicolon_clause_into_multiple_propositions() -> None:
+def test_split_affidavit_text_splits_semicolon_clause_into_multiple_propositions() -> (
+    None
+):
     propositions = _split_affidavit_text(
         "In mid-November 2024, there was an incident where I was waiting for my support worker to arrive; as I came down the side of the house, I could hear Johl was on the phone."
     )
-    assert [row["proposition_id"] for row in propositions] == ["aff-prop:p1-s1", "aff-prop:p1-s2"]
-    assert propositions[0]["text"] == "In mid-November 2024, there was an incident where I was waiting for my support worker to arrive"
-    assert propositions[1]["text"] == "as I came down the side of the house, I could hear Johl was on the phone."
+    assert [row["proposition_id"] for row in propositions] == [
+        "aff-prop:p1-s1",
+        "aff-prop:p1-s2",
+    ]
+    assert (
+        propositions[0]["text"]
+        == "In mid-November 2024, there was an incident where I was waiting for my support worker to arrive"
+    )
+    assert (
+        propositions[1]["text"]
+        == "as I came down the side of the house, I could hear Johl was on the phone."
+    )
 
 
 def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
@@ -256,12 +353,18 @@ def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
         "related_review_clusters",
         "summary",
     }
-    assert payload["normalized_metrics_v1"]["review_item_status_counts"]["accepted"] == 1
-    assert "provenance-first comparison surface" in summary_path.read_text(encoding="utf-8")
+    assert (
+        payload["normalized_metrics_v1"]["review_item_status_counts"]["accepted"] == 1
+    )
+    assert "provenance-first comparison surface" in summary_path.read_text(
+        encoding="utf-8"
+    )
     assert "Normalized Metrics" in summary_path.read_text(encoding="utf-8")
 
 
-def test_write_affidavit_coverage_review_can_persist_without_bulky_artifacts(tmp_path: Path) -> None:
+def test_write_affidavit_coverage_review_can_persist_without_bulky_artifacts(
+    tmp_path: Path,
+) -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "transcript_semantic:sqlite_only"},
@@ -386,7 +489,9 @@ def test_build_affidavit_coverage_review_reports_trace() -> None:
     assert "promotion_result" in stages
 
 
-def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: Path) -> None:
+def test_write_affidavit_coverage_review_persists_normalized_receiver(
+    tmp_path: Path,
+) -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "transcript_semantic:demo"},
@@ -429,7 +534,11 @@ def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: 
             "SELECT artifact_version, source_label, covered_count FROM contested_review_runs WHERE review_run_id = ?",
             (persist_summary["review_run_id"],),
         ).fetchone()
-        assert run_row == ("affidavit_coverage_review_v1", "transcript_semantic:demo", 1)
+        assert run_row == (
+            "affidavit_coverage_review_v1",
+            "transcript_semantic:demo",
+            1,
+        )
         affidavit_row = conn.execute(
             "SELECT proposition_id, coverage_status, semantic_basis, promotion_status, relation_root, relation_leaf, primary_target_component, explanation_json, missing_dimensions_json FROM contested_review_affidavit_rows WHERE review_run_id = ?",
             (persist_summary["review_run_id"],),
@@ -437,14 +546,21 @@ def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: 
         assert affidavit_row[0] == "aff-prop:p1-s1"
         assert affidavit_row[1] == "covered"
         assert affidavit_row[2] == "structural"
-        assert affidavit_row[3] in {"promoted_true", "promoted_false", "candidate_conflict", "abstained"}
+        assert affidavit_row[3] in {
+            "promoted_true",
+            "promoted_false",
+            "candidate_conflict",
+            "abstained",
+        }
         assert affidavit_row[4] == "supports"
         assert affidavit_row[5] in {"exact_support", "equivalent_support"}
     assert json.loads(affidavit_row[7])["classification"] == "supported"
     assert isinstance(json.loads(affidavit_row[8]), list)
 
 
-def test_build_contested_affidavit_proving_slice_groups_rows_and_next_steps(tmp_path: Path) -> None:
+def test_build_contested_affidavit_proving_slice_groups_rows_and_next_steps(
+    tmp_path: Path,
+) -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "proving_slice_demo"},
@@ -533,19 +649,37 @@ def test_build_contested_affidavit_proving_slice_groups_rows_and_next_steps(tmp_
     assert proving_slice["summary"]["weakly_addressed_affidavit_count"] == 0
     assert proving_slice["summary"]["missing_affidavit_count"] == 1
     assert proving_slice["summary"]["needs_clarification_source_row_count"] == 2
-    assert proving_slice["sections"]["supported"][0]["proposition_id"] == "aff-prop:p1-s1"
+    assert (
+        proving_slice["sections"]["supported"][0]["proposition_id"] == "aff-prop:p1-s1"
+    )
     assert proving_slice["sections"]["supported"][0]["relation_root"] == "supports"
-    assert proving_slice["sections"]["supported"][0]["relation_leaf"] in {"exact_support", "equivalent_support"}
-    assert proving_slice["sections"]["disputed"][0]["proposition_id"] == "aff-prop:p2-s1"
+    assert proving_slice["sections"]["supported"][0]["relation_leaf"] in {
+        "exact_support",
+        "equivalent_support",
+    }
+    assert (
+        proving_slice["sections"]["disputed"][0]["proposition_id"] == "aff-prop:p2-s1"
+    )
     assert proving_slice["sections"]["disputed"][0]["relation_root"] == "invalidates"
-    assert proving_slice["sections"]["disputed"][0]["relation_leaf"] in {"explicit_dispute", "implicit_dispute"}
+    assert proving_slice["sections"]["disputed"][0]["relation_leaf"] in {
+        "explicit_dispute",
+        "implicit_dispute",
+    }
     assert proving_slice["sections"]["missing"][0]["proposition_id"] == "aff-prop:p3-s1"
-    assert proving_slice["sections"]["missing"][0]["explanation"]["classification"] == "missing"
-    assert proving_slice["source_attention"]["needs_clarification"][0]["source_row_id"] == "fact:f3"
+    assert (
+        proving_slice["sections"]["missing"][0]["explanation"]["classification"]
+        == "missing"
+    )
+    assert (
+        proving_slice["source_attention"]["needs_clarification"][0]["source_row_id"]
+        == "fact:f3"
+    )
     assert proving_slice["next_steps"][0]["step_id"] == "review_unsupported_affidavit"
 
 
-def test_build_contested_affidavit_proving_slice_reclassifies_roles_without_inflating_supported(tmp_path: Path) -> None:
+def test_build_contested_affidavit_proving_slice_reclassifies_roles_without_inflating_supported(
+    tmp_path: Path,
+) -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "proving_slice_role_reclass_demo"},
@@ -610,13 +744,20 @@ def test_build_contested_affidavit_proving_slice_reclassifies_roles_without_infl
     assert proving_slice["summary"]["missing_affidavit_count"] == 0
     assert proving_slice["sections"]["disputed"][0]["best_response_role"] == "dispute"
     non_substantive = proving_slice["sections"]["non_substantive_response"][0]
-    assert non_substantive["support_status"] in {"responsive_but_non_substantive", "textually_addressed"}
+    assert non_substantive["support_status"] in {
+        "responsive_but_non_substantive",
+        "textually_addressed",
+    }
     assert non_substantive["relation_root"] == "non_resolving"
     assert non_substantive["relation_leaf"] == "non_substantive_response"
-    assert non_substantive["explanation"]["classification"] == "non_substantive_response"
+    assert (
+        non_substantive["explanation"]["classification"] == "non_substantive_response"
+    )
 
 
-def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_source_rows() -> None:
+def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_source_rows() -> (
+    None
+):
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "au_semantic:segment-match"},
@@ -643,8 +784,18 @@ def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_so
             },
         ],
         "review_queue": [
-            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
-            {"fact_id": "fact:f2", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
+            {
+                "fact_id": "fact:f2",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
         ],
     }
 
@@ -666,7 +817,9 @@ def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_so
     assert source_rows["fact:f2"]["review_status"] == "missing_review"
 
 
-def test_build_affidavit_coverage_review_groups_related_uncovered_rows_by_proposition() -> None:
+def test_build_affidavit_coverage_review_groups_related_uncovered_rows_by_proposition() -> (
+    None
+):
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "au_semantic:related-cluster"},
@@ -719,20 +872,33 @@ def test_build_affidavit_coverage_review_groups_related_uncovered_rows_by_propos
     assert cluster["candidate_source_count"] == 1
     assert cluster["dominant_workload_class"] == "evidence_gap"
     assert cluster["recommended_next_action"] == "operator evidentiary review"
-    assert cluster["reason_code_rollup"] == [{"reason_code": "statement_only_fact", "count": 1}]
-    assert cluster["workload_class_rollup"] == [{"workload_class": "evidence_gap", "count": 1}]
-    assert cluster["candidate_anchor_rollup"] == [{"anchor_kind": "procedural_event_keywords", "count": 1}]
+    assert cluster["reason_code_rollup"] == [
+        {"reason_code": "statement_only_fact", "count": 1}
+    ]
+    assert cluster["workload_class_rollup"] == [
+        {"workload_class": "evidence_gap", "count": 1}
+    ]
+    assert cluster["candidate_anchor_rollup"] == [
+        {"anchor_kind": "procedural_event_keywords", "count": 1}
+    ]
     assert cluster["candidate_source_rows"][0]["source_row_id"] == "fact:f2"
-    assert cluster["candidate_source_rows"][0]["primary_workload_class"] == "evidence_gap"
+    assert (
+        cluster["candidate_source_rows"][0]["primary_workload_class"] == "evidence_gap"
+    )
     assert payload["summary"]["provisional_structured_anchor_count"] == 1
     assert payload["summary"]["provisional_anchor_bundle_count"] == 1
     assert payload["provisional_structured_anchors"][0]["priority_rank"] == 1
 
 
-def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covered() -> None:
+def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covered() -> (
+    None
+):
     source_payload = {
         "version": "fact.review.bundle.v1",
-        "run": {"source_label": "au_semantic:restatement", "comparison_mode": "contested_narrative"},
+        "run": {
+            "source_label": "au_semantic:restatement",
+            "comparison_mode": "contested_narrative",
+        },
         "facts": [
             {
                 "fact_id": "fact:f1",
@@ -744,7 +910,12 @@ def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covere
             }
         ],
         "review_queue": [
-            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
         ],
     }
 
@@ -757,17 +928,24 @@ def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covere
     assert affidavit_row["coverage_status"] in {"partial", "covered"}
     assert affidavit_row["best_response_role"] == "restatement_only"
     assert affidavit_row["best_adjusted_match_score"] < 0.6
-    assert affidavit_row["matched_source_rows"][0]["response_role"] == "restatement_only"
+    assert (
+        affidavit_row["matched_source_rows"][0]["response_role"] == "restatement_only"
+    )
 
     source_row = payload["source_review_rows"][0]
     assert source_row["review_status"] == "missing_review"
     assert source_row["best_response_role"] == "restatement_only"
 
 
-def test_build_affidavit_coverage_review_keeps_adjusted_duplicate_root_row_in_ranking() -> None:
+def test_build_affidavit_coverage_review_keeps_adjusted_duplicate_root_row_in_ranking() -> (
+    None
+):
     source_payload = {
         "version": "fact.review.bundle.v1",
-        "run": {"source_label": "au_semantic:duplicate-root-adjusted", "comparison_mode": "contested_narrative"},
+        "run": {
+            "source_label": "au_semantic:duplicate-root-adjusted",
+            "comparison_mode": "contested_narrative",
+        },
         "facts": [
             {
                 "fact_id": "fact:audio",
@@ -790,8 +968,18 @@ def test_build_affidavit_coverage_review_keeps_adjusted_duplicate_root_row_in_ra
             },
         ],
         "review_queue": [
-            {"fact_id": "fact:audio", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
-            {"fact_id": "fact:keyboard", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {
+                "fact_id": "fact:audio",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
+            {
+                "fact_id": "fact:keyboard",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
         ],
     }
 
@@ -802,15 +990,23 @@ def test_build_affidavit_coverage_review_keeps_adjusted_duplicate_root_row_in_ra
 
     affidavit_row = payload["affidavit_rows"][0]
     assert affidavit_row["best_source_row_id"] == "fact:audio"
-    assert affidavit_row["duplicate_match_excerpt"] == "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    assert (
+        affidavit_row["duplicate_match_excerpt"]
+        == "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    )
 
 
-def test_build_affidavit_coverage_review_promotes_duplicate_root_support_over_context_swap(monkeypatch) -> None:
+def test_build_affidavit_coverage_review_promotes_duplicate_root_support_over_context_swap(
+    monkeypatch,
+) -> None:
     from scripts import build_affidavit_coverage_review as module
 
     source_payload = {
         "version": "fact.review.bundle.v1",
-        "run": {"source_label": "au_semantic:duplicate-root", "comparison_mode": "contested_narrative"},
+        "run": {
+            "source_label": "au_semantic:duplicate-root",
+            "comparison_mode": "contested_narrative",
+        },
         "facts": [
             {
                 "fact_id": "fact:f1",
@@ -827,11 +1023,21 @@ def test_build_affidavit_coverage_review_promotes_duplicate_root_support_over_co
                 "statement_ids": ["statement:s2"],
                 "excerpt_ids": ["excerpt:e2"],
                 "source_ids": ["src:1"],
-            }
+            },
         ],
         "review_queue": [
-            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
-            {"fact_id": "fact:f2", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
+            {
+                "fact_id": "fact:f2",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
         ],
     }
 
@@ -867,23 +1073,40 @@ def test_build_affidavit_coverage_review_promotes_duplicate_root_support_over_co
 
     affidavit_row = payload["affidavit_rows"][0]
     assert affidavit_row["coverage_status"] == "covered"
-    assert affidavit_row["duplicate_match_excerpt"] == "The respondent cut off my internet in November 2024."
+    assert (
+        affidavit_row["duplicate_match_excerpt"]
+        == "The respondent cut off my internet in November 2024."
+    )
     assert affidavit_row["relation_root"] == "supports"
     assert affidavit_row["relation_leaf"] == "equivalent_support"
     assert affidavit_row["claim_root_basis"] == "duplicate_excerpt"
-    assert affidavit_row["claim_root_text"] == "The respondent cut off my internet in November 2024."
-    assert affidavit_row["alternate_context_excerpt"] == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
+    assert (
+        affidavit_row["claim_root_text"]
+        == "The respondent cut off my internet in November 2024."
+    )
+    assert (
+        affidavit_row["alternate_context_excerpt"]
+        == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
+    )
     assert affidavit_row["explanation"]["classification"] == "supported"
-    assert affidavit_row["explanation"]["matched_response"] == "The respondent cut off my internet in November 2024."
+    assert (
+        affidavit_row["explanation"]["matched_response"]
+        == "The respondent cut off my internet in November 2024."
+    )
     assert affidavit_row["missing_dimensions"] == []
 
 
-def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response(monkeypatch) -> None:
+def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response(
+    monkeypatch,
+) -> None:
     from scripts import build_affidavit_coverage_review as module
 
     source_payload = {
         "version": "fact.review.bundle.v1",
-        "run": {"source_label": "au_semantic:dispute", "comparison_mode": "contested_narrative"},
+        "run": {
+            "source_label": "au_semantic:dispute",
+            "comparison_mode": "contested_narrative",
+        },
         "facts": [
             {
                 "fact_id": "fact:f1",
@@ -895,7 +1118,12 @@ def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response(m
             }
         ],
         "review_queue": [
-            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
         ],
     }
 
@@ -920,7 +1148,9 @@ def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response(m
     assert affidavit_row["coverage_status"] == "covered"
     assert affidavit_row["best_response_role"] == "dispute"
     assert "structural:negation" in affidavit_row["best_response_cues"]
-    assert affidavit_row["best_adjusted_match_score"] >= affidavit_row["best_match_score"]
+    assert (
+        affidavit_row["best_adjusted_match_score"] >= affidavit_row["best_match_score"]
+    )
 
     source_row = payload["source_review_rows"][0]
     assert source_row["review_status"] == "covered"
@@ -948,7 +1178,9 @@ def test_hedged_denial_is_not_treated_as_admission(monkeypatch) -> None:
         },
     )
 
-    role = module._classify_argumentative_role(proposition, excerpt, excerpt, use_row_fallback=False)
+    role = module._classify_argumentative_role(
+        proposition, excerpt, excerpt, use_row_fallback=False
+    )
     packet = _infer_response_packet(
         proposition_text=proposition,
         best_match_excerpt=excerpt,
@@ -966,9 +1198,28 @@ def test_hedged_denial_is_not_treated_as_admission(monkeypatch) -> None:
     response = module.build_affidavit_coverage_review(
         source_payload={
             "version": "fact.review.bundle.v1",
-            "run": {"source_label": "au_semantic:hedged", "comparison_mode": "contested_narrative"},
-            "facts": [{"fact_id": "fact:f1", "fact_text": excerpt, "candidate_status": "candidate", "statement_ids": [], "excerpt_ids": [], "source_ids": []}],
-            "review_queue": [{"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"}],
+            "run": {
+                "source_label": "au_semantic:hedged",
+                "comparison_mode": "contested_narrative",
+            },
+            "facts": [
+                {
+                    "fact_id": "fact:f1",
+                    "fact_text": excerpt,
+                    "candidate_status": "candidate",
+                    "statement_ids": [],
+                    "excerpt_ids": [],
+                    "source_ids": [],
+                }
+            ],
+            "review_queue": [
+                {
+                    "fact_id": "fact:f1",
+                    "contestation_count": 0,
+                    "reason_codes": [],
+                    "latest_review_status": "review_queue",
+                }
+            ],
         },
         affidavit_text=proposition,
     )["affidavit_rows"][0]["response"]
@@ -980,7 +1231,9 @@ def test_low_overlap_explanation_like_text_stays_non_substantive() -> None:
     proposition = "I had no privacy at all while he had an expectation of privacy around some of his own communication."
     excerpt = "While some greater degree of urgency may have motivated my actions at some time."
 
-    role = _classify_argumentative_role(proposition, excerpt, excerpt, use_row_fallback=False)
+    role = _classify_argumentative_role(
+        proposition, excerpt, excerpt, use_row_fallback=False
+    )
     packet = _infer_response_packet(
         proposition_text=proposition,
         best_match_excerpt=excerpt,
@@ -991,13 +1244,35 @@ def test_low_overlap_explanation_like_text_stays_non_substantive() -> None:
     )
 
     assert role["response_role"] in {"non_response", "procedural_frame"}
-    assert packet["response_acts"] in (["non_response"], ["procedural_or_nonresponsive_frame"])
+    assert packet["response_acts"] in (
+        ["non_response"],
+        ["procedural_or_nonresponsive_frame"],
+    )
     response = build_affidavit_coverage_review(
         source_payload={
             "version": "fact.review.bundle.v1",
-            "run": {"source_label": "au_semantic:non-response", "comparison_mode": "contested_narrative"},
-            "facts": [{"fact_id": "fact:f1", "fact_text": excerpt, "candidate_status": "candidate", "statement_ids": [], "excerpt_ids": [], "source_ids": []}],
-            "review_queue": [{"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"}],
+            "run": {
+                "source_label": "au_semantic:non-response",
+                "comparison_mode": "contested_narrative",
+            },
+            "facts": [
+                {
+                    "fact_id": "fact:f1",
+                    "fact_text": excerpt,
+                    "candidate_status": "candidate",
+                    "statement_ids": [],
+                    "excerpt_ids": [],
+                    "source_ids": [],
+                }
+            ],
+            "review_queue": [
+                {
+                    "fact_id": "fact:f1",
+                    "contestation_count": 0,
+                    "reason_codes": [],
+                    "latest_review_status": "review_queue",
+                }
+            ],
         },
         affidavit_text=proposition,
     )["affidavit_rows"][0]["response"]
@@ -1047,7 +1322,10 @@ def test_duplicate_root_relation_prefers_support_over_contextual_dispute() -> No
     assert relation["relation_root"] == "supports"
     assert relation["relation_leaf"] == "equivalent_support"
     assert relation["explanation"]["classification"] == "supported"
-    assert relation["explanation"]["matched_response"] == "The respondent cut off my internet in November 2024."
+    assert (
+        relation["explanation"]["matched_response"]
+        == "The respondent cut off my internet in November 2024."
+    )
     assert relation["missing_dimensions"] == []
 
 
@@ -1059,9 +1337,15 @@ def test_derive_claim_root_fields_preserves_duplicate_root_and_context() -> None
     )
 
     assert root["claim_root_basis"] == "duplicate_excerpt"
-    assert root["claim_root_text"] == "The respondent cut off my internet in November 2024."
+    assert (
+        root["claim_root_text"]
+        == "The respondent cut off my internet in November 2024."
+    )
     assert root["claim_root_id"].startswith("claim_root:")
-    assert root["alternate_context_excerpt"] == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
+    assert (
+        root["alternate_context_excerpt"]
+        == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
+    )
 
 
 def test_primary_target_component_prefers_characterization_over_predicate() -> None:
@@ -1072,7 +1356,9 @@ def test_primary_target_component_prefers_characterization_over_predicate() -> N
     assert target == "characterization"
 
 
-def test_semantic_basis_becomes_mixed_for_structured_binding_plus_heuristic_justification() -> None:
+def test_semantic_basis_becomes_mixed_for_structured_binding_plus_heuristic_justification() -> (
+    None
+):
     basis = _derive_semantic_basis(
         response_cues=[],
         response={"speech_act": "other"},
@@ -1089,7 +1375,9 @@ def test_semantic_basis_becomes_mixed_for_structured_binding_plus_heuristic_just
     assert basis == "mixed"
 
 
-def test_semantic_basis_becomes_structural_for_predicate_binding_without_heuristics() -> None:
+def test_semantic_basis_becomes_structural_for_predicate_binding_without_heuristics() -> (
+    None
+):
     basis = _derive_semantic_basis(
         response_cues=[],
         response={"speech_act": "deny"},
@@ -1107,7 +1395,9 @@ def test_semantic_basis_becomes_structural_for_predicate_binding_without_heurist
 
 
 def test_score_proposition_prefers_non_echo_sibling_over_echo_header() -> None:
-    proposition = {"text": "Due to concerns that conversation may escalate I didn't want to come out of my room."}
+    proposition = {
+        "text": "Due to concerns that conversation may escalate I didn't want to come out of my room."
+    }
     source_row = {
         "text": (
             "Due to concerns that conversation may escalate I didn't want to come out of my room. "
@@ -1119,13 +1409,23 @@ def test_score_proposition_prefers_non_echo_sibling_over_echo_header() -> None:
 
     result = _score_proposition_against_source_row(proposition, source_row)
 
-    assert result["match_excerpt"] == "I turned off the internet to prompt a safe conversation about housing."
-    assert "Due to concerns that conversation may escalate I didn't want to come out of my room" in (result["duplicate_match_excerpt"] or "")
+    assert (
+        result["match_excerpt"]
+        == "I turned off the internet to prompt a safe conversation about housing."
+    )
+    assert (
+        "Due to concerns that conversation may escalate I didn't want to come out of my room"
+        in (result["duplicate_match_excerpt"] or "")
+    )
     assert result["is_proposition_echo"] is False
 
 
-def test_score_proposition_prefers_numbered_rebuttal_over_echo_preamble_clause() -> None:
-    proposition = {"text": "Due to concerns that conversation may escalate I didn't want to come out of my room."}
+def test_score_proposition_prefers_numbered_rebuttal_over_echo_preamble_clause() -> (
+    None
+):
+    proposition = {
+        "text": "Due to concerns that conversation may escalate I didn't want to come out of my room."
+    }
     source_row = {
         "text": (
             "In mid-November 2024 Johl cut off my access to the internet. "
@@ -1142,12 +1442,22 @@ def test_score_proposition_prefers_numbered_rebuttal_over_echo_preamble_clause()
 
     result = _score_proposition_against_source_row(proposition, source_row)
 
-    assert result["match_excerpt"] == "After consecutive attempts on my behalf to resolve our misunderstandings"
-    assert "Due to concerns that conversation may escalate I didn't want to come out of my room" in (result["duplicate_match_excerpt"] or "")
+    assert (
+        result["match_excerpt"]
+        == "After consecutive attempts on my behalf to resolve our misunderstandings"
+    )
+    assert (
+        "Due to concerns that conversation may escalate I didn't want to come out of my room"
+        in (result["duplicate_match_excerpt"] or "")
+    )
 
 
-def test_score_proposition_promotes_quote_rebuttal_acknowledgement_over_echo_header() -> None:
-    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+def test_score_proposition_promotes_quote_rebuttal_acknowledgement_over_echo_header() -> (
+    None
+):
+    proposition = {
+        "text": "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    }
     source_row = {
         "text": (
             "Johl came into my room and would turn off or stop what I was listening to on my computer. "
@@ -1161,13 +1471,21 @@ def test_score_proposition_promotes_quote_rebuttal_acknowledgement_over_echo_hea
     result = _score_proposition_against_source_row(proposition, source_row)
 
     assert result["match_basis"] == "clause"
-    assert result["match_excerpt"] == "I acknowledge this likely occurred on many occasions"
+    assert (
+        result["match_excerpt"]
+        == "I acknowledge this likely occurred on many occasions"
+    )
     assert result["response_role"] == "support_or_corroboration"
-    assert "Johl came into my room and would turn off or stop what I was listening to on my computer" in (result["duplicate_match_excerpt"] or "")
+    assert (
+        "Johl came into my room and would turn off or stop what I was listening to on my computer"
+        in (result["duplicate_match_excerpt"] or "")
+    )
 
 
 def test_score_proposition_prefers_keyboard_rebuttal_over_audio_echo_family() -> None:
-    proposition = {"text": "Johl came into my room and pulled out the keyboard so I couldn’t type."}
+    proposition = {
+        "text": "Johl came into my room and pulled out the keyboard so I couldn’t type."
+    }
     source_row = {
         "text": (
             "Johl came into my room and pulled out the keyboard so I couldn't type. "
@@ -1181,12 +1499,17 @@ def test_score_proposition_prefers_keyboard_rebuttal_over_audio_echo_family() ->
     result = _score_proposition_against_source_row(proposition, source_row)
 
     assert result["match_basis"] == "clause"
-    assert result["match_excerpt"] == "for my own sanity, I was forced to remove the keyboard to prevent further disagreements."
+    assert (
+        result["match_excerpt"]
+        == "for my own sanity, I was forced to remove the keyboard to prevent further disagreements."
+    )
     assert result["predicate_alignment_score"] > 0.3
     assert result["adjusted_score"] > result["score"]
 
 
-def test_score_proposition_prefers_epoa_rebuttal_over_generic_august_procedural_row() -> None:
+def test_score_proposition_prefers_epoa_rebuttal_over_generic_august_procedural_row() -> (
+    None
+):
     proposition = {"text": "In August 2024, I took steps to revoke my EPOA."}
     source_row = {
         "text": (
@@ -1200,12 +1523,17 @@ def test_score_proposition_prefers_epoa_rebuttal_over_generic_august_procedural_
 
     result = _score_proposition_against_source_row(proposition, source_row)
 
-    assert result["match_excerpt"] == "For a number of weeks and months, John had failed to complete the necessary steps to revoke his EPOA"
+    assert (
+        result["match_excerpt"]
+        == "For a number of weeks and months, John had failed to complete the necessary steps to revoke his EPOA"
+    )
     assert result["adjusted_score"] > result["score"]
 
 
 def test_score_proposition_prefers_audio_family_row_over_keyboard_sibling_row() -> None:
-    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+    proposition = {
+        "text": "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    }
     proposition["tokens"] = sorted(_tokenize(proposition["text"]))
     audio_row = {
         "text": (
@@ -1230,8 +1558,12 @@ def test_score_proposition_prefers_audio_family_row_over_keyboard_sibling_row() 
     assert audio_score["adjusted_score"] > keyboard_score["adjusted_score"]
 
 
-def test_score_proposition_does_not_treat_passive_listening_sentence_as_audio_control_family() -> None:
-    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+def test_score_proposition_does_not_treat_passive_listening_sentence_as_audio_control_family() -> (
+    None
+):
+    proposition = {
+        "text": "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    }
     proposition["tokens"] = sorted(_tokenize(proposition["text"]))
     audio_row = {
         "text": (
@@ -1252,13 +1584,19 @@ def test_score_proposition_does_not_treat_passive_listening_sentence_as_audio_co
     }
 
     audio_score = _score_proposition_against_source_row(proposition, audio_row)
-    passive_score = _score_proposition_against_source_row(proposition, passive_listening_row)
+    passive_score = _score_proposition_against_source_row(
+        proposition, passive_listening_row
+    )
 
     assert audio_score["adjusted_score"] > passive_score["adjusted_score"]
 
 
-def test_score_proposition_does_not_treat_room_isolation_sentence_as_audio_control_family() -> None:
-    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+def test_score_proposition_does_not_treat_room_isolation_sentence_as_audio_control_family() -> (
+    None
+):
+    proposition = {
+        "text": "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    }
     proposition["tokens"] = sorted(_tokenize(proposition["text"]))
     audio_row = {
         "text": (
@@ -1280,8 +1618,12 @@ def test_score_proposition_does_not_treat_room_isolation_sentence_as_audio_contr
     assert audio_score["adjusted_score"] > room_score["adjusted_score"]
 
 
-def test_score_proposition_does_not_treat_generic_computer_reference_as_audio_control_family() -> None:
-    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+def test_score_proposition_does_not_treat_generic_computer_reference_as_audio_control_family() -> (
+    None
+):
+    proposition = {
+        "text": "Johl came into my room and would turn off or stop what I was listening to on my computer."
+    }
     proposition["tokens"] = sorted(_tokenize(proposition["text"]))
     audio_row = {
         "text": (
@@ -1298,13 +1640,17 @@ def test_score_proposition_does_not_treat_generic_computer_reference_as_audio_co
     }
 
     audio_score = _score_proposition_against_source_row(proposition, audio_row)
-    generic_score = _score_proposition_against_source_row(proposition, generic_computer_row)
+    generic_score = _score_proposition_against_source_row(
+        proposition, generic_computer_row
+    )
 
     assert audio_score["adjusted_score"] > generic_score["adjusted_score"]
 
 
 def test_score_proposition_prefers_keyboard_family_row_over_audio_sibling_row() -> None:
-    proposition = {"text": "Johl came into my room and pulled out the keyboard so I couldn’t type."}
+    proposition = {
+        "text": "Johl came into my room and pulled out the keyboard so I couldn’t type."
+    }
     proposition["tokens"] = sorted(_tokenize(proposition["text"]))
     keyboard_row = {
         "text": (
@@ -1350,7 +1696,9 @@ def test_score_proposition_prefers_epoa_revocation_row_over_rta_row() -> None:
         "comparison_mode": "contested_narrative",
     }
 
-    revocation_score = _score_proposition_against_source_row(proposition, revocation_row)
+    revocation_score = _score_proposition_against_source_row(
+        proposition, revocation_row
+    )
     rta_score = _score_proposition_against_source_row(proposition, rta_row)
 
     assert revocation_score["adjusted_score"] > rta_score["adjusted_score"]

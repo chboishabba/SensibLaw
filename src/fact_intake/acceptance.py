@@ -25,7 +25,11 @@ def _has_review_queue(workbench: Mapping[str, Any]) -> bool:
 
 def _has_chronology_split(workbench: Mapping[str, Any]) -> bool:
     groups = workbench.get("chronology_groups")
-    return isinstance(groups, Mapping) and {"dated_events", "undated_events", "facts_with_no_event"} <= set(groups.keys())
+    return isinstance(groups, Mapping) and {
+        "dated_events",
+        "undated_events",
+        "facts_with_no_event",
+    } <= set(groups.keys())
 
 
 def _has_contested_summary(workbench: Mapping[str, Any]) -> bool:
@@ -58,7 +62,11 @@ def _has_legal_procedural_signal(workbench: Mapping[str, Any]) -> bool:
     queue = workbench.get("review_queue")
     if not isinstance(queue, list):
         return False
-    return any(bool(row.get("has_legal_procedural_observations")) for row in queue if isinstance(row, Mapping))
+    return any(
+        bool(row.get("has_legal_procedural_observations"))
+        for row in queue
+        if isinstance(row, Mapping)
+    )
 
 
 def _has_assertion_outcome_distinction(workbench: Mapping[str, Any]) -> bool:
@@ -66,7 +74,8 @@ def _has_assertion_outcome_distinction(workbench: Mapping[str, Any]) -> bool:
     if not isinstance(facts, list) or not facts:
         return False
     return any(
-        bool(row.get("signal_classes")) and (
+        bool(row.get("signal_classes"))
+        and (
             "party_assertion" in set(row.get("signal_classes", []))
             or "procedural_outcome" in set(row.get("signal_classes", []))
             or "later_annotation" in set(row.get("source_signal_classes", []))
@@ -80,12 +89,26 @@ def _has_roleful_queue_reasons(workbench: Mapping[str, Any]) -> bool:
     queue = workbench.get("review_queue")
     if not isinstance(queue, list) or not queue:
         return False
-    roleful = {"missing_date", "missing_actor", "contradictory_chronology", "statement_only_fact", "procedural_significance"}
-    return any(roleful & set(row.get("reason_codes", [])) for row in queue if isinstance(row, Mapping))
+    roleful = {
+        "missing_date",
+        "missing_actor",
+        "contradictory_chronology",
+        "statement_only_fact",
+        "procedural_significance",
+    }
+    return any(
+        roleful & set(row.get("reason_codes", []))
+        for row in queue
+        if isinstance(row, Mapping)
+    )
 
 
 def _is_read_only_posture(workbench: Mapping[str, Any]) -> bool:
-    return bool(workbench.get("operator_views")) and "facts" in workbench and "events" in workbench
+    return (
+        bool(workbench.get("operator_views"))
+        and "facts" in workbench
+        and "events" in workbench
+    )
 
 
 def _supports_sparse_chronology(workbench: Mapping[str, Any]) -> bool:
@@ -109,8 +132,15 @@ def _has_queue_grouping(workbench: Mapping[str, Any]) -> bool:
     filter_rows = issue_filters.get("filters")
     if not isinstance(filter_rows, list):
         return False
-    seen = {str(row.get("filter_key")) for row in filter_rows if isinstance(row, Mapping)}
-    return {"missing_date", "missing_actor", "contradictory_chronology", "procedural_significance"} <= seen
+    seen = {
+        str(row.get("filter_key")) for row in filter_rows if isinstance(row, Mapping)
+    }
+    return {
+        "missing_date",
+        "missing_actor",
+        "contradictory_chronology",
+        "procedural_significance",
+    } <= seen
 
 
 def _has_inspector_classification(workbench: Mapping[str, Any]) -> bool:
@@ -123,29 +153,42 @@ def _has_inspector_classification(workbench: Mapping[str, Any]) -> bool:
     return any(
         isinstance(row, Mapping)
         and isinstance(row.get("status_keys"), Mapping)
-        and {"party_assertion", "procedural_outcome", "later_annotation"} <= set(row.get("status_keys", {}).keys())
+        and {"party_assertion", "procedural_outcome", "later_annotation"}
+        <= set(row.get("status_keys", {}).keys())
         for row in facts.values()
     )
 
 
 def _fact_rows(workbench: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     facts = workbench.get("facts")
-    return [row for row in facts if isinstance(row, Mapping)] if isinstance(facts, list) else []
+    return (
+        [row for row in facts if isinstance(row, Mapping)]
+        if isinstance(facts, list)
+        else []
+    )
 
 
 def _observation_rows(workbench: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     observations = workbench.get("observations")
-    return [row for row in observations if isinstance(row, Mapping)] if isinstance(observations, list) else []
+    return (
+        [row for row in observations if isinstance(row, Mapping)]
+        if isinstance(observations, list)
+        else []
+    )
 
 
 def _has_any_signal_class(workbench: Mapping[str, Any], *classes: str) -> bool:
     targets = set(classes)
     for row in _fact_rows(workbench):
-        signal_set = set(row.get("signal_classes", [])) | set(row.get("source_signal_classes", []))
+        signal_set = set(row.get("signal_classes", [])) | set(
+            row.get("source_signal_classes", [])
+        )
         if signal_set & targets:
             return True
     for row in _observation_rows(workbench):
-        provenance = row.get("provenance") if isinstance(row.get("provenance"), Mapping) else {}
+        provenance = (
+            row.get("provenance") if isinstance(row.get("provenance"), Mapping) else {}
+        )
         signal_set = set(provenance.get("signal_classes", []))
         if signal_set & targets:
             return True
@@ -155,25 +198,44 @@ def _has_any_signal_class(workbench: Mapping[str, Any], *classes: str) -> bool:
 def _has_abstention_visibility(workbench: Mapping[str, Any]) -> bool:
     facts = _fact_rows(workbench)
     if any(
-        row.get("candidate_status") == "abstained" or "candidate_abstained" in set(row.get("reason_codes", []))
+        row.get("candidate_status") == "abstained"
+        or "candidate_abstained" in set(row.get("reason_codes", []))
         for row in facts
     ):
         return True
-    return any(str(row.get("observation_status") or "") == "abstained" for row in _observation_rows(workbench))
+    return any(
+        str(row.get("observation_status") or "") == "abstained"
+        for row in _observation_rows(workbench)
+    )
 
 
 def _has_source_class_distinction(workbench: Mapping[str, Any]) -> bool:
     seen: set[str] = set()
     for row in _fact_rows(workbench):
-        seen.update(str(value) for value in row.get("source_signal_classes", []) if str(value).strip())
-    relevant = {"user_authored", "support_worker_note", "third_party_record", "later_annotation", "public_summary", "legal_record"}
+        seen.update(
+            str(value)
+            for value in row.get("source_signal_classes", [])
+            if str(value).strip()
+        )
+    relevant = {
+        "user_authored",
+        "support_worker_note",
+        "third_party_record",
+        "later_annotation",
+        "public_summary",
+        "legal_record",
+    }
     return len(seen & relevant) >= 2
 
 
 def _has_support_handoff_posture(workbench: Mapping[str, Any]) -> bool:
     facts = _fact_rows(workbench)
-    return any("support_worker_note" in set(row.get("source_signal_classes", [])) for row in facts) and any(
-        {"user_authored", "party_material"} & set(row.get("source_signal_classes", [])) for row in facts
+    return any(
+        "support_worker_note" in set(row.get("source_signal_classes", []))
+        for row in facts
+    ) and any(
+        {"user_authored", "party_material"} & set(row.get("source_signal_classes", []))
+        for row in facts
     )
 
 
@@ -183,7 +245,13 @@ def _has_source_local_wording_preserved(workbench: Mapping[str, Any]) -> bool:
         bool(row.get("statement_ids"))
         and bool(row.get("source_ids"))
         and (
-            {"public_summary", "wiki_article", "legal_record", "procedural_record", "reporting_source"}
+            {
+                "public_summary",
+                "wiki_article",
+                "legal_record",
+                "procedural_record",
+                "reporting_source",
+            }
             & set(row.get("source_signal_classes", []))
         )
         for row in facts
@@ -193,45 +261,70 @@ def _has_source_local_wording_preserved(workbench: Mapping[str, Any]) -> bool:
 def _has_public_knowledge_not_authority(workbench: Mapping[str, Any]) -> bool:
     seen: set[str] = set()
     for row in _fact_rows(workbench):
-        seen.update(str(value) for value in row.get("source_signal_classes", []) if str(value).strip())
-    return bool({"public_summary", "wiki_article", "weak_public_source"} & seen) and bool(
-        {"legal_record", "procedural_record", "strong_legal_source"} & seen
-    )
+        seen.update(
+            str(value)
+            for value in row.get("source_signal_classes", [])
+            if str(value).strip()
+        )
+    return bool(
+        {"public_summary", "wiki_article", "weak_public_source"} & seen
+    ) and bool({"legal_record", "procedural_record", "strong_legal_source"} & seen)
 
 
 def _has_wiki_wikidata_claim_alignment(workbench: Mapping[str, Any]) -> bool:
     return any(
         "wikidata_claim" in set(row.get("source_signal_classes", []))
         and (
-            {"identity_claim", "structural_ambiguity", "procedural_outcome"} & set(row.get("signal_classes", []))
-            or {"wiki_article", "public_summary"} & set(row.get("source_signal_classes", []))
+            {"identity_claim", "structural_ambiguity", "procedural_outcome"}
+            & set(row.get("signal_classes", []))
+            or {"wiki_article", "public_summary"}
+            & set(row.get("source_signal_classes", []))
         )
         for row in _fact_rows(workbench)
     )
 
 
 def _has_legal_circumstance_fidelity(workbench: Mapping[str, Any]) -> bool:
-    return _has_source_local_wording_preserved(workbench) and _has_assertion_outcome_distinction(workbench) and _has_public_knowledge_not_authority(workbench)
+    return (
+        _has_source_local_wording_preserved(workbench)
+        and _has_assertion_outcome_distinction(workbench)
+        and _has_public_knowledge_not_authority(workbench)
+    )
 
 
 def _has_argument_surface_not_proof(workbench: Mapping[str, Any]) -> bool:
-    return _has_public_knowledge_not_authority(workbench) and _is_read_only_posture(workbench)
+    return _has_public_knowledge_not_authority(workbench) and _is_read_only_posture(
+        workbench
+    )
 
 
 def _has_defamation_sensitive_posture(workbench: Mapping[str, Any]) -> bool:
-    return _has_assertion_outcome_distinction(workbench) and _has_contested_summary(workbench) and _is_read_only_posture(workbench)
+    return (
+        _has_assertion_outcome_distinction(workbench)
+        and _has_contested_summary(workbench)
+        and _is_read_only_posture(workbench)
+    )
 
 
 def _has_structural_boundary_visibility(workbench: Mapping[str, Any]) -> bool:
     return any(
-        {"structural_ambiguity", "identity_claim", "office_holder_role", "institutional_boundary"} & set(row.get("signal_classes", []))
-        or {"office_record", "institutional_record", "jurisdiction_record"} & set(row.get("source_signal_classes", []))
+        {
+            "structural_ambiguity",
+            "identity_claim",
+            "office_holder_role",
+            "institutional_boundary",
+        }
+        & set(row.get("signal_classes", []))
+        or {"office_record", "institutional_record", "jurisdiction_record"}
+        & set(row.get("source_signal_classes", []))
         for row in _fact_rows(workbench)
     )
 
 
 def _has_adversarial_overstatement_visible(workbench: Mapping[str, Any]) -> bool:
-    return _has_any_signal_class(workbench, "overstatement_risk", "public_summary_claim", "unsupported_assertion")
+    return _has_any_signal_class(
+        workbench, "overstatement_risk", "public_summary_claim", "unsupported_assertion"
+    )
 
 
 def _has_minimization_visible(workbench: Mapping[str, Any]) -> bool:
@@ -239,75 +332,127 @@ def _has_minimization_visible(workbench: Mapping[str, Any]) -> bool:
 
 
 def _has_source_shopping_visible(workbench: Mapping[str, Any]) -> bool:
-    return _has_any_signal_class(workbench, "source_shopping_risk") and _has_public_knowledge_not_authority(workbench)
+    return _has_any_signal_class(
+        workbench, "source_shopping_risk"
+    ) and _has_public_knowledge_not_authority(workbench)
 
 
 def _has_party_side_distinction(workbench: Mapping[str, Any]) -> bool:
     seen: set[str] = set()
     for row in _fact_rows(workbench):
-        seen.update(str(value) for value in row.get("source_signal_classes", []) if str(value).strip())
-    return bool({"side_a_material", "client_account"} & seen) and bool({"side_b_material", "other_side_account"} & seen)
+        seen.update(
+            str(value)
+            for value in row.get("source_signal_classes", [])
+            if str(value).strip()
+        )
+    return bool({"side_a_material", "client_account"} & seen) and bool(
+        {"side_b_material", "other_side_account"} & seen
+    )
 
 
 def _has_child_sensitive_context(workbench: Mapping[str, Any]) -> bool:
-    return _has_any_signal_class(workbench, "child_sensitive_context", "child_related_issue")
+    return _has_any_signal_class(
+        workbench, "child_sensitive_context", "child_related_issue"
+    )
 
 
 def _has_cross_side_handoff(workbench: Mapping[str, Any]) -> bool:
-    return _has_party_side_distinction(workbench) and _has_workflow_link(workbench) and _has_source_class_distinction(workbench)
+    return (
+        _has_party_side_distinction(workbench)
+        and _has_workflow_link(workbench)
+        and _has_source_class_distinction(workbench)
+    )
 
 
 def _has_clinical_narrative_distinction(workbench: Mapping[str, Any]) -> bool:
     seen: set[str] = set()
     for row in _fact_rows(workbench):
-        seen.update(str(value) for value in row.get("source_signal_classes", []) if str(value).strip())
-    return bool({"clinical_record"} & seen) and bool({"patient_account"} & seen) and bool({"expert_interpretation"} & seen)
+        seen.update(
+            str(value)
+            for value in row.get("source_signal_classes", [])
+            if str(value).strip()
+        )
+    return (
+        bool({"clinical_record"} & seen)
+        and bool({"patient_account"} & seen)
+        and bool({"expert_interpretation"} & seen)
+    )
 
 
 def _has_treatment_warning_harm_visibility(workbench: Mapping[str, Any]) -> bool:
-    return _has_any_signal_class(workbench, "treatment_event", "warning_issue", "harm_consequence")
+    return _has_any_signal_class(
+        workbench, "treatment_event", "warning_issue", "harm_consequence"
+    )
 
 
 def _has_regulatory_stage_visibility(workbench: Mapping[str, Any]) -> bool:
-    return _has_any_signal_class(workbench, "complaint_stage", "investigation_stage", "finding_stage", "sanction_stage")
+    return _has_any_signal_class(
+        workbench,
+        "complaint_stage",
+        "investigation_stage",
+        "finding_stage",
+        "sanction_stage",
+    )
 
 
 def _has_public_narrative_vs_regulatory_record(workbench: Mapping[str, Any]) -> bool:
     seen: set[str] = set()
     for row in _fact_rows(workbench):
-        seen.update(str(value) for value in row.get("source_signal_classes", []) if str(value).strip())
-    return bool({"public_summary", "reporting_source"} & seen) and bool({"regulatory_record", "tribunal_record", "legal_record"} & seen)
+        seen.update(
+            str(value)
+            for value in row.get("source_signal_classes", [])
+            if str(value).strip()
+        )
+    return bool({"public_summary", "reporting_source"} & seen) and bool(
+        {"regulatory_record", "tribunal_record", "legal_record"} & seen
+    )
 
 
 def _has_professional_note_distinction(workbench: Mapping[str, Any]) -> bool:
     seen: set[str] = set()
     for row in _fact_rows(workbench):
-        seen.update(str(value) for value in row.get("source_signal_classes", []) if str(value).strip())
-    return bool({"user_authored", "client_account", "patient_account"} & seen) and bool(
-        {"professional_note", "professional_interpretation"} & seen
-    ) and bool({"third_party_record", "documentary_record", "legal_record"} & seen)
+        seen.update(
+            str(value)
+            for value in row.get("source_signal_classes", [])
+            if str(value).strip()
+        )
+    return (
+        bool({"user_authored", "client_account", "patient_account"} & seen)
+        and bool({"professional_note", "professional_interpretation"} & seen)
+        and bool({"third_party_record", "documentary_record", "legal_record"} & seen)
+    )
 
 
 def _has_professional_handoff_posture(workbench: Mapping[str, Any]) -> bool:
-    return _has_workflow_link(workbench) and _has_source_class_distinction(workbench) and _has_professional_note_distinction(workbench)
+    return (
+        _has_workflow_link(workbench)
+        and _has_source_class_distinction(workbench)
+        and _has_professional_note_distinction(workbench)
+    )
 
 
 def _has_false_coherence_resistance(workbench: Mapping[str, Any]) -> bool:
-    return _supports_sparse_chronology(workbench) and _has_abstention_visibility(workbench) and _has_any_signal_class(
-        workbench,
-        "fragmentary_account",
-        "contradiction_cluster",
-        "not_enough_evidence",
-        "uncertainty_preserved",
+    return (
+        _supports_sparse_chronology(workbench)
+        and _has_abstention_visibility(workbench)
+        and _has_any_signal_class(
+            workbench,
+            "fragmentary_account",
+            "contradiction_cluster",
+            "not_enough_evidence",
+            "uncertainty_preserved",
+        )
     )
 
 
 def _has_zelph_epistemic_validation(workbench: Mapping[str, Any]) -> bool:
-    # This check specifically looks for the 'volatility_signal' stressors 
+    # This check specifically looks for the 'volatility_signal' stressors
     # being surfaced through Zelph-like logic.
     # In the current implementation, we are looking for 'is_reversion' observations
     # and ensuring they are visible in the contested summary or signal classes.
-    return _has_any_signal_class(workbench, "volatility_signal") and _has_contested_summary(workbench)
+    return _has_any_signal_class(
+        workbench, "volatility_signal"
+    ) and _has_contested_summary(workbench)
 
 
 CheckFn = Callable[[Mapping[str, Any]], bool]
@@ -486,7 +631,10 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
         "SL-US-22",
         "Adversarial overstatement of legal record",
         (
-            ("adversarial_overstatement_visible", _has_adversarial_overstatement_visible),
+            (
+                "adversarial_overstatement_visible",
+                _has_adversarial_overstatement_visible,
+            ),
             ("source_local_wording_preserved", _has_source_local_wording_preserved),
         ),
     ),
@@ -549,7 +697,10 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
         "SL-US-29",
         "Medical negligence circumstance review",
         (
-            ("treatment_warning_harm_visibility", _has_treatment_warning_harm_visibility),
+            (
+                "treatment_warning_harm_visibility",
+                _has_treatment_warning_harm_visibility,
+            ),
             ("clinical_narrative_distinction", _has_clinical_narrative_distinction),
             ("chronology_split", _has_chronology_split),
         ),
@@ -560,7 +711,10 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
         (
             ("regulatory_stage_visibility", _has_regulatory_stage_visibility),
             ("structural_boundary_visibility", _has_structural_boundary_visibility),
-            ("public_narrative_vs_regulatory_record", _has_public_narrative_vs_regulatory_record),
+            (
+                "public_narrative_vs_regulatory_record",
+                _has_public_narrative_vs_regulatory_record,
+            ),
         ),
     ),
     (
@@ -588,10 +742,28 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
 )
 
 STORY_WAVES: dict[str, tuple[str, ...]] = {
-    "wave1_legal": ("SL-US-09", "SL-US-10", "SL-US-11", "SL-US-12", "SL-US-13", "SL-US-14"),
+    "wave1_legal": (
+        "SL-US-09",
+        "SL-US-10",
+        "SL-US-11",
+        "SL-US-12",
+        "SL-US-13",
+        "SL-US-14",
+    ),
     "wave2_balanced": ("ITIR-US-11", "ITIR-US-12"),
     "wave3_trauma_advocacy": ("ITIR-US-13", "ITIR-US-14"),
-    "wave3_public_knowledge": ("SL-US-15", "SL-US-16", "SL-US-17", "SL-US-18", "SL-US-19", "SL-US-20", "SL-US-21", "SL-US-22", "SL-US-23", "SL-US-24"),
+    "wave3_public_knowledge": (
+        "SL-US-15",
+        "SL-US-16",
+        "SL-US-17",
+        "SL-US-18",
+        "SL-US-19",
+        "SL-US-20",
+        "SL-US-21",
+        "SL-US-22",
+        "SL-US-23",
+        "SL-US-24",
+    ),
     "wave4_family_law": ("SL-US-25", "SL-US-26", "SL-US-27", "SL-US-28"),
     "wave4_medical_regulatory": ("SL-US-29", "SL-US-30"),
     "wave5_handoff_false_coherence": ("ITIR-US-15", "ITIR-US-16"),
@@ -648,7 +820,10 @@ CHECK_GAP_TAGS: dict[str, tuple[str, ...]] = {
     "sparse_chronology": ("chronology_sparse_dates", "anti_false_coherence_risk"),
     "workflow_link": ("reopen_navigation_gap",),
     "reopen_navigation": ("reopen_navigation_gap",),
-    "abstention_visibility": ("anti_false_coherence_risk", "uncertainty_visibility_gap"),
+    "abstention_visibility": (
+        "anti_false_coherence_risk",
+        "uncertainty_visibility_gap",
+    ),
     "source_class_distinction": ("handoff_context_gap",),
     "support_handoff_posture": ("handoff_context_gap",),
     "source_local_wording_preserved": ("source_wording_hidden",),
@@ -667,9 +842,15 @@ CHECK_GAP_TAGS: dict[str, tuple[str, ...]] = {
     "clinical_narrative_distinction": ("clinical_narrative_blur",),
     "treatment_warning_harm_visibility": ("medical_visibility_gap",),
     "regulatory_stage_visibility": ("regulatory_stage_gap",),
-    "public_narrative_vs_regulatory_record": ("authority_transfer_risk", "regulatory_record_gap"),
+    "public_narrative_vs_regulatory_record": (
+        "authority_transfer_risk",
+        "regulatory_record_gap",
+    ),
     "professional_handoff_posture": ("handoff_context_gap", "professional_layer_blur"),
-    "false_coherence_resistance": ("anti_false_coherence_risk", "uncertainty_visibility_gap"),
+    "false_coherence_resistance": (
+        "anti_false_coherence_risk",
+        "uncertainty_visibility_gap",
+    ),
 }
 
 
@@ -727,7 +908,8 @@ def build_fact_review_acceptance_report(
                     CHECK_EXPLANATIONS[check_id]
                     for check_id in failed_checks
                     if check_id in CHECK_EXPLANATIONS
-                ) or None,
+                )
+                or None,
                 "checks": check_rows,
             }
         )
@@ -805,7 +987,12 @@ def build_fact_review_acceptance_batch_report(
             for gap_tag in story.get("gap_tags", []):
                 gap_entry = gap_rollup.setdefault(
                     str(gap_tag),
-                    {"gap_tag": gap_tag, "count": 0, "fixtures": set(), "stories": set()},
+                    {
+                        "gap_tag": gap_tag,
+                        "count": 0,
+                        "fixtures": set(),
+                        "stories": set(),
+                    },
                 )
                 gap_entry["count"] += 1
                 gap_entry["fixtures"].add(str(fixture.get("fixture_id")))
@@ -814,7 +1001,10 @@ def build_fact_review_acceptance_batch_report(
         (
             {
                 **entry,
-                "fixture_results": sorted(entry["fixture_results"], key=lambda row: (row["status"], row["fixture_id"])),
+                "fixture_results": sorted(
+                    entry["fixture_results"],
+                    key=lambda row: (row["status"], row["fixture_id"]),
+                ),
             }
             for entry in story_rollup.values()
         ),

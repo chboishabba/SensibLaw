@@ -11,7 +11,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 ARTIFACT_VERSION = "au_public_handoff_v1"
 SOURCE_BUNDLE_PATH = (
-    REPO_ROOT / "itir-svelte" / "tests" / "fixtures" / "fact_review_wave1_real_au_demo_bundle.json"
+    REPO_ROOT
+    / "itir-svelte"
+    / "tests"
+    / "fixtures"
+    / "fact_review_wave1_real_au_demo_bundle.json"
 )
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 
@@ -65,7 +69,9 @@ def _merge_summary_values(summaries: Iterable[dict[str, Any]]) -> dict[str, Any]
     return merged
 
 
-def _build_slice(workbench_by_source: list[tuple[str, dict[str, Any]]]) -> dict[str, Any]:
+def _build_slice(
+    workbench_by_source: list[tuple[str, dict[str, Any]]],
+) -> dict[str, Any]:
     review_fact_ids = {
         str(row.get("fact_id") or "")
         for _source_label, workbench in workbench_by_source
@@ -78,7 +84,9 @@ def _build_slice(workbench_by_source: list[tuple[str, dict[str, Any]]]) -> dict[
     for source_label, workbench in workbench_by_source:
         for row in workbench.get("facts", []):
             fact_id = str(row.get("fact_id") or "")
-            fact_text = _normalize_text(row.get("fact_text")) or _normalize_text(row.get("canonical_label"))
+            fact_text = _normalize_text(row.get("fact_text")) or _normalize_text(
+                row.get("canonical_label")
+            )
             row_key = fact_text or fact_id
             merged = selected_rows.get(row_key)
             if merged is None:
@@ -86,16 +94,30 @@ def _build_slice(workbench_by_source: list[tuple[str, dict[str, Any]]]) -> dict[
                     "fact_id": fact_id,
                     "fact_text": fact_text,
                     "source_types": list(dict.fromkeys(row.get("source_types", []))),
-                    "signal_classes": list(dict.fromkeys(row.get("signal_classes", []))),
-                    "legal_procedural_predicates": list(dict.fromkeys(row.get("legal_procedural_predicates", []))),
+                    "signal_classes": list(
+                        dict.fromkeys(row.get("signal_classes", []))
+                    ),
+                    "legal_procedural_predicates": list(
+                        dict.fromkeys(row.get("legal_procedural_predicates", []))
+                    ),
                     "source_bundles": [source_label],
                 }
                 selected_rows[row_key] = merged
                 continue
 
-            merged["source_bundles"] = sorted(set(merged.get("source_bundles", []) + [source_label]))
-            for field in ("source_types", "signal_classes", "legal_procedural_predicates"):
-                merged[field] = list(dict.fromkeys(list(merged.get(field, [])) + list(row.get(field, []))))
+            merged["source_bundles"] = sorted(
+                set(merged.get("source_bundles", []) + [source_label])
+            )
+            for field in (
+                "source_types",
+                "signal_classes",
+                "legal_procedural_predicates",
+            ):
+                merged[field] = list(
+                    dict.fromkeys(
+                        list(merged.get(field, [])) + list(row.get(field, []))
+                    )
+                )
 
     for row in selected_rows.values():
         selected_facts.append(
@@ -106,11 +128,17 @@ def _build_slice(workbench_by_source: list[tuple[str, dict[str, Any]]]) -> dict[
                 "signal_classes": row["signal_classes"],
                 "legal_procedural_predicates": row["legal_procedural_predicates"],
                 "source_bundles": row["source_bundles"],
-                "review_status": "review_queue" if row["fact_id"] in review_fact_ids else "captured",
+                "review_status": "review_queue"
+                if row["fact_id"] in review_fact_ids
+                else "captured",
             }
         )
 
-    summaries = [wb.get("summary", {}) for _, wb in workbench_by_source if isinstance(wb.get("summary"), dict)]
+    summaries = [
+        wb.get("summary", {})
+        for _, wb in workbench_by_source
+        if isinstance(wb.get("summary"), dict)
+    ]
     merged_summary = _merge_summary_values(summaries) if summaries else {}
     source_labels = [source_label for source_label, _ in workbench_by_source]
 
@@ -139,7 +167,9 @@ def _build_summary_text(slice_payload: dict[str, Any]) -> str:
     source_count = len(slice_payload.get("source_bundle_paths", []))
     source_note = ""
     if source_count > 1:
-        source_note = f"Source bundles: {source_count} real workbench bundles included. "
+        source_note = (
+            f"Source bundles: {source_count} real workbench bundles included. "
+        )
     lines = [
         "# AU Public Handoff Narrative Summary",
         "",
@@ -159,9 +189,9 @@ def _build_summary_text(slice_payload: dict[str, Any]) -> str:
             "",
             "## What the workbench says about this slice",
             "",
-        f"- Facts: {summary.get('fact_count', len(slice_payload.get('selected_facts', [])))}",
-        f"- Observations: {summary.get('observation_count', 0)}",
-        f"- Events: {summary.get('event_count', 0)}",
+            f"- Facts: {summary.get('fact_count', len(slice_payload.get('selected_facts', [])))}",
+            f"- Observations: {summary.get('observation_count', 0)}",
+            f"- Events: {summary.get('event_count', 0)}",
             f"- Review queue items: {summary.get('review_queue_count', 0)}",
             f"- Contested items: {summary.get('contested_item_count', 0)}",
             f"- Approximate events: {summary.get('approximate_event_count', 0)}",
@@ -227,7 +257,9 @@ def _build_rules() -> str:
     )
 
 
-def _build_scorecard(slice_payload: dict[str, Any], engine_status: str | None) -> dict[str, Any]:
+def _build_scorecard(
+    slice_payload: dict[str, Any], engine_status: str | None
+) -> dict[str, Any]:
     summary = slice_payload["summary"]
     return {
         "destination": "complete_au_topic_understanding",
@@ -243,11 +275,15 @@ def _build_scorecard(slice_payload: dict[str, Any], engine_status: str | None) -
     }
 
 
-def build_handoff_artifact(output_dir: Path, source_bundle_paths: list[Path] | None = None) -> dict[str, Any]:
+def build_handoff_artifact(
+    output_dir: Path, source_bundle_paths: list[Path] | None = None
+) -> dict[str, Any]:
     source_paths = _collect_sources(source_bundle_paths or [])
     workbench_by_source: list[tuple[str, dict[str, Any]]] = []
     for path in source_paths:
-        workbench_by_source.append((str(path.relative_to(REPO_ROOT)), _load_workbench(path)))
+        workbench_by_source.append(
+            (str(path.relative_to(REPO_ROOT)), _load_workbench(path))
+        )
 
     slice_payload = _build_slice(workbench_by_source)
     slice_payload["compiler_contract"] = build_au_public_handoff_contract(slice_payload)
@@ -272,7 +308,9 @@ def build_handoff_artifact(output_dir: Path, source_bundle_paths: list[Path] | N
         if engine_payload["handoff_success"]
         else "not_successful_required_output_unmet"
     )
-    scorecard_payload = _build_scorecard(slice_payload, str(engine_payload.get("status") or "unknown"))
+    scorecard_payload = _build_scorecard(
+        slice_payload, str(engine_payload.get("status") or "unknown")
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
@@ -283,12 +321,18 @@ def build_handoff_artifact(output_dir: Path, source_bundle_paths: list[Path] | N
         "engine_path": output_dir / f"{ARTIFACT_VERSION}.engine.json",
         "scorecard_path": output_dir / f"{ARTIFACT_VERSION}.scorecard.json",
     }
-    paths["slice_path"].write_text(json.dumps(slice_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["slice_path"].write_text(
+        json.dumps(slice_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     paths["summary_path"].write_text(summary_text, encoding="utf-8")
     paths["facts_path"].write_text(facts_text, encoding="utf-8")
     paths["rules_path"].write_text(rules_text, encoding="utf-8")
-    paths["engine_path"].write_text(json.dumps(engine_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    paths["scorecard_path"].write_text(json.dumps(scorecard_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["engine_path"].write_text(
+        json.dumps(engine_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    paths["scorecard_path"].write_text(
+        json.dumps(scorecard_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return {
         "engine_status": engine_payload.get("status"),
         "scorecard": scorecard_payload,
@@ -298,14 +342,20 @@ def build_handoff_artifact(output_dir: Path, source_bundle_paths: list[Path] | N
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the checked AU procedural Zelph handoff artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build the checked AU procedural Zelph handoff artifact."
+    )
     parser.add_argument(
         "--source-bundle",
         action="append",
         default=[],
         help="Workbench bundle path; repeat for multi-source merged artifacts.",
     )
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the checked handoff artifact into.")
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the checked handoff artifact into.",
+    )
     args = parser.parse_args()
     print(
         json.dumps(

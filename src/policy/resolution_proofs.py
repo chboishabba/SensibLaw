@@ -1,4 +1,5 @@
 """Compact deterministic GWB and AU end-to-end resolution proofs."""
+
 from __future__ import annotations
 
 from typing import Any

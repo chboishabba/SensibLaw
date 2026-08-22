@@ -1,4 +1,5 @@
 """Evaluate extractor performance against curated gold sets."""
+
 from __future__ import annotations
 
 import json
@@ -34,7 +35,9 @@ def _normalise_reference(ref: object) -> str:
     return str(ref)
 
 
-def _pr(expected: Iterable[Set[str]], predicted: Iterable[Set[str]]) -> Tuple[float, float]:
+def _pr(
+    expected: Iterable[Set[str]], predicted: Iterable[Set[str]]
+) -> Tuple[float, float]:
     """Compute micro-averaged precision and recall for sets."""
     tp = fp = fn = 0
     for exp, pred in zip(expected, predicted):
@@ -59,10 +62,7 @@ def evaluate(threshold: float = 0.9) -> bool:
         pred_refs.append(
             {
                 normalised
-                for normalised in (
-                    _normalise_reference(ref)
-                    for ref in references
-                )
+                for normalised in (_normalise_reference(ref) for ref in references)
                 if normalised
             }
         )
@@ -72,13 +72,10 @@ def evaluate(threshold: float = 0.9) -> bool:
     citation_data = json.loads((GOLDSETS / "citations.json").read_text())
     nodes, edges = fetch_acts("http://example", data=citation_data["acts"])
     pred_cites = {
-        (e["from"], e["to"], e.get("text", ""))
-        for e in edges
-        if e["type"] == "cites"
+        (e["from"], e["to"], e.get("text", "")) for e in edges if e["type"] == "cites"
     }
     exp_cites = {
-        (c["from"], c["to"], c.get("text", ""))
-        for c in citation_data["citations"]
+        (c["from"], c["to"], c.get("text", "")) for c in citation_data["citations"]
     }
     cites_p, cites_r = _pr([exp_cites], [pred_cites])
 

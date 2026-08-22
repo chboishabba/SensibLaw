@@ -4,6 +4,7 @@ The strict numeric document compiler intentionally ends with world resolution
 deferred. This coordinator is invoked only when an actual consumer/query/policy
 needs external facts after H3/H6 have left an observable residual.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

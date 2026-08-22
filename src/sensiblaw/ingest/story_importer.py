@@ -16,7 +16,9 @@ class DefaultStoryImporter(StoryImporter):
     def __init__(self, storage: Storage, schema_path: str | Path | None = None) -> None:
         self.storage = storage
         if schema_path is None:
-            schema_path = Path(__file__).resolve().parents[3] / "schemas" / "event.schema.yaml"
+            schema_path = (
+                Path(__file__).resolve().parents[3] / "schemas" / "event.schema.yaml"
+            )
         with Path(schema_path).open("r", encoding="utf-8") as f:
             self.schema = yaml.safe_load(f)
 

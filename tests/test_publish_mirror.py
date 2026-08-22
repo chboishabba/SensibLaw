@@ -15,7 +15,16 @@ def test_publish_static_site(tmp_path: Path):
     env = os.environ.copy()
     env["SENSIBLAW_PACK"] = str(pack)
     subprocess.run(
-        ["python", "-m", "src.cli", "publish", "--seed", "caseA", "--out", str(out_dir)],
+        [
+            "python",
+            "-m",
+            "src.cli",
+            "publish",
+            "--seed",
+            "caseA",
+            "--out",
+            str(out_dir),
+        ],
         check=True,
         env=env,
     )

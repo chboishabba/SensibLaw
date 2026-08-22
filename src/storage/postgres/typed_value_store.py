@@ -55,14 +55,23 @@ def _path(parent: str | None, ordinal: int, key: str | None) -> str:
     return f"{parent}/{segment}" if parent else f"$/{segment}"
 
 
-def flatten_typed_value(value: Any) -> tuple[str, str, bytes, tuple[TypedValueRow, ...]]:
+def flatten_typed_value(
+    value: Any,
+) -> tuple[str, str, bytes, tuple[TypedValueRow, ...]]:
     normalized = canonical_value(value)
     root_kind = _kind(normalized)
     digest = bytes.fromhex(canonical_sha256(normalized))
     root_ref = "typed-value:" + digest.hex()
     rows: list[TypedValueRow] = []
 
-    def visit(current: Any, *, path_ref: str, parent: str | None, ordinal: int, key: str | None) -> None:
+    def visit(
+        current: Any,
+        *,
+        path_ref: str,
+        parent: str | None,
+        ordinal: int,
+        key: str | None,
+    ) -> None:
         current_kind = _kind(current)
         kwargs: dict[str, Any] = {}
         if current_kind == "text":

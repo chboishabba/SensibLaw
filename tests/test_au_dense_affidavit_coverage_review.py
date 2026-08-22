@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 
 from scripts import build_au_dense_affidavit_coverage_review as module
-from scripts.build_au_dense_affidavit_coverage_review import build_au_dense_affidavit_coverage_review
+from scripts.build_au_dense_affidavit_coverage_review import (
+    build_au_dense_affidavit_coverage_review,
+)
 
 
 def test_build_au_dense_affidavit_coverage_review(tmp_path: Path) -> None:
@@ -38,25 +40,69 @@ def test_build_au_dense_affidavit_coverage_review(tmp_path: Path) -> None:
     assert payload["summary"]["provisional_anchor_bundle_count"] >= 1
     assert payload["summary"]["affidavit_supported_ratio"] < 1.0
     assert any(row["coverage_status"] == "covered" for row in payload["affidavit_rows"])
-    assert any(row["coverage_status"] == "unsupported_affidavit" for row in payload["affidavit_rows"])
-    assert any(row["review_status"] == "covered" for row in payload["source_review_rows"])
-    assert any(row["review_status"] == "missing_review" for row in payload["source_review_rows"])
-    assert any(row["best_match_basis"] == "segment" for row in payload["source_review_rows"] if row["review_status"] == "covered")
+    assert any(
+        row["coverage_status"] == "unsupported_affidavit"
+        for row in payload["affidavit_rows"]
+    )
+    assert any(
+        row["review_status"] == "covered" for row in payload["source_review_rows"]
+    )
+    assert any(
+        row["review_status"] == "missing_review"
+        for row in payload["source_review_rows"]
+    )
+    assert any(
+        row["best_match_basis"] == "segment"
+        for row in payload["source_review_rows"]
+        if row["review_status"] == "covered"
+    )
     assert payload["related_review_clusters"]
-    assert any(cluster["candidate_source_count"] >= 1 for cluster in payload["related_review_clusters"])
-    assert any(cluster["reason_code_rollup"] for cluster in payload["related_review_clusters"])
-    assert any(cluster["workload_class_rollup"] for cluster in payload["related_review_clusters"])
-    assert any(cluster["recommended_next_action"] for cluster in payload["related_review_clusters"])
-    assert any(cluster["extraction_hint_rollup"] for cluster in payload["related_review_clusters"])
-    assert any(cluster["candidate_anchor_rollup"] for cluster in payload["related_review_clusters"])
-    assert any(row["primary_workload_class"] for row in payload["source_review_rows"] if row["review_status"] == "missing_review")
-    assert any(row["has_transcript_timestamp_hint"] for row in payload["source_review_rows"] if row["review_status"] == "missing_review")
-    assert any(row["candidate_anchors"] for row in payload["source_review_rows"] if row["review_status"] == "missing_review")
+    assert any(
+        cluster["candidate_source_count"] >= 1
+        for cluster in payload["related_review_clusters"]
+    )
+    assert any(
+        cluster["reason_code_rollup"] for cluster in payload["related_review_clusters"]
+    )
+    assert any(
+        cluster["workload_class_rollup"]
+        for cluster in payload["related_review_clusters"]
+    )
+    assert any(
+        cluster["recommended_next_action"]
+        for cluster in payload["related_review_clusters"]
+    )
+    assert any(
+        cluster["extraction_hint_rollup"]
+        for cluster in payload["related_review_clusters"]
+    )
+    assert any(
+        cluster["candidate_anchor_rollup"]
+        for cluster in payload["related_review_clusters"]
+    )
+    assert any(
+        row["primary_workload_class"]
+        for row in payload["source_review_rows"]
+        if row["review_status"] == "missing_review"
+    )
+    assert any(
+        row["has_transcript_timestamp_hint"]
+        for row in payload["source_review_rows"]
+        if row["review_status"] == "missing_review"
+    )
+    assert any(
+        row["candidate_anchors"]
+        for row in payload["source_review_rows"]
+        if row["review_status"] == "missing_review"
+    )
     assert payload["provisional_structured_anchors"]
     assert payload["provisional_anchor_bundles"]
     assert payload["provisional_anchor_bundles"][0]["bundle_rank"] == 1
     assert payload["provisional_structured_anchors"][0]["priority_rank"] == 1
-    assert payload["provisional_structured_anchors"][0]["priority_score"] >= payload["provisional_structured_anchors"][-1]["priority_score"]
+    assert (
+        payload["provisional_structured_anchors"][0]["priority_score"]
+        >= payload["provisional_structured_anchors"][-1]["priority_score"]
+    )
     normalized = payload["normalized_metrics_v1"]
     assert normalized["artifact_id"] == "au_dense_affidavit_coverage_review_v1"
     assert normalized["review_item_status_counts"] == {

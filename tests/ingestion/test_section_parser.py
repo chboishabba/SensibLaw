@@ -80,9 +80,7 @@ def test_structure_markers_are_detected():
 
 
 def test_cross_act_reference_with_section():
-    html = (
-        "<p>4 The tribunal must consider Native Title Act 1993 (Cth) s 223 when deciding.</p>"
-    )
+    html = "<p>4 The tribunal must consider Native Title Act 1993 (Cth) s 223 when deciding.</p>"
     data = fetch_section(html)
     assert data["rules"]["modality"] == "must"
     assert {
@@ -149,7 +147,11 @@ def test_logic_token_annotation_assigns_classes():
 def test_logic_token_annotation_handles_subject_to_reference():
     text = "The authority may issue permits subject to this Part."
     doc = annotate_logic_tokens(text)
-    mapping = {token.text: token._.class_ for token in doc if token.text in {"subject", "to", "this", "Part"}}
+    mapping = {
+        token.text: token._.class_
+        for token in doc
+        if token.text in {"subject", "to", "this", "Part"}
+    }
     assert mapping["subject"] == LogicTokenClass.CONDITION
     assert mapping["to"] == LogicTokenClass.CONDITION
     assert mapping["this"] == LogicTokenClass.REFERENCE
@@ -169,12 +171,17 @@ def test_fetch_section_includes_token_classes():
     assert labels["s"] == "REFERENCE"
     assert reasons["must"] == "matched rule matcher pattern MODALITY"
     assert reasons["s"] == "matched reference extractor for 's 5B'"
-    assert all({"text", "start", "end", "class", "reason"} <= set(entry) for entry in token_classes)
+    assert all(
+        {"text", "start", "end", "class", "reason"} <= set(entry)
+        for entry in token_classes
+    )
 
 
 def test_parse_canonical_section_accepts_text_adapter_output():
     adapter = TextDocumentMediaAdapter(source_artifact_ref="section-html")
-    canonical = adapter.adapt("<p>4 The board must consider section 15 before acting.</p>")
+    canonical = adapter.adapt(
+        "<p>4 The board must consider section 15 before acting.</p>"
+    )
 
     section = parse_canonical_section(canonical)
 

@@ -26,6 +26,7 @@ class TimelineEvent:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _parse_date(value: Any) -> Optional[date]:
     """Best effort conversion of ``value`` to :class:`~datetime.date`.
 
@@ -50,6 +51,7 @@ def _parse_date(value: Any) -> Optional[date]:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def build_timeline(
     nodes: Iterable[Dict[str, Any]],
@@ -93,9 +95,7 @@ def build_timeline(
         other_id = tgt if src == case_id else src
         other = node_map.get(other_id, {})
         other_label = (
-            other.get("title")
-            or other.get("metadata", {}).get("label")
-            or other_id
+            other.get("title") or other.get("metadata", {}).get("label") or other_id
         )
         label = edge.get("type", "")
         text = f"{label} {other_label}".strip()
@@ -112,7 +112,11 @@ def events_to_json(events: List[TimelineEvent]) -> str:
     import json
 
     data = [
-        {"date": e.date.isoformat(), "text": e.text, **({"citation": e.citation} if e.citation else {})}
+        {
+            "date": e.date.isoformat(),
+            "text": e.text,
+            **({"citation": e.citation} if e.citation else {}),
+        }
         for e in events
     ]
     return json.dumps(data)
@@ -122,14 +126,10 @@ def events_to_svg(events: List[TimelineEvent]) -> str:
     """Render ``events`` as a simple SVG timeline."""
 
     height = 20 + 20 * len(events)
-    lines = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{height}">'
-    ]
+    lines = [f'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{height}">']
     y = 15
     for ev in events:
-        lines.append(
-            f'<text x="10" y="{y}">{ev.date.isoformat()} - {ev.text}</text>'
-        )
+        lines.append(f'<text x="10" y="{y}">{ev.date.isoformat()} - {ev.text}</text>')
         y += 20
     lines.append("</svg>")
     return "".join(lines)

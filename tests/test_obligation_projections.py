@@ -1,5 +1,10 @@
 from src.obligations import extract_obligations_from_text
-from src.obligation_projections import actor_view, action_view, clause_view, timeline_view
+from src.obligation_projections import (
+    actor_view,
+    action_view,
+    clause_view,
+    timeline_view,
+)
 
 
 def _sample_obligations():

@@ -1,7 +1,7 @@
 """Strict numeric PNF document compilation and publication.
 
 The strict path never reconstructs the legacy document-sized parser mapping,
-mention carrier, factor graph, or artifact bundle.  Parsing commits numeric
+mention carrier, factor graph, or artifact bundle. Parsing commits numeric
 observations exactly once, sentence/region PNF closure runs over those rows, and
 publication records the closed document interface plus its residual demands.
 """
@@ -14,6 +14,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from src.policy.corpus_compilation import DocumentCompilation
+from src.runtime.numeric_observability import (
+    controlled_reuse_measurement_enabled as _controlled_reuse_measurement_enabled,
+    numeric_authority_counts_enabled as _numeric_authority_counts_enabled,
+)
+from src.storage.postgres.numeric_reuse_measurement import (
+    record_numeric_compiler_reuse_measurement,
+)
 from src.storage.postgres.operational_build_store import (
     load_completed_operational_build,
     persist_completed_operational_build,
@@ -26,6 +33,29 @@ from src.storage.postgres.streaming_spacy_execution import (
 
 
 NUMERIC_PNF_COMPILER_CONTRACT = "numeric-pnf-hyperfabric-compiler:v1"
+_NUMERIC_TIMING_FIELDS = (
+    "spacy_parser_work_ns",
+    "numeric_projection_worker_work_ns",
+    "sentence_closure_worker_work_ns",
+    "sentence_closure_coordinator_ns",
+    "sentence_adjacency_ns",
+    "hierarchy_work_ns",
+    "paragraph_adjacency_ns",
+    "lookup_publication_ns",
+    "summary_work_ns",
+    "post_parser_worker_work_ns",
+    "post_parser_coordinator_ns",
+    "post_parser_work_ns",
+    "numeric_pipeline_wall_ns",
+    "spacy_parser_wall_occupancy_ns",
+    "post_parser_wall_occupancy_ns",
+    "parser_post_overlap_ns",
+    "spacy_parser_only_wall_ns",
+    "post_parser_only_wall_ns",
+    "unclassified_orchestration_wall_ns",
+    "timing_basis",
+    "wall_timing_semantics",
+)
 
 
 def _artifact_root(
@@ -64,7 +94,9 @@ def _authority_refs(
     *,
     run_ref: str,
     document_ref: str,
-) -> tuple[str, tuple[str, ...], Mapping[str, int]]:
+) -> tuple[str, tuple[str, ...], Mapping[str, int | bool]]:
+    """Load semantic authority refs; cardinality scans are diagnostics only."""
+
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
@@ -103,65 +135,69 @@ def _authority_refs(
                 (run_ref, document_ref),
             )
             demand_refs = tuple(str(item[0]) for item in cursor.fetchall())
-            cursor.execute(
-                """
-                SELECT
-                    (SELECT count(*)
-                       FROM execution.semantic_parser_token
-                      WHERE run_ref = %s AND document_ref = %s
-                        AND representation_version = 2),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_region
-                      WHERE run_ref = %s AND document_ref = %s),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_factor AS factor
-                       JOIN execution.semantic_pnf_region AS region
-                         ON region.region_id = factor.region_id
-                      WHERE region.run_ref = %s
-                        AND region.document_ref = %s),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_object AS object
-                       JOIN execution.semantic_pnf_region AS region
-                         ON region.region_id = object.region_id
-                      WHERE region.run_ref = %s
-                        AND region.document_ref = %s),
-                    (SELECT count(*)
-                       FROM execution.semantic_pnf_visible_lookup AS visible
-                       JOIN execution.semantic_pnf_interface AS interface
-                         ON interface.interface_id = visible.interface_id
-                       JOIN execution.semantic_pnf_region AS region
-                         ON region.region_id = interface.region_id
-                      WHERE region.run_ref = %s
-                        AND region.document_ref = %s)
-                """,
-                (
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                    run_ref,
-                    document_ref,
-                ),
-            )
-            counts = tuple(int(value) for value in cursor.fetchone())
-            return (
-                graph_ref,
-                demand_refs,
-                {
-                    "document_interface_id": document_interface_id,
-                    "interface_cardinality": interface_cardinality,
-                    "token_count": counts[0],
-                    "region_count": counts[1],
-                    "factor_count": counts[2],
-                    "object_count": counts[3],
-                    "visible_lookup_count": counts[4],
-                    "demand_count": len(demand_refs),
-                },
-            )
+            metadata: dict[str, int | bool] = {
+                "document_interface_id": document_interface_id,
+                "interface_cardinality": interface_cardinality,
+                "demand_count": len(demand_refs),
+                "diagnostic_counts_measured": False,
+            }
+            if _numeric_authority_counts_enabled():
+                cursor.execute(
+                    """
+                    SELECT
+                        (SELECT count(*)
+                           FROM execution.semantic_parser_token
+                          WHERE run_ref = %s AND document_ref = %s
+                            AND representation_version = 2),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_region
+                          WHERE run_ref = %s AND document_ref = %s),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_factor AS factor
+                           JOIN execution.semantic_pnf_region AS region
+                             ON region.region_id = factor.region_id
+                          WHERE region.run_ref = %s
+                            AND region.document_ref = %s),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_object AS object
+                           JOIN execution.semantic_pnf_region AS region
+                             ON region.region_id = object.region_id
+                          WHERE region.run_ref = %s
+                            AND region.document_ref = %s),
+                        (SELECT count(*)
+                           FROM execution.semantic_pnf_visible_lookup AS visible
+                           JOIN execution.semantic_pnf_interface AS interface
+                             ON interface.interface_id = visible.interface_id
+                           JOIN execution.semantic_pnf_region AS region
+                             ON region.region_id = interface.region_id
+                          WHERE region.run_ref = %s
+                            AND region.document_ref = %s)
+                    """,
+                    (
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                        run_ref,
+                        document_ref,
+                    ),
+                )
+                counts = tuple(int(value) for value in cursor.fetchone())
+                metadata.update(
+                    {
+                        "token_count": counts[0],
+                        "region_count": counts[1],
+                        "factor_count": counts[2],
+                        "object_count": counts[3],
+                        "visible_lookup_count": counts[4],
+                        "diagnostic_counts_measured": True,
+                    }
+                )
+            return graph_ref, demand_refs, metadata
     finally:
         connection.close()
 
@@ -200,7 +236,13 @@ def compile_numeric_pnf_document(
             overlap_chars=parser_overlap_chars,
         ),
     )
-    graph_ref, demand_refs, counts = _authority_refs(
+    parser_receipt = dict(carrier["parser_receipt"])
+    timing_details = {
+        key: parser_receipt[key]
+        for key in _NUMERIC_TIMING_FIELDS
+        if key in parser_receipt
+    }
+    graph_ref, demand_refs, authority_metadata = _authority_refs(
         database_url,
         run_ref=run_ref,
         document_ref=document_ref,
@@ -212,7 +254,8 @@ def compile_numeric_pnf_document(
             details={
                 "graph_ref": graph_ref,
                 "demand_count": len(demand_refs),
-                **counts,
+                **timing_details,
+                **authority_metadata,
             },
         )
     artifacts: dict[str, Any] = {
@@ -223,7 +266,8 @@ def compile_numeric_pnf_document(
             "authority": "normalisation_only",
         },
         "build_key_sha256": build_key_sha256,
-        "parser_receipt": dict(carrier["parser_receipt"]),
+        "parser_receipt": parser_receipt,
+        "numeric_execution_timing": timing_details,
         "numeric_pnf_authority": {
             "compiler_contract_ref": NUMERIC_PNF_COMPILER_CONTRACT,
             "parser_execution_contract_ref": STREAMING_SPACY_CONTRACT,
@@ -231,7 +275,7 @@ def compile_numeric_pnf_document(
             "document_ref": document_ref,
             "graph_ref": graph_ref,
             "demand_refs": demand_refs,
-            **counts,
+            **authority_metadata,
             "representation": "numeric_postgresql_hyperfabric",
             "legacy_document_materialisation": False,
             "world_resolution_deferred": True,
@@ -254,6 +298,23 @@ def compile_numeric_pnf_document(
         content_sha256=content_sha256,
         media_type=media_type,
         artifacts=artifacts,
+    )
+
+
+def _record_controlled_reuse(
+    *,
+    database_url: str,
+    run_ref: str,
+    document_ref: str,
+    canonical_text_sha256: str,
+    build_key_sha256: str,
+) -> int:
+    return record_numeric_compiler_reuse_measurement(
+        database_url=database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        canonical_text_sha256=canonical_text_sha256,
+        compiler_config_sha256=build_key_sha256,
     )
 
 
@@ -336,6 +397,7 @@ def persist_numeric_pnf_document(
             progress=progress,
         )
     authority = compilation.artifacts["numeric_pnf_authority"]
+    timing = dict(compilation.artifacts.get("numeric_execution_timing") or {})
     graph_ref = str(authority["graph_ref"])
     demand_refs = tuple(str(value) for value in authority["demand_refs"])
     with store.savepoint() as cursor:
@@ -354,16 +416,27 @@ def persist_numeric_pnf_document(
             document_ref=document_ref,
             state="compiled_numeric_pnf",
         )
-    if progress is not None and hasattr(progress, "finish"):
-        progress.finish(
-            state="completed",
-            details={
-                "state": "compiled_numeric_pnf",
-                "build_key_sha256": build_key_sha256,
-                "graph_ref": graph_ref,
-                "demand_ref_count": len(demand_refs),
-            },
+
+    measurement_id: int | None = None
+    if _controlled_reuse_measurement_enabled():
+        measurement_id = _record_controlled_reuse(
+            database_url=database_url,
+            run_ref=run_ref,
+            document_ref=document_ref,
+            canonical_text_sha256=canonical_text_sha256,
+            build_key_sha256=build_key_sha256,
         )
+    if progress is not None and hasattr(progress, "finish"):
+        details: dict[str, Any] = {
+            "state": "compiled_numeric_pnf",
+            "build_key_sha256": build_key_sha256,
+            "graph_ref": graph_ref,
+            "demand_ref_count": len(demand_refs),
+            "numeric_work_timing": timing,
+        }
+        if measurement_id is not None:
+            details["controlled_reuse_measurement_id"] = measurement_id
+        progress.finish(state="completed", details=details)
     return demand_refs
 
 

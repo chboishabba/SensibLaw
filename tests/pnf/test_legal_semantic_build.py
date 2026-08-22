@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from src.pnf.legal_adjunct import LegalIRObservation
-from src.pnf.legal_semantic_build import build_legal_semantic_build, normalize_legacy_witnesses
+from src.pnf.legal_semantic_build import (
+    build_legal_semantic_build,
+    normalize_legacy_witnesses,
+)
 
 
 def _compilation() -> dict:
@@ -16,9 +19,21 @@ def _compilation() -> dict:
             "refined_pnf_graph": {
                 "graph_ref": "pnf-graph:1",
                 "factors": [
-                    {"factor_ref": "factor:norm", "factor_type": "semantic.normative_relation", "metadata": {"role": "predicate"}},
-                    {"factor_ref": "factor:actor", "factor_type": "semantic.argument", "metadata": {"role": "bearer"}},
-                    {"factor_ref": "factor:drive", "factor_type": "semantic.eventuality", "metadata": {"role": "conduct"}},
+                    {
+                        "factor_ref": "factor:norm",
+                        "factor_type": "semantic.normative_relation",
+                        "metadata": {"role": "predicate"},
+                    },
+                    {
+                        "factor_ref": "factor:actor",
+                        "factor_type": "semantic.argument",
+                        "metadata": {"role": "bearer"},
+                    },
+                    {
+                        "factor_ref": "factor:drive",
+                        "factor_type": "semantic.eventuality",
+                        "metadata": {"role": "conduct"},
+                    },
                 ],
             },
         },
@@ -60,10 +75,14 @@ def test_build_unifies_surfaces_without_flattening_authority() -> None:
     build = result["build"]
     assert build["flattened_union"] is False
     assert build["surface_authority"]["refined_pnf_graph"] == "candidate_semantic_state"
-    assert build["surface_authority"]["legacy_observations"] == "diagnostic_witness_only"
+    assert (
+        build["surface_authority"]["legacy_observations"] == "diagnostic_witness_only"
+    )
     assert result["summary"]["semantic_promotion_count"] == 0
     assert result["legacy_witnesses"][0]["promotes_pnf"] is False
-    assert any(row["comparison_state"] == "aligned" for row in result["comparison_ledger"])
+    assert any(
+        row["comparison_state"] == "aligned" for row in result["comparison_ledger"]
+    )
     assert any(
         demand["missing_factor_type"] == "semantic.legal_exception"
         for demand in result["coverage_demands"]

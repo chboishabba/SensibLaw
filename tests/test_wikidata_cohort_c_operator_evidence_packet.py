@@ -7,7 +7,12 @@ from src.ontology import wikidata_cohort_c_operator_evidence as evidence
 
 
 def _load_fixture() -> dict[str, object]:
-    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / "wikidata_nat_cohort_c_operator_packet_extension_20260403.json"
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_c_operator_packet_extension_20260403.json"
+    )
     candidates = json.loads(fixture_path.read_text(encoding="utf-8"))
     return {
         "lane_id": "wikidata_nat_wdu_p5991_p14143",

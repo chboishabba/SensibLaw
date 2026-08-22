@@ -8,7 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
-from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
+from src.ontology.wikidata_hotspot import (
+    generate_hotspot_cluster_pack,
+    load_hotspot_manifest,
+)
 from src.ontology.wikidata_hotspot_eval import (
     HOTSPOT_EVAL_SCHEMA_VERSION,
     HOTSPOT_RESPONSE_SCHEMA_VERSION,
@@ -21,7 +24,10 @@ FIXTURE_DIR = ROOT / "tests" / "fixtures" / "wikidata" / "hotspot_eval_v1"
 
 def _cluster_pack(*pack_ids: str) -> dict:
     manifest = load_hotspot_manifest(
-        ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
     )
     return generate_hotspot_cluster_pack(
         manifest,
@@ -32,13 +38,21 @@ def _cluster_pack(*pack_ids: str) -> dict:
 
 def test_load_hotspot_response_bundle_rejects_wrong_schema(tmp_path: Path) -> None:
     path = tmp_path / "responses.json"
-    path.write_text(json.dumps({"schema_version": "wrong", "responses": []}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"schema_version": "wrong", "responses": []}), encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="schema_version"):
         load_hotspot_response_bundle(path)
 
 
 @pytest.mark.parametrize(
-    ("pack_id", "fixture_name", "expected_classification", "expected_total", "expected_count"),
+    (
+        "pack_id",
+        "fixture_name",
+        "expected_classification",
+        "expected_total",
+        "expected_count",
+    ),
     [
         (
             "qualifier_drift_p166_live_pack_v1",

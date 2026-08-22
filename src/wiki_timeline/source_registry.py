@@ -7,7 +7,9 @@ TimelineSourceKey = str
 TimelineSourceVariant = str
 
 
-_SOURCE_CONFIGS: dict[TimelineSourceKey, dict[TimelineSourceVariant, dict[str, str]]] = {
+_SOURCE_CONFIGS: dict[
+    TimelineSourceKey, dict[TimelineSourceVariant, dict[str, str]]
+] = {
     "gwb": {
         "timeline": {
             "rel_path": "SensibLaw/.cache_local/wiki_timeline_gwb.json",
@@ -104,7 +106,9 @@ def source_variant_for_projection(projection: str) -> str:
     return "aoo"
 
 
-def resolve_source_config(raw: Any, *, projection: str, fallback: str, variant: str | None = None) -> dict[str, str]:
+def resolve_source_config(
+    raw: Any, *, projection: str, fallback: str, variant: str | None = None
+) -> dict[str, str]:
     key = normalize_source_key(raw, fallback=fallback)
     resolved_variant = variant or source_variant_for_projection(projection)
     variant_cfg = _SOURCE_CONFIGS.get(key, {}).get(resolved_variant)

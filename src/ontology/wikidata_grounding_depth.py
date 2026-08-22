@@ -4,7 +4,9 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Iterable, Mapping, Sequence
 
 GROUNDING_DEPTH_SCHEMA_VERSION = "sl.wikidata_review_packet.grounding_depth.v0_1"
-GROUNDING_ATTACHMENT_SCHEMA_VERSION = "sl.wikidata_review_packet.grounding_depth_attachment.v0_1"
+GROUNDING_ATTACHMENT_SCHEMA_VERSION = (
+    "sl.wikidata_review_packet.grounding_depth_attachment.v0_1"
+)
 GROUNDING_BATCH_SCHEMA_VERSION = "sl.wikidata_review_packet.grounding_depth_batch.v0_1"
 GROUNDING_EVIDENCE_REPORT_SCHEMA_VERSION = (
     "sl.wikidata_review_packet.grounding_depth_evidence_report.v0_1"
@@ -15,7 +17,9 @@ GROUNDING_SCORECARD_SCHEMA_VERSION = (
 GROUNDING_PRIORITY_SURFACE_SCHEMA_VERSION = (
     "sl.wikidata_review_packet.grounding_depth_priority_surface.v0_1"
 )
-GROUNDING_ROUTING_SCHEMA_VERSION = "sl.wikidata_review_packet.grounding_depth_routing.v0_1"
+GROUNDING_ROUTING_SCHEMA_VERSION = (
+    "sl.wikidata_review_packet.grounding_depth_routing.v0_1"
+)
 
 HARD_GROUNDING_ALLOWED_SOURCE_CLASSES = ("named_revision_locked_source",)
 HARD_GROUNDING_MAX_REVISION_AGE_DAYS = 365
@@ -104,11 +108,15 @@ def _index_live_follow_results(
             qid = _normalize_text(row.get("qid"))
             if not qid:
                 continue
-            receipts_by_qid.setdefault(qid, []).append(_normalize_live_follow_receipt(row))
+            receipts_by_qid.setdefault(qid, []).append(
+                _normalize_live_follow_receipt(row)
+            )
     return receipts_by_qid
 
 
-def _grounding_gap_class(*, grounding_status: str, evidence_count: int, missing_fields: Sequence[str]) -> str:
+def _grounding_gap_class(
+    *, grounding_status: str, evidence_count: int, missing_fields: Sequence[str]
+) -> str:
     if grounding_status == "grounded":
         return "grounded"
     if evidence_count <= 0:
@@ -194,7 +202,10 @@ def _evaluate_hard_grounding_policy(
                 continue
             source_class = receipt.get("source_class") or ""
             target_ref = receipt.get("target_ref") or ""
-            if source_class and source_class not in HARD_GROUNDING_ALLOWED_SOURCE_CLASSES:
+            if (
+                source_class
+                and source_class not in HARD_GROUNDING_ALLOWED_SOURCE_CLASSES
+            ):
                 _record_hard_grounding_violation(
                     checks,
                     qid=qid,
@@ -248,13 +259,21 @@ def _routing_needs_for_packet(entry: Mapping[str, Any]) -> list[str]:
         for item in evidence
         if isinstance(item, Mapping)
     ]
-    if any(keyword in notes for keyword in ("authority", "policy", "hold", "control", "governance")):
+    if any(
+        keyword in notes
+        for keyword in ("authority", "policy", "hold", "control", "governance")
+    ):
         needs.append("authority")
-    if evidence or any(keyword in notes for keyword in ("reference", "citation", "source")) or any(
-        "reference" in excerpt for excerpt in normalized_excerpts if excerpt
+    if (
+        evidence
+        or any(keyword in notes for keyword in ("reference", "citation", "source"))
+        or any("reference" in excerpt for excerpt in normalized_excerpts if excerpt)
     ):
         needs.append("reference")
-    if evidence or _normalize_keywords(entry.get("live_follow_status")) not in {"", "no_live_receipts"}:
+    if evidence or _normalize_keywords(entry.get("live_follow_status")) not in {
+        "",
+        "no_live_receipts",
+    }:
         needs.append("follow")
     return sorted(dict.fromkeys(needs))
 
@@ -284,7 +303,9 @@ def build_grounding_depth_summary(
         live_follow_receipts = live_follow_by_qid.get(qid, [])
         live_follow_status = (
             "live_receipts_fetched"
-            if any(receipt.get("status") == "fetched" for receipt in live_follow_receipts)
+            if any(
+                receipt.get("status") == "fetched" for receipt in live_follow_receipts
+            )
             else "no_live_receipts"
         )
         packets.append(
@@ -292,7 +313,9 @@ def build_grounding_depth_summary(
                 "packet_id": _normalize_text(sample.get("packet_id")),
                 "qid": qid,
                 "revision_url": _normalize_text(sample.get("revision_url")),
-                "revision_locked_notes": _normalize_text(sample.get("revision_locked_notes")),
+                "revision_locked_notes": _normalize_text(
+                    sample.get("revision_locked_notes")
+                ),
                 "grounding_status": status,
                 "revision_evidence": evidence,
                 "live_follow_status": live_follow_status,
@@ -392,12 +415,15 @@ def build_grounding_depth_evidence_report(
             "grounding_status": entry.get("grounding_status"),
             "evidence_count": len(evidence),
             "missing_fields": sorted(set(missing_fields)),
-            "notes": [entry.get("revision_locked_notes")] if entry.get("revision_locked_notes") else [],
+            "notes": [entry.get("revision_locked_notes")]
+            if entry.get("revision_locked_notes")
+            else [],
         }
         live_follow_receipts = entry.get("live_follow_receipts") or []
         if live_follow_receipts:
             packet_record["live_follow_status"] = (
-                _normalize_text(entry.get("live_follow_status")) or "live_receipts_fetched"
+                _normalize_text(entry.get("live_follow_status"))
+                or "live_receipts_fetched"
             )
             packet_record["live_follow_count"] = len(live_follow_receipts)
             packet_record["live_source_class_counts"] = {
@@ -541,7 +567,9 @@ def build_grounding_depth_priority_surface(
         ),
         "bounded_follow_candidate_count": len(unresolved),
         "live_follow_ready_count": live_follow_ready_count,
-        "highest_priority_score": max((int(row.get("priority_score") or 0) for row in queue), default=0),
+        "highest_priority_score": max(
+            (int(row.get("priority_score") or 0) for row in queue), default=0
+        ),
         "gap_class_counts": gap_class_counts,
         "dominant_gap_class": dominant_gap_class,
         "missing_field_counts": missing_field_counts,
@@ -574,7 +602,12 @@ def build_grounding_depth_routing_report(
             if packet_id:
                 coverage_slots[packet_id] = slot
 
-    coverage_counts: dict[str, int] = {"grounded": 0, "hold": 0, "abstain": 0, "unknown": 0}
+    coverage_counts: dict[str, int] = {
+        "grounded": 0,
+        "hold": 0,
+        "abstain": 0,
+        "unknown": 0,
+    }
     report: list[dict[str, Any]] = []
     for entry in grounding_summary.get("packets") or []:
         if not isinstance(entry, Mapping):
@@ -589,9 +622,8 @@ def build_grounding_depth_routing_report(
             {
                 "packet_id": packet_id,
                 "qid": qid,
-                "grounding_status": priority_row.get("grounding_status") or _normalize_text(
-                    entry.get("grounding_status")
-                ),
+                "grounding_status": priority_row.get("grounding_status")
+                or _normalize_text(entry.get("grounding_status")),
                 "coverage_status": coverage_status,
                 "routing_needs": routing_needs,
                 "priority_score": priority_row.get("priority_score") or 0,
@@ -601,7 +633,9 @@ def build_grounding_depth_routing_report(
                 or _normalize_text(entry.get("grounding_status")),
                 "recommended_follow_scope": priority_row.get("recommended_follow_scope")
                 or "unknown",
-                "recommended_follow_target": priority_row.get("recommended_follow_target")
+                "recommended_follow_target": priority_row.get(
+                    "recommended_follow_target"
+                )
                 or "",
                 "live_follow_status": priority_row.get("live_follow_status")
                 or _normalize_text(entry.get("live_follow_status")),
@@ -652,7 +686,9 @@ def build_grounding_depth_comparison(
     }
 
 
-def build_grounding_depth_scorecard(*, runs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def build_grounding_depth_scorecard(
+    *, runs: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
     total_grounded = 0
     total_attachments = 0
@@ -668,15 +704,17 @@ def build_grounding_depth_scorecard(*, runs: Sequence[Mapping[str, Any]]) -> dic
         run_grounded = sum(
             int(entry.get("grounded_packet_count") or 0) for entry in comparison_list
         )
-        run_attachments = sum(int(entry.get("attachment_count") or 0) for entry in comparison_list)
+        run_attachments = sum(
+            int(entry.get("attachment_count") or 0) for entry in comparison_list
+        )
         total_grounded += run_grounded
         total_attachments += run_attachments
         run_status_counts: dict[str, int] = {}
         for entry in comparison_list:
             for status, count in (entry.get("status_counts") or {}).items():
-                run_status_counts[str(status)] = (
-                    run_status_counts.get(str(status), 0) + int(count or 0)
-                )
+                run_status_counts[str(status)] = run_status_counts.get(
+                    str(status), 0
+                ) + int(count or 0)
         entries.append(
             {
                 "run_id": run_id,

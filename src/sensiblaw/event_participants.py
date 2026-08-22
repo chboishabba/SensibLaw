@@ -63,7 +63,9 @@ class EventParticipantService:
             self._unique_index[key] = participant.id
 
     @staticmethod
-    def _unique_key(event_id: int, actor_id: int, role_marker_id: int | None) -> Tuple[int, int, int]:
+    def _unique_key(
+        event_id: int, actor_id: int, role_marker_id: int | None
+    ) -> Tuple[int, int, int]:
         return (event_id, actor_id, role_marker_id or -1)
 
     def _derive_actor_class_id(
@@ -74,16 +76,22 @@ class EventParticipantService:
         actor = self._actors.get(actor_id)
         if actor and actor.actor_class_id:
             return actor.actor_class_id
-        msg = "actor_class_id is required when the actor registry lacks a classification"
+        msg = (
+            "actor_class_id is required when the actor registry lacks a classification"
+        )
         raise ValueError(msg)
 
-    def _assert_unique(self, event_id: int, actor_id: int, role_marker_id: int | None) -> None:
+    def _assert_unique(
+        self, event_id: int, actor_id: int, role_marker_id: int | None
+    ) -> None:
         key = self._unique_key(event_id, actor_id, role_marker_id)
         if key in self._unique_index:
             msg = "Participant already exists for this event, actor, and role marker"
             raise ValueError(msg)
 
-    def insert_participant(self, payload: EventParticipantCreate) -> EventParticipantDTO:
+    def insert_participant(
+        self, payload: EventParticipantCreate
+    ) -> EventParticipantDTO:
         actor_class_id = self._derive_actor_class_id(
             actor_id=payload.actor_id, explicit_actor_class_id=payload.actor_class_id
         )

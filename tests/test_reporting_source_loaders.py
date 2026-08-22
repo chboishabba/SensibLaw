@@ -17,7 +17,9 @@ def test_resolve_loader_path_returns_resolved_path(tmp_path: Path) -> None:
     assert resolve_loader_path(path) == path.resolve()
 
 
-def test_list_message_export_json_paths_discovers_nested_message_files(tmp_path: Path) -> None:
+def test_list_message_export_json_paths_discovers_nested_message_files(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "export"
     nested = root / "inbox" / "thread-a"
     nested.mkdir(parents=True, exist_ok=True)
@@ -37,13 +39,21 @@ def test_find_timestamped_artifact_path_prefers_exact_match(tmp_path: Path) -> N
     exact.write_bytes(b"exact")
     indexed.write_bytes(b"indexed")
 
-    assert find_timestamped_artifact_path(search_roots=[screenshot_root], timestamp=123) == exact
+    assert (
+        find_timestamped_artifact_path(search_roots=[screenshot_root], timestamp=123)
+        == exact
+    )
 
 
-def test_find_timestamped_artifact_path_falls_back_to_indexed_match(tmp_path: Path) -> None:
+def test_find_timestamped_artifact_path_falls_back_to_indexed_match(
+    tmp_path: Path,
+) -> None:
     screenshot_root = tmp_path / "screenshots"
     screenshot_root.mkdir(parents=True, exist_ok=True)
     indexed = screenshot_root / "123_2.webp"
     indexed.write_bytes(b"indexed")
 
-    assert find_timestamped_artifact_path(search_roots=[screenshot_root], timestamp=123) == indexed
+    assert (
+        find_timestamped_artifact_path(search_roots=[screenshot_root], timestamp=123)
+        == indexed
+    )

@@ -65,7 +65,9 @@ def _db_candidates(repo_root: Path) -> list[Path]:
 
 
 def _connect_ro(db_path: Path) -> sqlite3.Connection:
-    con = sqlite3.connect(f"file:{db_path.expanduser().resolve()}?mode=ro&immutable=1", uri=True)
+    con = sqlite3.connect(
+        f"file:{db_path.expanduser().resolve()}?mode=ro&immutable=1", uri=True
+    )
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA temp_store=MEMORY")
     con.execute("PRAGMA query_only=ON")
@@ -76,7 +78,9 @@ def _table_columns(cur: sqlite3.Cursor, table: str) -> set[str]:
     return {str(row["name"]) for row in cur.execute(f"PRAGMA table_info({table})")}
 
 
-def _rows_history_db(cur: sqlite3.Cursor, *, target_thread_id: str, target_title_hint: str) -> list[ArchiveMessage]:
+def _rows_history_db(
+    cur: sqlite3.Cursor, *, target_thread_id: str, target_title_hint: str
+) -> list[ArchiveMessage]:
     thread_id = target_thread_id
     title_hint = target_title_hint.lower()
     target = cur.execute(
@@ -116,7 +120,13 @@ def _rows_history_db(cur: sqlite3.Cursor, *, target_thread_id: str, target_title
     ]
 
 
-def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: str, target_title_hint: str) -> list[ArchiveMessage]:
+def _rows_archive_db(
+    cur: sqlite3.Cursor,
+    cols: set[str],
+    *,
+    target_thread_id: str,
+    target_title_hint: str,
+) -> list[ArchiveMessage]:
     title_hint = target_title_hint.lower()
     target = None
     if target_thread_id:
@@ -132,8 +142,10 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: s
             (target_thread_id,),
         ).fetchone()
     if "source_thread_id" in cols and target_thread_id:
-        target = target or cur.execute(
-            """
+        target = (
+            target
+            or cur.execute(
+                """
             SELECT canonical_thread_id, COALESCE(NULLIF(MAX(COALESCE(title, '')), ''), '(untitled)') AS title
             FROM messages
             WHERE LOWER(COALESCE(source_thread_id, '')) = LOWER(?)
@@ -141,8 +153,9 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: s
             ORDER BY MAX(ts) DESC
             LIMIT 1
             """,
-            (target_thread_id,),
-        ).fetchone()
+                (target_thread_id,),
+            ).fetchone()
+        )
     if target is None and "title" in cols:
         target = cur.execute(
             """
@@ -184,7 +197,9 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: s
 
     title_score_expr = "0"
     if "title" in cols:
-        title_score_expr = "SUM(CASE WHEN LOWER(COALESCE(title, '')) LIKE ? THEN 20 ELSE 0 END)"
+        title_score_expr = (
+            "SUM(CASE WHEN LOWER(COALESCE(title, '')) LIKE ? THEN 20 ELSE 0 END)"
+        )
 
     target = cur.execute(
         f"""
@@ -214,7 +229,10 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: s
         tuple(
             value
             for cond, value in (
-                ("source_thread_id" in cols and bool(target_thread_id), target_thread_id),
+                (
+                    "source_thread_id" in cols and bool(target_thread_id),
+                    target_thread_id,
+                ),
                 ("title" in cols, f"%{title_hint}%"),
             )
             if cond
@@ -244,7 +262,9 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: s
     ]
 
 
-def _extract_claim_lines(messages: Iterable[ArchiveMessage], *, assistant: bool, limit: int) -> list[str]:
+def _extract_claim_lines(
+    messages: Iterable[ArchiveMessage], *, assistant: bool, limit: int
+) -> list[str]:
     def low_signal(text: str) -> bool:
         lowered = text.strip().lower()
         if not lowered:
@@ -296,7 +316,10 @@ def _extract_claim_lines(messages: Iterable[ArchiveMessage], *, assistant: bool,
 
 
 def _unit_rows(source_id: str, lines: list[str]) -> list[dict[str, str]]:
-    return [{"unit_id": f"{source_id}:u{idx}", "text": text} for idx, text in enumerate(lines, start=1)]
+    return [
+        {"unit_id": f"{source_id}:u{idx}", "text": text}
+        for idx, text in enumerate(lines, start=1)
+    ]
 
 
 def _clean_surface_text(text: str) -> str:
@@ -322,7 +345,11 @@ def _message_claim_lines(text: str, *, limit: int = 12) -> list[str]:
             candidate = f"{candidate[:355].rstrip()}..."
         if CLAIM_CUE_PATTERN.search(candidate):
             lines.append(candidate)
-        elif re.search(r"\b(correct|true|false|fallac|overstat|argu(?:e|ed|ment)|policy|strategy|climate)\b", candidate, re.IGNORECASE):
+        elif re.search(
+            r"\b(correct|true|false|fallac|overstat|argu(?:e|ed|ment)|policy|strategy|climate)\b",
+            candidate,
+            re.IGNORECASE,
+        ):
             lines.append(candidate)
         if len(lines) >= limit:
             break
@@ -331,14 +358,26 @@ def _message_claim_lines(text: str, *, limit: int = 12) -> list[str]:
 
 def _prompt_bucket(prompt: str) -> str:
     lowered = prompt.lower()
-    if any(term in lowered for term in ("accurate", "transcript", "woolies", "woolworths")):
+    if any(
+        term in lowered for term in ("accurate", "transcript", "woolies", "woolworths")
+    ):
         return "jordies_thread_position"
-    if any(term in lowered for term in ("greens criticisms", "musical chairs", "majority gov", "fallacious")):
+    if any(
+        term in lowered
+        for term in (
+            "greens criticisms",
+            "musical chairs",
+            "majority gov",
+            "fallacious",
+        )
+    ):
         return "thread_balanced_analysis"
     return "thread_balanced_analysis"
 
 
-def _assistant_sources_from_thread(messages: list[ArchiveMessage]) -> tuple[list[str], list[str]]:
+def _assistant_sources_from_thread(
+    messages: list[ArchiveMessage],
+) -> tuple[list[str], list[str]]:
     left: list[str] = []
     right: list[str] = []
     pending_user: str | None = None
@@ -373,7 +412,11 @@ def _assistant_sources_from_thread(messages: list[ArchiveMessage]) -> tuple[list
 
 
 def _assistant_texts(messages: list[ArchiveMessage]) -> list[str]:
-    return [_clean_surface_text(row.text) for row in messages if row.role.strip().lower() in {"assistant", "ai"} and row.text.strip()]
+    return [
+        _clean_surface_text(row.text)
+        for row in messages
+        if row.role.strip().lower() in {"assistant", "ai"} and row.text.strip()
+    ]
 
 
 def _find_snippet(texts: list[str], needles: list[str]) -> str | None:
@@ -400,7 +443,7 @@ def _collect_theme_snippets(messages: list[ArchiveMessage]) -> dict[str, str]:
         "contribute_instability": ["contributed", "climate policy instability"],
         "delay_momentum": ["delayed", "climate policy momentum"],
         "majority_debate": ["majority government"],
-        "renewables_40": ["35–40%"] ,
+        "renewables_40": ["35–40%"],
         "cpi_initial": ["0.7", "cpi"],
         "south_australia": ["south australia", "70% renewable"],
     }
@@ -411,7 +454,9 @@ def _collect_theme_snippets(messages: list[ArchiveMessage]) -> dict[str, str]:
     return snippets
 
 
-def _add_if_supported(lines: list[str], snippets: dict[str, str], key: str, text: str) -> None:
+def _add_if_supported(
+    lines: list[str], snippets: dict[str, str], key: str, text: str
+) -> None:
     if key in snippets:
         lines.append(text)
 
@@ -433,18 +478,78 @@ def _build_thread_extract_payload(messages: list[ArchiveMessage]) -> dict:
     snippets = _collect_theme_snippets(messages)
     left_lines: list[str] = []
     right_lines: list[str] = []
-    _add_if_supported(left_lines, snippets, "block_cprs", "FriendlyJordies said that the Greens blocked the CPRS.")
-    _add_if_supported(left_lines, snippets, "contribute_instability", "FriendlyJordies argued that blocking the CPRS contributed to climate policy instability.")
-    _add_if_supported(left_lines, snippets, "woolworths_small", "FriendlyJordies said that Woolworths was cited as evidence that direct grocery impacts from the carbon price were very small.")
-    _add_if_supported(left_lines, snippets, "majority_debate", "FriendlyJordies argued that majority government supports long-term climate policy.")
-    _add_if_supported(left_lines, snippets, "renewables_40", "FriendlyJordies said that renewables were around 40 percent of electricity generation.")
-    _add_if_supported(left_lines, snippets, "block_cprs", "FriendlyJordies argued that the Greens blocking the CPRS was a strategic error.")
-    _add_if_supported(right_lines, snippets, "block_cprs", "The analysis reported that the Greens blocked the CPRS.")
-    _add_if_supported(right_lines, snippets, "delay_momentum", "The analysis argued that blocking the CPRS delayed climate policy momentum.")
-    _add_if_supported(right_lines, snippets, "direct_pass_through", "The analysis said that Woolworths was talking about direct cost pass-through.")
-    _add_if_supported(right_lines, snippets, "minority_pass", "The analysis argued that minority government passed carbon pricing legislation.")
-    _add_if_supported(right_lines, snippets, "greens_germany", "The analysis said that Green parties govern successfully in Germany.")
-    _add_if_supported(right_lines, snippets, "fallacies", "The analysis argued that Jordies' case against the Greens contains several logical fallacies.")
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "block_cprs",
+        "FriendlyJordies said that the Greens blocked the CPRS.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "contribute_instability",
+        "FriendlyJordies argued that blocking the CPRS contributed to climate policy instability.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "woolworths_small",
+        "FriendlyJordies said that Woolworths was cited as evidence that direct grocery impacts from the carbon price were very small.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "majority_debate",
+        "FriendlyJordies argued that majority government supports long-term climate policy.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "renewables_40",
+        "FriendlyJordies said that renewables were around 40 percent of electricity generation.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "block_cprs",
+        "FriendlyJordies argued that the Greens blocking the CPRS was a strategic error.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "block_cprs",
+        "The analysis reported that the Greens blocked the CPRS.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "delay_momentum",
+        "The analysis argued that blocking the CPRS delayed climate policy momentum.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "direct_pass_through",
+        "The analysis said that Woolworths was talking about direct cost pass-through.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "minority_pass",
+        "The analysis argued that minority government passed carbon pricing legislation.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "greens_germany",
+        "The analysis said that Green parties govern successfully in Germany.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "fallacies",
+        "The analysis argued that Jordies' case against the Greens contains several logical fallacies.",
+    )
     if not left_lines:
         left_lines = ["FriendlyJordies said that the Greens blocked the CPRS."]
     if not right_lines:
@@ -486,18 +591,78 @@ def _build_chat_arguments_payload(messages: list[ArchiveMessage]) -> dict:
     snippets = _collect_theme_snippets(messages)
     left_lines: list[str] = []
     right_lines: list[str] = []
-    _add_if_supported(left_lines, snippets, "block_cprs", "FriendlyJordies said that the Greens blocked the CPRS.")
-    _add_if_supported(left_lines, snippets, "contribute_instability", "FriendlyJordies argued that the Greens blocking the CPRS contributed to climate policy instability.")
-    _add_if_supported(left_lines, snippets, "woolworths_small", "FriendlyJordies said that Woolworths was cited as evidence that direct grocery impacts were very small.")
-    _add_if_supported(left_lines, snippets, "renewables_40", "FriendlyJordies said that renewables were around 40 percent of electricity generation.")
-    _add_if_supported(left_lines, snippets, "majority_debate", "FriendlyJordies argued that majority government supports long-term climate policy.")
-    _add_if_supported(left_lines, snippets, "south_australia", "FriendlyJordies said that South Australia uses large batteries to support a high-renewable grid.")
-    _add_if_supported(right_lines, snippets, "block_cprs", "The analysis reported that the Greens blocked the CPRS.")
-    _add_if_supported(right_lines, snippets, "contribute_instability", "The analysis argued that Coalition opposition contributed to climate policy instability.")
-    _add_if_supported(right_lines, snippets, "direct_pass_through", "The analysis said that Woolworths was talking about direct cost pass-through.")
-    _add_if_supported(right_lines, snippets, "cpi_initial", "The analysis reported that the carbon price contributed to CPI initially.")
-    _add_if_supported(right_lines, snippets, "minority_pass", "The analysis argued that minority government passed carbon pricing legislation.")
-    _add_if_supported(right_lines, snippets, "greens_germany", "The analysis said that Green parties govern successfully in Germany.")
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "block_cprs",
+        "FriendlyJordies said that the Greens blocked the CPRS.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "contribute_instability",
+        "FriendlyJordies argued that the Greens blocking the CPRS contributed to climate policy instability.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "woolworths_small",
+        "FriendlyJordies said that Woolworths was cited as evidence that direct grocery impacts were very small.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "renewables_40",
+        "FriendlyJordies said that renewables were around 40 percent of electricity generation.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "majority_debate",
+        "FriendlyJordies argued that majority government supports long-term climate policy.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "south_australia",
+        "FriendlyJordies said that South Australia uses large batteries to support a high-renewable grid.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "block_cprs",
+        "The analysis reported that the Greens blocked the CPRS.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "contribute_instability",
+        "The analysis argued that Coalition opposition contributed to climate policy instability.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "direct_pass_through",
+        "The analysis said that Woolworths was talking about direct cost pass-through.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "cpi_initial",
+        "The analysis reported that the carbon price contributed to CPI initially.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "minority_pass",
+        "The analysis argued that minority government passed carbon pricing legislation.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "greens_germany",
+        "The analysis said that Green parties govern successfully in Germany.",
+    )
     if not left_lines:
         left_lines = ["FriendlyJordies said that the Greens blocked the CPRS."]
     if not right_lines:
@@ -539,16 +704,50 @@ def _build_authority_wrappers_payload(messages: list[ArchiveMessage]) -> dict:
     snippets = _collect_theme_snippets(messages)
     left_lines: list[str] = []
     right_lines: list[str] = []
-    _add_if_supported(left_lines, snippets, "imperfect_ets", "FriendlyJordies argued that Ross Garnaut reported that an imperfect ETS was better than delay.")
-    _add_if_supported(left_lines, snippets, "block_cprs", "FriendlyJordies said that Kevin Rudd argued that the Greens blocked the CPRS.")
-    _add_if_supported(left_lines, snippets, "contribute_instability", "FriendlyJordies argued that policy analysts reported that blocking the CPRS contributed to climate policy instability.")
-    _add_if_supported(right_lines, snippets, "imperfect_ets", "The analysis reported that Ross Garnaut reported that an imperfect ETS was better than delay.")
-    _add_if_supported(right_lines, snippets, "block_cprs", "The analysis reported that Kevin Rudd argued that the Greens blocked the CPRS.")
-    _add_if_supported(right_lines, snippets, "contribute_instability", "The analysis reported that policy analysts reported that Coalition opposition contributed to climate policy instability.")
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "imperfect_ets",
+        "FriendlyJordies argued that Ross Garnaut reported that an imperfect ETS was better than delay.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "block_cprs",
+        "FriendlyJordies said that Kevin Rudd argued that the Greens blocked the CPRS.",
+    )
+    _add_if_supported(
+        left_lines,
+        snippets,
+        "contribute_instability",
+        "FriendlyJordies argued that policy analysts reported that blocking the CPRS contributed to climate policy instability.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "imperfect_ets",
+        "The analysis reported that Ross Garnaut reported that an imperfect ETS was better than delay.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "block_cprs",
+        "The analysis reported that Kevin Rudd argued that the Greens blocked the CPRS.",
+    )
+    _add_if_supported(
+        right_lines,
+        snippets,
+        "contribute_instability",
+        "The analysis reported that policy analysts reported that Coalition opposition contributed to climate policy instability.",
+    )
     if not left_lines:
-        left_lines = ["FriendlyJordies argued that Ross Garnaut reported that an imperfect ETS was better than delay."]
+        left_lines = [
+            "FriendlyJordies argued that Ross Garnaut reported that an imperfect ETS was better than delay."
+        ]
     if not right_lines:
-        right_lines = ["The analysis reported that Ross Garnaut reported that an imperfect ETS was better than delay."]
+        right_lines = [
+            "The analysis reported that Ross Garnaut reported that an imperfect ETS was better than delay."
+        ]
     return {
         "fixture_id": "friendlyjordies_authority_wrappers_archive_v1",
         "label": "FriendlyJordies nested authority wrappers (archive-backed)",
@@ -578,20 +777,36 @@ def _build_authority_wrappers_payload(messages: list[ArchiveMessage]) -> dict:
     }
 
 
-def _try_build_from_db(db_path: Path, fixture_name: str, *, target_thread_id: str, target_title_hint: str) -> dict:
+def _try_build_from_db(
+    db_path: Path, fixture_name: str, *, target_thread_id: str, target_title_hint: str
+) -> dict:
     if not db_path.exists():
         return {}
     con = _connect_ro(db_path)
     try:
         cur = con.cursor()
-        tables = {str(row["name"]) for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        tables = {
+            str(row["name"])
+            for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
         if "messages" not in tables:
             return {}
         cols = _table_columns(cur, "messages")
-        if {"conversation_id", "author", "content"}.issubset(cols) and "conversations" in tables:
-            messages = _rows_history_db(cur, target_thread_id=target_thread_id, target_title_hint=target_title_hint)
+        if {"conversation_id", "author", "content"}.issubset(
+            cols
+        ) and "conversations" in tables:
+            messages = _rows_history_db(
+                cur,
+                target_thread_id=target_thread_id,
+                target_title_hint=target_title_hint,
+            )
         elif {"canonical_thread_id", "role", "text"}.issubset(cols):
-            messages = _rows_archive_db(cur, cols, target_thread_id=target_thread_id, target_title_hint=target_title_hint)
+            messages = _rows_archive_db(
+                cur,
+                cols,
+                target_thread_id=target_thread_id,
+                target_title_hint=target_title_hint,
+            )
         else:
             messages = []
         if fixture_name == "friendlyjordies_thread_extract":
@@ -624,12 +839,19 @@ def build_archive_backed_fixture(
     thread_id = (target_thread_id or DEFAULT_TARGET_ONLINE_THREAD_ID).strip()
     title_hint = (target_title_hint or DEFAULT_TARGET_TITLE_HINT).strip()
     for db_path in candidates:
-        payload = _try_build_from_db(db_path, fixture_name, target_thread_id=thread_id, target_title_hint=title_hint)
+        payload = _try_build_from_db(
+            db_path,
+            fixture_name,
+            target_thread_id=thread_id,
+            target_title_hint=title_hint,
+        )
         if not payload:
             continue
         out_dir = output_dir or (repo_root / "SensibLaw" / ".cache_local" / "narrative")
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"{fixture_name}.archive.json"
-        out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        out_path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+        )
         return out_path
     return None

@@ -39,9 +39,9 @@ def test_factor_revision_identity_excludes_its_derived_self_reference() -> None:
     }
 
     assert factor_revision_ref(with_explicit) == revision_ref
-    assert "factor_revision_ref" not in factor_revision_payload(with_explicit)[
-        "metadata"
-    ]
+    assert (
+        "factor_revision_ref" not in factor_revision_payload(with_explicit)["metadata"]
+    )
 
 
 def test_incorrect_explicit_factor_revision_ref_fails_closed() -> None:

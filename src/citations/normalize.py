@@ -11,7 +11,9 @@ class CitationKey:
     number: int
 
 
-_MNC_RE = re.compile(r"\[?(?P<year>\d{4})\]?\s+(?P<court>[A-Za-z]{2,10})\s+(?P<num>\d+)", re.IGNORECASE)
+_MNC_RE = re.compile(
+    r"\[?(?P<year>\d{4})\]?\s+(?P<court>[A-Za-z]{2,10})\s+(?P<num>\d+)", re.IGNORECASE
+)
 
 
 def normalize_mnc(text: str) -> CitationKey | None:
@@ -31,7 +33,9 @@ def jade_mnc_url(key: CitationKey, *, base: str = "https://jade.barnet.com.au") 
     return f"{base}/mnc/{key.year}/{key.court}/{key.number}"
 
 
-def jade_content_ext_url(key: CitationKey, *, base: str = "https://jade.barnet.com.au") -> str:
+def jade_content_ext_url(
+    key: CitationKey, *, base: str = "https://jade.barnet.com.au"
+) -> str:
     return f"{base}/content/ext/mnc/{key.year}/{key.court.lower()}/{key.number}"
 
 

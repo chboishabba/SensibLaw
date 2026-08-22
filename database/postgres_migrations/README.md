@@ -158,6 +158,57 @@
   Projection into `semantic_pnf_demand_occurrence_provenance` requires one exact
   numeric trigger demand and, for targets, one exact object/token witness.
   Ambiguous or unavailable crosswalks remain unresolved and cannot authorize H9.
+- `138_drop_unused_persistence_stage_document_index.sql` drops the empirically
+  unused `(document_ref, build_key_sha256)` secondary B-tree from the UNLOGGED
+  persistence staging carrier. Replay instrumentation observed zero scans while
+  every provisional row still paid index-maintenance cost; deterministic
+  `stage_ref` and the stage/kind index remain the execution/publication keys.
+- `139_consumer_incremental_evidence_wakeup.sql` makes consumer reopening part of
+  the ordinary evidence-write path. New evidence wakes only consumer fibres with
+  an explicit reverse dependency on its evidence, source-region or
+  source-interface numeric coordinate. Missing dependencies produce zero work,
+  never negative evidence, and proof/admissibility authority is untouched.
+- `140_numeric_semantic_publication_receipt.sql` adds portable strict-numeric
+  semantic publication receipts rooted in parser/object/factor/residual/export/
+  proof content while excluding database-local execution identity.
+- `141_defer_parentless_interface_ancestor_refresh.sql` through
+  `144_content_address_document_ancestor_projection.sql` remove unnecessary
+  hierarchy-derived work: parentless interfaces avoid writes, document
+  ancestry is rebuilt set-wise, open-document ancestry is deferred until a
+  consumer boundary, and duplicate document rebuilds use exact physical
+  parent-relation freshness state.
+- `145_sparse_frontier_dirty_closure.sql` makes canonical frontier closure
+  dirty-set driven. It preserves the migration-062 canonical reducer, enqueues
+  only canonical parents after changed child frontiers, and excludes overlapping
+  adjacency/evidence interfaces (kinds 2, 4 and 9) from canonical reduction.
+  Root-visible publication remains the only global lookup authority.
+- `146_skip_leaf_frontier_reduction.sql` removes the no-op parent-frontier
+  reducer call from producer-complete sentence leaves; overlapping/evidence
+  fibres remain excluded as well.
+- The subsequent work-conserving tranche replaces pure row-trigger projections
+  with statement-level relations while retaining authority guards. In particular,
+  `148_setwise_demand_derivation_triggers.sql` batches demand constraints/H3
+  derivation, and migrations `157` through `170` retire the obsolete migration-045
+  mention/recurrence compiler, preserve generic anaphor demands as a sparse
+  numeric residue, batch parser-entity labels, demand lookup/source/position/
+  export projections, candidate lifecycle/evidence/current-state/open-world
+  projections, and keep exact producer coordinates ahead of weaker recovery
+  heuristics.
+- `167_candidate_target_support_reverse_dependencies.sql` additionally closes
+  the candidate-target provenance wake seam from both candidate-first and
+  support-first write order. Object and factor support tokens become exact
+  reverse dependencies of demands; conservative stale edges may over-wake but a
+  required edge may not be missing.
+- `171_setwise_demand_occurrence_provenance.sql` replaces migration-135's
+  per-demand/per-support-token provenance loop with one fail-closed relational
+  compiler. Unique producer, typed target-role, exact object-token support, and
+  migration-136 run/document/span constraints are preserved; only the affected
+  `numeric-factor:*` producer rows are retracted/rebuilt.
+- `172_retire_legacy_occurrence_support_hot_path.sql` moves the superseded
+  migration-122/126 occurrence-support carrier out of automatic production
+  maintenance. Audit/compatibility callers may explicitly request a set-wise
+  run/document rebuild; current H9 authority remains the producer-authored
+  target occurrence carrier from 135/171.
 - See `docs/reopenable_runtime_architecture.md`,
   `docs/consumer_sufficient_numeric_runtime.md`,
   `docs/late_external_provider_runtime.md`, and

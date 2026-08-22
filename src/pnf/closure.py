@@ -45,7 +45,9 @@ def assess_pnf_closure(
                     target_ref=factor.factor_ref,
                     pressure_kind=PressureKind.CLOSURE,
                     state="closed" if closed else "open",
-                    reasons=() if closed else tuple(factor.residuals) or ("closure_state_open",),
+                    reasons=()
+                    if closed
+                    else tuple(factor.residuals) or ("closure_state_open",),
                     requested_actions=() if closed else ("derive_resolution_demand",),
                 )
             )

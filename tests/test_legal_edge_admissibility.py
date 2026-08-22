@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import pytest
 
 from src.legal_edge_admissibility import (
     LEGAL_EDGE_ADMISSIBILITY_VERSION,
@@ -75,7 +74,9 @@ def _edge_payload(
     }
 
 
-def test_gate_promotes_for_supported_relation_with_shared_linkage_and_compatible_endpoints() -> None:
+def test_gate_promotes_for_supported_relation_with_shared_linkage_and_compatible_endpoints() -> (
+    None
+):
     result = evaluate_legal_edge_admissibility(_PayloadStub(_edge_payload()))
 
     assert result["version"] == LEGAL_EDGE_ADMISSIBILITY_VERSION
@@ -121,7 +122,11 @@ def test_gate_abstains_when_source_endpoint_is_abstain() -> None:
 
 def test_gate_abstains_when_section_genre_is_explicitly_incompatible() -> None:
     payload = _edge_payload(
-        section_genre_compatibility={"status": "incompatible", "section": "Judgment", "genre": "case"}
+        section_genre_compatibility={
+            "status": "incompatible",
+            "section": "Judgment",
+            "genre": "case",
+        }
     )
 
     result = evaluate_legal_edge_admissibility(payload)
@@ -147,9 +152,16 @@ def test_gate_abstains_when_contradiction_lacks_structural_status_conflict() -> 
 def test_gate_promotes_for_contradiction_when_status_conflict_is_structural() -> None:
     payload = _edge_payload(
         relation_kind="contradicts",
-        source=_endpoint(status="ruled", content_refs=["cr:shared"], support_phi_ids=["phi:shared"]),
-        target=_endpoint(status="denied", content_refs=["cr:shared"], support_phi_ids=["phi:shared"]),
-        shared_support_linkage={"content_refs": ["cr:shared"], "support_phi_ids": ["phi:shared"]},
+        source=_endpoint(
+            status="ruled", content_refs=["cr:shared"], support_phi_ids=["phi:shared"]
+        ),
+        target=_endpoint(
+            status="denied", content_refs=["cr:shared"], support_phi_ids=["phi:shared"]
+        ),
+        shared_support_linkage={
+            "content_refs": ["cr:shared"],
+            "support_phi_ids": ["phi:shared"],
+        },
     )
 
     result = evaluate_legal_edge_admissibility(payload)

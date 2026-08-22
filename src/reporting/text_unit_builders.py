@@ -57,7 +57,11 @@ def build_canonical_conversation_text(
     normalized_speaker = str(speaker or "").strip()
     normalized_ts = str(ts or "").strip()
     if normalized_ts and normalized_speaker and not is_question:
-        lines.append(build_timestamped_speaker_text(ts=normalized_ts, speaker=normalized_speaker, text=body))
+        lines.append(
+            build_timestamped_speaker_text(
+                ts=normalized_ts, speaker=normalized_speaker, text=body
+            )
+        )
     elif normalized_speaker and not is_question:
         lines.append(f"{normalized_speaker}: {body}")
     elif normalized_ts and not is_question:

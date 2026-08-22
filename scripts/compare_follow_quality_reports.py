@@ -91,7 +91,9 @@ def build_comparison(before: dict[str, Any], after: dict[str, Any]) -> dict[str,
 
     before_specificity = _load_counts(before, "specificity_reason_counts")
     after_specificity = _load_counts(after, "specificity_reason_counts")
-    reason_names = sorted(set(before_specificity.keys()) | set(after_specificity.keys()))
+    reason_names = sorted(
+        set(before_specificity.keys()) | set(after_specificity.keys())
+    )
     specificity_reason_deltas = {}
     for name in reason_names:
         b = before_specificity.get(name, 0)
@@ -107,8 +109,12 @@ def build_comparison(before: dict[str, Any], after: dict[str, Any]) -> dict[str,
         a = after_info.get(name, 0)
         information_gain_reason_deltas[name] = {"before": b, "after": a, "delta": a - b}
 
-    before_pages = {str(page.get("title") or ""): page for page in (before.get("pages") or [])}
-    after_pages = {str(page.get("title") or ""): page for page in (after.get("pages") or [])}
+    before_pages = {
+        str(page.get("title") or ""): page for page in (before.get("pages") or [])
+    }
+    after_pages = {
+        str(page.get("title") or ""): page for page in (after.get("pages") or [])
+    }
     shared_titles = sorted(set(before_pages) & set(after_pages))
     mismatched_titles = sorted((set(before_pages) ^ set(after_pages)))
 
@@ -116,15 +122,22 @@ def build_comparison(before: dict[str, Any], after: dict[str, Any]) -> dict[str,
     for title in shared_titles:
         b_page = before_pages[title]
         a_page = after_pages[title]
-        b_quality = (b_page.get("follow_yield_metrics") or {}).get("follow_target_quality_score")
-        a_quality = (a_page.get("follow_yield_metrics") or {}).get("follow_target_quality_score")
+        b_quality = (b_page.get("follow_yield_metrics") or {}).get(
+            "follow_target_quality_score"
+        )
+        a_quality = (a_page.get("follow_yield_metrics") or {}).get(
+            "follow_target_quality_score"
+        )
         b_gap = (b_page.get("best_path_metrics") or {}).get("best_path_vs_avg_gap")
         a_gap = (a_page.get("best_path_metrics") or {}).get("best_path_vs_avg_gap")
         page_deltas.append(
             {
                 "title": title,
-                "follow_target_quality_delta": round(float(a_quality) - float(b_quality), 6)
-                if isinstance(a_quality, (int, float)) and isinstance(b_quality, (int, float))
+                "follow_target_quality_delta": round(
+                    float(a_quality) - float(b_quality), 6
+                )
+                if isinstance(a_quality, (int, float))
+                and isinstance(b_quality, (int, float))
                 else None,
                 "best_path_gap_delta": round(float(a_gap) - float(b_gap), 6)
                 if isinstance(a_gap, (int, float)) and isinstance(b_gap, (int, float))
@@ -133,8 +146,12 @@ def build_comparison(before: dict[str, Any], after: dict[str, Any]) -> dict[str,
         )
     page_deltas.sort(
         key=lambda row: (
-            row["follow_target_quality_delta"] if row["follow_target_quality_delta"] is not None else -999.0,
-            row["best_path_gap_delta"] if row["best_path_gap_delta"] is not None else -999.0,
+            row["follow_target_quality_delta"]
+            if row["follow_target_quality_delta"] is not None
+            else -999.0,
+            row["best_path_gap_delta"]
+            if row["best_path_gap_delta"] is not None
+            else -999.0,
             row["title"],
         )
     )
@@ -154,7 +171,9 @@ def build_comparison(before: dict[str, Any], after: dict[str, Any]) -> dict[str,
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Compare two follow-quality reports built from the same manifests.")
+    parser = argparse.ArgumentParser(
+        description="Compare two follow-quality reports built from the same manifests."
+    )
     parser.add_argument("--before", type=Path, required=True)
     parser.add_argument("--after", type=Path, required=True)
     parser.add_argument("--output", type=Path)
@@ -162,7 +181,9 @@ def main(argv: list[str] | None = None) -> int:
 
     comparison = build_comparison(_load(args.before), _load(args.after))
     if args.output:
-        args.output.write_text(json.dumps(comparison, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        args.output.write_text(
+            json.dumps(comparison, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     print(json.dumps(comparison, indent=2, sort_keys=True))
     return 0
 

@@ -8,7 +8,9 @@ from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Report tokenizer/compression + structure stats for the isolated chat test DB.")
+    parser = argparse.ArgumentParser(
+        description="Report tokenizer/compression + structure stats for the isolated chat test DB."
+    )
     parser.add_argument("--db-path", default=".cache_local/itir_chat_test.sqlite")
     parser.add_argument("--run-id")
     parser.add_argument("--top-n", type=int, default=15)

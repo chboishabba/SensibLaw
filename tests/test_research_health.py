@@ -25,7 +25,9 @@ def test_research_health_counts_and_resolution(tmp_path: Path) -> None:
     db = tmp_path / "store.sqlite"
     store = VersionedStore(db)
     try:
-        doc1 = _make_doc("[1992] HCA 23", "Doc text with [1992] HCA 23 and [2000] HCA 1.")
+        doc1 = _make_doc(
+            "[1992] HCA 23", "Doc text with [1992] HCA 23 and [2000] HCA 1."
+        )
         doc2 = _make_doc("[2000] HCA 1", "Second doc without new cites.")
 
         id1 = store.generate_id()
@@ -40,7 +42,9 @@ def test_research_health_counts_and_resolution(tmp_path: Path) -> None:
     assert report.citations_total == 2  # both citations from doc1
     assert report.citations_unresolved == 0  # both citations match stored docs
     assert report.unresolved_percent == 0.0
-    assert report.citations_per_doc_mean == round(report.citations_total / report.documents, 2)
+    assert report.citations_per_doc_mean == round(
+        report.citations_total / report.documents, 2
+    )
     assert report.compression_ratio_mean > 0
     assert report.tokens_per_document_mean == 7.5
 

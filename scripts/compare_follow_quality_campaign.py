@@ -60,7 +60,9 @@ def _print_delta(label: str, before: float | None, after: float | None) -> None:
 
 
 def _print_comparison(before: dict[str, Any], after: dict[str, Any]) -> None:
-    print(f"report_count before={before.get('report_count', 'NA')} after={after.get('report_count', 'NA')}")
+    print(
+        f"report_count before={before.get('report_count', 'NA')} after={after.get('report_count', 'NA')}"
+    )
 
     metrics = [
         "average_follow_yield_metrics.follow_target_quality_score",
@@ -99,7 +101,9 @@ def _print_comparison(before: dict[str, Any], after: dict[str, Any]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Compare two follow-quality campaign aggregate outputs.")
+    parser = argparse.ArgumentParser(
+        description="Compare two follow-quality campaign aggregate outputs."
+    )
     parser.add_argument("--before", required=True)
     parser.add_argument("--after", required=True)
     args = parser.parse_args(argv)

@@ -104,7 +104,13 @@ def _build_key(entry: Mapping[str, Any], context: CompilerContext) -> str:
 def _retry_delay_ms(document_ref: str, attempt_no: int) -> int:
     from src.policy.carriers.canonical import canonical_sha256
 
-    jitter = int(canonical_sha256({"document_ref": document_ref, "attempt": attempt_no})[:4], 16) % 37
+    jitter = (
+        int(
+            canonical_sha256({"document_ref": document_ref, "attempt": attempt_no})[:4],
+            16,
+        )
+        % 37
+    )
     return min(1000, 50 * attempt_no + jitter)
 
 
@@ -197,7 +203,11 @@ def _compile_one(
                 sqlstate = getattr(error, "sqlstate", None)
                 retryable = sqlstate in _RETRYABLE_SQLSTATES
                 final_attempt = attempt_no >= maximum_transaction_attempts
-                delay_ms = 0 if final_attempt or not retryable else _retry_delay_ms(document_ref, attempt_no)
+                delay_ms = (
+                    0
+                    if final_attempt or not retryable
+                    else _retry_delay_ms(document_ref, attempt_no)
+                )
                 attempt_refs.append(
                     _persist_attempt(
                         store,
@@ -238,7 +248,13 @@ def _compile_one(
             closure_workers=closure_workers,
             owner_partitions=owner_partitions,
         )
-    except (OSError, UnicodeDecodeError, ValueError, RuntimeError, PostgresError) as error:
+    except (
+        OSError,
+        UnicodeDecodeError,
+        ValueError,
+        RuntimeError,
+        PostgresError,
+    ) as error:
         with store.transaction() as cursor:
             failure_ref = store.persist_failure(
                 cursor,
@@ -354,7 +370,11 @@ def compile_curated_directory_postgres(
     if progress is not None:
         progress.total = len(admitted)
         progress.total_tokens = sum(
-            len(tokenize_canonical_with_spans(prepared_sources[str(entry["relative_path"])][1]))
+            len(
+                tokenize_canonical_with_spans(
+                    prepared_sources[str(entry["relative_path"])][1]
+                )
+            )
             for entry, _ in admitted
         )
 
@@ -397,10 +417,14 @@ def compile_curated_directory_postgres(
                     },
                 )
 
-    ordered = tuple(sorted(outcomes, key=lambda row: (row.document_ref, row.relative_path)))
+    ordered = tuple(
+        sorted(outcomes, key=lambda row: (row.document_ref, row.relative_path))
+    )
     persisted = PersistedCompilation(
         corpus_ref=corpus_ref,
-        document_refs=tuple(sorted(row.document_ref for row in ordered if row.state != "failed")),
+        document_refs=tuple(
+            sorted(row.document_ref for row in ordered if row.state != "failed")
+        ),
         demand_refs=tuple(sorted({ref for row in ordered for ref in row.demand_refs})),
         failure_refs=tuple(
             sorted(row.failure_ref for row in ordered if row.failure_ref is not None)

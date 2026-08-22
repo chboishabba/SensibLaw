@@ -104,7 +104,10 @@ def test_typed_plan_selects_only_matching_role_and_authority() -> None:
 
 def test_blocked_typed_plan_performs_no_follow() -> None:
     result = follow_legal_source_plan(
-        _plan(state="blocked_missing_context", blocked_reasons=("jurisdiction_unresolved",))
+        _plan(
+            state="blocked_missing_context",
+            blocked_reasons=("jurisdiction_unresolved",),
+        )
     )
 
     assert result is None

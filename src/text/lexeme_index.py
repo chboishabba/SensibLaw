@@ -5,7 +5,7 @@ import hashlib
 import logging
 import os
 import re
-from typing import Iterable, Iterator, List, Tuple
+from typing import Iterable, Iterator, List
 
 from src.text.lexeme_normalizer import normalize_lexeme
 from src.text.deterministic_legal_tokenizer import (
@@ -81,7 +81,9 @@ def _iter_spacy_tokens(text: str) -> list[tuple[str, int, int]]:
     try:
         import spacy
     except Exception as exc:  # pragma: no cover - optional dependency path
-        _LOGGER.warning("spaCy unavailable for lexeme tokenization; fallback to regex: %s", exc)
+        _LOGGER.warning(
+            "spaCy unavailable for lexeme tokenization; fallback to regex: %s", exc
+        )
         return list(_iter_regex_tokens(text))
 
     nlp = spacy.blank("en")
@@ -186,7 +188,10 @@ def _canonicalize_legal_reference(token: LexemeToken):
     }
 
     if token.token_type == TokenType.ACT_REFERENCE:
-        return "act_ref", f"act:{compact_identifier(strip_leading_determiner(token.text))}"
+        return (
+            "act_ref",
+            f"act:{compact_identifier(strip_leading_determiner(token.text))}",
+        )
     if token.token_type == TokenType.CASE_REFERENCE:
         return "case_ref", f"case:{compact_identifier(token.text)}"
     if token.token_type == TokenType.COURT_REFERENCE:
@@ -202,13 +207,19 @@ def _canonicalize_legal_reference(token: LexemeToken):
     if token.token_type == TokenType.ARTICLE_REFERENCE:
         return "article_ref", f"art:{compact_identifier(token.text.split(None, 1)[1])}"
     if token.token_type == TokenType.INSTRUMENT_REFERENCE:
-        return "instrument_ref", f"instrument:{compact_identifier(strip_leading_determiner(token.text))}"
+        return (
+            "instrument_ref",
+            f"instrument:{compact_identifier(strip_leading_determiner(token.text))}",
+        )
     if token.token_type == TokenType.SECTION_REFERENCE:
         parts = token.text.split(None, 1)
         tail = parts[1] if len(parts) > 1 else token.text
         return "section_ref", f"sec:{compact_identifier(tail).replace('_', '')}"
     if token.token_type == TokenType.SUBSECTION_REFERENCE:
-        return "subsection_ref", f"subsec:{compact_identifier(strip_parens(token.text))}"
+        return (
+            "subsection_ref",
+            f"subsec:{compact_identifier(strip_parens(token.text))}",
+        )
     if token.token_type == TokenType.PARAGRAPH_REFERENCE:
         return "paragraph_ref", f"para:{compact_identifier(strip_parens(token.text))}"
     if token.token_type == TokenType.PART_REFERENCE:
@@ -234,10 +245,14 @@ def get_tokenizer_profile() -> dict[str, str]:
     shadow_mode = _LEXEME_TOKENIZER_SHADOW
     shadow_id = None
     if shadow_mode:
-        shadow_id = "spacy_lexeme_v1" if token_id != "spacy_lexeme_v1" else _REGEX_TOKENIZER_ID
+        shadow_id = (
+            "spacy_lexeme_v1" if token_id != "spacy_lexeme_v1" else _REGEX_TOKENIZER_ID
+        )
     global _WARNED_LEGACY
     if canonical_mode == "legacy_regex" and not _WARNED_LEGACY:
-        _LOGGER.warning("ITIR_LEXEME_TOKENIZER_MODE=legacy_regex set; legacy path should be rollback-only.")
+        _LOGGER.warning(
+            "ITIR_LEXEME_TOKENIZER_MODE=legacy_regex set; legacy path should be rollback-only."
+        )
         _WARNED_LEGACY = True
 
     return {
@@ -249,8 +264,12 @@ def get_tokenizer_profile() -> dict[str, str]:
     }
 
 
-def _compare_profiles(base: list[tuple[str, int, int]], candidate: list[tuple[str, int, int]]) -> int:
-    return sum(1 for b, c in zip(base, candidate) if b != c) + abs(len(base) - len(candidate))
+def _compare_profiles(
+    base: list[tuple[str, int, int]], candidate: list[tuple[str, int, int]]
+) -> int:
+    return sum(1 for b, c in zip(base, candidate) if b != c) + abs(
+        len(base) - len(candidate)
+    )
 
 
 def iter_lexeme_occurrences(
@@ -287,11 +306,15 @@ def collect_lexeme_occurrences_with_profile(
     enable_shadow: bool | None = None,
 ) -> tuple[List[LexemeOccurrence], LexemeTokenizerProfile]:
     canonical_mode = _normalize_tokenizer_mode(canonical_mode or _LEXEME_TOKENIZER_MODE)
-    shadow_mode = _LEXEME_TOKENIZER_SHADOW if enable_shadow is None else bool(enable_shadow)
+    shadow_mode = (
+        _LEXEME_TOKENIZER_SHADOW if enable_shadow is None else bool(enable_shadow)
+    )
 
     canonical_id, canonical_version = _tokenizer_profile_from_mode(canonical_mode)
     canonical_spans = _collect_token_spans(text, canonical_mode)
-    canonical_detailed = tokenize_detailed(text) if canonical_mode == "deterministic_legal" else None
+    canonical_detailed = (
+        tokenize_detailed(text) if canonical_mode == "deterministic_legal" else None
+    )
 
     shadow_tokenizer_id = None
     mismatch_count = 0

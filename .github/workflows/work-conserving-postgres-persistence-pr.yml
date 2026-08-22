@@ -4,13 +4,28 @@ on:
   pull_request:
     paths:
       - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
+      - "database/postgres_migrations/138_drop_unused_persistence_stage_document_index.sql"
       - "src/storage/postgres/work_conserving_*.py"
+      - "src/storage/postgres/pipelined_document_cursor.py"
+      - "src/storage/postgres/reusable_persistence_connections.py"
+      - "src/storage/postgres/stage_copy_codec.py"
+      - "src/storage/postgres/verified_candidate_link_cache.py"
+      - "src/storage/postgres/manifest_metadata_hot_path.py"
+      - "src/storage/postgres/annotation_metadata_hot_path.py"
+      - "src/policy/carrier_orchestration_hot_path.py"
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
+      - "src/policy/manifest_stream_validation.py"
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_token_identity.py"
+      - "tests/test_persistence_hot_path_execution.py"
+      - "tests/test_persistence_stage_cleanup_contract.py"
+      - "tests/test_persistence_superbatch_execution.py"
+      - "tests/test_verified_candidate_link_cache.py"
+      - "tests/test_manifest_metadata_hot_path.py"
+      - "tests/policy/test_carrier_orchestration_hot_path.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -19,13 +34,28 @@ on:
       - "agent/repair-corpus-progress-stage-lifecycle"
     paths:
       - "database/postgres_migrations/061_work_conserving_document_persistence.sql"
+      - "database/postgres_migrations/138_drop_unused_persistence_stage_document_index.sql"
       - "src/storage/postgres/work_conserving_*.py"
+      - "src/storage/postgres/pipelined_document_cursor.py"
+      - "src/storage/postgres/reusable_persistence_connections.py"
+      - "src/storage/postgres/stage_copy_codec.py"
+      - "src/storage/postgres/verified_candidate_link_cache.py"
+      - "src/storage/postgres/manifest_metadata_hot_path.py"
+      - "src/storage/postgres/annotation_metadata_hot_path.py"
+      - "src/policy/carrier_orchestration_hot_path.py"
       - "src/policy/work_conserving_postgres_corpus_compilation.py"
       - "src/policy/work_conserving_ordered_compilation.py"
+      - "src/policy/manifest_stream_validation.py"
       - "scripts/run_complete_tranche_ordered.py"
       - "scripts/watch_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_persistence.py"
       - "tests/storage/test_work_conserving_token_identity.py"
+      - "tests/test_persistence_hot_path_execution.py"
+      - "tests/test_persistence_stage_cleanup_contract.py"
+      - "tests/test_persistence_superbatch_execution.py"
+      - "tests/test_verified_candidate_link_cache.py"
+      - "tests/test_manifest_metadata_hot_path.py"
+      - "tests/policy/test_carrier_orchestration_hot_path.py"
       - "tests/policy/test_work_conserving_ordered_compilation.py"
       - "docs/architecture/WORK_CONSERVING_POSTGRES_PERSISTENCE.md"
       - ".github/workflows/work-conserving-postgres-persistence-pr.yml"
@@ -62,42 +92,78 @@ jobs:
           enable-cache: true
 
       - name: Install
-        run: uv sync --frozen
+        run: uv sync --frozen --extra test --extra dev
 
       - name: Compile
         run: |
           uv run python -m py_compile \
             src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_stage_hot_path.py \
             src/storage/postgres/work_conserving_copy_observability.py \
+            src/storage/postgres/work_conserving_graph_batching.py \
+            src/storage/postgres/work_conserving_resolution_batching.py \
+            src/storage/postgres/work_conserving_binding_batching.py \
+            src/storage/postgres/pipelined_document_cursor.py \
+            src/storage/postgres/reusable_persistence_connections.py \
+            src/storage/postgres/stage_copy_codec.py \
+            src/storage/postgres/verified_candidate_link_cache.py \
+            src/storage/postgres/manifest_metadata_hot_path.py \
+            src/storage/postgres/annotation_metadata_hot_path.py \
             src/storage/postgres/work_conserving_graph_persistence.py \
             src/storage/postgres/work_conserving_language_persistence.py \
             src/storage/postgres/work_conserving_resolution_persistence.py \
             src/storage/postgres/work_conserving_binding_persistence.py \
             src/storage/postgres/work_conserving_persistence.py \
+            src/policy/carrier_orchestration_hot_path.py \
+            src/policy/manifest_stream_validation.py \
             src/policy/work_conserving_postgres_corpus_compilation.py \
             src/policy/work_conserving_ordered_compilation.py \
             scripts/run_complete_tranche_ordered.py \
             scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
             tests/storage/test_work_conserving_token_identity.py \
+            tests/test_persistence_hot_path_execution.py \
+            tests/test_persistence_stage_cleanup_contract.py \
+            tests/test_persistence_superbatch_execution.py \
+            tests/test_verified_candidate_link_cache.py \
+            tests/test_manifest_metadata_hot_path.py \
+            tests/policy/test_carrier_orchestration_hot_path.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Ruff
         run: |
           uv run ruff check \
             src/storage/postgres/work_conserving_stage.py \
+            src/storage/postgres/work_conserving_stage_hot_path.py \
             src/storage/postgres/work_conserving_copy_observability.py \
+            src/storage/postgres/work_conserving_graph_batching.py \
+            src/storage/postgres/work_conserving_resolution_batching.py \
+            src/storage/postgres/work_conserving_binding_batching.py \
+            src/storage/postgres/pipelined_document_cursor.py \
+            src/storage/postgres/reusable_persistence_connections.py \
+            src/storage/postgres/stage_copy_codec.py \
+            src/storage/postgres/verified_candidate_link_cache.py \
+            src/storage/postgres/manifest_metadata_hot_path.py \
+            src/storage/postgres/annotation_metadata_hot_path.py \
             src/storage/postgres/work_conserving_graph_persistence.py \
             src/storage/postgres/work_conserving_language_persistence.py \
             src/storage/postgres/work_conserving_resolution_persistence.py \
             src/storage/postgres/work_conserving_binding_persistence.py \
             src/storage/postgres/work_conserving_persistence.py \
+            src/policy/carrier_orchestration_hot_path.py \
+            src/policy/manifest_stream_validation.py \
             src/policy/work_conserving_postgres_corpus_compilation.py \
             src/policy/work_conserving_ordered_compilation.py \
             scripts/run_complete_tranche_ordered.py \
             scripts/watch_work_conserving_persistence.py \
             tests/storage/test_work_conserving_persistence.py \
             tests/storage/test_work_conserving_token_identity.py \
+            tests/test_persistence_hot_path_execution.py \
+            tests/test_persistence_stage_cleanup_contract.py \
+            tests/test_persistence_superbatch_execution.py \
+            tests/test_verified_candidate_link_cache.py \
+            tests/test_manifest_metadata_hot_path.py \
+            tests/policy/test_carrier_orchestration_hot_path.py \
             tests/policy/test_work_conserving_ordered_compilation.py
 
       - name: Apply migrations
@@ -108,4 +174,10 @@ jobs:
           uv run pytest -q \
             tests/storage/test_work_conserving_persistence.py \
             tests/storage/test_work_conserving_token_identity.py \
+            tests/test_persistence_hot_path_execution.py \
+            tests/test_persistence_stage_cleanup_contract.py \
+            tests/test_persistence_superbatch_execution.py \
+            tests/test_verified_candidate_link_cache.py \
+            tests/test_manifest_metadata_hot_path.py \
+            tests/policy/test_carrier_orchestration_hot_path.py \
             tests/policy/test_work_conserving_ordered_compilation.py

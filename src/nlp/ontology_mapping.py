@@ -61,7 +61,9 @@ def canonical_action_morphology(
     Returns canonical enum values only (never raw spaCy values).
     """
     if token is None:
-        return unknown_action_morphology(surface=surface, source=source, modality_hint=modality_hint)
+        return unknown_action_morphology(
+            surface=surface, source=source, modality_hint=modality_hint
+        )
 
     verb_form_raw = _morph_values(token, "VerbForm")
     tense_raw = _morph_values(token, "Tense")

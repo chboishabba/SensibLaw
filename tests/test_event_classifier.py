@@ -15,7 +15,15 @@ class _FakeMorph:
 
 
 class _FakeToken:
-    def __init__(self, text: str, lemma: str, pos: str, dep: str = "", idx: int = 0, verb_form: str = ""):
+    def __init__(
+        self,
+        text: str,
+        lemma: str,
+        pos: str,
+        dep: str = "",
+        idx: int = 0,
+        verb_form: str = "",
+    ):
         self.text = text
         self.lemma_ = lemma
         self.pos_ = pos
@@ -51,7 +59,9 @@ def test_event_classifier_prefers_verb_draw_over_nominal_death() -> None:
 
 
 def test_event_classifier_disambiguates_commission_into() -> None:
-    commission = _FakeToken("commissioned", "commission", "VERB", dep="ROOT", idx=8, verb_form="Fin")
+    commission = _FakeToken(
+        "commissioned", "commission", "VERB", dep="ROOT", idx=8, verb_form="Fin"
+    )
     into = _FakeToken("into", "into", "ADP", dep="prep", idx=20)
     commission.children = [into]
     doc = _FakeDoc([commission, into])
@@ -68,7 +78,9 @@ def test_event_classifier_disambiguates_commission_into() -> None:
 
 def test_event_classifier_falls_back_to_synset_mapping_when_lemma_unmapped() -> None:
     # "perish" not in lemma map, but synset map can supply a canonical action.
-    perish = _FakeToken("perished", "perish", "VERB", dep="ROOT", idx=0, verb_form="Fin")
+    perish = _FakeToken(
+        "perished", "perish", "VERB", dep="ROOT", idx=0, verb_form="Fin"
+    )
     doc = _FakeDoc([perish])
 
     mapper = DeterministicSynsetActionMapper(
@@ -85,7 +97,9 @@ def test_event_classifier_falls_back_to_synset_mapping_when_lemma_unmapped() -> 
 
 
 def test_event_classifier_abstains_on_multi_action_synset_ambiguity() -> None:
-    perish = _FakeToken("perished", "perish", "VERB", dep="ROOT", idx=0, verb_form="Fin")
+    perish = _FakeToken(
+        "perished", "perish", "VERB", dep="ROOT", idx=0, verb_form="Fin"
+    )
     doc = _FakeDoc([perish])
 
     mapper = DeterministicSynsetActionMapper(
@@ -95,6 +109,8 @@ def test_event_classifier_abstains_on_multi_action_synset_ambiguity() -> None:
         synset_action_map={"bn:a": "died", "bn:b": "entered"},
         babelnet_lemma_synsets={"perish": ["bn:a", "bn:b"]},
     )
-    classifier = EventClassifier({"died": ("die",), "entered": ("enter",)}, synset_mapper=mapper)
+    classifier = EventClassifier(
+        {"died": ("die",), "entered": ("enter",)}, synset_mapper=mapper
+    )
     match = classifier.classify_from_doc(doc)
     assert match is None

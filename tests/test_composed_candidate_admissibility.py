@@ -4,7 +4,10 @@ from dataclasses import dataclass
 
 import pytest
 
-from src.composed_candidate_admissibility import evaluate_composed_candidate_admissibility, gate_composed_candidate_node
+from src.composed_candidate_admissibility import (
+    evaluate_composed_candidate_admissibility,
+    gate_composed_candidate_node,
+)
 
 
 @dataclass
@@ -53,7 +56,9 @@ def _complete_candidate_payload() -> dict:
 
 
 def test_gate_promotes_when_all_checks_are_explicit_and_consistent() -> None:
-    result = evaluate_composed_candidate_admissibility(_CandidateStub(_complete_candidate_payload()))
+    result = evaluate_composed_candidate_admissibility(
+        _CandidateStub(_complete_candidate_payload())
+    )
 
     assert result["decision"] == "promote"
     assert result["reasons"] == []
@@ -85,9 +90,16 @@ def test_gate_audits_when_compatibility_and_constraint_witnesses_are_missing() -
     ("mutator", "expected_reason"),
     [
         (lambda payload: payload["provenance_receipts"].pop(), "provenance_incomplete"),
-        (lambda payload: payload["authority_wrapper"].update({"claimed_kind": "event"}), "wrapper_kind_mismatch"),
         (
-            lambda payload: payload["slots"]["object"].update({"content_refs": ["cr:missing"]}),
+            lambda payload: payload["authority_wrapper"].update(
+                {"claimed_kind": "event"}
+            ),
+            "wrapper_kind_mismatch",
+        ),
+        (
+            lambda payload: payload["slots"]["object"].update(
+                {"content_refs": ["cr:missing"]}
+            ),
             "slot_content_mismatch:object",
         ),
         (

@@ -108,15 +108,12 @@ def _stable_observation_id(
     step_index: int | None = None,
     anchor_status: str | None = None,
 ) -> str:
-    return (
-        "obs:"
-        + _stable_digest(
-            event_id,
-            predicate,
-            object_text or "",
-            step_index if step_index is not None else "",
-            anchor_status or "",
-        )
+    return "obs:" + _stable_digest(
+        event_id,
+        predicate,
+        object_text or "",
+        step_index if step_index is not None else "",
+        anchor_status or "",
     )
 
 
@@ -134,43 +131,64 @@ def coalesce_snapshot(
         return dict(snapshot)
     if isinstance(payload, Mapping):
         source_timeline = payload.get("source_timeline")
-        if isinstance(source_timeline, Mapping) and isinstance(source_timeline.get("snapshot"), Mapping):
+        if isinstance(source_timeline, Mapping) and isinstance(
+            source_timeline.get("snapshot"), Mapping
+        ):
             return dict(source_timeline["snapshot"])
         source_snapshot = payload.get("snapshot")
         if isinstance(source_snapshot, Mapping):
             return dict(source_snapshot)
         article = payload.get("article")
         source_text = payload.get("source_text")
-        if payload.get("schema_version") == STATE_SCHEMA_VERSION and isinstance(article, Mapping):
+        if payload.get("schema_version") == STATE_SCHEMA_VERSION and isinstance(
+            article, Mapping
+        ):
             out = dict(article)
-            if isinstance(source_text, Mapping) and isinstance(source_text.get("wikitext"), str):
+            if isinstance(source_text, Mapping) and isinstance(
+                source_text.get("wikitext"), str
+            ):
                 out["wikitext"] = source_text.get("wikitext")
             return out
     return {}
 
 
-def _article_identity(snapshot: Mapping[str, Any], payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    source_entity = payload.get("source_entity") if isinstance(payload, Mapping) else None
+def _article_identity(
+    snapshot: Mapping[str, Any], payload: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    source_entity = (
+        payload.get("source_entity") if isinstance(payload, Mapping) else None
+    )
     return {
-        "wiki": snapshot.get("wiki") or (source_entity.get("wiki") if isinstance(source_entity, Mapping) else None),
-        "title": snapshot.get("title") or (source_entity.get("title") if isinstance(source_entity, Mapping) else None),
+        "wiki": snapshot.get("wiki")
+        or (source_entity.get("wiki") if isinstance(source_entity, Mapping) else None),
+        "title": snapshot.get("title")
+        or (source_entity.get("title") if isinstance(source_entity, Mapping) else None),
         "pageid": snapshot.get("pageid"),
         "revid": snapshot.get("revid"),
         "rev_timestamp": snapshot.get("rev_timestamp"),
-        "source_url": snapshot.get("source_url") or (source_entity.get("url") if isinstance(source_entity, Mapping) else None),
+        "source_url": snapshot.get("source_url")
+        or (source_entity.get("url") if isinstance(source_entity, Mapping) else None),
         "fetched_at": snapshot.get("fetched_at"),
     }
 
 
 def _normalize_actor(actor: Any) -> str | None:
     if isinstance(actor, Mapping):
-        return _safe_str(actor.get("resolved")) or _safe_str(actor.get("label")) or _safe_str(actor.get("text"))
+        return (
+            _safe_str(actor.get("resolved"))
+            or _safe_str(actor.get("label"))
+            or _safe_str(actor.get("text"))
+        )
     return _safe_str(actor)
 
 
 def _normalize_object(obj: Any) -> str | None:
     if isinstance(obj, Mapping):
-        return _safe_str(obj.get("title")) or _safe_str(obj.get("text")) or _safe_str(obj.get("label"))
+        return (
+            _safe_str(obj.get("title"))
+            or _safe_str(obj.get("text"))
+            or _safe_str(obj.get("label"))
+        )
     return _safe_str(obj)
 
 
@@ -214,7 +232,12 @@ def _derive_regime_vector(
 
         if _contains_any(text, _REGIME_NARRATIVE_MARKERS):
             narrative += 0.5
-        if _contains_any(text, _REGIME_DESCRIPTIVE_MARKERS) or ":" in text or text.count(",") >= 4 or ";" in text:
+        if (
+            _contains_any(text, _REGIME_DESCRIPTIVE_MARKERS)
+            or ":" in text
+            or text.count(",") >= 4
+            or ";" in text
+        ):
             descriptive += 1.0
         if _contains_any(text, _REGIME_FORMAL_MARKERS):
             formal += 1.5
@@ -289,7 +312,11 @@ def _collect_sentence_anchor_candidates(
     if anchor:
         anchors.append(anchor)
 
-    if not anchors and section_anchor is not None and not section_heading_emitted.get(section, False):
+    if (
+        not anchors
+        and section_anchor is not None
+        and not section_heading_emitted.get(section, False)
+    ):
         if sentence_index == 0:
             anchors.append(dict(section_anchor))
             section_heading_emitted[section] = True
@@ -322,10 +349,14 @@ def _collect_sentence_anchor_candidates(
         sentence,
         [timeline_extract.DateAnchor(**anchor) for anchor in deduped],
     )
-    return _dedupe_anchors(_anchor_json(anchor) for anchor in adjusted if _anchor_json(anchor))
+    return _dedupe_anchors(
+        _anchor_json(anchor) for anchor in adjusted if _anchor_json(anchor)
+    )
 
 
-def _iter_sentence_units(wikitext: str, *, max_sentences: int) -> Iterable[dict[str, Any]]:
+def _iter_sentence_units(
+    wikitext: str, *, max_sentences: int
+) -> Iterable[dict[str, Any]]:
     section_heading_emitted: dict[str, bool] = {}
     seen_sentence_keys: dict[str, int] = defaultdict(int)
     order_index = 0
@@ -356,7 +387,9 @@ def _iter_sentence_units(wikitext: str, *, max_sentences: int) -> Iterable[dict[
                 section_anchor=section_anchor,
                 section_heading_emitted=section_heading_emitted,
             )
-            primary_anchor = max(anchor_candidates, key=_anchor_rank) if anchor_candidates else None
+            primary_anchor = (
+                max(anchor_candidates, key=_anchor_rank) if anchor_candidates else None
+            )
             yield {
                 "unit_id": unit_id,
                 "event_id": unit_id,
@@ -462,12 +495,20 @@ def _extract_event_candidates(
         else:
             anchor = None
         if isinstance(unit, Mapping):
-            anchor_candidates = [dict(item) for item in unit.get("anchor_candidates") or [] if isinstance(item, Mapping)]
+            anchor_candidates = [
+                dict(item)
+                for item in unit.get("anchor_candidates") or []
+                if isinstance(item, Mapping)
+            ]
             order_index = int(unit.get("order_index") or index)
             sentence_unit_id = str(unit.get("unit_id") or event_id)
             ordering_basis = str(unit.get("ordering_basis") or "source_text_order")
         else:
-            anchor_candidates = [dict(item) for item in event.get("anchor_candidates") or [] if isinstance(item, Mapping)]
+            anchor_candidates = [
+                dict(item)
+                for item in event.get("anchor_candidates") or []
+                if isinstance(item, Mapping)
+            ]
             order_index = index
             sentence_unit_id = event_id
             ordering_basis = "source_text_order"
@@ -516,12 +557,16 @@ def _observation_record(
     }
 
 
-def build_observations_from_event_candidates(event_candidates: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def build_observations_from_event_candidates(
+    event_candidates: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     observations: list[dict[str, Any]] = []
     for event in event_candidates:
         if not isinstance(event, Mapping):
             continue
-        sentence_unit_id = str(event.get("sentence_unit_id") or event.get("event_id") or "")
+        sentence_unit_id = str(
+            event.get("sentence_unit_id") or event.get("event_id") or ""
+        )
         source_text = str(event.get("text") or "")
         for actor in event.get("actors") or []:
             value = _normalize_actor(actor)
@@ -546,7 +591,12 @@ def build_observations_from_event_candidates(event_candidates: Iterable[Mapping[
                     source_text=source_text,
                 )
             )
-        for field in ("objects", "entity_objects", "modifier_objects", "numeric_objects"):
+        for field in (
+            "objects",
+            "entity_objects",
+            "modifier_objects",
+            "numeric_objects",
+        ):
             for obj in event.get(field) or []:
                 value = _normalize_object(obj)
                 if value:
@@ -564,7 +614,8 @@ def build_observations_from_event_candidates(event_candidates: Iterable[Mapping[
                 _observation_record(
                     event=event,
                     predicate="claimed",
-                    object_text=_safe_str(event.get("text")) or _safe_str(event.get("action")),
+                    object_text=_safe_str(event.get("text"))
+                    or _safe_str(event.get("action")),
                     sentence_unit_id=sentence_unit_id,
                     source_text=source_text,
                 )
@@ -572,7 +623,9 @@ def build_observations_from_event_candidates(event_candidates: Iterable[Mapping[
         for attr_index, attr in enumerate(event.get("attributions") or []):
             if not isinstance(attr, Mapping):
                 continue
-            object_text = _safe_str(attr.get("attribution_type")) or _safe_str(attr.get("attributed_actor_id"))
+            object_text = _safe_str(attr.get("attribution_type")) or _safe_str(
+                attr.get("attributed_actor_id")
+            )
             if object_text:
                 observations.append(
                     _observation_record(
@@ -581,7 +634,9 @@ def build_observations_from_event_candidates(event_candidates: Iterable[Mapping[
                         object_text=object_text,
                         sentence_unit_id=sentence_unit_id,
                         source_text=source_text,
-                        step_index=int(attr.get("step_index")) if isinstance(attr.get("step_index"), int) else attr_index,
+                        step_index=int(attr.get("step_index"))
+                        if isinstance(attr.get("step_index"), int)
+                        else attr_index,
                     )
                 )
         anchor = event.get("anchor")
@@ -608,26 +663,42 @@ def build_observations_from_event_candidates(event_candidates: Iterable[Mapping[
     return observations
 
 
-def build_timeline_projection(event_candidates: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def build_timeline_projection(
+    event_candidates: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     ordered = sorted(
         [dict(event) for event in event_candidates if isinstance(event, Mapping)],
-        key=lambda event: (int(event.get("order_index") or 0), str(event.get("event_id") or "")),
+        key=lambda event: (
+            int(event.get("order_index") or 0),
+            str(event.get("event_id") or ""),
+        ),
     )
     return [
         {
             "event_id": str(event.get("event_id") or ""),
-            "sentence_unit_id": str(event.get("sentence_unit_id") or event.get("event_id") or ""),
+            "sentence_unit_id": str(
+                event.get("sentence_unit_id") or event.get("event_id") or ""
+            ),
             "order_index": int(event.get("order_index") or 0),
             "ordering_basis": str(event.get("ordering_basis") or "source_text_order"),
             "anchor_status": str(event.get("anchor_status") or "none"),
-            "anchor": dict(event.get("anchor")) if isinstance(event.get("anchor"), Mapping) else None,
+            "anchor": dict(event.get("anchor"))
+            if isinstance(event.get("anchor"), Mapping)
+            else None,
             "action": _safe_str(event.get("action")),
             "claim_bearing": bool(event.get("claim_bearing")),
             "text": str(event.get("text") or ""),
-            "actor_count": len(event.get("actors") or []) if isinstance(event.get("actors"), list) else 0,
+            "actor_count": len(event.get("actors") or [])
+            if isinstance(event.get("actors"), list)
+            else 0,
             "object_count": sum(
                 len(event.get(field) or [])
-                for field in ("objects", "entity_objects", "modifier_objects", "numeric_objects")
+                for field in (
+                    "objects",
+                    "entity_objects",
+                    "modifier_objects",
+                    "numeric_objects",
+                )
                 if isinstance(event.get(field), list)
             ),
         }
@@ -642,27 +713,41 @@ def build_wiki_article_state(
     max_events: int | None = None,
     no_spacy: bool = False,
 ) -> dict[str, Any]:
-    article_surface = build_article_sentence_surface(snapshot, max_sentences=max_sentences)
-    sentence_units = [dict(row) for row in article_surface.get("events") or [] if isinstance(row, Mapping)]
+    article_surface = build_article_sentence_surface(
+        snapshot, max_sentences=max_sentences
+    )
+    sentence_units = [
+        dict(row)
+        for row in article_surface.get("events") or []
+        if isinstance(row, Mapping)
+    ]
     aoo_payload = _run_aoo_surface(
         article_surface,
         max_events=max_events if max_events is not None else max_sentences,
         no_spacy=no_spacy,
     )
-    event_candidates = _extract_event_candidates(aoo_payload, sentence_units=sentence_units)
+    event_candidates = _extract_event_candidates(
+        aoo_payload, sentence_units=sentence_units
+    )
     observations = build_observations_from_event_candidates(event_candidates)
     timeline_projection = build_timeline_projection(event_candidates)
     article = _article_identity(snapshot, aoo_payload)
     wikitext = str(snapshot.get("wikitext") or "")
-    anchor_counter = Counter(str(row.get("anchor_status") or "none") for row in timeline_projection)
-    regime = _derive_regime_vector(sentence_units=sentence_units, event_candidates=event_candidates)
+    anchor_counter = Counter(
+        str(row.get("anchor_status") or "none") for row in timeline_projection
+    )
+    regime = _derive_regime_vector(
+        sentence_units=sentence_units, event_candidates=event_candidates
+    )
     return {
         "schema_version": STATE_SCHEMA_VERSION,
         "generated_at": _utc_now_iso(),
         "article": article,
         "source_text": {
             "wikitext": wikitext,
-            "wikitext_hash": hashlib.sha1(wikitext.encode("utf-8")).hexdigest() if wikitext else None,
+            "wikitext_hash": hashlib.sha1(wikitext.encode("utf-8")).hexdigest()
+            if wikitext
+            else None,
             "wikitext_length": len(wikitext),
         },
         "sentence_units": sentence_units,
@@ -690,7 +775,11 @@ def _state_from_event_payload(
 ) -> dict[str, Any]:
     article = _article_identity(snapshot or {}, payload)
     events = payload.get("events")
-    raw_events = [dict(event) for event in events if isinstance(event, Mapping)] if isinstance(events, list) else []
+    raw_events = (
+        [dict(event) for event in events if isinstance(event, Mapping)]
+        if isinstance(events, list)
+        else []
+    )
     sentence_units: list[dict[str, Any]] = []
     for index, event in enumerate(raw_events, start=1):
         event_id = _safe_str(event.get("event_id")) or f"event:{index:04d}"
@@ -703,9 +792,19 @@ def _state_from_event_payload(
                 "text": str(event.get("text") or ""),
                 "links": list(event.get("links") or []),
                 "links_para": list(event.get("links_para") or []),
-                "anchor": dict(event.get("anchor")) if isinstance(event.get("anchor"), Mapping) else None,
-                "anchor_candidates": [dict(item) for item in event.get("anchor_candidates") or [] if isinstance(item, Mapping)],
-                "anchor_status": _anchor_status_from_anchor(event.get("anchor") if isinstance(event.get("anchor"), Mapping) else None),
+                "anchor": dict(event.get("anchor"))
+                if isinstance(event.get("anchor"), Mapping)
+                else None,
+                "anchor_candidates": [
+                    dict(item)
+                    for item in event.get("anchor_candidates") or []
+                    if isinstance(item, Mapping)
+                ],
+                "anchor_status": _anchor_status_from_anchor(
+                    event.get("anchor")
+                    if isinstance(event.get("anchor"), Mapping)
+                    else None
+                ),
                 "ordering_basis": "source_text_order",
                 "lane": str(event.get("lane") or "event_payload"),
             }
@@ -713,20 +812,30 @@ def _state_from_event_payload(
     event_candidates = _extract_event_candidates(payload, sentence_units=sentence_units)
     observations = build_observations_from_event_candidates(event_candidates)
     timeline_projection = build_timeline_projection(event_candidates)
-    source_text = str(snapshot.get("wikitext") or "") if isinstance(snapshot, Mapping) else ""
+    source_text = (
+        str(snapshot.get("wikitext") or "") if isinstance(snapshot, Mapping) else ""
+    )
     if not source_text:
         source_text = "\n".join(
-            str(event.get("text") or "") for event in raw_events if str(event.get("text") or "").strip()
+            str(event.get("text") or "")
+            for event in raw_events
+            if str(event.get("text") or "").strip()
         )
-    anchor_counter = Counter(str(row.get("anchor_status") or "none") for row in timeline_projection)
-    regime = _derive_regime_vector(sentence_units=sentence_units, event_candidates=event_candidates)
+    anchor_counter = Counter(
+        str(row.get("anchor_status") or "none") for row in timeline_projection
+    )
+    regime = _derive_regime_vector(
+        sentence_units=sentence_units, event_candidates=event_candidates
+    )
     return {
         "schema_version": STATE_SCHEMA_VERSION,
         "generated_at": _utc_now_iso(),
         "article": article,
         "source_text": {
             "wikitext": source_text,
-            "wikitext_hash": hashlib.sha1(source_text.encode("utf-8")).hexdigest() if source_text else None,
+            "wikitext_hash": hashlib.sha1(source_text.encode("utf-8")).hexdigest()
+            if source_text
+            else None,
             "wikitext_length": len(source_text),
         },
         "sentence_units": sentence_units,
@@ -752,7 +861,10 @@ def coerce_wiki_article_state(
     snapshot: Mapping[str, Any] | None = None,
     payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if isinstance(payload, Mapping) and payload.get("schema_version") == STATE_SCHEMA_VERSION:
+    if (
+        isinstance(payload, Mapping)
+        and payload.get("schema_version") == STATE_SCHEMA_VERSION
+    ):
         return dict(payload)
     snapshot_obj = coalesce_snapshot(snapshot, payload)
     if isinstance(payload, Mapping) and isinstance(payload.get("events"), list):

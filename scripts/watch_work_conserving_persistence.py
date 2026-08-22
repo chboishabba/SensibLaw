@@ -101,9 +101,7 @@ def _parser() -> argparse.ArgumentParser:
         default=1.0,
         help="Sampling interval in seconds (default: 1.0)",
     )
-    parser.add_argument(
-        "--once", action="store_true", help="Print one sample and exit"
-    )
+    parser.add_argument("--once", action="store_true", help="Print one sample and exit")
     parser.add_argument(
         "--no-clear",
         action="store_true",
@@ -127,9 +125,7 @@ def main() -> int:
             now = monotonic()
             rows = _fetch_active(connection)
             pids = {
-                int(row[8])
-                for row in rows
-                if row[8] is not None and int(row[8]) > 0
+                int(row[8]) for row in rows if row[8] is not None and int(row[8]) > 0
             }
             cpu_by_pid: dict[int, float | None] = {}
             for pid in sorted(pids):
@@ -140,16 +136,11 @@ def main() -> int:
                 else:
                     elapsed = now - prior[0]
                     cpu_by_pid[pid] = (
-                        100.0
-                        * (ticks - prior[1])
-                        / ticks_per_second
-                        / elapsed
+                        100.0 * (ticks - prior[1]) / ticks_per_second / elapsed
                     )
                 if ticks is not None:
                     previous[pid] = (now, ticks)
-            previous = {
-                pid: sample for pid, sample in previous.items() if pid in pids
-            }
+            previous = {pid: sample for pid, sample in previous.items() if pid in pids}
 
             if not args.no_clear and not args.once:
                 print("\033[2J\033[H", end="")
@@ -157,9 +148,7 @@ def main() -> int:
                 "Work-conserving PostgreSQL persistence — "
                 + datetime.now().astimezone().isoformat(timespec="seconds")
             )
-            aggregate = sum(
-                value for value in cpu_by_pid.values() if value is not None
-            )
+            aggregate = sum(value for value in cpu_by_pid.values() if value is not None)
             measured = sum(value is not None for value in cpu_by_pid.values())
             capacity = max(1, os.cpu_count() or 1) * 100.0
             print(
@@ -184,9 +173,7 @@ def main() -> int:
                     count = int(row[9] or 0)
                     byte_count = _human_bytes(int(row[10] or 0))
                     pg_state = str(row[12] or "detached")
-                    wait = "/".join(
-                        str(value) for value in row[13:15] if value
-                    )
+                    wait = "/".join(str(value) for value in row[13:15] if value)
                     state_wait = pg_state if not wait else f"{pg_state}:{wait}"
                     print(
                         f"{family[:14]:14}/{lane[:8]:8} "

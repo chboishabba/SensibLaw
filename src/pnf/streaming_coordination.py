@@ -122,9 +122,7 @@ class StaleReceiptRecord:
             "job_ref": self.job_ref,
             "stale_input_refs": list(_refs(self.stale_input_refs)),
             "replacement_job_ref": self.replacement_job_ref,
-            "supersession_notice_refs": list(
-                _refs(self.supersession_notice_refs)
-            ),
+            "supersession_notice_refs": list(_refs(self.supersession_notice_refs)),
             "proposal_outputs_admitted": False,
         }
         if include_ref:
@@ -142,14 +140,17 @@ class BackpressurePolicy:
     release_batch_size: int = 8
 
     def __post_init__(self) -> None:
-        if min(
-            self.max_pending_jobs,
-            self.max_in_flight_jobs,
-            self.max_dirty_groups,
-            self.max_branching_mass,
-            self.max_deferred_deltas,
-            self.release_batch_size,
-        ) < 1:
+        if (
+            min(
+                self.max_pending_jobs,
+                self.max_in_flight_jobs,
+                self.max_dirty_groups,
+                self.max_branching_mass,
+                self.max_deferred_deltas,
+                self.release_batch_size,
+            )
+            < 1
+        ):
             raise ValueError("backpressure limits must be positive")
 
     def to_dict(self) -> dict[str, int]:
@@ -272,7 +273,10 @@ class CoordinatedStreamingSemanticOwner(StreamingSemanticOwner):
             return result
         snapshot = self.backpressure_snapshot()
         if snapshot.paused:
-            if len(self._deferred_deltas) >= self.backpressure_policy.max_deferred_deltas:
+            if (
+                len(self._deferred_deltas)
+                >= self.backpressure_policy.max_deferred_deltas
+            ):
                 raise BackpressureCapacityError(
                     "semantic owner inbox is full; upstream parser must pause and retry"
                 )
@@ -442,8 +446,7 @@ class CoordinatedStreamingSemanticOwner(StreamingSemanticOwner):
             sorted(
                 notice.notice_ref
                 for notice in self._supersessions.values()
-                if set(old for old, _new in notice.replacement_pairs)
-                & set(stale_refs)
+                if set(old for old, _new in notice.replacement_pairs) & set(stale_refs)
             )
         )
         record = StaleReceiptRecord(
@@ -495,9 +498,7 @@ class CoordinatedStreamingSemanticOwner(StreamingSemanticOwner):
             after_factors = {row.factor_ref for row in reduction.factors}
             changed_factors.update(before_factors.symmetric_difference(after_factors))
             before_residuals = (
-                {row.residual_ref for row in before.residuals}
-                if before
-                else set()
+                {row.residual_ref for row in before.residuals} if before else set()
             )
             after_residuals = {row.residual_ref for row in reduction.residuals}
             introduced.update(after_residuals - before_residuals)
@@ -566,20 +567,15 @@ class CoordinatedStreamingSemanticOwner(StreamingSemanticOwner):
                 for key in sorted(self._supersessions)
             ],
             "retraction_notices": [
-                self._retractions[key].to_dict()
-                for key in sorted(self._retractions)
+                self._retractions[key].to_dict() for key in sorted(self._retractions)
             ],
             "stale_receipts": [
                 self._stale_receipts[key].to_dict()
                 for key in sorted(self._stale_receipts)
             ],
             "retracted_proposal_refs": sorted(self._retracted_proposal_refs),
-            "waiting_replacement_job_refs": sorted(
-                self._waiting_replacement_jobs
-            ),
-            "coordination_residual_refs": sorted(
-                self._coordination_residual_refs
-            ),
+            "waiting_replacement_job_refs": sorted(self._waiting_replacement_jobs),
+            "coordination_residual_refs": sorted(self._coordination_residual_refs),
             "last_writer_wins": False,
         }
 
@@ -628,7 +624,12 @@ def run_continuous_owner_stream(
             break
         if current == prior:
             break
-    return tuple(sorted({row.receipt_ref: row for row in receipts}.values(), key=lambda row: row.receipt_ref))
+    return tuple(
+        sorted(
+            {row.receipt_ref: row for row in receipts}.values(),
+            key=lambda row: row.receipt_ref,
+        )
+    )
 
 
 @dataclass
@@ -673,16 +674,18 @@ class HierarchicalDocumentCoordinator:
 
     @property
     def unresolved_boundary_refs(self) -> tuple[str, ...]:
-        return tuple(
-            sorted(set(self.boundary_routes) - self.discharged_boundary_refs)
-        )
+        return tuple(sorted(set(self.boundary_routes) - self.discharged_boundary_refs))
 
     @property
     def local_fixed_point_reached(self) -> bool:
-        return bool(self.region_summaries) and all(
-            certificate.local_fixed_point_reached
-            for certificate in self.region_certificates.values()
-        ) and not self.unresolved_boundary_refs
+        return (
+            bool(self.region_summaries)
+            and all(
+                certificate.local_fixed_point_reached
+                for certificate in self.region_certificates.values()
+            )
+            and not self.unresolved_boundary_refs
+        )
 
     @property
     def coordinator_ref(self) -> str:
@@ -702,12 +705,9 @@ class HierarchicalDocumentCoordinator:
                 for key in sorted(self.region_certificates)
             },
             "boundary_routes": {
-                key: self.boundary_routes[key]
-                for key in sorted(self.boundary_routes)
+                key: self.boundary_routes[key] for key in sorted(self.boundary_routes)
             },
-            "discharged_boundary_refs": sorted(
-                self.discharged_boundary_refs
-            ),
+            "discharged_boundary_refs": sorted(self.discharged_boundary_refs),
             "unresolved_boundary_refs": list(self.unresolved_boundary_refs),
             "local_fixed_point": (
                 "reached" if self.local_fixed_point_reached else "not_reached"

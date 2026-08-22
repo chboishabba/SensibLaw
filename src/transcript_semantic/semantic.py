@@ -7,7 +7,6 @@ import sqlite3
 from typing import Any, Iterable
 
 from src.gwb_us_law.semantic import (
-    EntitySeed,
     _delete_run_rows,
     _ensure_promotion_policies,
     _ensure_shared_actor,
@@ -17,7 +16,6 @@ from src.gwb_us_law.semantic import (
     _policy_adjusted_confidence,
     _slug,
     _upsert_actor_alias,
-    _upsert_seed_entity,
     build_semantic_review_summary,
     build_semantic_text_debug_payload,
     ensure_gwb_semantic_schema,
@@ -191,7 +189,10 @@ _MISSION_FOLLOWUP_PATTERNS = (
     ),
 )
 _MISSION_DEADLINE_PATTERNS = (
-    re.compile(r"\b(?:deadline\s+is|due(?:\s+on)?|by|before)\s+(?P<deadline>[A-Za-z][A-Za-z0-9 ,:/-]{1,40})", re.IGNORECASE),
+    re.compile(
+        r"\b(?:deadline\s+is|due(?:\s+on)?|by|before)\s+(?P<deadline>[A-Za-z][A-Za-z0-9 ,:/-]{1,40})",
+        re.IGNORECASE,
+    ),
 )
 _MISSION_OWNER_PATTERNS = (
     re.compile(
@@ -211,7 +212,9 @@ def _source_document_title(source_id: str) -> str:
     return raw
 
 
-def _build_transcript_source_documents(units: list[TextUnit]) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+def _build_transcript_source_documents(
+    units: list[TextUnit],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
     documents: list[dict[str, Any]] = []
     event_spans: dict[str, dict[str, Any]] = {}
     by_source: dict[str, list[TextUnit]] = defaultdict(list)
@@ -248,7 +251,13 @@ def _build_transcript_source_documents(units: list[TextUnit]) -> tuple[list[dict
                 "eventIds": event_ids,
             }
         )
-    documents.sort(key=lambda row: (str(row["sourceType"]), str(row["title"]), str(row["sourceDocumentId"])))
+    documents.sort(
+        key=lambda row: (
+            str(row["sourceType"]),
+            str(row["title"]),
+            str(row["sourceDocumentId"]),
+        )
+    )
     return documents, event_spans
 
 
@@ -268,7 +277,9 @@ def _extract_deadline_phrase(text: str) -> str | None:
     for pattern in _MISSION_DEADLINE_PATTERNS:
         match = pattern.search(text)
         if match:
-            deadline = re.sub(r"\s+", " ", str(match.group("deadline") or "").strip(" \t\r\n?.!,;:"))
+            deadline = re.sub(
+                r"\s+", " ", str(match.group("deadline") or "").strip(" \t\r\n?.!,;:")
+            )
             if deadline:
                 return deadline
     return None
@@ -310,7 +321,9 @@ def _build_transcript_mission_observer(
     overlays: list[dict[str, Any]] = []
     overlay_index = 0
 
-    def ensure_mission(topic_label: str, event_id: str, source_id: str) -> dict[str, Any]:
+    def ensure_mission(
+        topic_label: str, event_id: str, source_id: str
+    ) -> dict[str, Any]:
         normalized = _normalize_mission_topic(topic_label)
         mission_id = f"mission:{_slug(source_id)}:{_slug(normalized)}"
         node = mission_nodes.get(mission_id)
@@ -368,8 +381,17 @@ def _build_transcript_mission_observer(
         if not text:
             continue
         deadline = _extract_deadline_phrase(text)
-        speaker_role = next((row for row in event.get("event_roles", []) if row.get("role_kind") == "speaker"), None)
-        speaker_entity = speaker_role.get("entity") if isinstance(speaker_role, dict) else None
+        speaker_role = next(
+            (
+                row
+                for row in event.get("event_roles", [])
+                if row.get("role_kind") == "speaker"
+            ),
+            None,
+        )
+        speaker_entity = (
+            speaker_role.get("entity") if isinstance(speaker_role, dict) else None
+        )
         followup_topics = _extract_followup_topics(text)
 
         for followup_topic in followup_topics:
@@ -378,7 +400,10 @@ def _build_transcript_mission_observer(
             resolved: dict[str, Any] | None = None
             if normalized and normalized not in _MISSION_GENERIC_REFERENTS:
                 for candidate in reversed(candidates):
-                    if normalized == candidate["normalizedTopic"] or normalized in candidate["normalizedTopic"]:
+                    if (
+                        normalized == candidate["normalizedTopic"]
+                        or normalized in candidate["normalizedTopic"]
+                    ):
                         resolved = candidate
                         break
             if resolved is None and candidates:
@@ -405,18 +430,24 @@ def _build_transcript_mission_observer(
                         {
                             "eventId": unit.unit_id,
                             "sourceId": unit.source_id,
-                            "speaker": str(speaker_entity["canonical_label"]) if isinstance(speaker_entity, dict) else None,
+                            "speaker": str(speaker_entity["canonical_label"])
+                            if isinstance(speaker_entity, dict)
+                            else None,
                             "followupTopic": _mission_topic_label(followup_topic),
                             "resolvedMissionId": node["missionId"],
                             "resolvedTopicLabel": node["topicLabel"],
                             "targetEventId": resolved["eventId"],
                             "status": "linked",
-                            "confidence": "medium" if normalized in _MISSION_GENERIC_REFERENTS else "high",
+                            "confidence": "medium"
+                            if normalized in _MISSION_GENERIC_REFERENTS
+                            else "high",
                             "deadline": node.get("deadline"),
                         }
                     )
                     overlay_status = "linked"
-                    confidence = "medium" if normalized in _MISSION_GENERIC_REFERENTS else "high"
+                    confidence = (
+                        "medium" if normalized in _MISSION_GENERIC_REFERENTS else "high"
+                    )
                     evidence_refs.append(
                         {
                             "event_id": resolved["eventId"],
@@ -435,21 +466,25 @@ def _build_transcript_mission_observer(
                     mission_ref = {
                         "mission_id": f"mission:unresolved:{_slug(unit.unit_id)}",
                         "node_kind": "task",
-                        "topic_label": _mission_topic_label(followup_topic) or "unresolved follow-up",
+                        "topic_label": _mission_topic_label(followup_topic)
+                        or "unresolved follow-up",
                         "ref_type": "followup_unresolved",
                     }
             else:
                 mission_ref = {
                     "mission_id": f"mission:unresolved:{_slug(unit.unit_id)}",
                     "node_kind": "task",
-                    "topic_label": _mission_topic_label(followup_topic) or "unresolved follow-up",
+                    "topic_label": _mission_topic_label(followup_topic)
+                    or "unresolved follow-up",
                     "ref_type": "followup_unresolved",
                 }
                 followups.append(
                     {
                         "eventId": unit.unit_id,
                         "sourceId": unit.source_id,
-                        "speaker": str(speaker_entity["canonical_label"]) if isinstance(speaker_entity, dict) else None,
+                        "speaker": str(speaker_entity["canonical_label"])
+                        if isinstance(speaker_entity, dict)
+                        else None,
                         "followupTopic": _mission_topic_label(followup_topic),
                         "resolvedMissionId": None,
                         "resolvedTopicLabel": None,
@@ -527,7 +562,10 @@ def _build_transcript_mission_observer(
             if owner not in node["owners"]:
                 node["owners"].append(owner)
 
-    nodes = sorted(mission_nodes.values(), key=lambda row: (str(row["sourceId"]), str(row["topicLabel"])))
+    nodes = sorted(
+        mission_nodes.values(),
+        key=lambda row: (str(row["sourceId"]), str(row["topicLabel"])),
+    )
     linked_followups = sum(1 for row in followups if row["status"] == "linked")
     return {
         "summary": {
@@ -540,7 +578,9 @@ def _build_transcript_mission_observer(
         "missions": nodes,
         "followups": followups,
         "sb_observer_overlays": overlays,
-        "unavailableReason": None if nodes or followups else "No explicit mission/follow-up cues were derived from this transcript/freeform run.",
+        "unavailableReason": None
+        if nodes or followups
+        else "No explicit mission/follow-up cues were derived from this transcript/freeform run.",
     }
 
 
@@ -581,9 +621,18 @@ def _upsert_transcript_entity(
         ON CONFLICT(canonical_key)
         DO UPDATE SET canonical_label=excluded.canonical_label, review_status=excluded.review_status, pipeline_version=excluded.pipeline_version
         """,
-        (entity_kind, canonical_key, canonical_label, "deterministic_v1", PIPELINE_VERSION),
+        (
+            entity_kind,
+            canonical_key,
+            canonical_label,
+            "deterministic_v1",
+            PIPELINE_VERSION,
+        ),
     )
-    row = conn.execute("SELECT entity_id FROM semantic_entities WHERE canonical_key = ?", (canonical_key,)).fetchone()
+    row = conn.execute(
+        "SELECT entity_id FROM semantic_entities WHERE canonical_key = ?",
+        (canonical_key,),
+    ).fetchone()
     assert row is not None
     entity_id = int(row["entity_id"])
     if entity_kind == "actor":
@@ -618,7 +667,13 @@ def _upsert_transcript_entity(
     return entity_id
 
 
-def _ensure_transcript_actor(conn: sqlite3.Connection, *, source_id: str, speaker_label: str, classification_tag: str = "speaker") -> int:
+def _ensure_transcript_actor(
+    conn: sqlite3.Connection,
+    *,
+    source_id: str,
+    speaker_label: str,
+    classification_tag: str = "speaker",
+) -> int:
     return _upsert_transcript_entity(
         conn,
         entity_kind="actor",
@@ -629,7 +684,9 @@ def _ensure_transcript_actor(conn: sqlite3.Connection, *, source_id: str, speake
     )
 
 
-def _ensure_transcript_concept(conn: sqlite3.Connection, *, source_id: str, label: str) -> int:
+def _ensure_transcript_concept(
+    conn: sqlite3.Connection, *, source_id: str, label: str
+) -> int:
     return _upsert_transcript_entity(
         conn,
         entity_kind="concept",
@@ -662,10 +719,19 @@ def _ensure_transcript_predicates(conn: sqlite3.Connection) -> dict[str, int]:
                           promotion_rule_key=excluded.promotion_rule_key,
                           active_v1=excluded.active_v1
             """,
-            (predicate_key, display_label, family, 1, None, f"transcript_{predicate_key}_v1"),
+            (
+                predicate_key,
+                display_label,
+                family,
+                1,
+                None,
+                f"transcript_{predicate_key}_v1",
+            ),
         )
     _ensure_promotion_policies(conn)
-    rows = conn.execute("SELECT predicate_id, predicate_key FROM semantic_predicate_vocab").fetchall()
+    rows = conn.execute(
+        "SELECT predicate_id, predicate_key FROM semantic_predicate_vocab"
+    ).fetchall()
     return {str(row["predicate_key"]): int(row["predicate_id"]) for row in rows}
 
 
@@ -747,7 +813,11 @@ def _extract_general_named_entities(text: str) -> list[str]:
             index += 1
             continue
         parts = [token]
-        next_token = _normalize_entity_surface_token(tokens[index + 1]) if index + 1 < len(tokens) else ""
+        next_token = (
+            _normalize_entity_surface_token(tokens[index + 1])
+            if index + 1 < len(tokens)
+            else ""
+        )
         if next_token and _is_titlecase_name_token(next_token):
             parts.append(next_token)
             index += 1
@@ -792,7 +862,12 @@ def _social_relation_matches(text: str) -> list[tuple[str, str, str, str]]:
         for match in pattern.finditer(text):
             subject = str(match.group("subject")).strip()
             obj = str(match.group("object")).strip()
-            marker = str(match.groupdict().get("marker") or "").strip().casefold().replace(" ", "_")
+            marker = (
+                str(match.groupdict().get("marker") or "")
+                .strip()
+                .casefold()
+                .replace(" ", "_")
+            )
             if not marker:
                 matched_text = str(match.group(0)).casefold()
                 if "responsible for" in matched_text:
@@ -822,19 +897,43 @@ def _extract_theme_concepts(text: str) -> list[str]:
     for index in range(len(tokens) - 1):
         lowered = tokens[index].casefold()
         nxt = tokens[index + 1].casefold()
-        if lowered in {"have", "having", "wanted", "wanting"} and nxt in {"my", "his", "her", "their", "our", "a", "an", "the"}:
+        if lowered in {"have", "having", "wanted", "wanting"} and nxt in {
+            "my",
+            "his",
+            "her",
+            "their",
+            "our",
+            "a",
+            "an",
+            "the",
+        }:
             if index + 2 < len(tokens):
                 label = tokens[index + 2].strip(".,;:!?")
-                if label and label.casefold() not in _LOWER_ENTITY_STOPWORDS and label not in themes:
+                if (
+                    label
+                    and label.casefold() not in _LOWER_ENTITY_STOPWORDS
+                    and label not in themes
+                ):
                     themes.append(label)
         if lowered in {"because", "without"} and index + 1 < len(tokens):
             label = tokens[index + 1].strip(".,;:!?")
-            if label and label.casefold() not in _LOWER_ENTITY_STOPWORDS and label not in themes:
+            if (
+                label
+                and label.casefold() not in _LOWER_ENTITY_STOPWORDS
+                and label not in themes
+            ):
                 themes.append(label)
     return themes
 
 
-def _event_role_exists(conn: sqlite3.Connection, *, run_id: str, event_id: str, role_kind: str, entity_id: int) -> bool:
+def _event_role_exists(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    event_id: str,
+    role_kind: str,
+    entity_id: int,
+) -> bool:
     row = conn.execute(
         """
         SELECT 1
@@ -857,9 +956,19 @@ def _insert_event_role_once(
     cluster_id: int | None = None,
     note: str | None = None,
 ) -> None:
-    if _event_role_exists(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id):
+    if _event_role_exists(
+        conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id
+    ):
         return
-    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id, cluster_id=cluster_id, note=note)
+    _insert_event_role(
+        conn,
+        run_id=run_id,
+        event_id=event_id,
+        role_kind=role_kind,
+        entity_id=entity_id,
+        cluster_id=cluster_id,
+        note=note,
+    )
 
 
 def run_transcript_semantic_pipeline(
@@ -873,16 +982,22 @@ def run_transcript_semantic_pipeline(
     _delete_run_rows(conn, run_id)
     predicate_ids = _ensure_transcript_predicates(conn)
     ordered_units = list(units)
-    receipts = infer_speakers(ordered_units, known_participants_by_source=known_participants_by_source)
+    receipts = infer_speakers(
+        ordered_units, known_participants_by_source=known_participants_by_source
+    )
     actor_by_unit: dict[str, int] = {}
     general_actor_by_unit: dict[str, int] = {}
     general_actor_labels_by_unit: dict[str, dict[str, int]] = {}
 
     for unit, receipt in zip(ordered_units, receipts):
         event_id = unit.unit_id
-        if not receipt.abstained and str(receipt.inferred_speaker or "").startswith("speaker:"):
+        if not receipt.abstained and str(receipt.inferred_speaker or "").startswith(
+            "speaker:"
+        ):
             label = _display_label(receipt)
-            entity_id = _ensure_transcript_actor(conn, source_id=unit.source_id, speaker_label=label)
+            entity_id = _ensure_transcript_actor(
+                conn, source_id=unit.source_id, speaker_label=label
+            )
             cluster_id, _ = _insert_cluster_and_resolution(
                 conn,
                 run_id=run_id,
@@ -924,7 +1039,8 @@ def run_transcript_semantic_pipeline(
             resolved_entity_id=None,
             resolution_status="abstained",
             resolution_rule=resolution_rule,
-            receipts=_speaker_receipts(receipt) + [("abstain_reason", receipt.abstain_reason or "unknown")],
+            receipts=_speaker_receipts(receipt)
+            + [("abstain_reason", receipt.abstain_reason or "unknown")],
             pipeline_version=PIPELINE_VERSION,
         )
 
@@ -940,7 +1056,12 @@ def run_transcript_semantic_pipeline(
                 and label.casefold() == receipt.observed_label.casefold()
             ):
                 continue
-            entity_id = _ensure_transcript_actor(conn, source_id=unit.source_id, speaker_label=label, classification_tag="general_actor")
+            entity_id = _ensure_transcript_actor(
+                conn,
+                source_id=unit.source_id,
+                speaker_label=label,
+                classification_tag="general_actor",
+            )
             cluster_id, _ = _insert_cluster_and_resolution(
                 conn,
                 run_id=run_id,
@@ -952,7 +1073,11 @@ def run_transcript_semantic_pipeline(
                 resolved_entity_id=entity_id,
                 resolution_status="resolved",
                 resolution_rule="general_named_entity_v1",
-                receipts=[("surface", label), ("entity_scope", "source_local_general"), ("position", "subject" if index == 0 else "mentioned_entity")],
+                receipts=[
+                    ("surface", label),
+                    ("entity_scope", "source_local_general"),
+                    ("position", "subject" if index == 0 else "mentioned_entity"),
+                ],
                 pipeline_version=PIPELINE_VERSION,
             )
             actor_ids_by_label[label.casefold()] = entity_id
@@ -983,7 +1108,9 @@ def run_transcript_semantic_pipeline(
         theme_labels = _extract_theme_concepts(unit.text)
         theme_entity_ids: list[int] = []
         for label in theme_labels:
-            entity_id = _ensure_transcript_concept(conn, source_id=unit.source_id, label=label)
+            entity_id = _ensure_transcript_concept(
+                conn, source_id=unit.source_id, label=label
+            )
             theme_entity_ids.append(entity_id)
             cluster_id, _ = _insert_cluster_and_resolution(
                 conn,
@@ -1009,7 +1136,9 @@ def run_transcript_semantic_pipeline(
                 note="transcript_theme_concept_v1",
             )
 
-        subject_entity_id = actor_by_unit.get(event_id) or general_actor_by_unit.get(event_id)
+        subject_entity_id = actor_by_unit.get(event_id) or general_actor_by_unit.get(
+            event_id
+        )
         text_fold = unit.text.casefold()
         if subject_entity_id is not None:
             for state_label in _AFFECT_STATE_SURFACES:
@@ -1031,7 +1160,11 @@ def run_transcript_semantic_pipeline(
                             ("object_state", str(state_entity_id)),
                             ("state_surface", state_label),
                             ("predicate", "felt_state"),
-                            *([("theme_concept", str(theme_entity_ids[0]))] if theme_entity_ids else []),
+                            *(
+                                [("theme_concept", str(theme_entity_ids[0]))]
+                                if theme_entity_ids
+                                else []
+                            ),
                         ],
                         legacy_confidence="low",
                     ),
@@ -1040,14 +1173,23 @@ def run_transcript_semantic_pipeline(
                         ("object_state", str(state_entity_id)),
                         ("state_surface", state_label),
                         ("predicate", "felt_state"),
-                        *([("theme_concept", str(theme_entity_ids[0]))] if theme_entity_ids else []),
+                        *(
+                            [("theme_concept", str(theme_entity_ids[0]))]
+                            if theme_entity_ids
+                            else []
+                        ),
                     ],
                     pipeline_version=PIPELINE_VERSION,
                 )
                 break
 
         social_actor_map = general_actor_labels_by_unit.get(event_id, {})
-        for predicate_key, subject_label, object_label, marker in _social_relation_matches(unit.text):
+        for (
+            predicate_key,
+            subject_label,
+            object_label,
+            marker,
+        ) in _social_relation_matches(unit.text):
             subject_actor_id = social_actor_map.get(subject_label.casefold())
             if subject_actor_id is None:
                 subject_actor_id = _ensure_transcript_actor(
@@ -1109,7 +1251,9 @@ def run_transcript_semantic_pipeline(
                 pipeline_version=PIPELINE_VERSION,
             )
 
-    by_source: dict[str, list[tuple[TextUnit, SpeakerInferenceReceipt]]] = defaultdict(list)
+    by_source: dict[str, list[tuple[TextUnit, SpeakerInferenceReceipt]]] = defaultdict(
+        list
+    )
     for unit, receipt in zip(ordered_units, receipts):
         by_source[unit.source_id].append((unit, receipt))
 
@@ -1119,10 +1263,16 @@ def run_transcript_semantic_pipeline(
             current_unit, current_receipt = pairs[index]
             previous_actor = actor_by_unit.get(previous_unit.unit_id)
             current_actor = actor_by_unit.get(current_unit.unit_id)
-            if previous_actor is None or current_actor is None or previous_actor == current_actor:
+            if (
+                previous_actor is None
+                or current_actor is None
+                or previous_actor == current_actor
+            ):
                 continue
             prev_text = previous_unit.text.strip()
-            q_to_a = (previous_receipt.observed_label or "").casefold() == "q" and (current_receipt.observed_label or "").casefold() == "a"
+            q_to_a = (previous_receipt.observed_label or "").casefold() == "q" and (
+                current_receipt.observed_label or ""
+            ).casefold() == "a"
             if not q_to_a and not prev_text.endswith("?"):
                 continue
             receipts_payload = [
@@ -1149,7 +1299,12 @@ def run_transcript_semantic_pipeline(
                 pipeline_version=PIPELINE_VERSION,
             )
 
-    candidate_count = int(conn.execute("SELECT COUNT(*) FROM semantic_relation_candidates WHERE run_id = ?", (run_id,)).fetchone()[0])
+    candidate_count = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM semantic_relation_candidates WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()[0]
+    )
     promoted_count = int(
         conn.execute(
             """
@@ -1188,7 +1343,9 @@ def build_transcript_semantic_report(
 ) -> dict[str, Any]:
     ensure_gwb_semantic_schema(conn)
     ordered_units = list(units)
-    source_documents, source_event_spans = _build_transcript_source_documents(ordered_units)
+    source_documents, source_event_spans = _build_transcript_source_documents(
+        ordered_units
+    )
     event_map = {unit.unit_id: unit for unit in ordered_units}
     entities = {
         int(row["entity_id"]): {
@@ -1214,7 +1371,9 @@ def build_transcript_semantic_report(
         event_roles_by_event[str(row["event_id"])].append(
             {
                 "role_kind": str(row["role_kind"]),
-                "entity": entities.get(int(row["entity_id"])) if row["entity_id"] is not None else None,
+                "entity": entities.get(int(row["entity_id"]))
+                if row["entity_id"] is not None
+                else None,
                 "note": str(row["note"] or ""),
             }
         )
@@ -1231,7 +1390,11 @@ def build_transcript_semantic_report(
         """,
         (run_id,),
     ).fetchall():
-        resolved = entities.get(int(row["resolved_entity_id"])) if row["resolved_entity_id"] is not None else None
+        resolved = (
+            entities.get(int(row["resolved_entity_id"]))
+            if row["resolved_entity_id"] is not None
+            else None
+        )
         entry = {
             "cluster_id": int(row["cluster_id"]),
             "surface_text": str(row["surface_text"]),
@@ -1285,7 +1448,8 @@ def build_transcript_semantic_report(
             rule_ids=[
                 str(receipt.get("value"))
                 for receipt in receipts
-                if str(receipt.get("kind") or "") == "rule_type" and str(receipt.get("value") or "").strip()
+                if str(receipt.get("kind") or "") == "rule_type"
+                and str(receipt.get("value") or "").strip()
             ],
         )
         promotion = promote_relation_candidate(semantic_candidate)
@@ -1308,13 +1472,25 @@ def build_transcript_semantic_report(
             }
         )
     promoted = [row for row in candidate_rows if row["promotion_status"] == "promoted"]
-    candidate_only = [row for row in candidate_rows if row["promotion_status"] == "candidate"]
-    abstained = [row for row in candidate_rows if row["promotion_status"] == "abstained"]
+    candidate_only = [
+        row for row in candidate_rows if row["promotion_status"] == "candidate"
+    ]
+    abstained = [
+        row for row in candidate_rows if row["promotion_status"] == "abstained"
+    ]
     per_entity: dict[int, dict[str, Any]] = {}
     for entity_id, entity in entities.items():
-        per_entity[entity_id] = {"entity": entity, "events": set(), "candidate_relation_count": 0, "promoted_relation_count": 0}
+        per_entity[entity_id] = {
+            "entity": entity,
+            "events": set(),
+            "candidate_relation_count": 0,
+            "promoted_relation_count": 0,
+        }
     for row in candidate_rows:
-        for participant in (int(row["subject"]["entity_id"]), int(row["object"]["entity_id"])):
+        for participant in (
+            int(row["subject"]["entity_id"]),
+            int(row["object"]["entity_id"]),
+        ):
             per_entity[participant]["events"].add(row["event_id"])
             per_entity[participant]["candidate_relation_count"] += 1
             if row["promotion_status"] == "promoted":
@@ -1333,10 +1509,18 @@ def build_transcript_semantic_report(
                 "text": unit.text,
                 "mentions": per_event_mentions.get(unit.unit_id, []),
                 "event_roles": event_roles_by_event.get(unit.unit_id, []),
-                "relation_candidates": [row for row in candidate_rows if row["event_id"] == unit.unit_id],
-                "candidate_only_relations": [row for row in candidate_only if row["event_id"] == unit.unit_id],
-                "abstained_relation_candidates": [row for row in abstained if row["event_id"] == unit.unit_id],
-                "promoted_relations": [row for row in promoted if row["event_id"] == unit.unit_id],
+                "relation_candidates": [
+                    row for row in candidate_rows if row["event_id"] == unit.unit_id
+                ],
+                "candidate_only_relations": [
+                    row for row in candidate_only if row["event_id"] == unit.unit_id
+                ],
+                "abstained_relation_candidates": [
+                    row for row in abstained if row["event_id"] == unit.unit_id
+                ],
+                "promoted_relations": [
+                    row for row in promoted if row["event_id"] == unit.unit_id
+                ],
             }
         )
     per_entity_rows = []
@@ -1355,7 +1539,9 @@ def build_transcript_semantic_report(
             "candidate_only_relation_count": len(candidate_only),
             "abstained_relation_candidate_count": len(abstained),
             "unresolved_mention_count": len(unresolved_mentions),
-            "semantic_basis_counts": dict(Counter(str(row.get("semantic_basis") or "") for row in candidate_rows)),
+            "semantic_basis_counts": dict(
+                Counter(str(row.get("semantic_basis") or "") for row in candidate_rows)
+            ),
         },
         "promoted_relations": promoted,
         "relation_candidates": candidate_rows,
@@ -1367,7 +1553,9 @@ def build_transcript_semantic_report(
         "source_documents": source_documents,
         "text_debug": build_semantic_text_debug_payload(per_event),
     }
-    mission_observer = _build_transcript_mission_observer(run_id=run_id, units=ordered_units, per_event=per_event)
+    mission_observer = _build_transcript_mission_observer(
+        run_id=run_id, units=ordered_units, per_event=per_event
+    )
     persist_mission_observer(
         conn,
         run_id=run_id,
@@ -1411,6 +1599,9 @@ def build_transcript_relation_summary(
     summary["mission_observer"] = report.get("mission_observer", {}).get("summary", {})
     if "event_counts" in summary and "social_event_counts" not in summary:
         summary["social_event_counts"] = summary["event_counts"]
-    if "focus_candidate_only_note" in summary and "social_candidate_only_note" not in summary:
+    if (
+        "focus_candidate_only_note" in summary
+        and "social_candidate_only_note" not in summary
+    ):
         summary["social_candidate_only_note"] = summary["focus_candidate_only_note"]
     return summary

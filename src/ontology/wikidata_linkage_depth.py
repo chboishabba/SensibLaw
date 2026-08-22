@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -20,7 +19,10 @@ from src.policy.linkage_case_inputs import (
     case_from_receipt,
     require_case_from_projection_artifact,
 )
-from src.policy.world_model import build_state_node, build_world_model as build_candidate_world_model
+from src.policy.world_model import (
+    build_state_node,
+    build_world_model as build_candidate_world_model,
+)
 from src.policy.world_model_profiles import build_profile
 from src.policy.world_model_projections import (
     project_claim_table,
@@ -32,7 +34,9 @@ from src.policy.world_model_projections import (
 WIKIDATA_LINKAGE_DEPTH_CASE_SCHEMA_VERSION = "sl.wikidata_linkage_depth_case.v0_1"
 WIKIDATA_LINKAGE_DEPTH_AUDIT_SCHEMA_VERSION = "sl.wikidata_linkage_depth_audit.v0_1"
 SENSIBLAW_PNF_WD_LINKAGE_CONTRACT_ID = "sensiblaw_pnf_wd_linkage"
-WIKIDATA_DISJOINTNESS_REVIEW_LINKAGE_CONTRACT_ID = "wikidata_disjointness_review_linkage"
+WIKIDATA_DISJOINTNESS_REVIEW_LINKAGE_CONTRACT_ID = (
+    "wikidata_disjointness_review_linkage"
+)
 CLIMATE_PROFILE_ID = "climate_review_demonstrator"
 DISJOINTNESS_PROFILE_ID = "disjointness_report"
 
@@ -55,7 +59,11 @@ def _sensiblaw_root() -> Path:
 def _climate_raw_report() -> dict[str, Any]:
     root = _sensiblaw_root()
     climate_root = (
-        root / "data" / "ontology" / "wikidata_migration_packs" / "p5991_p14143_climate_pilot_20260328"
+        root
+        / "data"
+        / "ontology"
+        / "wikidata_migration_packs"
+        / "p5991_p14143_climate_pilot_20260328"
     )
     fixture_root = root / "tests" / "fixtures" / "wikidata"
     from src.ontology.wikidata import build_wikidata_climate_review_demonstrator
@@ -63,35 +71,65 @@ def _climate_raw_report() -> dict[str, Any]:
     return build_wikidata_climate_review_demonstrator(
         _read_json(climate_root / "migration_pack.json"),
         climate_text_payload=_read_json(
-            climate_root / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
+            climate_root
+            / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
         ),
-        review_packet=_read_json(fixture_root / "wikidata_nat_review_packet_20260401.json"),
+        review_packet=_read_json(
+            fixture_root / "wikidata_nat_review_packet_20260401.json"
+        ),
     )
 
 
 def _disjointness_raw_report() -> dict[str, Any]:
     root = _sensiblaw_root()
-    from src.ontology.wikidata_disjointness import load_disjointness_slice, project_wikidata_disjointness_payload
+    from src.ontology.wikidata_disjointness import (
+        load_disjointness_slice,
+        project_wikidata_disjointness_payload,
+    )
 
     return project_wikidata_disjointness_payload(
         load_disjointness_slice(
-            root / "tests" / "fixtures" / "wikidata" / "disjointness_p2738_fixed_construction_real_pack_v1" / "slice.json"
+            root
+            / "tests"
+            / "fixtures"
+            / "wikidata"
+            / "disjointness_p2738_fixed_construction_real_pack_v1"
+            / "slice.json"
         )
     )
 
 
-def build_climate_review_world_model(report: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def build_climate_review_world_model(
+    report: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     raw_report = dict(report or _climate_raw_report())
-    bridge_cases = raw_report.get("residual_completeness_surface", {}).get("bridge_cases", [])
-    bridge_case = bridge_cases[0] if isinstance(bridge_cases, list) and bridge_cases and isinstance(bridge_cases[0], Mapping) else {}
+    bridge_cases = raw_report.get("residual_completeness_surface", {}).get(
+        "bridge_cases", []
+    )
+    bridge_case = (
+        bridge_cases[0]
+        if isinstance(bridge_cases, list)
+        and bridge_cases
+        and isinstance(bridge_cases[0], Mapping)
+        else {}
+    )
     candidate_id = _text(bridge_case.get("candidate_id")) or CLIMATE_PROFILE_ID
     profile = build_profile(
         profile_id=CLIMATE_PROFILE_ID,
         lane_family="nat",
         source_kinds=["text_source", "sentence_document", "wikidata_candidate"],
-        authority_surfaces=["source_document", "wd_candidate_review_boundary", "review_packet_tranche"],
+        authority_surfaces=[
+            "source_document",
+            "wd_candidate_review_boundary",
+            "review_packet_tranche",
+        ],
         promotion_policy="candidate_only",
-        default_projection_kinds=["report", "claim_table", "review_surface", "linkage_case"],
+        default_projection_kinds=[
+            "report",
+            "claim_table",
+            "review_surface",
+            "linkage_case",
+        ],
         metadata={"lane_id": CLIMATE_PROFILE_ID},
     )
     return build_candidate_world_model(
@@ -109,24 +147,50 @@ def build_climate_review_world_model(report: Mapping[str, Any] | None = None) ->
                 promotion_status="candidate_only",
             )
         ],
-        authority_surfaces=[{"surface_id": value, "status": "reviewed"} for value in profile["authority_surfaces"]],
+        authority_surfaces=[
+            {"surface_id": value, "status": "reviewed"}
+            for value in profile["authority_surfaces"]
+        ],
         summary={"claim_count": 1},
-        metadata={"profile": profile, "raw_report": raw_report, "lane_id": CLIMATE_PROFILE_ID},
+        metadata={
+            "profile": profile,
+            "raw_report": raw_report,
+            "lane_id": CLIMATE_PROFILE_ID,
+        },
     )
 
 
-def build_disjointness_world_model(report: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def build_disjointness_world_model(
+    report: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     raw_report = dict(report or _disjointness_raw_report())
     pairs = raw_report.get("disjoint_pairs", [])
-    pair = pairs[0] if isinstance(pairs, list) and pairs and isinstance(pairs[0], Mapping) else {}
+    pair = (
+        pairs[0]
+        if isinstance(pairs, list) and pairs and isinstance(pairs[0], Mapping)
+        else {}
+    )
     pair_id = _text(pair.get("pair_id")) or DISJOINTNESS_PROFILE_ID
     profile = build_profile(
         profile_id=DISJOINTNESS_PROFILE_ID,
         lane_family="nat",
-        source_kinds=["source_window", "statement_bundle", "wikidata_contradiction_candidate"],
-        authority_surfaces=["source_window", "wikidata_contradiction_boundary", "review_packet_tranche"],
+        source_kinds=[
+            "source_window",
+            "statement_bundle",
+            "wikidata_contradiction_candidate",
+        ],
+        authority_surfaces=[
+            "source_window",
+            "wikidata_contradiction_boundary",
+            "review_packet_tranche",
+        ],
         promotion_policy="candidate_only",
-        default_projection_kinds=["report", "claim_table", "review_surface", "linkage_case"],
+        default_projection_kinds=[
+            "report",
+            "claim_table",
+            "review_surface",
+            "linkage_case",
+        ],
         metadata={"lane_id": DISJOINTNESS_PROFILE_ID},
     )
     return build_candidate_world_model(
@@ -144,26 +208,44 @@ def build_disjointness_world_model(report: Mapping[str, Any] | None = None) -> d
                 promotion_status="candidate_only",
             )
         ],
-        authority_surfaces=[{"surface_id": value, "status": "reviewed"} for value in profile["authority_surfaces"]],
+        authority_surfaces=[
+            {"surface_id": value, "status": "reviewed"}
+            for value in profile["authority_surfaces"]
+        ],
         summary={"claim_count": 1},
-        metadata={"profile": profile, "raw_report": raw_report, "lane_id": DISJOINTNESS_PROFILE_ID},
+        metadata={
+            "profile": profile,
+            "raw_report": raw_report,
+            "lane_id": DISJOINTNESS_PROFILE_ID,
+        },
     )
 
 
 def project_climate_review_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     model = dict(world_model)
-    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
-    raw_report = metadata.get("raw_report") if isinstance(metadata.get("raw_report"), Mapping) else {}
+    metadata = (
+        model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    )
+    raw_report = (
+        metadata.get("raw_report")
+        if isinstance(metadata.get("raw_report"), Mapping)
+        else {}
+    )
     report = dict(raw_report)
     report.update(
         project_world_model_report(
             world_model=model,
-            schema_version=_text(raw_report.get("schema_version")) or "sl.wikidata_climate_review_demonstrator.v0_1",
+            schema_version=_text(raw_report.get("schema_version"))
+            or "sl.wikidata_climate_review_demonstrator.v0_1",
             artifact_id=_text(model.get("model_id")),
             lane_id=CLIMATE_PROFILE_ID,
             family_id="nat",
-            claims=model.get("claims") if isinstance(model.get("claims"), list) else None,
-            summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+            claims=model.get("claims")
+            if isinstance(model.get("claims"), list)
+            else None,
+            summary=model.get("summary")
+            if isinstance(model.get("summary"), Mapping)
+            else None,
         )
     )
     report["claim_table"] = project_claim_table(model)
@@ -184,18 +266,29 @@ def project_climate_review_report(world_model: Mapping[str, Any]) -> dict[str, A
 
 def project_disjointness_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     model = dict(world_model)
-    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
-    raw_report = metadata.get("raw_report") if isinstance(metadata.get("raw_report"), Mapping) else {}
+    metadata = (
+        model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    )
+    raw_report = (
+        metadata.get("raw_report")
+        if isinstance(metadata.get("raw_report"), Mapping)
+        else {}
+    )
     report = dict(raw_report)
     report.update(
         project_world_model_report(
             world_model=model,
-            schema_version=_text(raw_report.get("schema_version")) or "sl.wikidata_disjointness_report.v0_1",
+            schema_version=_text(raw_report.get("schema_version"))
+            or "sl.wikidata_disjointness_report.v0_1",
             artifact_id=_text(model.get("model_id")),
             lane_id=DISJOINTNESS_PROFILE_ID,
             family_id="nat",
-            claims=model.get("claims") if isinstance(model.get("claims"), list) else None,
-            summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+            claims=model.get("claims")
+            if isinstance(model.get("claims"), list)
+            else None,
+            summary=model.get("summary")
+            if isinstance(model.get("summary"), Mapping)
+            else None,
         )
     )
     report["claim_table"] = project_claim_table(model)
@@ -304,7 +397,9 @@ def build_wikidata_disjointness_review_linkage_contract() -> dict[str, Any]:
     )
 
 
-def _node(node_id: str, *, layer: str, label: str, metadata: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def _node(
+    node_id: str, *, layer: str, label: str, metadata: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         "id": node_id,
         "layer": layer,
@@ -398,7 +493,10 @@ def build_dog_soft_stitch_linkage_case() -> dict[str, Any]:
                 "entity_topic_candidate:dog",
                 layer="entity_topic_candidate",
                 label="dog entity/topic candidate",
-                metadata={"candidate_status": "candidate_only", "topic_kind": "animal_mention"},
+                metadata={
+                    "candidate_status": "candidate_only",
+                    "topic_kind": "animal_mention",
+                },
             ),
             _node(
                 "wd_candidate:dog_soft",
@@ -430,17 +528,42 @@ def build_dog_soft_stitch_linkage_case() -> dict[str, Any]:
                 "review_packet:dog",
                 layer="review_packet_tranche",
                 label="review packet / tranche",
-                metadata={"packet_id": "packet:synthetic:dog", "tranche_id": "tranche:synthetic"},
+                metadata={
+                    "packet_id": "packet:synthetic:dog",
+                    "tranche_id": "tranche:synthetic",
+                },
             ),
         ],
         edges=[
-            _edge("token_span:dog", "sentence_document:dog", kind="anchored_in_sentence"),
-            _edge("sentence_document:dog", "sentence_pnf:dog", kind="normalized_to_pnf"),
-            _edge("sentence_pnf:dog", "document_pnf:dog", kind="aggregated_into_document_pnf"),
-            _edge("document_pnf:dog", "entity_topic_candidate:dog", kind="yields_entity_topic_candidate"),
-            _edge("entity_topic_candidate:dog", "wd_candidate:dog_review", kind="semantic_wd_candidate"),
-            _edge("wd_candidate:dog_review", "zelph_review:dog", kind="review_surface_projection"),
-            _edge("zelph_review:dog", "review_packet:dog", kind="review_packet_projection"),
+            _edge(
+                "token_span:dog", "sentence_document:dog", kind="anchored_in_sentence"
+            ),
+            _edge(
+                "sentence_document:dog", "sentence_pnf:dog", kind="normalized_to_pnf"
+            ),
+            _edge(
+                "sentence_pnf:dog",
+                "document_pnf:dog",
+                kind="aggregated_into_document_pnf",
+            ),
+            _edge(
+                "document_pnf:dog",
+                "entity_topic_candidate:dog",
+                kind="yields_entity_topic_candidate",
+            ),
+            _edge(
+                "entity_topic_candidate:dog",
+                "wd_candidate:dog_review",
+                kind="semantic_wd_candidate",
+            ),
+            _edge(
+                "wd_candidate:dog_review",
+                "zelph_review:dog",
+                kind="review_surface_projection",
+            ),
+            _edge(
+                "zelph_review:dog", "review_packet:dog", kind="review_packet_projection"
+            ),
             _edge(
                 "token_span:dog",
                 "wd_candidate:dog_soft",
@@ -463,7 +586,9 @@ def _load_disjointness_report() -> dict[str, Any]:
 def _build_climate_review_linkage_case_payload(
     report: Mapping[str, Any],
 ) -> dict[str, Any]:
-    bridge_cases = report.get("residual_completeness_surface", {}).get("bridge_cases", [])
+    bridge_cases = report.get("residual_completeness_surface", {}).get(
+        "bridge_cases", []
+    )
     if not isinstance(bridge_cases, list) or not bridge_cases:
         raise ValueError("climate review demonstrator did not expose bridge cases")
     bridge_case = bridge_cases[0]
@@ -476,7 +601,8 @@ def _build_climate_review_linkage_case_payload(
         (
             row
             for row in candidate_rows
-            if isinstance(row, Mapping) and _text(row.get("candidate_id")) == _text(bridge_case.get("candidate_id"))
+            if isinstance(row, Mapping)
+            and _text(row.get("candidate_id")) == _text(bridge_case.get("candidate_id"))
         ),
         None,
     )
@@ -601,7 +727,13 @@ def _build_climate_review_linkage_case_payload(
                     label=f"generic predicate carrier {observation_ref}",
                     metadata={
                         "pnf_carrier_kind": "generic_predicate_carrier",
-                        "carrier_roles": ["subject", "predicate", "object", "qualifier:P585", "qualifier:P518"],
+                        "carrier_roles": [
+                            "subject",
+                            "predicate",
+                            "object",
+                            "qualifier:P585",
+                            "qualifier:P518",
+                        ],
                         "predicate": _text(observation.get("predicate")),
                     },
                 ),
@@ -736,7 +868,9 @@ def build_climate_review_linkage_receipt(
         default_lane_id=CLIMATE_PROFILE_ID,
         default_contract=contract_payload,
         default_contract_id=SENSIBLAW_PNF_WD_LINKAGE_CONTRACT_ID,
-        default_notes=["Bounded real-text case loaded from the projected climate linkage surface."],
+        default_notes=[
+            "Bounded real-text case loaded from the projected climate linkage surface."
+        ],
     )
     return build_linkage_depth_receipt(
         case=case_payload,
@@ -753,11 +887,19 @@ def _build_disjointness_report_linkage_case_payload(
     report: Mapping[str, Any],
 ) -> dict[str, Any]:
     pairs = report.get("disjoint_pairs", [])
-    pair = pairs[0] if isinstance(pairs, list) and pairs and isinstance(pairs[0], Mapping) else {}
+    pair = (
+        pairs[0]
+        if isinstance(pairs, list) and pairs and isinstance(pairs[0], Mapping)
+        else {}
+    )
     if not isinstance(pair, Mapping) or not _text(pair.get("pair_id")):
         raise ValueError("disjointness report requires at least one disjoint pair")
 
-    review_summary = report.get("review_summary") if isinstance(report.get("review_summary"), Mapping) else {}
+    review_summary = (
+        report.get("review_summary")
+        if isinstance(report.get("review_summary"), Mapping)
+        else {}
+    )
     culprit_classes = [
         row for row in report.get("culprit_classes", []) if isinstance(row, Mapping)
     ]
@@ -789,7 +931,8 @@ def _build_disjointness_report_linkage_case_payload(
             metadata={
                 "source_window_id": source_window_id,
                 "active_statement_count": int(
-                    report.get("bounded_slice", {}).get("active_statement_count", 0) or 0
+                    report.get("bounded_slice", {}).get("active_statement_count", 0)
+                    or 0
                 ),
             },
         ),
@@ -820,10 +963,18 @@ def _build_disjointness_report_linkage_case_payload(
             layer="violation_candidate",
             label=f"bounded contradiction candidate {pair_id}",
             metadata={
-                "subclass_violation_count": int(report.get("subclass_violation_count", 0) or 0),
-                "instance_violation_count": int(report.get("instance_violation_count", 0) or 0),
-                "culprit_class_count": int(review_summary.get("culprit_class_count", 0) or 0),
-                "culprit_item_count": int(review_summary.get("culprit_item_count", 0) or 0),
+                "subclass_violation_count": int(
+                    report.get("subclass_violation_count", 0) or 0
+                ),
+                "instance_violation_count": int(
+                    report.get("instance_violation_count", 0) or 0
+                ),
+                "culprit_class_count": int(
+                    review_summary.get("culprit_class_count", 0) or 0
+                ),
+                "culprit_item_count": int(
+                    review_summary.get("culprit_item_count", 0) or 0
+                ),
                 "culprit_qids": culprit_qids,
             },
         ),
@@ -954,7 +1105,9 @@ def build_disjointness_report_linkage_receipt(
         default_lane_id=DISJOINTNESS_PROFILE_ID,
         default_contract=contract_payload,
         default_contract_id=WIKIDATA_DISJOINTNESS_REVIEW_LINKAGE_CONTRACT_ID,
-        default_notes=["Bounded disjointness case loaded from the projected linkage surface."],
+        default_notes=[
+            "Bounded disjointness case loaded from the projected linkage surface."
+        ],
     )
     return build_linkage_depth_receipt(
         case=case_payload,
@@ -967,7 +1120,9 @@ def build_disjointness_report_linkage_receipt(
     )
 
 
-def build_climate_review_linkage_case_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
+def build_climate_review_linkage_case_from_report(
+    report: Mapping[str, Any],
+) -> dict[str, Any]:
     if isinstance(report, Mapping):
         case = case_from_receipt(
             report.get("linkage_depth_receipt"),
@@ -976,7 +1131,9 @@ def build_climate_review_linkage_case_from_report(report: Mapping[str, Any]) -> 
             default_lane_id=CLIMATE_PROFILE_ID,
             default_contract=build_sensiblaw_pnf_wd_linkage_contract(),
             default_contract_id=SENSIBLAW_PNF_WD_LINKAGE_CONTRACT_ID,
-            default_notes=["Bounded real-text case loaded from the bridge-emitted climate linkage receipt."],
+            default_notes=[
+                "Bounded real-text case loaded from the bridge-emitted climate linkage receipt."
+            ],
         )
         if case is not None:
             return case
@@ -987,7 +1144,9 @@ def build_climate_review_linkage_case_from_report(report: Mapping[str, Any]) -> 
             default_lane_id=CLIMATE_PROFILE_ID,
             default_contract=build_sensiblaw_pnf_wd_linkage_contract(),
             default_contract_id=SENSIBLAW_PNF_WD_LINKAGE_CONTRACT_ID,
-            default_notes=["Bounded real-text case loaded from the projected climate linkage surface."],
+            default_notes=[
+                "Bounded real-text case loaded from the projected climate linkage surface."
+            ],
         )
         if case is not None:
             return case
@@ -995,10 +1154,14 @@ def build_climate_review_linkage_case_from_report(report: Mapping[str, Any]) -> 
 
 
 def build_climate_review_linkage_case() -> dict[str, Any]:
-    return build_climate_review_linkage_case_from_report(_load_climate_review_demonstrator_report())
+    return build_climate_review_linkage_case_from_report(
+        _load_climate_review_demonstrator_report()
+    )
 
 
-def build_disjointness_report_linkage_case_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
+def build_disjointness_report_linkage_case_from_report(
+    report: Mapping[str, Any],
+) -> dict[str, Any]:
     if isinstance(report, Mapping):
         case = case_from_receipt(
             report.get("linkage_depth_receipt"),
@@ -1007,7 +1170,9 @@ def build_disjointness_report_linkage_case_from_report(report: Mapping[str, Any]
             default_lane_id=DISJOINTNESS_PROFILE_ID,
             default_contract=build_wikidata_disjointness_review_linkage_contract(),
             default_contract_id=WIKIDATA_DISJOINTNESS_REVIEW_LINKAGE_CONTRACT_ID,
-            default_notes=["Bounded disjointness case loaded from the bridge-emitted lane receipt."],
+            default_notes=[
+                "Bounded disjointness case loaded from the bridge-emitted lane receipt."
+            ],
         )
         if case is not None:
             return case
@@ -1018,7 +1183,9 @@ def build_disjointness_report_linkage_case_from_report(report: Mapping[str, Any]
             default_lane_id=DISJOINTNESS_PROFILE_ID,
             default_contract=build_wikidata_disjointness_review_linkage_contract(),
             default_contract_id=WIKIDATA_DISJOINTNESS_REVIEW_LINKAGE_CONTRACT_ID,
-            default_notes=["Bounded disjointness case loaded from the projected linkage surface."],
+            default_notes=[
+                "Bounded disjointness case loaded from the projected linkage surface."
+            ],
         )
         if case is not None:
             return case
@@ -1026,7 +1193,9 @@ def build_disjointness_report_linkage_case_from_report(report: Mapping[str, Any]
 
 
 def build_disjointness_report_linkage_case() -> dict[str, Any]:
-    return build_disjointness_report_linkage_case_from_report(_load_disjointness_report())
+    return build_disjointness_report_linkage_case_from_report(
+        _load_disjointness_report()
+    )
 
 
 def build_wikidata_linkage_depth_case(case_id: str) -> dict[str, Any]:
@@ -1045,7 +1214,10 @@ def _case_registry() -> list[str]:
 
 def build_wikidata_linkage_depth_audit(case_id: str | None = None) -> dict[str, Any]:
     case_ids = [case_id] if case_id else _case_registry()
-    cases = [build_wikidata_linkage_depth_case(selected_case_id) for selected_case_id in case_ids]
+    cases = [
+        build_wikidata_linkage_depth_case(selected_case_id)
+        for selected_case_id in case_ids
+    ]
     return build_linkage_depth_audit(
         cases=cases,
         contracts=[

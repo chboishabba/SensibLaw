@@ -20,9 +20,7 @@ def test_quote_rebuttal_support_excerpt_detects_acknowledgement() -> None:
     assert is_quote_rebuttal_support_excerpt(
         "I acknowledge this likely occurred on many occasions."
     )
-    assert not is_quote_rebuttal_support_excerpt(
-        "I later wrote an unrelated email."
-    )
+    assert not is_quote_rebuttal_support_excerpt("I later wrote an unrelated email.")
 
 
 def test_family_alignment_adjustment_rewards_audio_family_match() -> None:

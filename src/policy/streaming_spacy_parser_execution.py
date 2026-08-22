@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from dataclasses import dataclass
+from functools import wraps
 import inspect
 import os
 from pathlib import Path
@@ -36,11 +37,13 @@ def _postgres():
 
 
 _INSTALL_MARKER = "_streaming_spacy_parser_execution_installed"
+DEFAULT_NUMERIC_PRODUCTION_STRATEGY = "postgresql-typed-exact-execution:v2"
+COMPATIBILITY_REPLAY_STRATEGY = "local-compatibility-replay"
 _STRICT_STRATEGIES = frozenset(
     {
         "postgresql-leased-exact-execution:v1",
         "postgresql-leased-exact-execution:v2",
-        "postgresql-typed-exact-execution:v2",
+        DEFAULT_NUMERIC_PRODUCTION_STRATEGY,
     }
 )
 
@@ -84,6 +87,31 @@ def _is_strict_strategy(strategy: str) -> bool:
     return strategy in _STRICT_STRATEGIES or (
         strategy.startswith("postgresql-") and "exact" in strategy
     )
+
+
+def _effective_strategy(
+    *,
+    arguments: Mapping[str, Any],
+    supplied_kwargs: Mapping[str, Any],
+) -> str:
+    """Choose numeric production unless compatibility was explicitly requested.
+
+    Low-level compatibility callers that have no PostgreSQL authority remain
+    unchanged.  With a database URL, omission of ``execution_strategy_ref`` is
+    now a production choice rather than an accidental request for the legacy
+    document-sized compiler.  Callers can still explicitly request
+    ``local-compatibility-replay`` for parity/audit/migration work.
+    """
+
+    explicit = supplied_kwargs.get("execution_strategy_ref")
+    if explicit is not None:
+        return str(explicit)
+    if arguments.get("database_url") and _boolean_env(
+        "SENSIBLAW_NUMERIC_PRODUCTION_DEFAULT",
+        True,
+    ):
+        return DEFAULT_NUMERIC_PRODUCTION_STRATEGY
+    return str(arguments.get("execution_strategy_ref") or COMPATIBILITY_REPLAY_STRATEGY)
 
 
 def _scoped_run_ref(
@@ -162,7 +190,7 @@ def _artifact_root(
 
 
 def install_streaming_spacy_parser_execution() -> bool:
-    """Route strict parser and PNF work through numeric PostgreSQL authority."""
+    """Route PostgreSQL production parser and PNF work through numeric authority."""
 
     from src.policy import operational_corpus_compilation as operational
 
@@ -233,13 +261,12 @@ def install_streaming_spacy_parser_execution() -> bool:
             )
         return carrier
 
+    @wraps(original_compile)
     def compile_wrapper(*args: Any, **kwargs: Any) -> Any:
         bound = compile_signature.bind_partial(*args, **kwargs)
         bound.apply_defaults()
         arguments = bound.arguments
-        strategy = str(
-            arguments.get("execution_strategy_ref") or "local-compatibility-replay"
-        )
+        strategy = _effective_strategy(arguments=arguments, supplied_kwargs=kwargs)
         if not _is_strict_strategy(strategy):
             return original_compile(*bound.args, **bound.kwargs)
         database_url = arguments.get("database_url")
@@ -336,13 +363,12 @@ def install_streaming_spacy_parser_execution() -> bool:
         finally:
             _CURRENT.reset(token)
 
+    @wraps(original_persist)
     def persist_wrapper(*args: Any, **kwargs: Any) -> Any:
         bound = persist_signature.bind_partial(*args, **kwargs)
         bound.apply_defaults()
         arguments = bound.arguments
-        strategy = str(
-            arguments.get("execution_strategy_ref") or "local-compatibility-replay"
-        )
+        strategy = _effective_strategy(arguments=arguments, supplied_kwargs=kwargs)
         if not _is_strict_strategy(strategy):
             return original_persist(*bound.args, **bound.kwargs)
         database_url = arguments.get("database_url")
@@ -455,4 +481,8 @@ def install_streaming_spacy_parser_execution() -> bool:
     return True
 
 
-__all__ = ["install_streaming_spacy_parser_execution"]
+__all__ = [
+    "COMPATIBILITY_REPLAY_STRATEGY",
+    "DEFAULT_NUMERIC_PRODUCTION_STRATEGY",
+    "install_streaming_spacy_parser_execution",
+]

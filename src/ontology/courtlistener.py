@@ -9,7 +9,9 @@ from src.policy.compiler_contract import (
     EvidenceBundleContract,
     PromotedOutcomeContract,
 )
-from src.policy.suite_normalized_artifact import SUITE_NORMALIZED_ARTIFACT_SCHEMA_VERSION
+from src.policy.suite_normalized_artifact import (
+    SUITE_NORMALIZED_ARTIFACT_SCHEMA_VERSION,
+)
 from src.sources.courtlistener import CourtListenerStatuteAdapter
 
 

@@ -14,8 +14,12 @@ SENSIBLAW_ROOT = ROOT / "SensibLaw"
 VENV_PYTHON = ROOT / ".venv" / "bin" / "python"
 PACK_RUNNER = ROOT / "SensibLaw" / "scripts" / "wiki_revision_pack_runner.py"
 SELF = ROOT / "SensibLaw" / "scripts" / "wiki_revision_runset.py"
-MONITOR_PACK = ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_monitor_v1.json"
-CONTESTED_PACK = ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_contested_v2.json"
+MONITOR_PACK = (
+    ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_monitor_v1.json"
+)
+CONTESTED_PACK = (
+    ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_contested_v2.json"
+)
 
 
 def _python() -> str:
@@ -58,23 +62,37 @@ def _write_smoke_pack(path: Path, *, title: str, pack_id: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run useful Wikipedia revision-monitor command sets.")
+    parser = argparse.ArgumentParser(
+        description="Run useful Wikipedia revision-monitor command sets."
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("tests", help="Run the focused pytest slice for the revision monitor.")
+    sub.add_parser(
+        "tests", help="Run the focused pytest slice for the revision monitor."
+    )
 
     smoke = sub.add_parser("smoke", help="Run a one-article live smoke pack.")
-    smoke.add_argument("--title", default="Donald Trump", help="Smoke-test article title")
-    smoke.add_argument("--pack-path", type=Path, default=Path("/tmp/wiki_revision_smoke_one.json"))
-    smoke.add_argument("--state-db", type=Path, default=Path("/tmp/wiki_revision_smoke_one.sqlite"))
-    smoke.add_argument("--out-dir", type=Path, default=Path("/tmp/wiki_revision_smoke_one_out"))
+    smoke.add_argument(
+        "--title", default="Donald Trump", help="Smoke-test article title"
+    )
+    smoke.add_argument(
+        "--pack-path", type=Path, default=Path("/tmp/wiki_revision_smoke_one.json")
+    )
+    smoke.add_argument(
+        "--state-db", type=Path, default=Path("/tmp/wiki_revision_smoke_one.sqlite")
+    )
+    smoke.add_argument(
+        "--out-dir", type=Path, default=Path("/tmp/wiki_revision_smoke_one_out")
+    )
     smoke.add_argument("--summary-format", choices=("human", "json"), default="human")
 
     monitor = sub.add_parser("monitor", help="Run the ontology-stress monitor pack.")
     monitor.add_argument("--summary-format", choices=("human", "json"), default="human")
 
     contested = sub.add_parser("contested", help="Run the contested live pack.")
-    contested.add_argument("--summary-format", choices=("human", "json"), default="human")
+    contested.add_argument(
+        "--summary-format", choices=("human", "json"), default="human"
+    )
 
     all_cmd = sub.add_parser("all", help="Run tests, smoke, monitor, then contested.")
     all_cmd.add_argument("--summary-format", choices=("human", "json"), default="human")
@@ -98,7 +116,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "smoke":
         pack_path = Path(args.pack_path)
-        _write_smoke_pack(pack_path, title=str(args.title), pack_id="wiki_revision_smoke_one")
+        _write_smoke_pack(
+            pack_path, title=str(args.title), pack_id="wiki_revision_smoke_one"
+        )
         return _run(
             [
                 py,
@@ -116,10 +136,30 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if args.cmd == "monitor":
-        return _run([py, str(PACK_RUNNER), "--pack", str(MONITOR_PACK), "--summary-format", str(args.summary_format)], cwd=ROOT)
+        return _run(
+            [
+                py,
+                str(PACK_RUNNER),
+                "--pack",
+                str(MONITOR_PACK),
+                "--summary-format",
+                str(args.summary_format),
+            ],
+            cwd=ROOT,
+        )
 
     if args.cmd == "contested":
-        return _run([py, str(PACK_RUNNER), "--pack", str(CONTESTED_PACK), "--summary-format", str(args.summary_format)], cwd=ROOT)
+        return _run(
+            [
+                py,
+                str(PACK_RUNNER),
+                "--pack",
+                str(CONTESTED_PACK),
+                "--summary-format",
+                str(args.summary_format),
+            ],
+            cwd=ROOT,
+        )
 
     if args.cmd == "all":
         for cmd in (

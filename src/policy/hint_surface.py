@@ -1,4 +1,5 @@
 """Canonical shared owner for extraction/workload hint surfaces."""
+
 from __future__ import annotations
 
 import re
@@ -47,7 +48,9 @@ def extract_extraction_hints(
     *,
     tokenize: Callable[[str], set[str] | frozenset[str] | list[str] | tuple[str, ...]],
     month_pattern: str = MONTH_PATTERN,
-    procedural_event_keywords: set[str] | frozenset[str] = frozenset(PROCEDURAL_EVENT_KEYWORDS),
+    procedural_event_keywords: set[str] | frozenset[str] = frozenset(
+        PROCEDURAL_EVENT_KEYWORDS
+    ),
 ) -> dict[str, Any]:
     transcript_timestamps = re.findall(
         r"\[(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s*->\s*(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\]",
@@ -57,10 +60,14 @@ def extract_extraction_hints(
         rf"\b(?:\d{{1,2}}\s+{month_pattern}(?:\s+\d{{4}})?|{month_pattern}\s+\d{{4}}|\d{{4}})\b",
         text,
     )
-    keyword_hits = sorted({token for token in tokenize(text) if token in procedural_event_keywords})
+    keyword_hits = sorted(
+        {token for token in tokenize(text) if token in procedural_event_keywords}
+    )
     return {
         "has_transcript_timestamp_hint": bool(transcript_timestamps),
-        "transcript_timestamp_windows": [{"start": start, "end": end} for start, end in transcript_timestamps],
+        "transcript_timestamp_windows": [
+            {"start": start, "end": end} for start, end in transcript_timestamps
+        ],
         "has_calendar_reference_hint": bool(calendar_mentions),
         "calendar_reference_mentions": calendar_mentions,
         "has_procedural_event_cue": bool(keyword_hits),
@@ -68,7 +75,9 @@ def extract_extraction_hints(
     }
 
 
-def build_candidate_anchors(extraction_hints: Mapping[str, Any]) -> list[dict[str, Any]]:
+def build_candidate_anchors(
+    extraction_hints: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     anchors: list[dict[str, Any]] = []
     transcript_windows = extraction_hints.get("transcript_timestamp_windows", [])
     if isinstance(transcript_windows, list):
@@ -99,7 +108,9 @@ def build_candidate_anchors(extraction_hints: Mapping[str, Any]) -> list[dict[st
                 )
     event_keywords = extraction_hints.get("procedural_event_keywords", [])
     if isinstance(event_keywords, list) and event_keywords:
-        cleaned_keywords = [str(keyword).strip() for keyword in event_keywords if str(keyword).strip()]
+        cleaned_keywords = [
+            str(keyword).strip() for keyword in event_keywords if str(keyword).strip()
+        ]
         anchors.append(
             {
                 "anchor_kind": "procedural_event_keywords",
@@ -116,7 +127,11 @@ def recommend_next_action(
     has_temporal_hint: bool,
     has_event_hint: bool,
 ) -> str | None:
-    if primary_workload_class == "chronology_gap" and has_temporal_hint and has_event_hint:
+    if (
+        primary_workload_class == "chronology_gap"
+        and has_temporal_hint
+        and has_event_hint
+    ):
         return "promote existing event/date cues into structured anchors"
     if primary_workload_class == "chronology_gap" and has_temporal_hint:
         return "promote existing temporal cues into structured anchors"
@@ -140,7 +155,9 @@ def classify_workload_with_hints(
     review_status: str,
     extraction_hints: Mapping[str, Any],
     *,
-    workload_class_priority: list[str] | tuple[str, ...] = tuple(DEFAULT_WORKLOAD_CLASS_PRIORITY),
+    workload_class_priority: list[str] | tuple[str, ...] = tuple(
+        DEFAULT_WORKLOAD_CLASS_PRIORITY
+    ),
 ) -> dict[str, Any]:
     normalized_codes = {str(code).strip() for code in reason_codes if str(code).strip()}
     workload_classes: set[str] = set()
@@ -149,7 +166,11 @@ def classify_workload_with_hints(
         workload_classes.add("review_queue_only")
     if "unreviewed" in normalized_codes and normalized_codes <= {"unreviewed"}:
         workload_classes.add("review_queue_only")
-    if normalized_codes & {"chronology_undated", "missing_date", "contradictory_chronology"}:
+    if normalized_codes & {
+        "chronology_undated",
+        "missing_date",
+        "contradictory_chronology",
+    }:
         workload_classes.add("chronology_gap")
     if normalized_codes & {"event_missing"}:
         workload_classes.add("event_extraction_gap")
@@ -159,11 +180,13 @@ def classify_workload_with_hints(
     if review_status == "missing_review" and not workload_classes:
         workload_classes.add("review_queue_only")
 
-    ordered_classes = [name for name in workload_class_priority if name in workload_classes]
+    ordered_classes = [
+        name for name in workload_class_priority if name in workload_classes
+    ]
     primary_class = ordered_classes[0] if ordered_classes else None
-    has_temporal_hint = bool(extraction_hints.get("has_transcript_timestamp_hint")) or bool(
-        extraction_hints.get("has_calendar_reference_hint")
-    )
+    has_temporal_hint = bool(
+        extraction_hints.get("has_transcript_timestamp_hint")
+    ) or bool(extraction_hints.get("has_calendar_reference_hint"))
     has_event_hint = bool(extraction_hints.get("has_procedural_event_cue"))
     return {
         "workload_classes": ordered_classes,
@@ -206,7 +229,9 @@ def build_provisional_structured_anchors(
                 {
                     "provisional_anchor_id": f"{row['source_row_id']}#anchor:{anchor_index}",
                     "source_row_id": row["source_row_id"],
-                    "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
+                    "best_affidavit_proposition_id": row.get(
+                        "best_affidavit_proposition_id"
+                    ),
                     "primary_workload_class": row.get("primary_workload_class"),
                     "recommended_next_action": row.get("recommended_next_action"),
                     "anchor_kind": anchor_kind,
@@ -221,7 +246,9 @@ def build_provisional_structured_anchors(
         deduped_rows: dict[str, dict[str, Any]] = {}
         for row in provisional_rows:
             existing = deduped_rows.get(row["dedupe_key"])
-            if existing is None or int(row["priority_score"]) > int(existing["priority_score"]):
+            if existing is None or int(row["priority_score"]) > int(
+                existing["priority_score"]
+            ):
                 deduped_rows[row["dedupe_key"]] = row
         ranked_rows = list(deduped_rows.values())
     else:
@@ -238,7 +265,9 @@ def build_provisional_structured_anchors(
     return ranked_rows
 
 
-def build_provisional_anchor_bundles(provisional_structured_anchors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_provisional_anchor_bundles(
+    provisional_structured_anchors: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     bundles_by_source_row: dict[str, dict[str, Any]] = {}
     for row in provisional_structured_anchors:
         source_row_id = str(row.get("source_row_id") or "").strip()
@@ -248,7 +277,9 @@ def build_provisional_anchor_bundles(provisional_structured_anchors: list[dict[s
             source_row_id,
             {
                 "source_row_id": source_row_id,
-                "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
+                "best_affidavit_proposition_id": row.get(
+                    "best_affidavit_proposition_id"
+                ),
                 "primary_workload_class": row.get("primary_workload_class"),
                 "recommended_next_action": row.get("recommended_next_action"),
                 "top_priority_score": int(row.get("priority_score") or 0),
@@ -260,16 +291,26 @@ def build_provisional_anchor_bundles(provisional_structured_anchors: list[dict[s
         if int(row.get("priority_score") or 0) > int(bundle["top_priority_score"]):
             bundle["top_priority_score"] = int(row.get("priority_score") or 0)
             bundle["top_priority_rank"] = int(row.get("priority_rank") or 0)
-            bundle["best_affidavit_proposition_id"] = row.get("best_affidavit_proposition_id")
+            bundle["best_affidavit_proposition_id"] = row.get(
+                "best_affidavit_proposition_id"
+            )
             bundle["primary_workload_class"] = row.get("primary_workload_class")
             bundle["recommended_next_action"] = row.get("recommended_next_action")
     bundles = list(bundles_by_source_row.values())
     for bundle in bundles:
         bundle["anchor_rows"].sort(
-            key=lambda row: (-int(row.get("priority_score") or 0), str(row.get("provisional_anchor_id") or ""))
+            key=lambda row: (
+                -int(row.get("priority_score") or 0),
+                str(row.get("provisional_anchor_id") or ""),
+            )
         )
         bundle["anchor_count"] = len(bundle["anchor_rows"])
-    bundles.sort(key=lambda bundle: (-int(bundle.get("top_priority_score") or 0), str(bundle.get("source_row_id") or "")))
+    bundles.sort(
+        key=lambda bundle: (
+            -int(bundle.get("top_priority_score") or 0),
+            str(bundle.get("source_row_id") or ""),
+        )
+    )
     for rank, bundle in enumerate(bundles, start=1):
         bundle["bundle_rank"] = rank
     return bundles

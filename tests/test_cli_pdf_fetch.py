@@ -48,8 +48,7 @@ def test_pdf_fetch_cli(tmp_path):
         "        self.document = document\n"
     )
     (stub_pkg / "pdfminer" / "pdftypes.py").write_text(
-        "def resolve1(value):\n"
-        "    return value\n"
+        "def resolve1(value):\n    return value\n"
     )
 
     pdf_path = tmp_path / "sample.pdf"
@@ -64,7 +63,7 @@ def test_pdf_fetch_cli(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "cli",
+        "src.cli",
         "pdf-fetch",
         str(pdf_path),
         "--output",

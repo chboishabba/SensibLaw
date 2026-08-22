@@ -214,9 +214,7 @@ class SpacyNLP:
             self._detectors = list(detectors)
         else:
             self._detectors = []
-            fasttext_detector = FastTextLanguageDetector(
-                fasttext_model_path
-            )
+            fasttext_detector = FastTextLanguageDetector(fasttext_model_path)
             if fasttext_detector.available:
                 self._detectors.append(fasttext_detector)
 
@@ -288,4 +286,3 @@ __all__ = [
     "SpacyNLP",
     "TikaLanguageDetector",
 ]
-

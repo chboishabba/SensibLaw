@@ -18,24 +18,48 @@ from src.reporting.notebooklm_activity import (  # noqa: E402
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Query NotebookLM interaction observations from SB runs.")
-    parser.add_argument("--runs-root", required=True, help="Path to StatiBaker runs root")
-    parser.add_argument("--start-date", default=None, help="Optional YYYY-MM-DD lower bound")
-    parser.add_argument("--end-date", default=None, help="Optional YYYY-MM-DD upper bound")
-    parser.add_argument("--notebook-id-hash", default=None, help="Optional notebook hash filter")
+    parser = argparse.ArgumentParser(
+        description="Query NotebookLM interaction observations from SB runs."
+    )
+    parser.add_argument(
+        "--runs-root", required=True, help="Path to StatiBaker runs root"
+    )
+    parser.add_argument(
+        "--start-date", default=None, help="Optional YYYY-MM-DD lower bound"
+    )
+    parser.add_argument(
+        "--end-date", default=None, help="Optional YYYY-MM-DD upper bound"
+    )
+    parser.add_argument(
+        "--notebook-id-hash", default=None, help="Optional notebook hash filter"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("dates", help="List NotebookLM interaction date coverage")
-    summary_parser = subparsers.add_parser("summary", help="Build NotebookLM interaction summary")
-    summary_parser.add_argument("--event-limit", type=int, default=50, help="Max recent events in report")
-    events_parser = subparsers.add_parser("events", help="Query recent NotebookLM interaction events")
+    summary_parser = subparsers.add_parser(
+        "summary", help="Build NotebookLM interaction summary"
+    )
+    summary_parser.add_argument(
+        "--event-limit", type=int, default=50, help="Max recent events in report"
+    )
+    events_parser = subparsers.add_parser(
+        "events", help="Query recent NotebookLM interaction events"
+    )
     events_parser.add_argument("--event", default=None, help="Optional event filter")
-    events_parser.add_argument("--text-query", default=None, help="Optional case-insensitive text filter")
-    events_parser.add_argument("--limit", type=int, default=50, help="Max rows to return")
+    events_parser.add_argument(
+        "--text-query", default=None, help="Optional case-insensitive text filter"
+    )
+    events_parser.add_argument(
+        "--limit", type=int, default=50, help="Max rows to return"
+    )
     args = parser.parse_args()
 
     runs_root = Path(args.runs_root).expanduser().resolve()
     if args.command == "dates":
-        payload = {"dates": list_notebooklm_activity_dates(runs_root, start_date=args.start_date, end_date=args.end_date)}
+        payload = {
+            "dates": list_notebooklm_activity_dates(
+                runs_root, start_date=args.start_date, end_date=args.end_date
+            )
+        }
     elif args.command == "summary":
         payload = {
             "report": build_notebooklm_activity_report(

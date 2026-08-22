@@ -49,9 +49,17 @@ def main() -> int:
         default=Path("SensibLaw/.cache_local/sensiblaw_ontology.sqlite"),
         help="Path to ontology SQLite DB",
     )
-    p.add_argument("--kind", default="person", help="Actor kind (e.g., person, organisation, place)")
+    p.add_argument(
+        "--kind",
+        default="person",
+        help="Actor kind (e.g., person, organisation, place)",
+    )
     p.add_argument("--label", required=True, help="Canonical label (exact match)")
-    p.add_argument("--dry-run", action="store_true", help="Report what would happen without inserting")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would happen without inserting",
+    )
     args = p.parse_args()
 
     db_path: Path = args.db
@@ -64,20 +72,41 @@ def main() -> int:
     try:
         existing = _find_actor_id(conn, kind=kind, label=label)
         if existing is not None:
-            print(json.dumps({"ok": True, "db": str(db_path), "actor_id": existing, "created": False}, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "db": str(db_path),
+                        "actor_id": existing,
+                        "created": False,
+                    },
+                    indent=2,
+                )
+            )
             return 0
 
         if args.dry_run:
             print(
                 json.dumps(
-                    {"ok": True, "db": str(db_path), "actor_id": None, "created": False, "would_create": True},
+                    {
+                        "ok": True,
+                        "db": str(db_path),
+                        "actor_id": None,
+                        "created": False,
+                        "would_create": True,
+                    },
                     indent=2,
                 )
             )
             return 0
 
         actor_id = _insert_actor(conn, kind=kind, label=label)
-        print(json.dumps({"ok": True, "db": str(db_path), "actor_id": actor_id, "created": True}, indent=2))
+        print(
+            json.dumps(
+                {"ok": True, "db": str(db_path), "actor_id": actor_id, "created": True},
+                indent=2,
+            )
+        )
         return 0
     finally:
         conn.close()
@@ -85,4 +114,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -29,8 +29,12 @@ def collect_nat_cross_lane_metrics(
             continue
         total_runs += int(report.get("summary", {}).get("run_count", 0))
         verified_runs += int(report.get("summary", {}).get("verified_run_count", 0))
-        pending_drift_run_ids.extend(report.get("summary", {}).get("pending_drifts", []))
-        drift_runs += len(report.get("runs", [])) - int(report.get("summary", {}).get("verified_run_count", 0))
+        pending_drift_run_ids.extend(
+            report.get("summary", {}).get("pending_drifts", [])
+        )
+        drift_runs += len(report.get("runs", [])) - int(
+            report.get("summary", {}).get("verified_run_count", 0)
+        )
         total_claims += int(report.get("summary", {}).get("total_claims", 0))
         for run in report.get("runs", []):
             counts = run.get("counts_by_status", {})
@@ -42,5 +46,7 @@ def collect_nat_cross_lane_metrics(
         drift_runs=drift_runs,
         total_claims=total_claims,
         verified_claims=verified_claims,
-        pending_drift_run_ids=list(dict.fromkeys(str(value) for value in pending_drift_run_ids if value)),
+        pending_drift_run_ids=list(
+            dict.fromkeys(str(value) for value in pending_drift_run_ids if value)
+        ),
     )

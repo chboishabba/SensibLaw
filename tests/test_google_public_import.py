@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 
 from scripts import build_personal_handoff_from_google_public
-from scripts.build_personal_handoff_from_google_public import build_handoff_from_google_public_artifact
+from scripts.build_personal_handoff_from_google_public import (
+    build_handoff_from_google_public_artifact,
+)
 from src.fact_intake import google_public_import
 from src.fact_intake.google_public_import import (
     build_google_public_export_url,
@@ -21,8 +23,12 @@ def test_parse_google_public_url_and_export_url() -> None:
     doc_url = "https://docs.google.com/document/d/xyz789/edit?usp=sharing"
     assert parse_google_public_url(sheet_url) == {"kind": "sheet", "doc_id": "abc123"}
     assert parse_google_public_url(doc_url) == {"kind": "doc", "doc_id": "xyz789"}
-    assert build_google_public_export_url(sheet_url).endswith("/spreadsheets/d/abc123/export?format=csv")
-    assert build_google_public_export_url(doc_url).endswith("/document/d/xyz789/export?format=txt")
+    assert build_google_public_export_url(sheet_url).endswith(
+        "/spreadsheets/d/abc123/export?format=csv"
+    )
+    assert build_google_public_export_url(doc_url).endswith(
+        "/document/d/xyz789/export?format=txt"
+    )
 
 
 def test_google_sheet_csv_units_are_rendered_compactly() -> None:
@@ -30,7 +36,9 @@ def test_google_sheet_csv_units_are_rendered_compactly() -> None:
         "ID#1,ID#2,ID as is,Event,Evidenced,Type,Filename,Description\n"
         "1,1,257,John begins seeking justice,,, ,Divorce from Monica and workplace trouble.\n"
     )
-    units = load_google_sheet_units_from_csv_text(csv_text, source_id="google_sheet:test")
+    units = load_google_sheet_units_from_csv_text(
+        csv_text, source_id="google_sheet:test"
+    )
     assert len(units) == 1
     assert "Event: John begins seeking justice" in units[0].text
     assert "Description: Divorce from Monica and workplace trouble." in units[0].text
@@ -52,7 +60,9 @@ def test_google_doc_units_and_affidavit_extraction() -> None:
     assert "Analysis starts here." not in affidavit_text
 
 
-def test_build_handoff_from_google_public_artifact_uses_public_units(monkeypatch, tmp_path: Path) -> None:
+def test_build_handoff_from_google_public_artifact_uses_public_units(
+    monkeypatch, tmp_path: Path
+) -> None:
     from scripts import build_personal_handoff_from_google_public as module
 
     fake_units = load_google_doc_units_from_text(

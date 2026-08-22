@@ -19,13 +19,20 @@ from src.fact_intake import (
 )
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.reporting.structure_report import TextUnit
-from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
+from src.transcript_semantic.semantic import (
+    build_transcript_semantic_report,
+    run_transcript_semantic_pipeline,
+)
 import src.fact_intake.transcript_review_bundle as transcript_review_bundle
 
 
 def test_fact_review_bundle_example_validates() -> None:
-    schema = yaml.safe_load(Path("schemas/fact.review.bundle.v1.schema.yaml").read_text(encoding="utf-8"))
-    payload = json.loads(Path("examples/fact_review_bundle_minimal.json").read_text(encoding="utf-8"))
+    schema = yaml.safe_load(
+        Path("schemas/fact.review.bundle.v1.schema.yaml").read_text(encoding="utf-8")
+    )
+    payload = json.loads(
+        Path("examples/fact_review_bundle_minimal.json").read_text(encoding="utf-8")
+    )
     jsonschema.validate(payload, schema)
 
 
@@ -36,7 +43,9 @@ def test_transcript_semantic_report_adapts_into_fact_review_bundle() -> None:
     units = [
         TextUnit("u1", "hearing-1", "transcript_file", "Q: Where were you?"),
         TextUnit("u2", "hearing-1", "transcript_file", "A: At home."),
-        TextUnit("u3", "hearing-1", "transcript_file", "[5/3/26 8:52 pm] Alice: Thanks."),
+        TextUnit(
+            "u3", "hearing-1", "transcript_file", "[5/3/26 8:52 pm] Alice: Thanks."
+        ),
     ]
     result = run_transcript_semantic_pipeline(
         conn,
@@ -44,7 +53,9 @@ def test_transcript_semantic_report_adapts_into_fact_review_bundle() -> None:
         known_participants_by_source={"hearing-1": ["counsel", "witness"]},
         run_id="transcript-fact-review-v1",
     )
-    semantic_report = build_transcript_semantic_report(conn, run_id=result["run_id"], units=units)
+    semantic_report = build_transcript_semantic_report(
+        conn, run_id=result["run_id"], units=units
+    )
     payload = build_fact_intake_payload_from_transcript_report(semantic_report)
 
     persist_summary = persist_fact_intake_payload(conn, payload)
@@ -55,9 +66,13 @@ def test_transcript_semantic_report_adapts_into_fact_review_bundle() -> None:
         fact_run_id=payload["run"]["run_id"],
         source_label=payload["run"]["source_label"],
     )
-    bundle = build_transcript_fact_review_bundle(conn, fact_run_id=payload["run"]["run_id"], semantic_report=semantic_report)
+    bundle = build_transcript_fact_review_bundle(
+        conn, fact_run_id=payload["run"]["run_id"], semantic_report=semantic_report
+    )
 
-    schema = yaml.safe_load(Path("schemas/fact.review.bundle.v1.schema.yaml").read_text(encoding="utf-8"))
+    schema = yaml.safe_load(
+        Path("schemas/fact.review.bundle.v1.schema.yaml").read_text(encoding="utf-8")
+    )
     jsonschema.validate(bundle, schema)
 
     assert payload["run"]["run_id"].startswith("factrun:")
@@ -71,13 +86,21 @@ def test_transcript_semantic_report_adapts_into_fact_review_bundle() -> None:
     observation_predicates = {row["predicate_key"] for row in bundle["observations"]}
     assert {"actor", "communicated", "acted_on"} <= observation_predicates
 
-    communication_event = next(event for event in bundle["events"] if event["event_type"] == "communication")
+    communication_event = next(
+        event for event in bundle["events"] if event["event_type"] == "communication"
+    )
     assert communication_event["assembler_version"] == EVENT_ASSEMBLER_VERSION
     assert communication_event["status"] == "candidate"
     assert set(communication_event["source_event_ids"]) >= {"u2"}
-    assert {row["role"] for row in communication_event["evidence"]} >= {"event_type", "primary_actor", "object_text"}
+    assert {row["role"] for row in communication_event["evidence"]} >= {
+        "event_type",
+        "primary_actor",
+        "object_text",
+    }
 
-    chronology_event = next(row for row in bundle["chronology"] if row["event_type"] == "communication")
+    chronology_event = next(
+        row for row in bundle["chronology"] if row["event_type"] == "communication"
+    )
     assert set(chronology_event["source_event_ids"]) >= {"u2"}
     assert chronology_event["order"] == 1
 
@@ -89,10 +112,16 @@ def test_transcript_semantic_report_adapts_into_fact_review_bundle() -> None:
     assert len(bundle["review_queue"]) == 3
     assert bundle["review_queue"][0]["reason_codes"]
     assert "primary_contested_reason_text" in bundle["review_queue"][0]
-    assert bundle["review_queue"][0]["chronology_bucket"] in {"dated", "undated", "no_event"}
+    assert bundle["review_queue"][0]["chronology_bucket"] in {
+        "dated",
+        "undated",
+        "no_event",
+    }
     assert bundle["chronology_groups"]["undated_events"]
     assert "intake_triage" in bundle["operator_views"]
-    assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "transcript_semantic"
+    assert (
+        bundle["semantic_context"]["workflow"]["workflow_kind"] == "transcript_semantic"
+    )
     assert bundle["abstentions"]["counts"] == {
         "statement_abstentions": 0,
         "observation_abstentions": 0,
@@ -131,11 +160,18 @@ def test_transcript_fact_review_cli_payload_reports_progress(tmp_path: Path) -> 
     assert stages[0] == "load_units_started"
     assert "semantic_pipeline_started" in stages
     assert "fact_persist_sources_started" in stages
-    assert any(stage.startswith("fact_persist_") and stage.endswith("_progress") for stage in stages)
+    assert any(
+        stage.startswith("fact_persist_") and stage.endswith("_progress")
+        for stage in stages
+    )
     assert "fact_persist_build_workbench" in stages
     assert "bundle_build_finished" in stages
     assert stages[-1] == "build_finished"
-    progress_details = next(details for stage, details in updates if stage == "fact_persist_statements_progress")
+    progress_details = next(
+        details
+        for stage, details in updates
+        if stage == "fact_persist_statements_progress"
+    )
     assert "eta_seconds_remaining" in progress_details
     assert "eta_finish_utc" in progress_details
     assert "eta_confidence_interval_seconds" in progress_details
@@ -144,14 +180,18 @@ def test_transcript_fact_review_cli_payload_reports_progress(tmp_path: Path) -> 
 
 
 def test_transcript_bundle_uses_shared_review_bundle_component() -> None:
-    source = inspect.getsource(transcript_review_bundle.build_transcript_fact_review_bundle)
+    source = inspect.getsource(
+        transcript_review_bundle.build_transcript_fact_review_bundle
+    )
     assert "build_event_chronology(" in source
     assert "build_abstentions(" in source
     assert "build_fact_review_bundle_payload(" in source
 
 
 def test_transcript_payload_uses_shared_payload_builder() -> None:
-    source = inspect.getsource(transcript_review_bundle.build_fact_intake_payload_from_transcript_report)
+    source = inspect.getsource(
+        transcript_review_bundle.build_fact_intake_payload_from_transcript_report
+    )
     assert "build_fact_intake_run(" in source
     assert "build_source_rows(" in source
     assert "ensure_event_source_row(" in source
@@ -162,12 +202,16 @@ def test_transcript_payload_uses_shared_payload_builder() -> None:
 
 
 def test_transcript_payload_uses_shared_observation_projection_path() -> None:
-    source = inspect.getsource(transcript_review_bundle.build_fact_intake_payload_from_transcript_report)
+    source = inspect.getsource(
+        transcript_review_bundle.build_fact_intake_payload_from_transcript_report
+    )
     assert "build_role_observation(" in source
     assert "build_relation_observation(" in source
 
 
 def test_transcript_payload_uses_shared_projection_helpers() -> None:
-    source = inspect.getsource(transcript_review_bundle.build_fact_intake_payload_from_transcript_report)
+    source = inspect.getsource(
+        transcript_review_bundle.build_fact_intake_payload_from_transcript_report
+    )
     assert "fact_status_for_statement(" in source
     assert "observation_status_from_relation(" in source

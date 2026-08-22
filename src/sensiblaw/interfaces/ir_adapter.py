@@ -82,7 +82,9 @@ _QUESTION_WORDS = frozenset(
         "has",
     }
 )
-_DIRECT_ADDRESS_TOKENS = frozenset({"you", "your", "yours", "u", "team", "all", "everyone", "somebody", "someone"})
+_DIRECT_ADDRESS_TOKENS = frozenset(
+    {"you", "your", "yours", "u", "team", "all", "everyone", "somebody", "someone"}
+)
 
 
 def _stable_id(prefix: str, *parts: object) -> str:
@@ -96,7 +98,9 @@ def _token_text(token: dict[str, Any]) -> str:
 
 def _sentence_features(sentence: dict[str, Any]) -> dict[str, Any]:
     text = str(sentence.get("text", ""))
-    tokens = [token for token in sentence.get("tokens", ()) if _token_text(token).strip()]
+    tokens = [
+        token for token in sentence.get("tokens", ()) if _token_text(token).strip()
+    ]
     token_texts = [_token_text(token) for token in tokens]
     lower_texts = [value.casefold() for value in token_texts]
     non_punct = [value for value in token_texts if any(ch.isalnum() for ch in value)]
@@ -106,7 +110,9 @@ def _sentence_features(sentence: dict[str, Any]) -> dict[str, Any]:
     has_question_word = any(value in _QUESTION_WORDS for value in lower_texts[:2])
     has_please = "please" in lower_texts
     starts_with_imperative = first_lower in _IMPERATIVE_HEADS
-    contains_direct_address = any(value in _DIRECT_ADDRESS_TOKENS for value in lower_texts)
+    contains_direct_address = any(
+        value in _DIRECT_ADDRESS_TOKENS for value in lower_texts
+    )
     leading_vocative = False
     if tokens:
         first = tokens[0]
@@ -229,13 +235,19 @@ def build_query_tree(text: str) -> QueryTree:
         )
         nodes.append(structure_node)
         for sentence_node in sentence_nodes:
-            if structure_node.span_start >= sentence_node.span_start and structure_node.span_end <= sentence_node.span_end:
+            if (
+                structure_node.span_start >= sentence_node.span_start
+                and structure_node.span_end <= sentence_node.span_end
+            ):
                 edges.append(
                     QueryEdge(
                         src_id=sentence_node.node_id,
                         dst_id=structure_id,
                         kind="contains",
-                        evidence_span=(structure_node.span_start, structure_node.span_end),
+                        evidence_span=(
+                            structure_node.span_start,
+                            structure_node.span_end,
+                        ),
                     )
                 )
                 break
@@ -261,8 +273,12 @@ def build_query_tree(text: str) -> QueryTree:
 
 def _interaction_candidate(sentence_node: QueryNode) -> InteractionMode:
     features = sentence_node.features
-    has_question = bool(features.get("has_question_mark")) or bool(features.get("has_question_word"))
-    has_imperative = bool(features.get("has_please")) or bool(features.get("starts_with_imperative"))
+    has_question = bool(features.get("has_question_mark")) or bool(
+        features.get("has_question_word")
+    )
+    has_imperative = bool(features.get("has_please")) or bool(
+        features.get("starts_with_imperative")
+    )
     has_direct_address = bool(features.get("contains_direct_address"))
 
     if (has_question or has_imperative) and has_direct_address:
@@ -275,7 +291,11 @@ def _interaction_candidate(sentence_node: QueryNode) -> InteractionMode:
 
 
 def _is_ambient(query_tree: QueryTree) -> tuple[bool, tuple[str, ...]]:
-    token_nodes = [node for node in query_tree.nodes if node.kind == "token" and any(ch.isalnum() for ch in node.text)]
+    token_nodes = [
+        node
+        for node in query_tree.nodes
+        if node.kind == "token" and any(ch.isalnum() for ch in node.text)
+    ]
     if not token_nodes:
         return False, ()
     lower_tokens = [node.text.casefold() for node in token_nodes]
@@ -307,7 +327,9 @@ def project_interaction_mode(query_tree: QueryTree) -> InteractionProjectionRece
         mode = _interaction_candidate(node)
         scored.append((ranking[mode], node, mode))
 
-    _, winning_node, winning_mode = max(scored, key=lambda item: (item[0], item[1].span_end - item[1].span_start))
+    _, winning_node, winning_mode = max(
+        scored, key=lambda item: (item[0], item[1].span_end - item[1].span_start)
+    )
     signal_ids: list[str] = []
     for key, value in sorted(winning_node.features.items()):
         if value:

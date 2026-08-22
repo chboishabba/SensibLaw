@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from textwrap import wrap
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 
 def _text(value: Any) -> str:
@@ -20,7 +20,11 @@ def _wrap(value: Any, *, width: int = 34, max_lines: int = 6) -> str:
 
 
 def _quote(value: Any) -> str:
-    return '"' + _text(value).replace("\\", "\\\\").replace('"', "'").replace("\n", "\\n") + '"'
+    return (
+        '"'
+        + _text(value).replace("\\", "\\\\").replace('"', "'").replace("\n", "\\n")
+        + '"'
+    )
 
 
 def _slug(value: Any) -> str:
@@ -50,7 +54,10 @@ def _lexical_atoms(text: Any, *, limit: int = 10) -> list[str]:
 def _status_fill(row: Mapping[str, Any]) -> str:
     coverage = _text(row.get("coverage_status"))
     relation_root = _text(row.get("relation_root"))
-    if relation_root == "invalidates" or coverage in {"contested_source", "contested_affidavit"}:
+    if relation_root == "invalidates" or coverage in {
+        "contested_source",
+        "contested_affidavit",
+    }:
         return "#FDE2E1"
     if relation_root == "supports" or coverage == "covered":
         return "#E4F4DD"
@@ -59,8 +66,14 @@ def _status_fill(row: Mapping[str, Any]) -> str:
     return "#F3F3F3"
 
 
-def _rows(payload: Mapping[str, Any], *, max_claims: int | None = None) -> list[Mapping[str, Any]]:
-    raw = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
+def _rows(
+    payload: Mapping[str, Any], *, max_claims: int | None = None
+) -> list[Mapping[str, Any]]:
+    raw = (
+        payload.get("affidavit_rows")
+        if isinstance(payload.get("affidavit_rows"), list)
+        else []
+    )
     rows = [row for row in raw if isinstance(row, Mapping)]
     if max_claims is not None:
         rows = rows[: max(0, int(max_claims))]
@@ -68,7 +81,11 @@ def _rows(payload: Mapping[str, Any], *, max_claims: int | None = None) -> list[
 
 
 def _source_map(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
-    raw = payload.get("source_review_rows") if isinstance(payload.get("source_review_rows"), list) else []
+    raw = (
+        payload.get("source_review_rows")
+        if isinstance(payload.get("source_review_rows"), list)
+        else []
+    )
     return {
         _text(row.get("source_row_id")): row
         for row in raw
@@ -77,7 +94,11 @@ def _source_map(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
 
 
 def _source_display_map(payload: Mapping[str, Any]) -> dict[str, str]:
-    raw = payload.get("source_review_rows") if isinstance(payload.get("source_review_rows"), list) else []
+    raw = (
+        payload.get("source_review_rows")
+        if isinstance(payload.get("source_review_rows"), list)
+        else []
+    )
     mapping: dict[str, str] = {}
     for index, row in enumerate(raw, start=1):
         if not isinstance(row, Mapping):
@@ -89,12 +110,20 @@ def _source_display_map(payload: Mapping[str, Any]) -> dict[str, str]:
 
 
 def _zelph_map(payload: Mapping[str, Any]) -> dict[tuple[str, str], Mapping[str, Any]]:
-    raw = payload.get("zelph_claim_state_facts") if isinstance(payload.get("zelph_claim_state_facts"), list) else []
+    raw = (
+        payload.get("zelph_claim_state_facts")
+        if isinstance(payload.get("zelph_claim_state_facts"), list)
+        else []
+    )
     mapping: dict[tuple[str, str], Mapping[str, Any]] = {}
     for row in raw:
         if not isinstance(row, Mapping):
             continue
-        claim_text = _text((row.get("claim_text_span") or {}).get("text") if isinstance(row.get("claim_text_span"), Mapping) else None)
+        claim_text = _text(
+            (row.get("claim_text_span") or {}).get("text")
+            if isinstance(row.get("claim_text_span"), Mapping)
+            else None
+        )
         source_row_id = _text(row.get("best_source_row_id"))
         if claim_text or source_row_id:
             mapping[(claim_text, source_row_id)] = row
@@ -102,7 +131,9 @@ def _zelph_map(payload: Mapping[str, Any]) -> dict[tuple[str, str], Mapping[str,
 
 
 def _summary_note(payload: Mapping[str, Any]) -> str:
-    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    summary = (
+        payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    )
     lines = ["Current summary"]
     for key in (
         "affidavit_proposition_count",
@@ -147,7 +178,7 @@ def build_affidavit_resolution_plantuml(
         "skinparam componentBorderColor #666666",
         "skinparam noteBorderColor #888888",
         "",
-        "package \"Affidavit Claims\" {",
+        'package "Affidavit Claims" {',
     ]
 
     for index, row in enumerate(rows, start=1):
@@ -161,10 +192,10 @@ def build_affidavit_resolution_plantuml(
             f"coverage: {_text(row.get('coverage_status')) or '-'}\\n"
             f"relation: {_text(row.get('relation_root')) or '-'} / {_text(row.get('relation_leaf')) or '-'}"
         )
-        lines.append(f'  rectangle {_quote(label)} as {node_id} {fill}')
+        lines.append(f"  rectangle {_quote(label)} as {node_id} {fill}")
     lines.append("}")
     lines.append("")
-    lines.append("package \"Claim Roots And Responses\" {")
+    lines.append('package "Claim Roots And Responses" {')
 
     for index, row in enumerate(rows, start=1):
         proposition_id = _text(row.get("proposition_id")) or f"claim_{index}"
@@ -196,7 +227,11 @@ def build_affidavit_resolution_plantuml(
             lines.append(f"{claim_id} --> {source_id} : best_match")
 
         status_id = f"T_{_slug(proposition_id)}"
-        explanation = row.get("explanation") if isinstance(row.get("explanation"), Mapping) else {}
+        explanation = (
+            row.get("explanation")
+            if isinstance(row.get("explanation"), Mapping)
+            else {}
+        )
         status_label = (
             f"semantic_basis: {_text(row.get('semantic_basis')) or '-'}\\n"
             f"support: {_text(row.get('support_status')) or '-'}\\n"
@@ -219,9 +254,15 @@ def build_affidavit_resolution_plantuml(
             lines.append(f"  component {_quote(zelph_label)} as {zelph_id}")
             lines.append(f"{status_id} --> {zelph_id} : projected")
 
-        matched = row.get("matched_source_rows") if isinstance(row.get("matched_source_rows"), list) else []
+        matched = (
+            row.get("matched_source_rows")
+            if isinstance(row.get("matched_source_rows"), list)
+            else []
+        )
         for cand_index, candidate in enumerate(
-            [item for item in matched if isinstance(item, Mapping)][: max(0, int(candidate_limit))],
+            [item for item in matched if isinstance(item, Mapping)][
+                : max(0, int(candidate_limit))
+            ],
             start=1,
         ):
             candidate_id = f"M_{_slug(proposition_id)}_{cand_index}"
@@ -238,7 +279,7 @@ def build_affidavit_resolution_plantuml(
         [
             "}",
             "",
-            f'note right\n{_summary_note(payload)}\nend note',
+            f"note right\n{_summary_note(payload)}\nend note",
             "@enduml",
             "",
         ]
@@ -287,8 +328,10 @@ def build_affidavit_mechanical_plantuml(
         proposition_id = _text(row.get("proposition_id")) or f"claim_{index}"
         display_id = _display_id(proposition_id)
         sentence_id = f"AF_{_slug(proposition_id)}"
-        sentence_label = f"{display_id}\\n{_wrap(row.get('text'), width=30, max_lines=5)}"
-        lines.append(f'  component {_quote(sentence_label)} as {sentence_id}')
+        sentence_label = (
+            f"{display_id}\\n{_wrap(row.get('text'), width=30, max_lines=5)}"
+        )
+        lines.append(f"  component {_quote(sentence_label)} as {sentence_id}")
         if previous_sentence_id is not None:
             lines.append(f"  {previous_sentence_id} --> {sentence_id} : next_sentence")
         previous_sentence_id = sentence_id
@@ -305,9 +348,11 @@ def build_affidavit_mechanical_plantuml(
             source_row_id = _text(row.get("source_row_id")) or f"source_{index}"
             source_node_id = f"SR_{_slug(source_row_id)}"
             source_label = f"{source_display.get(source_row_id, f's{index}')}\\n{_wrap(row.get('text'), width=30, max_lines=5)}"
-            lines.append(f'  component {_quote(source_label)} as {source_node_id}')
+            lines.append(f"  component {_quote(source_label)} as {source_node_id}")
             if previous_source_id is not None:
-                lines.append(f"  {previous_source_id} --> {source_node_id} : next_source")
+                lines.append(
+                    f"  {previous_source_id} --> {source_node_id} : next_source"
+                )
             previous_source_id = source_node_id
         lines.append("}")
         lines.append("")
@@ -318,67 +363,125 @@ def build_affidavit_mechanical_plantuml(
         sentence_id = f"AF_{_slug(proposition_id)}"
         text_id = f"P_{_slug(proposition_id)}"
         lines.append(f"' {display_id}")
-        extracted_label = "extracted " + display_id + "\n" + _wrap(
-            row.get("text"), width=28, max_lines=5
+        extracted_label = (
+            "extracted "
+            + display_id
+            + "\n"
+            + _wrap(row.get("text"), width=28, max_lines=5)
         )
-        lines.append(f'  component {_quote(extracted_label)} as {text_id}')
+        lines.append(f"  component {_quote(extracted_label)} as {text_id}")
         lines.append(f"  {sentence_id} --> {text_id} : extracted_as")
 
-        token_values = row.get("tokens") if isinstance(row.get("tokens"), list) else None
-        atoms = [str(value) for value in token_values[:token_limit]] if token_values else _lexical_atoms(row.get("text"), limit=token_limit)
+        token_values = (
+            row.get("tokens") if isinstance(row.get("tokens"), list) else None
+        )
+        atoms = (
+            [str(value) for value in token_values[:token_limit]]
+            if token_values
+            else _lexical_atoms(row.get("text"), limit=token_limit)
+        )
         token_id = f"T_{_slug(proposition_id)}"
-        token_label = display_id + " tokens\n" + "\n".join(atoms or ["-"])
-        lines.append(f'  component {_quote(token_label)} as {token_id}')
+        token_label = display_id + " tokens\\n" + "\\n".join(atoms or ["-"])
+        lines.append(f"  component {_quote(token_label)} as {token_id}")
         lines.append(f"  {text_id} --> {token_id} : tokenize")
 
         best_excerpt = _text(row.get("best_match_excerpt"))
         best_source_row_id = _text(row.get("best_source_row_id"))
-        source_text = _text(source_rows.get(best_source_row_id, {}).get("text")) or best_excerpt
-        match_id = f"B_{_slug(proposition_id)}"
-        lines.append(
-            f'  component {_quote("best_match " + source_display.get(best_source_row_id, _display_id(best_source_row_id or "source")) + "\\n" + _wrap(source_text, width=28, max_lines=5))} as {match_id}'
+        source_text = (
+            _text(source_rows.get(best_source_row_id, {}).get("text")) or best_excerpt
         )
+        match_id = f"B_{_slug(proposition_id)}"
+        match_label = (
+            "best_match "
+            + source_display.get(
+                best_source_row_id, _display_id(best_source_row_id or "source")
+            )
+            + "\\n"
+            + _wrap(source_text, width=28, max_lines=5)
+        )
+        lines.append(f"  component {_quote(match_label)} as {match_id}")
         lines.append(
             f"  {token_id} --> {match_id} : {_text(row.get('best_match_basis')) or 'match'} / {_text(row.get('best_adjusted_match_score') or row.get('best_match_score')) or '-'}"
         )
         if best_source_row_id:
-            lines.append(f"  {match_id} --> SR_{_slug(best_source_row_id)} : from_response_sentence")
+            lines.append(
+                f"  {match_id} --> SR_{_slug(best_source_row_id)} : from_response_sentence"
+            )
 
-        overlap = sorted(set(atoms) & set(_lexical_atoms(source_text, limit=token_limit * 2)))
+        overlap = sorted(
+            set(atoms) & set(_lexical_atoms(source_text, limit=token_limit * 2))
+        )
         overlap_id = f"O_{_slug(proposition_id)}"
-        lines.append(f'  component {_quote(display_id + " overlap\\n" + "\\n".join(overlap[:token_limit] or ["-"]))} as {overlap_id}')
+        overlap_label = (
+            display_id + " overlap\\n" + "\\n".join(overlap[:token_limit] or ["-"])
+        )
+        lines.append(f"  component {_quote(overlap_label)} as {overlap_id}")
         lines.append(f"  {match_id} --> {overlap_id} : overlap")
 
         duplicate_excerpt = _text(row.get("duplicate_match_excerpt"))
         if duplicate_excerpt:
             dup_id = f"D_{_slug(proposition_id)}"
-            lines.append(f'  component {_quote(display_id + " duplicate_root\\n" + _wrap(duplicate_excerpt, width=28, max_lines=5))} as {dup_id}')
+            duplicate_label = (
+                display_id
+                + " duplicate_root\\n"
+                + _wrap(duplicate_excerpt, width=28, max_lines=5)
+            )
+            lines.append(f"  component {_quote(duplicate_label)} as {dup_id}")
             lines.append(f"  {match_id} --> {dup_id} : duplicate_excerpt")
 
         root_text = _text(row.get("claim_root_text"))
         if root_text:
             root_id = f"R_{_slug(proposition_id)}"
-            lines.append(
-                f'  component {_quote(display_id + " claim_root\\n" + _wrap(root_text, width=28, max_lines=5) + "\\n" + "basis: " + (_text(row.get("claim_root_basis")) or "-"))} as {root_id}'
+            root_label = (
+                display_id
+                + " claim_root\\n"
+                + _wrap(root_text, width=28, max_lines=5)
+                + "\\n"
+                + "basis: "
+                + (_text(row.get("claim_root_basis")) or "-")
             )
-            anchor_from = f"D_{_slug(proposition_id)}" if duplicate_excerpt else match_id
+            lines.append(f"  component {_quote(root_label)} as {root_id}")
+            anchor_from = (
+                f"D_{_slug(proposition_id)}" if duplicate_excerpt else match_id
+            )
             lines.append(f"  {anchor_from} --> {root_id} : root_selection")
 
         classify_id = f"C_{_slug(proposition_id)}"
-        lines.append(
-            f'  component {_quote(display_id + " classification\\n" + "response_role: " + (_text(row.get("best_response_role")) or "-") + "\\n" + "semantic_basis: " + (_text(row.get("semantic_basis")) or "-") + "\\n" + "relation: " + ((_text(row.get("relation_root")) or "-") + " / " + (_text(row.get("relation_leaf")) or "-")))} as {classify_id}'
+        classification_label = (
+            display_id
+            + " classification\\nresponse_role: "
+            + (_text(row.get("best_response_role")) or "-")
+            + "\\nsemantic_basis: "
+            + (_text(row.get("semantic_basis")) or "-")
+            + "\\nrelation: "
+            + (_text(row.get("relation_root")) or "-")
+            + " / "
+            + (_text(row.get("relation_leaf")) or "-")
         )
+        lines.append(f"  component {_quote(classification_label)} as {classify_id}")
         lines.append(f"  {match_id} --> {classify_id} : classify")
 
-        matched = row.get("matched_source_rows") if isinstance(row.get("matched_source_rows"), list) else []
+        matched = (
+            row.get("matched_source_rows")
+            if isinstance(row.get("matched_source_rows"), list)
+            else []
+        )
         for cand_index, candidate in enumerate(
-            [item for item in matched if isinstance(item, Mapping)][: max(0, int(candidate_limit))],
+            [item for item in matched if isinstance(item, Mapping)][
+                : max(0, int(candidate_limit))
+            ],
             start=1,
         ):
             candidate_id = f"M_{_slug(proposition_id)}_{cand_index}"
-            lines.append(
-                f'  component {_quote((source_display.get(_text(candidate.get("source_row_id")), _display_id(candidate.get("source_row_id")) or "candidate")) + "\\n" + _wrap(candidate.get("match_excerpt"), width=28, max_lines=4))} as {candidate_id}'
+            candidate_label = (
+                source_display.get(
+                    _text(candidate.get("source_row_id")),
+                    _display_id(candidate.get("source_row_id")) or "candidate",
+                )
+                + "\\n"
+                + _wrap(candidate.get("match_excerpt"), width=28, max_lines=4)
             )
+            lines.append(f"  component {_quote(candidate_label)} as {candidate_id}")
             lines.append(
                 f"  {token_id} ..> {candidate_id} : {_text(candidate.get('match_basis')) or '-'} / {_text(candidate.get('score')) or '-'}"
             )

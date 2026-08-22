@@ -25,7 +25,9 @@ def test_assumption_controls_registry_is_complete_and_unique() -> None:
         seen.add(aid)
 
     expected = {f"A{i}" for i in range(1, 11)}
-    assert seen == expected, f"Registry must enumerate A1..A10 exactly; got={sorted(seen)}"
+    assert seen == expected, (
+        f"Registry must enumerate A1..A10 exactly; got={sorted(seen)}"
+    )
 
 
 def test_assumption_controls_fail_closed_for_unresolved_items() -> None:
@@ -40,7 +42,9 @@ def test_assumption_controls_fail_closed_for_unresolved_items() -> None:
 
         if status == "implemented":
             tests = (row or {}).get("test_refs")
-            assert isinstance(tests, list) and tests, f"{aid}: implemented controls must declare test_refs."
+            assert isinstance(tests, list) and tests, (
+                f"{aid}: implemented controls must declare test_refs."
+            )
             continue
 
         waiver_rel = str((row or {}).get("waiver_receipt") or "").strip()

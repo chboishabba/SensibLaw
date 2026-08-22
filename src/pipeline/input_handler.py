@@ -1,4 +1,5 @@
 """Utilities for handling user input for the processing pipeline."""
+
 from __future__ import annotations
 
 from typing import List, TypedDict

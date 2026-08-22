@@ -23,10 +23,15 @@ from src.reporting.openrecall_raw_import import (
     query_openrecall_raw_rows,
 )
 from src.reporting.structure_report import TextUnit
-from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
+from src.transcript_semantic.semantic import (
+    build_transcript_semantic_report,
+    run_transcript_semantic_pipeline,
+)
 
 
-def _seed_openrecall_db(tmp_path: Path, *, rows: list[dict[str, object]]) -> tuple[Path, Path]:
+def _seed_openrecall_db(
+    tmp_path: Path, *, rows: list[dict[str, object]]
+) -> tuple[Path, Path]:
     storage_dir = tmp_path / "openrecall"
     storage_dir.mkdir(parents=True, exist_ok=True)
     screenshot_dir = storage_dir / "screenshots"
@@ -106,7 +111,9 @@ def test_openrecall_import_normalizes_capture_rows_and_units(tmp_path: Path) -> 
         assert "notification routing feature" in row["ocr_text"].casefold()
         assert row["screenshot_path"].endswith(".webp")
         assert row["embedding_present"] == 1
-        unit_row = conn.execute("SELECT text FROM openrecall_capture_text_units").fetchone()
+        unit_row = conn.execute(
+            "SELECT text FROM openrecall_capture_text_units"
+        ).fetchone()
         assert unit_row is not None
         assert "[Firefox]" in str(unit_row["text"])
         assert "Notification routing feature PR" in str(unit_row["text"])
@@ -143,10 +150,22 @@ def test_mission_lens_report_includes_openrecall_actual_rows(tmp_path: Path) -> 
         ensure_gwb_semantic_schema(conn)
         ensure_openrecall_capture_schema(conn)
         units = [
-            TextUnit("m1", "chat-a", "chat_test_db", "[5/3/26 8:45 pm] Josh: Please implement the notification routing feature by Friday."),
-            TextUnit("m2", "chat-a", "chat_test_db", "[5/3/26 9:02 pm] Josh: Hey have you implemented the new feature?"),
+            TextUnit(
+                "m1",
+                "chat-a",
+                "chat_test_db",
+                "[5/3/26 8:45 pm] Josh: Please implement the notification routing feature by Friday.",
+            ),
+            TextUnit(
+                "m2",
+                "chat-a",
+                "chat_test_db",
+                "[5/3/26 9:02 pm] Josh: Hey have you implemented the new feature?",
+            ),
         ]
-        result = run_transcript_semantic_pipeline(conn, units, run_id="mission-lens-openrecall-v1")
+        result = run_transcript_semantic_pipeline(
+            conn, units, run_id="mission-lens-openrecall-v1"
+        )
         build_transcript_semantic_report(conn, run_id=result["run_id"], units=units)
         import_openrecall_db(
             conn,
@@ -162,7 +181,12 @@ def test_mission_lens_report_includes_openrecall_actual_rows(tmp_path: Path) -> 
         payload={
             "date": "2026-03-08",
             "timeline": [
-                {"ts": "2026-03-08T11:00:00Z", "hour": 11, "kind": "shell", "detail": "General shell work"},
+                {
+                    "ts": "2026-03-08T11:00:00Z",
+                    "hour": 11,
+                    "kind": "shell",
+                    "detail": "General shell work",
+                },
             ],
             "frequency_by_hour": {"shell": [0] * 11 + [1] + [0] * 12},
         },
@@ -175,15 +199,25 @@ def test_mission_lens_report_includes_openrecall_actual_rows(tmp_path: Path) -> 
         run_id="mission-lens-openrecall-v1",
     )
     assert report["summary"]["openrecall_activity_count"] == 1
-    assert any(row["kind"] == "openrecall_capture" for row in report["openrecall_activity_rows"])
+    assert any(
+        row["kind"] == "openrecall_capture"
+        for row in report["openrecall_activity_rows"]
+    )
     assert any(row["kind"] == "openrecall_capture" for row in report["activity_rows"])
-    openrecall_row = next(row for row in report["activity_rows"] if row["kind"] == "openrecall_capture")
+    openrecall_row = next(
+        row for row in report["activity_rows"] if row["kind"] == "openrecall_capture"
+    )
     assert openrecall_row["mappingSource"] in {"lexical", "unmapped"}
     assert openrecall_row["meta"]["sourceKind"] == "openrecall_capture"
-    assert any(node["id"] == "actual:openrecall_capture" for node in report["actual_allocation"]["left"])
+    assert any(
+        node["id"] == "actual:openrecall_capture"
+        for node in report["actual_allocation"]["left"]
+    )
 
 
-def test_imported_openrecall_units_can_feed_transcript_semantic_pipeline(tmp_path: Path) -> None:
+def test_imported_openrecall_units_can_feed_transcript_semantic_pipeline(
+    tmp_path: Path,
+) -> None:
     source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
     source_db, storage_dir = _seed_openrecall_db(
         tmp_path,
@@ -213,8 +247,12 @@ def test_imported_openrecall_units_can_feed_transcript_semantic_pipeline(tmp_pat
     units = load_openrecall_units(itir_db, import_run_id="openrecall-semantic-v1")
     with sqlite3.connect(itir_db) as conn:
         conn.row_factory = sqlite3.Row
-        result = run_transcript_semantic_pipeline(conn, units, run_id="openrecall-semantic-v1")
-        report = build_transcript_semantic_report(conn, run_id=result["run_id"], units=units)
+        result = run_transcript_semantic_pipeline(
+            conn, units, run_id="openrecall-semantic-v1"
+        )
+        report = build_transcript_semantic_report(
+            conn, run_id=result["run_id"], units=units
+        )
         conn.commit()
 
     assert units
@@ -223,7 +261,9 @@ def test_imported_openrecall_units_can_feed_transcript_semantic_pipeline(tmp_pat
     assert any("notification routing feature" in unit.text.casefold() for unit in units)
 
 
-def test_openrecall_query_helpers_expose_runs_summary_and_filtered_captures(tmp_path: Path) -> None:
+def test_openrecall_query_helpers_expose_runs_summary_and_filtered_captures(
+    tmp_path: Path,
+) -> None:
     first_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
     second_ts = int(datetime(2026, 3, 9, 15, 5, tzinfo=timezone.utc).timestamp())
     source_db, storage_dir = _seed_openrecall_db(
@@ -329,7 +369,14 @@ def test_query_openrecall_import_cli_returns_json_read_models(tmp_path: Path) ->
     assert summary_payload["summary"]["captureCount"] == 1
     captures_payload = json.loads(
         subprocess.run(
-            [*base_cmd, "captures", "--text-query", "notification routing", "--limit", "5"],
+            [
+                *base_cmd,
+                "captures",
+                "--text-query",
+                "notification routing",
+                "--limit",
+                "5",
+            ],
             cwd=Path(__file__).resolve().parents[2],
             check=True,
             capture_output=True,
@@ -340,7 +387,9 @@ def test_query_openrecall_import_cli_returns_json_read_models(tmp_path: Path) ->
     assert captures_payload["captures"][0]["appName"] == "Firefox"
 
 
-def test_openrecall_raw_row_scaffold_preserves_source_row_fields(tmp_path: Path) -> None:
+def test_openrecall_raw_row_scaffold_preserves_source_row_fields(
+    tmp_path: Path,
+) -> None:
     source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
     storage_dir = tmp_path / "openrecall"
     storage_dir.mkdir(parents=True, exist_ok=True)
@@ -400,7 +449,9 @@ def test_openrecall_raw_row_scaffold_preserves_source_row_fields(tmp_path: Path)
         assert summary.imported_row_count == 1
         runs = load_openrecall_raw_import_runs(conn, limit=5)
         assert runs[0]["importRunId"] == "openrecall-raw-v1"
-        rows = query_openrecall_raw_rows(conn, import_run_id="openrecall-raw-v1", limit=5)
+        rows = query_openrecall_raw_rows(
+            conn, import_run_id="openrecall-raw-v1", limit=5
+        )
         assert len(rows) == 1
         assert rows[0]["capturedDate"] == "2026-03-08"
         assert rows[0]["normalizationVersion"] == "openrecall.ocr_normalize.v1"
@@ -412,7 +463,9 @@ def test_openrecall_raw_row_scaffold_preserves_source_row_fields(tmp_path: Path)
         ).fetchone()
         assert stored is not None
         assert "notification routing feature" in str(stored["raw_text"]).casefold()
-        assert "notification routing feature" in str(stored["normalized_text"]).casefold()
+        assert (
+            "notification routing feature" in str(stored["normalized_text"]).casefold()
+        )
         payload = json.loads(str(stored["source_row_json"]))
         assert payload["captured_date"] == "2026-03-08"
         assert payload["normalization_version"] == "openrecall.ocr_normalize.v1"

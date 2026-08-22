@@ -12,7 +12,10 @@ def test_proper_name_fanout_is_bounded_before_mention_expansion() -> None:
     sql = _sql()
     assert "max_name_targets CONSTANT INTEGER := 16" in sql
     assert "family_target AS MATERIALIZED" in sql
-    assert "row_number() OVER (\n                   PARTITION BY person.family_lemma_symbol_id" in sql
+    assert (
+        "row_number() OVER (\n                   PARTITION BY person.family_lemma_symbol_id"
+        in sql
+    )
     assert "target.family_rank <= max_name_targets" in sql
     assert "semantic_pnf_proper_name_evidence_overflow" in sql
 

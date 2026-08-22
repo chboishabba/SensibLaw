@@ -52,11 +52,7 @@ def _factor_ref(row: Mapping[str, Any]) -> str:
 
 
 def _factor_map(graph: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
-    return {
-        ref: row
-        for row in _factor_rows(graph)
-        if (ref := _factor_ref(row))
-    }
+    return {ref: row for row in _factor_rows(graph) if (ref := _factor_ref(row))}
 
 
 def _residual_count(graph: Mapping[str, Any] | None) -> int:
@@ -166,9 +162,7 @@ def build_constraint_fixed_point_diagnostics(
         for ref in row.get("rejected_candidate_refs") or ()
         if ref
     }
-    refinement_refs = [
-        str(row.get("refinement_ref") or "") for row in refinement_rows
-    ]
+    refinement_refs = [str(row.get("refinement_ref") or "") for row in refinement_rows]
     duplicate_refinement_count = len(refinement_refs) - len(set(refinement_refs))
     effective_refinement_count = len(rewritten_refs) + len(added_factor_refs)
     proposed_refinement_count = len(refinement_rows)
@@ -202,8 +196,8 @@ def build_constraint_fixed_point_diagnostics(
         semantic_progress / elapsed_seconds if elapsed_seconds > 0 else None
     )
 
-    assessment_to_effective_ratio = (
-        len(assessment_rows) / max(1, effective_refinement_count)
+    assessment_to_effective_ratio = len(assessment_rows) / max(
+        1, effective_refinement_count
     )
     meet_acceptance_ratio = accepted_meets / max(1, candidate_meets_considered)
     same_semantic_state = _fingerprint(pnf_graph) == _fingerprint(refined_pnf_graph)
@@ -215,10 +209,7 @@ def build_constraint_fixed_point_diagnostics(
         same_semantic_state and proposed_refinement_count > 0
     ):
         classification = "fixed_point_churn"
-    elif (
-        len(assessment_rows) >= 100
-        and assessment_to_effective_ratio >= 20
-    ) or (
+    elif (len(assessment_rows) >= 100 and assessment_to_effective_ratio >= 20) or (
         candidate_meets_considered >= 100 and meet_acceptance_ratio <= 0.05
     ):
         classification = "combinatorial_candidate_explosion"

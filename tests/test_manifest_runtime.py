@@ -13,7 +13,9 @@ from src.storage.manifest_runtime import (
 
 
 def test_resolve_sensiblaw_manifest_path_targets_repo_owned_location() -> None:
-    path = resolve_sensiblaw_manifest_path("data", "fact_review", "wave1_legal_fixture_manifest_v1.json")
+    path = resolve_sensiblaw_manifest_path(
+        "data", "fact_review", "wave1_legal_fixture_manifest_v1.json"
+    )
     assert path.name == "wave1_legal_fixture_manifest_v1.json"
     assert path.exists()
 

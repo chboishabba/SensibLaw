@@ -178,38 +178,47 @@ class ManifestParentClosureValidator:
             self.candidate_link_count += 1
 
     def finalize(self) -> ManifestClosureReceipt:
-        missing_factor_parents = sorted(
-            (kind, child_ref, parent_ref)
-            for kind, child_ref, parent_ref in self._pending_factor_parents
-            if not parent_ref or parent_ref not in self.factor_revision_refs
+        missing_factor_parent = min(
+            (
+                (kind, child_ref, parent_ref)
+                for kind, child_ref, parent_ref in self._pending_factor_parents
+                if not parent_ref or parent_ref not in self.factor_revision_refs
+            ),
+            default=None,
         )
-        if missing_factor_parents:
-            kind, child_ref, parent_ref = missing_factor_parents[0]
+        if missing_factor_parent is not None:
+            kind, child_ref, parent_ref = missing_factor_parent
             raise ValueError(
                 "streamed manifest parent closure failed: "
                 f"child_table={kind} child_ref={child_ref!r} "
                 f"missing_factor_revision_ref={parent_ref!r}"
             )
 
-        missing_builds = sorted(
-            (set_ref, build_ref)
-            for set_ref, build_ref, _parent in self._pending_candidate_set_builds
-            if build_ref not in self.candidate_build_refs
+        missing_build = min(
+            (
+                (set_ref, build_ref)
+                for set_ref, build_ref, _parent in self._pending_candidate_set_builds
+                if build_ref not in self.candidate_build_refs
+            ),
+            default=None,
         )
-        if missing_builds:
-            set_ref, build_ref = missing_builds[0]
+        if missing_build is not None:
+            set_ref, build_ref = missing_build
             raise ValueError(
                 "candidate set has no verified build descriptor: "
                 f"candidate_set_ref={set_ref!r} generator_build_ref={build_ref!r}"
             )
 
-        missing_sets = sorted(
-            (kind, source_ref, set_ref)
-            for kind, source_ref, set_ref in self._pending_links
-            if set_ref not in self.candidate_set_refs
+        missing_set = min(
+            (
+                (kind, source_ref, set_ref)
+                for kind, source_ref, set_ref in self._pending_links
+                if set_ref not in self.candidate_set_refs
+            ),
+            default=None,
         )
-        if missing_sets:
-            kind, source_ref, set_ref = missing_sets[0]
+        if missing_set is not None:
+            kind, source_ref, set_ref = missing_set
             raise ValueError(
                 "candidate-set link references an unverified set: "
                 f"link_kind={kind!r} source_ref={source_ref!r} "

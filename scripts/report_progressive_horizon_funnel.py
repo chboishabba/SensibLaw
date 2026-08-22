@@ -13,13 +13,16 @@ This report deliberately separates:
 H9-ready is therefore never reported as synonymous with Wikidata/provider work.
 JSON is presentation output only; PostgreSQL remains semantic authority.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 from typing import Any
 
-from src.storage.postgres.consumer_sufficient_runtime_store import ConsumerSufficientRuntimeStore
+from src.storage.postgres.consumer_sufficient_runtime_store import (
+    ConsumerSufficientRuntimeStore,
+)
 from src.storage.postgres.spacy_parser_model import connect
 
 

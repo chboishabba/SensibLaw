@@ -25,7 +25,11 @@ _PHASES = (
         "execution.refresh_numeric_pnf_identity_substitution_derivations",
         2,
     ),
-    ("factor_composition", "execution.refresh_numeric_pnf_factor_composition_candidates", 3),
+    (
+        "factor_composition",
+        "execution.refresh_numeric_pnf_factor_composition_candidates",
+        3,
+    ),
 )
 
 
@@ -48,7 +52,9 @@ def _resolve_run(cursor: Any, requested_run_id: int | None) -> int:
     )
     row = cursor.fetchone()
     if row is None or row[0] is None:
-        raise SystemExit("no numeric PNF run with a registered run identity is available")
+        raise SystemExit(
+            "no numeric PNF run with a registered run identity is available"
+        )
     return int(row[0])
 
 

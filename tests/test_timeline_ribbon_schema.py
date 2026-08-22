@@ -13,8 +13,20 @@ def test_timeline_ribbon_schema_accepts_minimal_example():
         "spine": {"domain": {"type": "continuous", "start": 0.0, "end": 10.0}},
         "lens": {"id": "time", "name": "Time", "units": "seconds", "total_mass": 10.0},
         "segments": [
-            {"id": "seg-1", "t_start": 0.0, "t_end": 5.0, "mass": 5.0, "width_norm": 0.5},
-            {"id": "seg-2", "t_start": 5.0, "t_end": 10.0, "mass": 5.0, "width_norm": 0.5},
+            {
+                "id": "seg-1",
+                "t_start": 0.0,
+                "t_end": 5.0,
+                "mass": 5.0,
+                "width_norm": 0.5,
+            },
+            {
+                "id": "seg-2",
+                "t_start": 5.0,
+                "t_end": 10.0,
+                "mass": 5.0,
+                "width_norm": 0.5,
+            },
         ],
         "threads": [
             {"id": "th-1", "anchor_t": 2.5, "segment_id": "seg-1", "kind": "evidence"}

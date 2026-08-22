@@ -29,8 +29,15 @@ def test_build_au_zelph_handoff_artifact(tmp_path: Path) -> None:
     assert slice_payload["summary"]["observation_count"] >= 20
     assert slice_payload["summary"]["review_queue_count"] >= 3
     assert slice_payload["compiler_contract"]["lane"] == "au"
-    assert slice_payload["compiler_contract"]["evidence_bundle"]["bundle_kind"] == "legal_hearing_bundle"
-    assert slice_payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert (
+        slice_payload["compiler_contract"]["evidence_bundle"]["bundle_kind"]
+        == "legal_hearing_bundle"
+    )
+    assert slice_payload["promotion_gate"]["decision"] in {
+        "promote",
+        "audit",
+        "abstain",
+    }
     assert slice_payload["promotion_gate"]["product_ref"] == "au_public_handoff_v1"
     assert len(slice_payload["selected_facts"]) >= 3
 
@@ -67,12 +74,18 @@ def test_build_au_zelph_handoff_artifact(tmp_path: Path) -> None:
         assert any(pred == "au_procedural_fact" for _, pred, _ in triples)
         assert engine_payload["handoff_status"] == "successful"
     else:
-        assert engine_payload["handoff_status"] == "not_successful_required_output_unmet"
+        assert (
+            engine_payload["handoff_status"] == "not_successful_required_output_unmet"
+        )
 
 
 def test_build_au_zelph_handoff_supports_multi_source_bundles(tmp_path: Path) -> None:
-    source_a = Path("/home/c/Documents/code/ITIR-suite/itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json")
-    source_b = Path("/home/c/Documents/code/ITIR-suite/itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle_b0babf.json")
+    source_a = Path(
+        "/home/c/Documents/code/ITIR-suite/itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json"
+    )
+    source_b = Path(
+        "/home/c/Documents/code/ITIR-suite/itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle_b0babf.json"
+    )
     payload = build_handoff_artifact(
         tmp_path,
         source_bundle_paths=[source_a, source_b],
@@ -83,6 +96,15 @@ def test_build_au_zelph_handoff_supports_multi_source_bundles(tmp_path: Path) ->
     assert len(slice_payload["selected_facts"]) == 3
     assert slice_payload["summary"]["fact_count"] >= 3
     assert slice_payload["compiler_contract"]["evidence_bundle"]["source_count"] == 2
-    assert slice_payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
-    assert all(len(row["source_bundles"]) == 2 for row in slice_payload["selected_facts"])
-    assert any("fact:33bf5d1e2fbd3c36" == row["fact_id"] for row in slice_payload["selected_facts"])
+    assert slice_payload["promotion_gate"]["decision"] in {
+        "promote",
+        "audit",
+        "abstain",
+    }
+    assert all(
+        len(row["source_bundles"]) == 2 for row in slice_payload["selected_facts"]
+    )
+    assert any(
+        "fact:33bf5d1e2fbd3c36" == row["fact_id"]
+        for row in slice_payload["selected_facts"]
+    )

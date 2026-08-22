@@ -39,7 +39,9 @@ class LexemeToken:
 
 
 def _is_boundary_left(text: str, index: int) -> bool:
-    return index == 0 or not (text[index - 1].isalnum() or text[index - 1] in ("_", "-"))
+    return index == 0 or not (
+        text[index - 1].isalnum() or text[index - 1] in ("_", "-")
+    )
 
 
 def _consume_whitespace(text: str, start: int) -> int:
@@ -278,7 +280,11 @@ def _consume_act_reference(text: str, start: int) -> tuple[str, int, int] | None
         if space_end == cursor:
             break
         cursor = space_end
-        if saw_act and cursor < len(text) and (text[cursor].isdigit() or text[cursor].isalpha()):
+        if (
+            saw_act
+            and cursor < len(text)
+            and (text[cursor].isdigit() or text[cursor].isalpha())
+        ):
             break
 
     if not saw_act or words_seen < 2:
@@ -289,7 +295,9 @@ def _consume_act_reference(text: str, start: int) -> tuple[str, int, int] | None
         next_word, _, next_word_end = _consume_word(text, lookahead)
         if _normalize_keyword(next_word) == "of":
             lookahead = _consume_whitespace(text, next_word_end)
-    year = _consume_spaced_numberish(text, lookahead, allow_dots=False, allow_suffix_letters=False)
+    year = _consume_spaced_numberish(
+        text, lookahead, allow_dots=False, allow_suffix_letters=False
+    )
     if year is None:
         cursor = cursor
     else:
@@ -336,7 +344,9 @@ def _consume_case_reference(text: str, start: int) -> tuple[str, int, int] | Non
     return text[start:number_end], start, number_end
 
 
-def _consume_literal_sequence(text: str, start: int, parts: tuple[str, ...]) -> int | None:
+def _consume_literal_sequence(
+    text: str, start: int, parts: tuple[str, ...]
+) -> int | None:
     cursor = start
     for idx, part in enumerate(parts):
         if idx > 0:
@@ -348,7 +358,9 @@ def _consume_literal_sequence(text: str, start: int, parts: tuple[str, ...]) -> 
     return cursor
 
 
-def _consume_alias_phrase(text: str, start: int, aliases: tuple[str, ...]) -> tuple[str, int, int] | None:
+def _consume_alias_phrase(
+    text: str, start: int, aliases: tuple[str, ...]
+) -> tuple[str, int, int] | None:
     if not _is_boundary_left(text, start):
         return None
     for alias in aliases:
@@ -368,7 +380,11 @@ def _consume_title_sequence_until_suffix(
     suffixes: tuple[str, ...],
     connector_words: set[str] | None = None,
 ) -> tuple[str, int, int] | None:
-    if not _is_boundary_left(text, start) or start >= len(text) or not text[start].isalpha():
+    if (
+        not _is_boundary_left(text, start)
+        or start >= len(text)
+        or not text[start].isalpha()
+    ):
         return None
     connectors = connector_words or {"of", "the", "and", "for", "to", "on", "in"}
     cursor = start
@@ -390,7 +406,9 @@ def _consume_title_sequence_until_suffix(
         if norm_word in suffixes:
             break
         space_end = _consume_whitespace(text, cursor)
-        if space_end == cursor and (cursor >= len(text) or text[cursor] not in {"-", "–", "—", "/"}):
+        if space_end == cursor and (
+            cursor >= len(text) or text[cursor] not in {"-", "–", "—", "/"}
+        ):
             return None
         if space_end > cursor:
             cursor = space_end
@@ -441,7 +459,10 @@ def _consume_court_reference(text: str, start: int) -> tuple[str, int, int] | No
         ("united states supreme court", ("United", "States", "Supreme", "Court")),
         ("united states district court", ("United", "States", "district", "court")),
         ("u.s. district court", ("U.S.", "district", "court")),
-        ("united states court of appeals", ("United", "States", "Court", "of", "Appeals")),
+        (
+            "united states court of appeals",
+            ("United", "States", "Court", "of", "Appeals"),
+        ),
         ("u.s. court of appeals", ("U.S.", "Court", "of", "Appeals")),
     )
     for _, parts in variants:
@@ -461,7 +482,9 @@ def _consume_court_reference(text: str, start: int) -> tuple[str, int, int] | No
     return None
 
 
-def _consume_institution_reference(text: str, start: int) -> tuple[str, int, int] | None:
+def _consume_institution_reference(
+    text: str, start: int
+) -> tuple[str, int, int] | None:
     return _consume_alias_phrase(
         text,
         start,
@@ -495,6 +518,8 @@ def _consume_institution_reference(text: str, start: int) -> tuple[str, int, int
             "UNO",
         ),
     )
+
+
 def _consume_article_reference(text: str, start: int) -> tuple[str, int, int] | None:
     ref = _consume_keyword_reference(
         text,
@@ -574,7 +599,9 @@ def _consume_keyword_reference(
     return text[start:span_end], start, span_end, token_type
 
 
-def _consume_section_reference(text: str, start: int) -> list[tuple[str, int, int, TokenType]] | None:
+def _consume_section_reference(
+    text: str, start: int
+) -> list[tuple[str, int, int, TokenType]] | None:
     if not _is_boundary_left(text, start):
         return None
     keyword, _, keyword_end = _consume_word(text, start)
@@ -595,7 +622,9 @@ def _consume_section_reference(text: str, start: int) -> list[tuple[str, int, in
     section_main = text[i:section_end]
     section_text = f"{text[start:keyword_end]} {section_main}"
     section_span = (section_text, start, section_end)
-    tokens: list[tuple[str, int, int, TokenType]] = [(*section_span, TokenType.SECTION_REFERENCE)]
+    tokens: list[tuple[str, int, int, TokenType]] = [
+        (*section_span, TokenType.SECTION_REFERENCE)
+    ]
 
     i = section_end
     while i < len(text):
@@ -606,9 +635,13 @@ def _consume_section_reference(text: str, start: int) -> list[tuple[str, int, in
         group_text, group_start, group_end = group
         inner = group_text[1:-1].strip()
         if inner.isdigit():
-            tokens.append((group_text, group_start, group_end, TokenType.SUBSECTION_REFERENCE))
+            tokens.append(
+                (group_text, group_start, group_end, TokenType.SUBSECTION_REFERENCE)
+            )
         elif len(inner) == 1 and inner.isalpha():
-            tokens.append((group_text, group_start, group_end, TokenType.PARAGRAPH_REFERENCE))
+            tokens.append(
+                (group_text, group_start, group_end, TokenType.PARAGRAPH_REFERENCE)
+            )
         else:
             tokens.append((group_text, group_start, group_end, TokenType.PUNCT))
         i = group_end
@@ -635,11 +668,34 @@ def _tokenize_with_no_regex(text: str) -> list[tuple[str, int, int, TokenType]]:
             continue
 
         keyword_reference = (
-            _consume_keyword_reference(text, i, keywords=("pt", "part"), token_type=TokenType.PART_REFERENCE)
-            or _consume_keyword_reference(text, i, keywords=("div", "division"), token_type=TokenType.DIVISION_REFERENCE)
-            or _consume_keyword_reference(text, i, keywords=("r", "rule"), token_type=TokenType.RULE_REFERENCE, allow_dots=True)
-            or _consume_keyword_reference(text, i, keywords=("sch", "schedule"), token_type=TokenType.SCHEDULE_REFERENCE)
-            or _consume_keyword_reference(text, i, keywords=("cl", "clause"), token_type=TokenType.CLAUSE_REFERENCE)
+            _consume_keyword_reference(
+                text, i, keywords=("pt", "part"), token_type=TokenType.PART_REFERENCE
+            )
+            or _consume_keyword_reference(
+                text,
+                i,
+                keywords=("div", "division"),
+                token_type=TokenType.DIVISION_REFERENCE,
+            )
+            or _consume_keyword_reference(
+                text,
+                i,
+                keywords=("r", "rule"),
+                token_type=TokenType.RULE_REFERENCE,
+                allow_dots=True,
+            )
+            or _consume_keyword_reference(
+                text,
+                i,
+                keywords=("sch", "schedule"),
+                token_type=TokenType.SCHEDULE_REFERENCE,
+            )
+            or _consume_keyword_reference(
+                text,
+                i,
+                keywords=("cl", "clause"),
+                token_type=TokenType.CLAUSE_REFERENCE,
+            )
         )
         if keyword_reference is not None:
             tokens.append(keyword_reference)
@@ -706,7 +762,10 @@ def _tokenize_with_no_regex(text: str) -> list[tuple[str, int, int, TokenType]]:
 def tokenize_with_spans(text: str) -> list[tuple[str, int, int]]:
     """Return deterministic text spans for canonical lexeme extraction."""
 
-    return [(text_span, start, end) for text_span, start, end, _ in _tokenize_with_no_regex(text)]
+    return [
+        (text_span, start, end)
+        for text_span, start, end, _ in _tokenize_with_no_regex(text)
+    ]
 
 
 def tokenize_detailed(

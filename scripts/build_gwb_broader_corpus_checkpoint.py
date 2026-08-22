@@ -26,13 +26,28 @@ THIS_DIR = Path(__file__).resolve().parent
 ARTIFACT_VERSION = "gwb_broader_corpus_checkpoint_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 DEFAULT_HANDOFF_SLICE_PATH = (
-    SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_public_handoff_v1" / "gwb_public_handoff_v1.slice.json"
+    SENSIBLAW_ROOT
+    / "tests"
+    / "fixtures"
+    / "zelph"
+    / "gwb_public_handoff_v1"
+    / "gwb_public_handoff_v1.slice.json"
 )
 DEFAULT_PUBLIC_BIOS_TIMELINE_PATH = (
-    SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "wiki_timeline_gwb_public_bios_v1_rich.json"
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "gwb"
+    / "public_bios_v1"
+    / "wiki_timeline_gwb_public_bios_v1_rich.json"
 )
 DEFAULT_CORPUS_TIMELINE_PATH = (
-    SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "corpus_v1" / "wiki_timeline_gwb_corpus_v1.json"
+    SENSIBLAW_ROOT
+    / "demo"
+    / "ingest"
+    / "gwb"
+    / "corpus_v1"
+    / "wiki_timeline_gwb_corpus_v1.json"
 )
 
 if str(THIS_DIR) not in sys.path:
@@ -42,7 +57,9 @@ LOGGER = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 
-def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+def _emit_progress(
+    progress_callback: ProgressCallback | None, stage: str, **details: Any
+) -> None:
     if progress_callback is None:
         return
     progress_callback(stage, details)
@@ -60,11 +77,19 @@ def _relation_key(row: dict[str, Any]) -> tuple[str, str, str]:
     )
 
 
-def _normalized_lineage_entry(source_family: str, row: dict[str, Any]) -> dict[str, Any]:
-    lineage = row.get("event_lineage") if isinstance(row.get("event_lineage"), dict) else {}
+def _normalized_lineage_entry(
+    source_family: str, row: dict[str, Any]
+) -> dict[str, Any]:
+    lineage = (
+        row.get("event_lineage") if isinstance(row.get("event_lineage"), dict) else {}
+    )
     source_path = str(lineage.get("source_path") or "").strip()
     source_url = str(lineage.get("source_url") or "").strip()
-    citation_refs = lineage.get("citation_refs") if isinstance(lineage.get("citation_refs"), list) else []
+    citation_refs = (
+        lineage.get("citation_refs")
+        if isinstance(lineage.get("citation_refs"), list)
+        else []
+    )
     return {
         "source_family": source_family,
         "event_id": str(row.get("event_id") or lineage.get("event_id") or "").strip(),
@@ -100,16 +125,22 @@ def _read_checked_handoff_slice(path: Path) -> dict[str, Any]:
     }
 
 
-def _run_extraction_for_timeline(source_family: str, timeline_path: Path) -> dict[str, Any]:
+def _run_extraction_for_timeline(
+    source_family: str, timeline_path: Path
+) -> dict[str, Any]:
     from build_gwb_zelph_handoff import _build_reports, _build_slice
 
     timeline_payload = _load_json(timeline_path)
     linkage_report, semantic_report = _build_reports(timeline_payload=timeline_payload)
-    slice_payload = _build_slice(linkage_report, semantic_report, timeline_payload=timeline_payload)
+    slice_payload = _build_slice(
+        linkage_report, semantic_report, timeline_payload=timeline_payload
+    )
     return {
         "source_family": source_family,
         "timeline_path": str(timeline_path.relative_to(REPO_ROOT)),
-        "selected_promoted_relations": slice_payload.get("selected_promoted_relations", []),
+        "selected_promoted_relations": slice_payload.get(
+            "selected_promoted_relations", []
+        ),
         "selected_seed_lanes": slice_payload.get("selected_seed_lanes", []),
         "ambiguous_events": slice_payload.get("ambiguous_events", []),
         "unresolved_surfaces": slice_payload.get("unresolved_surfaces", []),
@@ -139,7 +170,9 @@ def _annotate_merged_relations_with_braid(
         row for row in braid_payload.get("candidate_links", []) if isinstance(row, dict)
     ]
     source_event_rows = [
-        row for row in braid_payload.get("source_event_rows", []) if isinstance(row, dict)
+        row
+        for row in braid_payload.get("source_event_rows", [])
+        if isinstance(row, dict)
     ]
     quality_by_event = {
         f"{str(row.get('source_family') or '').strip()}:{str(row.get('event_id') or '').strip()}": {
@@ -164,7 +197,7 @@ def _annotate_merged_relations_with_braid(
     ordering_edges_by_event: dict[str, set[str]] = {}
     ordering_basis_by_event: dict[str, set[str]] = {}
     time_basis_by_event: dict[str, set[str]] = {}
-    
+
     for row in ordering_edge_rows:
         edge_id = str(row.get("ordering_edge_id") or "").strip()
         support_basis = {
@@ -174,7 +207,7 @@ def _annotate_merged_relations_with_braid(
         }
         ordering_basis = str(row.get("ordering_basis") or "").strip()
         time_basis = str(row.get("time_basis") or "").strip()
-        
+
         for event_id in row.get("source_event_ids", []):
             if not isinstance(event_id, str) or not event_id.strip():
                 continue
@@ -193,8 +226,20 @@ def _annotate_merged_relations_with_braid(
                 continue
             candidate_links_by_event.setdefault(event_id, set()).add(link_id)
 
-    status_hierarchy = ["rejected_noise", "weak_candidate", "usable_candidate", "promotable_event"]
-    time_status_hierarchy = ["resolved_historical_date", "explicit_span_date", "source_metadata_date", "candidate_span_year", "ingest_only", "none"]
+    status_hierarchy = [
+        "rejected_noise",
+        "weak_candidate",
+        "usable_candidate",
+        "promotable_event",
+    ]
+    time_status_hierarchy = [
+        "resolved_historical_date",
+        "explicit_span_date",
+        "source_metadata_date",
+        "candidate_span_year",
+        "ingest_only",
+        "none",
+    ]
 
     for relation in list(merged_relations.values()):
         merged_event_ids: set[str] = set()
@@ -214,19 +259,27 @@ def _annotate_merged_relations_with_braid(
             )
             if not event_key:
                 continue
-            if audit_registry and audit_registry.get("events", {}).get(event_key, {}).get("recommended_status") == "block":
+            if (
+                audit_registry
+                and audit_registry.get("events", {})
+                .get(event_key, {})
+                .get("recommended_status")
+                == "block"
+            ):
                 continue
             filtered_lineage.append(lineage)
-            
+
             merged_event_id = merged_event_ids_by_event.get(event_key)
             if merged_event_id:
                 merged_event_ids.add(merged_event_id)
             ordering_edge_ids.update(ordering_edges_by_event.get(event_key, set()))
             braid_support_basis.update(ordering_basis_by_event.get(event_key, set()))
-            braid_candidate_link_ids.update(candidate_links_by_event.get(event_key, set()))
+            braid_candidate_link_ids.update(
+                candidate_links_by_event.get(event_key, set())
+            )
             ordering_basis_types.update(ordering_basis_by_event.get(event_key, set()))
             time_basis_types.update(time_basis_by_event.get(event_key, set()))
-            
+
             # Map quality and temporal info into the lineage entry
             quality = quality_by_event.get(event_key)
             if quality:
@@ -266,7 +319,9 @@ def _annotate_merged_relations_with_braid(
             for l in relation_lineage
             if isinstance(l, dict) and l.get("event_quality_score") is not None
         ]
-        avg_relation_score = round(sum(relation_scores) / (len(relation_scores) or 1), 2)
+        avg_relation_score = round(
+            sum(relation_scores) / (len(relation_scores) or 1), 2
+        )
         relation_statuses = {
             l.get("event_quality_status")
             for l in relation_lineage
@@ -277,12 +332,14 @@ def _annotate_merged_relations_with_braid(
             if status in relation_statuses:
                 worst_rel_status = status
                 break
-        relation_reasons = sorted({
-            r
-            for l in relation_lineage
-            if isinstance(l, dict)
-            for r in l.get("event_quality_reasons", [])
-        })
+        relation_reasons = sorted(
+            {
+                r
+                for l in relation_lineage
+                if isinstance(l, dict)
+                for r in l.get("event_quality_reasons", [])
+            }
+        )
 
         # Temporal status aggregate: pick the strongest status present
         relation_time_statuses = {
@@ -310,7 +367,12 @@ def _annotate_merged_relations_with_braid(
         relation["resolved_historical_date"] = best_resolved_date
 
 
-def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, Any], audit_registry: dict[str, Any] | None = None) -> dict[str, Any]:
+def _merge_families(
+    families: list[dict[str, Any]],
+    *,
+    braid_payload: dict[str, Any],
+    audit_registry: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     merged_relations: dict[tuple[str, str, str], dict[str, Any]] = {}
     checked_handoff_relation_keys: set[tuple[str, str, str]] = set()
     merged_seed_lanes: dict[str, dict[str, Any]] = {}
@@ -384,15 +446,18 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
                 merged["review_statuses"].append(review_status)
             if support_kind and support_kind not in merged["support_kinds"]:
                 merged["support_kinds"].append(support_kind)
-            if review_status == "matched" and source_family not in merged["matched_source_families"]:
+            if (
+                review_status == "matched"
+                and source_family not in merged["matched_source_families"]
+            ):
                 merged["matched_source_families"].append(source_family)
 
-    _annotate_merged_relations_with_braid(merged_relations, braid_payload, audit_registry=audit_registry)
-    
+    _annotate_merged_relations_with_braid(
+        merged_relations, braid_payload, audit_registry=audit_registry
+    )
+
     active_relations = {
-        key: rel
-        for key, rel in merged_relations.items()
-        if rel.get("lineage_records")
+        key: rel for key, rel in merged_relations.items() if rel.get("lineage_records")
     }
 
     merged_relation_rows = sorted(
@@ -404,9 +469,13 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
         ),
     )
     new_relation_rows = [
-        row for key, row in sorted(active_relations.items(), key=lambda item: item[0]) if key not in checked_handoff_relation_keys
+        row
+        for key, row in sorted(active_relations.items(), key=lambda item: item[0])
+        if key not in checked_handoff_relation_keys
     ]
-    merged_seed_rows = sorted(merged_seed_lanes.values(), key=lambda row: row["seed_id"])
+    merged_seed_rows = sorted(
+        merged_seed_lanes.values(), key=lambda row: row["seed_id"]
+    )
 
     family_summaries = []
     for family in families:
@@ -414,9 +483,13 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
             {
                 "source_family": family["source_family"],
                 "timeline_path": family.get("timeline_path", ""),
-                "promoted_relation_count": len(family.get("selected_promoted_relations", [])),
+                "promoted_relation_count": len(
+                    family.get("selected_promoted_relations", [])
+                ),
                 "matched_seed_lane_count": sum(
-                    1 for row in family.get("selected_seed_lanes", []) if str(row.get("review_status") or "") == "matched"
+                    1
+                    for row in family.get("selected_seed_lanes", [])
+                    if str(row.get("review_status") or "") == "matched"
                 ),
                 "ambiguous_event_count": len(family.get("ambiguous_events", [])),
                 "unresolved_surface_count": len(family.get("unresolved_surfaces", [])),
@@ -428,9 +501,9 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
     blocked_event_count = qc_meta.get("blocked_event_count", 0)
     active_event_count = qc_meta.get("active_event_count", 0)
     historical_timeline = qc_meta.get("historical_timeline") or {}
-    
+
     relations_dropped_by_audit_block = len(merged_relations) - len(active_relations)
-    
+
     qc_report = {
         "source_event_count": source_event_count,
         "blocked_event_count": blocked_event_count,
@@ -439,22 +512,36 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
         "merged_event_count": len(braid_payload.get("merged_events", [])),
         "ordering_edge_count": len(braid_payload.get("ordering_edges", [])),
         "historical_time_order_edge_count": sum(
-            1 for e in braid_payload.get("ordering_edges", []) if e.get("ordering_basis") == "historical_time_order"
+            1
+            for e in braid_payload.get("ordering_edges", [])
+            if e.get("ordering_basis") == "historical_time_order"
         ),
         "document_order_edge_count": sum(
-            1 for e in braid_payload.get("ordering_edges", []) if e.get("ordering_basis") == "document_order"
+            1
+            for e in braid_payload.get("ordering_edges", [])
+            if e.get("ordering_basis") == "document_order"
         ),
         "ingest_order_only_edge_count": sum(
-            1 for e in braid_payload.get("ordering_edges", []) if e.get("time_basis") == "ingest_order_only"
+            1
+            for e in braid_payload.get("ordering_edges", [])
+            if e.get("time_basis") == "ingest_order_only"
         ),
         "historical_conflict_residual_count": sum(
-            1 for e in braid_payload.get("ordering_edges", []) if e.get("time_basis") == "historical_conflict_residual"
+            1
+            for e in braid_payload.get("ordering_edges", [])
+            if e.get("time_basis") == "historical_conflict_residual"
         ),
         "relations_dropped_by_audit_block": relations_dropped_by_audit_block,
         "relations_preserved_after_audit": len(active_relations),
-        "quality_by_source_family": braid_payload.get("summary", {}).get("event_quality_audit_by_family", {}),
-        "timeline_export_event_count": len(historical_timeline.get("source_event_rows", [])),
-        "timeline_export_edge_count": len(historical_timeline.get("ordering_edges", [])),
+        "quality_by_source_family": braid_payload.get("summary", {}).get(
+            "event_quality_audit_by_family", {}
+        ),
+        "timeline_export_event_count": len(
+            historical_timeline.get("source_event_rows", [])
+        ),
+        "timeline_export_edge_count": len(
+            historical_timeline.get("ordering_edges", [])
+        ),
     }
 
     return {
@@ -466,7 +553,9 @@ def _merge_families(families: list[dict[str, Any]], *, braid_payload: dict[str, 
             "new_relation_count_vs_checked_handoff": len(new_relation_rows),
             "distinct_seed_lane_count": len(merged_seed_rows),
             "seed_lanes_supported_in_multiple_families": sum(
-                1 for row in merged_seed_rows if len(row.get("matched_source_families", [])) >= 2
+                1
+                for row in merged_seed_rows
+                if len(row.get("matched_source_families", [])) >= 2
             ),
         },
         "source_family_summaries": family_summaries,
@@ -502,7 +591,7 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
         f"  - *Historical Conflict Residual*: {qc.get('historical_conflict_residual_count', 0)}",
         f"- **Relations Dropped by Audit Block**: {qc.get('relations_dropped_by_audit_block', 0)}",
         f"- **Relations Preserved After Audit**: {qc.get('relations_preserved_after_audit', 0)}",
-        f"- **Timeline Export (Chronology Only)**:",
+        "- **Timeline Export (Chronology Only)**:",
         f"  - *Events*: {qc.get('timeline_export_event_count', 0)}",
         f"  - *Edges*: {qc.get('timeline_export_edge_count', 0)}",
         "",
@@ -533,7 +622,9 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
                 f"(from: {', '.join(row['source_families'])})."
             )
     else:
-        lines.append("- No new promoted relations were added beyond the checked handoff in the current broader pass.")
+        lines.append(
+            "- No new promoted relations were added beyond the checked handoff in the current broader pass."
+        )
     lines.extend(
         [
             "",
@@ -549,11 +640,18 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCallback | None = None) -> dict[str, Any]:
+def build_broader_checkpoint(
+    output_dir: Path, *, progress_callback: ProgressCallback | None = None
+) -> dict[str, Any]:
     from build_gwb_public_bios_rich_timeline import build_public_bios_timeline
     from gwb_corpus_timeline_build import build_corpus_timeline
 
-    _emit_progress(progress_callback, "public_bios_timeline_started", section="checkpoint_inputs", message="Rebuilding richer public bios timeline.")
+    _emit_progress(
+        progress_callback,
+        "public_bios_timeline_started",
+        section="checkpoint_inputs",
+        message="Rebuilding richer public bios timeline.",
+    )
     build_public_bios_timeline(
         raw_root=SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "raw",
         out_path=DEFAULT_PUBLIC_BIOS_TIMELINE_PATH,
@@ -562,8 +660,18 @@ def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCal
         snippet_chars=420,
         progress_callback=progress_callback,
     )
-    _emit_progress(progress_callback, "public_bios_timeline_finished", section="checkpoint_inputs", message="Public bios timeline ready.")
-    _emit_progress(progress_callback, "corpus_timeline_started", section="checkpoint_inputs", message="Rebuilding broader local corpus timeline.")
+    _emit_progress(
+        progress_callback,
+        "public_bios_timeline_finished",
+        section="checkpoint_inputs",
+        message="Public bios timeline ready.",
+    )
+    _emit_progress(
+        progress_callback,
+        "corpus_timeline_started",
+        section="checkpoint_inputs",
+        message="Rebuilding broader local corpus timeline.",
+    )
     build_corpus_timeline(
         root=SENSIBLAW_ROOT / "demo" / "ingest" / "gwb",
         out_path=DEFAULT_CORPUS_TIMELINE_PATH,
@@ -573,16 +681,32 @@ def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCal
         extract_chars_per_doc=20000,
         progress_callback=progress_callback,
     )
-    _emit_progress(progress_callback, "corpus_timeline_finished", section="checkpoint_inputs", message="Corpus timeline ready.")
+    _emit_progress(
+        progress_callback,
+        "corpus_timeline_finished",
+        section="checkpoint_inputs",
+        message="Corpus timeline ready.",
+    )
     families = [
         _read_checked_handoff_slice(DEFAULT_HANDOFF_SLICE_PATH),
-        _run_extraction_for_timeline("public_bios_timeline", DEFAULT_PUBLIC_BIOS_TIMELINE_PATH),
-        _run_extraction_for_timeline("corpus_book_timeline", DEFAULT_CORPUS_TIMELINE_PATH),
+        _run_extraction_for_timeline(
+            "public_bios_timeline", DEFAULT_PUBLIC_BIOS_TIMELINE_PATH
+        ),
+        _run_extraction_for_timeline(
+            "corpus_book_timeline", DEFAULT_CORPUS_TIMELINE_PATH
+        ),
     ]
-    raw_source_runs = [family for family in families if family["source_family"] != "checked_handoff"]
+    raw_source_runs = [
+        family for family in families if family["source_family"] != "checked_handoff"
+    ]
     braid_payload = build_cross_source_event_braid(raw_source_runs)
 
-    from src.policy.gwb_spot_audit import load_spot_audit_registry, apply_spot_audit_blocks, export_historical_timeline
+    from src.policy.gwb_spot_audit import (
+        load_spot_audit_registry,
+        apply_spot_audit_blocks,
+        export_historical_timeline,
+    )
+
     audit_registry = load_spot_audit_registry()
     audited_braid = apply_spot_audit_blocks(braid_payload, audit_registry)
     historical_timeline = export_historical_timeline(braid_payload, audit_registry)
@@ -598,8 +722,17 @@ def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCal
         "historical_timeline": historical_timeline,
     }
 
-    _emit_progress(progress_callback, "family_merge_started", section="checkpoint_merge", completed=0, total=len(families), message="Merging source families.")
-    payload = _merge_families(families, braid_payload=audited_braid, audit_registry=audit_registry)
+    _emit_progress(
+        progress_callback,
+        "family_merge_started",
+        section="checkpoint_merge",
+        completed=0,
+        total=len(families),
+        message="Merging source families.",
+    )
+    payload = _merge_families(
+        families, braid_payload=audited_braid, audit_registry=audit_registry
+    )
     summary_text = _build_summary_text(payload)
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -607,33 +740,57 @@ def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCal
         "slice_path": output_dir / f"{ARTIFACT_VERSION}.json",
         "summary_path": output_dir / f"{ARTIFACT_VERSION}.summary.md",
         "candidate_event_braid_path": output_dir / "candidate_event_braid.json",
-        "historical_timeline_candidate_path": output_dir / "historical_timeline_candidate.json",
+        "historical_timeline_candidate_path": output_dir
+        / "historical_timeline_candidate.json",
         "qc_report_path": output_dir / "gwb_timeline_qc_report.json",
     }
     # Convert FragmentPNF objects to dicts before JSON serialization
-    serialize_fragment_pnfs_in_rows(payload.get("cross_source_event_braid", {}).get("source_event_rows") or [])
+    serialize_fragment_pnfs_in_rows(
+        payload.get("cross_source_event_braid", {}).get("source_event_rows") or []
+    )
     serialize_fragment_pnfs_in_rows(audited_braid.get("source_event_rows") or [])
     serialize_fragment_pnfs_in_rows(historical_timeline.get("source_event_rows") or [])
 
-    paths["slice_path"].write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["slice_path"].write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     paths["summary_path"].write_text(summary_text, encoding="utf-8")
-    paths["candidate_event_braid_path"].write_text(json.dumps(audited_braid, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    paths["historical_timeline_candidate_path"].write_text(json.dumps(historical_timeline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    paths["qc_report_path"].write_text(json.dumps(payload.get("qc_report"), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    paths["candidate_event_braid_path"].write_text(
+        json.dumps(audited_braid, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    paths["historical_timeline_candidate_path"].write_text(
+        json.dumps(historical_timeline, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    paths["qc_report_path"].write_text(
+        json.dumps(payload.get("qc_report"), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     LOGGER.info("Wrote broader GWB checkpoint to %s", paths["slice_path"])
-    
+
     from scripts.build_gwb_timeline_content_review import build_timeline_content_review
+
     review_res = build_timeline_content_review(paths["slice_path"], output_dir)
-    
-    from scripts.build_gwb_human_review_timeline import build_human_review_timeline_packet
+
+    from scripts.build_gwb_human_review_timeline import (
+        build_human_review_timeline_packet,
+    )
+
     packet_res = build_human_review_timeline_packet(
         paths["slice_path"],
         Path(review_res["json_path"]),
         paths["historical_timeline_candidate_path"],
-        output_dir
+        output_dir,
     )
-    
-    _emit_progress(progress_callback, "family_merge_finished", section="checkpoint_merge", completed=len(families), total=len(families), message="Broader checkpoint written.")
+
+    _emit_progress(
+        progress_callback,
+        "family_merge_finished",
+        section="checkpoint_merge",
+        completed=len(families),
+        total=len(families),
+        message="Broader checkpoint written.",
+    )
     return {
         "summary": payload["summary"],
         **{k: str(v) for k, v in paths.items()},
@@ -645,16 +802,35 @@ def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCal
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the first broader GWB corpus extraction checkpoint.")
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the broader GWB checkpoint into.")
-    parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
-    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
+    parser = argparse.ArgumentParser(
+        description="Build the first broader GWB corpus extraction checkpoint."
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Directory to write the broader GWB checkpoint into.",
+    )
+    parser.add_argument(
+        "--progress", action="store_true", help="Emit progress to stderr."
+    )
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="stderr logging level (default: %(default)s).",
+    )
     args = parser.parse_args()
     configure_cli_logging(args.log_level)
     payload = build_broader_checkpoint(
         Path(args.output_dir).resolve(),
-        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+        progress_callback=build_progress_callback(
+            enabled=bool(args.progress), fmt=str(args.progress_format)
+        ),
     )
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0

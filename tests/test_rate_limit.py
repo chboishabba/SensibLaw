@@ -40,6 +40,6 @@ def test_rate_limiter_refills_over_time():
     rl = TokenBucketRateLimiter(RateLimit(rps=2.0, burst=1), now=c.now, sleep=c.sleep)
 
     rl.acquire()  # tokens -> 0
-    c.t += 0.5   # refill 1 token at 2 rps * 0.5s
+    c.t += 0.5  # refill 1 token at 2 rps * 0.5s
     rl.acquire()  # should not sleep
     assert c.sleeps == []

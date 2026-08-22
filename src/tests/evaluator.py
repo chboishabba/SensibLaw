@@ -43,13 +43,16 @@ def evaluate(
     for factor in template.get("factors", []):
         identifier = str(factor.get("id") or factor.get("name"))
         evidence = list(facts.get(identifier, []))
-        rows.append(ResultRow(factor=identifier, status=bool(evidence), evidence=evidence))
+        rows.append(
+            ResultRow(factor=identifier, status=bool(evidence), evidence=evidence)
+        )
     return ResultTable(rows)
 
 
 # ---------------------------------------------------------------------------
 # Template loading helpers used by the CLI
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Factor:
@@ -92,7 +95,10 @@ def load_templates(path: Path | str) -> Dict[str, TestTemplate]:
     data = json.loads(Path(path).read_text())
     templates: Dict[str, TestTemplate] = {}
     for item in data:
-        factors = [Factor(id=str(f.get("id")), description=f.get("description")) for f in item.get("factors", [])]
+        factors = [
+            Factor(id=str(f.get("id")), description=f.get("description"))
+            for f in item.get("factors", [])
+        ]
         templates[item["concept_id"]] = TestTemplate(
             concept_id=item["concept_id"],
             name=item.get("name", item["concept_id"]),
@@ -133,7 +139,9 @@ def evaluate_story(
             )
         )
 
-    return ConceptEvaluation(concept_id=template.concept_id, name=template.name, results=results)
+    return ConceptEvaluation(
+        concept_id=template.concept_id, name=template.name, results=results
+    )
 
 
 class FactorStatus(str, Enum):

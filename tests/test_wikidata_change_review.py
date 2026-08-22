@@ -82,21 +82,35 @@ def test_change_review_report_compares_each_candidate_review_only() -> None:
     ]
     assert len(report["candidate_reports"]) == 6
 
-    by_id = {candidate["candidate_id"]: candidate for candidate in report["candidate_reports"]}
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in report["candidate_reports"]
+    }
     assert by_id["hold_for_class_order_review"]["disposition"] == "held"
     assert by_id["hold_for_class_order_review"]["edit_authority"] is False
     assert by_id["remove_p279_q3331189"]["disposition"] == "checked_safe_reviewable"
-    assert by_id["remove_p279_q3331189"]["candidate_blocker_count"] <= report["baseline"]["blocker_count"]
-    assert by_id["remove_p279_q3331189"]["mutation_summary"]["applied_in_memory_only"] is True
+    assert (
+        by_id["remove_p279_q3331189"]["candidate_blocker_count"]
+        <= report["baseline"]["blocker_count"]
+    )
+    assert (
+        by_id["remove_p279_q3331189"]["mutation_summary"]["applied_in_memory_only"]
+        is True
+    )
 
 
-def test_change_review_reports_upstream_abstract_obligation_candidate_review_only() -> None:
+def test_change_review_reports_upstream_abstract_obligation_candidate_review_only() -> (
+    None
+):
     packet = load_change_review_packet(FIXTURE)
     candidate_packet = {
         candidate["id"]: candidate for candidate in packet["candidate_repairs"]
     }["hold_upstream_abstract_obligation"]
     report = build_change_review_report(packet)
-    by_id = {candidate["candidate_id"]: candidate for candidate in report["candidate_reports"]}
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in report["candidate_reports"]
+    }
     candidate = by_id["hold_upstream_abstract_obligation"]
 
     assert "subject" not in candidate_packet
@@ -117,7 +131,10 @@ def test_change_review_reports_upstream_abstract_obligation_candidate_review_onl
 
 def test_change_review_reports_q27968055_pressure_attribution_review_only() -> None:
     report = build_change_review_report_from_path(FIXTURE)
-    by_id = {candidate["candidate_id"]: candidate for candidate in report["candidate_reports"]}
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in report["candidate_reports"]
+    }
 
     assert report["edit_authority"] is False
     assert report["pressure_attribution_surface"] == [
@@ -181,29 +198,43 @@ def test_change_review_reports_pnf_to_wikidata_grounding_surface_review_only() -
     assert grounding["source_pnf"]["structural_signature"] == "event_edition_fibre"
 
     assert {row["qid"] for row in components["subject_qid_candidates"]} == {"Q27968055"}
-    q3331189 = next(row for row in components["object_qid_candidates"] if row["qid"] == "Q3331189")
+    q3331189 = next(
+        row for row in components["object_qid_candidates"] if row["qid"] == "Q3331189"
+    )
     assert q3331189["meet_status"] == "no_typed_meet"
     assert q3331189["grounding_residual"] == "no_typed_meet"
     assert q3331189["shape"] == "publication/work-edition"
     assert q3331189["target_fibre"] == "event-edition"
-    assert q3331189["reason"] == "publication/work-edition shape does not type-meet the event-edition fibre"
+    assert (
+        q3331189["reason"]
+        == "publication/work-edition shape does not type-meet the event-edition fibre"
+    )
     assert q3331189["fabricated"] is False
     assert all(row.get("fabricated") is False for row in components["pid_candidates"])
     assert components["abstract_q_obligations"][0]["qid"] is None
-    assert components["abstract_q_obligations"][0]["qid_pid_assignment"] == "not_implied"
+    assert (
+        components["abstract_q_obligations"][0]["qid_pid_assignment"] == "not_implied"
+    )
     assert components["abstract_q_obligations"][0]["fabricates_qid"] is False
     assert components["abstract_q_obligations"][0]["creates_wikidata_entity"] is False
     assert components["abstract_p_obligations"][0]["pid"] is None
-    assert components["abstract_p_obligations"][0]["qid_pid_assignment"] == "not_implied"
+    assert (
+        components["abstract_p_obligations"][0]["qid_pid_assignment"] == "not_implied"
+    )
     assert components["abstract_p_obligations"][0]["fabricates_pid"] is False
     assert components["abstract_p_obligations"][0]["creates_wikidata_property"] is False
     assert grounding["promotion_boundary"]["abstract_qp_obligations_only"] is True
     assert grounding["promotion_boundary"]["edit_authority"] is False
 
 
-def test_change_review_candidates_echo_grounding_delta_and_candidate_grounding() -> None:
+def test_change_review_candidates_echo_grounding_delta_and_candidate_grounding() -> (
+    None
+):
     report = build_change_review_report_from_path(FIXTURE)
-    by_id = {candidate["candidate_id"]: candidate for candidate in report["candidate_reports"]}
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in report["candidate_reports"]
+    }
 
     remove = by_id["remove_p279_q3331189"]
     assert remove["grounding_delta"]["publication_edition_mismatch"] == -1
@@ -219,14 +250,20 @@ def test_change_review_candidates_echo_grounding_delta_and_candidate_grounding()
 def test_change_review_candidates_echo_packet_mutation_pnf_review_only() -> None:
     packet = load_change_review_packet(FIXTURE)
     report = build_change_review_report(packet)
-    by_id = {candidate["candidate_id"]: candidate for candidate in report["candidate_reports"]}
+    by_id = {
+        candidate["candidate_id"]: candidate
+        for candidate in report["candidate_reports"]
+    }
 
     for candidate_packet in packet["candidate_repairs"]:
         candidate_report = by_id[candidate_packet["id"]]
 
         assert candidate_report["mutation_pnf"] == candidate_packet["mutation_pnf"]
         assert candidate_report["mutation_pnf"]["review_posture"] == "review_only"
-        assert candidate_report["mutation_pnf"]["mutation_scope"] == "bounded_slice_in_memory"
+        assert (
+            candidate_report["mutation_pnf"]["mutation_scope"]
+            == "bounded_slice_in_memory"
+        )
         assert (
             candidate_report["mutation_pnf"]["receipt_status"]
             == "diagnostic_only_no_pnf_emission_receipts"
@@ -295,7 +332,9 @@ def test_change_review_counts_mereology_temporal_evidence_independently() -> Non
     assert temporal_report["missing_temporal_qualifier_count"] == 0
 
 
-def test_change_review_holds_mereology_temporal_regressions_without_edit_authority() -> None:
+def test_change_review_holds_mereology_temporal_regressions_without_edit_authority() -> (
+    None
+):
     report = build_change_review_report_from_path(MEREOLOGY_TEMPORAL_FIXTURE)
     candidate = report["candidate_reports"][0]
 
@@ -331,7 +370,9 @@ def test_change_review_rejects_unknown_packet_schema(tmp_path) -> None:
     path = tmp_path / "bad_packet.json"
     path.write_text(json.dumps(packet), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="unsupported ChangeReviewPacket schema_version"):
+    with pytest.raises(
+        ValueError, match="unsupported ChangeReviewPacket schema_version"
+    ):
         load_change_review_packet(path)
 
 
@@ -341,10 +382,18 @@ def test_change_review_schemas_validate_fixture_and_report() -> None:
     report = build_change_review_report_from_path(FIXTURE)
     mereology_report = build_change_review_report_from_path(MEREOLOGY_TEMPORAL_FIXTURE)
 
-    jsonschema.validate(packet, _schema("sl.wikidata_change_review_packet.v0_1.schema.yaml"))
-    jsonschema.validate(mereology_packet, _schema("sl.wikidata_change_review_packet.v0_1.schema.yaml"))
-    jsonschema.validate(report, _schema("sl.wikidata_change_review_report.v0_1.schema.yaml"))
-    jsonschema.validate(mereology_report, _schema("sl.wikidata_change_review_report.v0_1.schema.yaml"))
+    jsonschema.validate(
+        packet, _schema("sl.wikidata_change_review_packet.v0_1.schema.yaml")
+    )
+    jsonschema.validate(
+        mereology_packet, _schema("sl.wikidata_change_review_packet.v0_1.schema.yaml")
+    )
+    jsonschema.validate(
+        report, _schema("sl.wikidata_change_review_report.v0_1.schema.yaml")
+    )
+    jsonschema.validate(
+        mereology_report, _schema("sl.wikidata_change_review_report.v0_1.schema.yaml")
+    )
 
 
 def test_change_review_cli_writes_deterministic_json(tmp_path, capsys) -> None:

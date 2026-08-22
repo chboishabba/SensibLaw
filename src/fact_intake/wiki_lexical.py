@@ -31,7 +31,15 @@ _REVERSION_KEYWORDS = {
     "unsourced",
 }
 _ARCHIVE_KEYWORDS = {"archive", "archived", "archiving"}
-_ADMIN_KEYWORDS = {"protect", "protected", "protection", "block", "blocked", "warn", "warning"}
+_ADMIN_KEYWORDS = {
+    "protect",
+    "protected",
+    "protection",
+    "block",
+    "blocked",
+    "warn",
+    "warning",
+}
 
 
 def _quote_zelph_text(value: Any) -> str:
@@ -91,7 +99,9 @@ def build_revision_comment_zelph_facts(
     for token, node in zip(tokens, lexeme_nodes, strict=False):
         facts.append(f'{node} "has text" {_quote_zelph_text(token)}')
         facts.append(f'{node} "kind" "lexeme"')
-        facts.append(f'{revision_node} "has comment lexeme" {_quote_zelph_text(token.casefold())}')
+        facts.append(
+            f'{revision_node} "has comment lexeme" {_quote_zelph_text(token.casefold())}'
+        )
     comment_list = "<" + " ".join(lexeme_nodes) + ">" if lexeme_nodes else "nil"
     facts.append(f'{revision_node} "has comment" {comment_list}')
     return facts

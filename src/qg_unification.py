@@ -33,7 +33,16 @@ class DA51Trace:
     @classmethod
     def from_mapping(cls, payload: Mapping[str, Any]) -> "DA51Trace":
         """Parse and validate a mapping into a strongly-typed DA51Trace."""
-        required = {"da51", "exponents", "hot", "cold", "mass", "steps", "basin", "j_fixed"}
+        required = {
+            "da51",
+            "exponents",
+            "hot",
+            "cold",
+            "mass",
+            "steps",
+            "basin",
+            "j_fixed",
+        }
         missing = sorted(required - set(payload.keys()))
         if missing:
             raise ValueError(f"missing required fields: {', '.join(missing)}")
@@ -43,7 +52,9 @@ class DA51Trace:
             raise ValueError("exponents must be an iterable of integers")
         exponents = list(exponents_raw)
         if len(exponents) != 15:
-            raise ValueError(f"exponents must have exactly 15 elements, got {len(exponents)}")
+            raise ValueError(
+                f"exponents must have exactly 15 elements, got {len(exponents)}"
+            )
         if not all(isinstance(item, int) for item in exponents):
             raise ValueError("all exponents must be integers")
 
@@ -112,7 +123,9 @@ def as_trace_vector(payload: Mapping[str, Any]) -> TraceVector:
     mdls = {
         "norm": sum(float(value * value) for value in trace.exponents) ** 0.5,
         "sum_abs": float(sum(abs(value) for value in trace.exponents)),
-        "max_abs": float(max(abs(value) for value in trace.exponents)) if trace.exponents else 0.0,
+        "max_abs": float(max(abs(value) for value in trace.exponents))
+        if trace.exponents
+        else 0.0,
     }
     admissible = is_admissible(trace, normalized)
 

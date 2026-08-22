@@ -3,9 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
-from src.fact_intake.au_review_bundle import AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION
 from src.policy.linkage_depth import (
-    LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION,
     build_expected_layer_contract,
     build_linkage_depth_case,
     build_linkage_depth_receipt,
@@ -100,9 +98,19 @@ def _event_index(review_bundle: Mapping[str, Any]) -> dict[str, Mapping[str, Any
     }
 
 
-def _authority_queue_by_event(review_bundle: Mapping[str, Any]) -> dict[str, list[Mapping[str, Any]]]:
-    operator_views = review_bundle.get("operator_views") if isinstance(review_bundle.get("operator_views"), Mapping) else {}
-    authority_follow = operator_views.get("authority_follow") if isinstance(operator_views.get("authority_follow"), Mapping) else {}
+def _authority_queue_by_event(
+    review_bundle: Mapping[str, Any],
+) -> dict[str, list[Mapping[str, Any]]]:
+    operator_views = (
+        review_bundle.get("operator_views")
+        if isinstance(review_bundle.get("operator_views"), Mapping)
+        else {}
+    )
+    authority_follow = (
+        operator_views.get("authority_follow")
+        if isinstance(operator_views.get("authority_follow"), Mapping)
+        else {}
+    )
     queue: dict[str, list[Mapping[str, Any]]] = {}
     for row in _mapping_rows(authority_follow.get("queue")):
         event_id = _text(row.get("event_id") or row.get("item_id"))
@@ -111,9 +119,19 @@ def _authority_queue_by_event(review_bundle: Mapping[str, Any]) -> dict[str, lis
     return queue
 
 
-def _legal_queue_by_event(review_bundle: Mapping[str, Any]) -> dict[str, list[Mapping[str, Any]]]:
-    operator_views = review_bundle.get("operator_views") if isinstance(review_bundle.get("operator_views"), Mapping) else {}
-    legal_follow = operator_views.get("legal_follow_graph") if isinstance(operator_views.get("legal_follow_graph"), Mapping) else {}
+def _legal_queue_by_event(
+    review_bundle: Mapping[str, Any],
+) -> dict[str, list[Mapping[str, Any]]]:
+    operator_views = (
+        review_bundle.get("operator_views")
+        if isinstance(review_bundle.get("operator_views"), Mapping)
+        else {}
+    )
+    legal_follow = (
+        operator_views.get("legal_follow_graph")
+        if isinstance(operator_views.get("legal_follow_graph"), Mapping)
+        else {}
+    )
     queue: dict[str, list[Mapping[str, Any]]] = {}
     for row in _mapping_rows(legal_follow.get("queue")):
         event_id = _text(row.get("event_id"))
@@ -123,8 +141,16 @@ def _legal_queue_by_event(review_bundle: Mapping[str, Any]) -> dict[str, list[Ma
 
 
 def _workflow_anchor_metadata(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
-    workflow_summary = review_bundle.get("workflow_summary") if isinstance(review_bundle.get("workflow_summary"), Mapping) else {}
-    promotion_gate = review_bundle.get("promotion_gate") if isinstance(review_bundle.get("promotion_gate"), Mapping) else {}
+    workflow_summary = (
+        review_bundle.get("workflow_summary")
+        if isinstance(review_bundle.get("workflow_summary"), Mapping)
+        else {}
+    )
+    promotion_gate = (
+        review_bundle.get("promotion_gate")
+        if isinstance(review_bundle.get("promotion_gate"), Mapping)
+        else {}
+    )
     return {
         "workflow_stage": _text(workflow_summary.get("stage")),
         "recommended_view": _text(workflow_summary.get("recommended_view")),
@@ -137,13 +163,29 @@ def _bundle_like_artifact(artifact: Mapping[str, Any]) -> Mapping[str, Any]:
     if _text(artifact.get("version")) == "fact.review.bundle.v1":
         return artifact
 
-    projection = artifact.get("projection") if isinstance(artifact.get("projection"), Mapping) else {}
-    linkage_inputs = projection.get("metadata", {}).get("linkage_inputs") if isinstance(projection.get("metadata"), Mapping) else {}
+    projection = (
+        artifact.get("projection")
+        if isinstance(artifact.get("projection"), Mapping)
+        else {}
+    )
+    linkage_inputs = (
+        projection.get("metadata", {}).get("linkage_inputs")
+        if isinstance(projection.get("metadata"), Mapping)
+        else {}
+    )
     if not isinstance(linkage_inputs, Mapping):
         linkage_inputs = {}
     if not linkage_inputs:
-        review_surface = artifact.get("review_surface") if isinstance(artifact.get("review_surface"), Mapping) else {}
-        linkage_inputs = review_surface.get("metadata", {}).get("linkage_inputs") if isinstance(review_surface.get("metadata"), Mapping) else {}
+        review_surface = (
+            artifact.get("review_surface")
+            if isinstance(artifact.get("review_surface"), Mapping)
+            else {}
+        )
+        linkage_inputs = (
+            review_surface.get("metadata", {}).get("linkage_inputs")
+            if isinstance(review_surface.get("metadata"), Mapping)
+            else {}
+        )
         if not isinstance(linkage_inputs, Mapping):
             linkage_inputs = {}
 
@@ -153,15 +195,31 @@ def _bundle_like_artifact(artifact: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
         "version": "fact.review.bundle.v1",
         "run": deepcopy(dict(linkage_inputs.get("run") or {})),
-        "review_queue": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("review_queue"))],
-        "sources": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("sources"))],
-        "events": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("events"))],
-        "source_documents": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("source_documents"))],
+        "review_queue": [
+            deepcopy(dict(row))
+            for row in _mapping_rows(linkage_inputs.get("review_queue"))
+        ],
+        "sources": [
+            deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("sources"))
+        ],
+        "events": [
+            deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("events"))
+        ],
+        "source_documents": [
+            deepcopy(dict(row))
+            for row in _mapping_rows(linkage_inputs.get("source_documents"))
+        ],
         "operator_views": deepcopy(dict(linkage_inputs.get("operator_views") or {})),
-        "workflow_summary": deepcopy(dict(linkage_inputs.get("workflow_summary") or {})),
-        "operator_workflow_surface": deepcopy(dict(linkage_inputs.get("operator_workflow_surface") or {})),
+        "workflow_summary": deepcopy(
+            dict(linkage_inputs.get("workflow_summary") or {})
+        ),
+        "operator_workflow_surface": deepcopy(
+            dict(linkage_inputs.get("operator_workflow_surface") or {})
+        ),
         "promotion_gate": deepcopy(dict(linkage_inputs.get("promotion_gate") or {})),
-        "compiler_contract": deepcopy(dict(linkage_inputs.get("compiler_contract") or {})),
+        "compiler_contract": deepcopy(
+            dict(linkage_inputs.get("compiler_contract") or {})
+        ),
     }
 
 
@@ -169,8 +227,16 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
     if str(review_bundle.get("version") or "").strip() != "fact.review.bundle.v1":
         raise ValueError("AU linkage case requires fact review bundle payload")
 
-    run = review_bundle.get("run") if isinstance(review_bundle.get("run"), Mapping) else {}
-    workflow_summary = review_bundle.get("workflow_summary") if isinstance(review_bundle.get("workflow_summary"), Mapping) else {}
+    run = (
+        review_bundle.get("run")
+        if isinstance(review_bundle.get("run"), Mapping)
+        else {}
+    )
+    workflow_summary = (
+        review_bundle.get("workflow_summary")
+        if isinstance(review_bundle.get("workflow_summary"), Mapping)
+        else {}
+    )
     operator_workflow_surface = (
         review_bundle.get("operator_workflow_surface")
         if isinstance(review_bundle.get("operator_workflow_surface"), Mapping)
@@ -195,7 +261,9 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
     seen_edges: set[tuple[str, str, str]] = set()
     anchor_ids: list[str] = []
 
-    def add_node(node_id: str, *, layer: str, label: str, metadata: Mapping[str, Any]) -> None:
+    def add_node(
+        node_id: str, *, layer: str, label: str, metadata: Mapping[str, Any]
+    ) -> None:
         if node_id in seen_nodes:
             return
         seen_nodes.add(node_id)
@@ -208,7 +276,9 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
             }
         )
 
-    def add_edge(source: str, target: str, *, kind: str, metadata: Mapping[str, Any]) -> None:
+    def add_edge(
+        source: str, target: str, *, kind: str, metadata: Mapping[str, Any]
+    ) -> None:
         edge_key = (source, target, kind)
         if edge_key in seen_edges:
             return
@@ -251,7 +321,10 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
             "from_layer": "review_surface",
             "to_layer": "tranche_anchor",
             "authority_surface": "workflow_tranche_anchor",
-            "promotion_status": _text((review_bundle.get("promotion_gate") or {}).get("decision")) or "audit",
+            "promotion_status": _text(
+                (review_bundle.get("promotion_gate") or {}).get("decision")
+            )
+            or "audit",
         },
     )
 
@@ -262,7 +335,9 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
         event_ids = [_text(value) for value in row.get("event_ids", []) if _text(value)]
         if not event_ids:
             continue
-        source_ids = [_text(value) for value in row.get("source_ids", []) if _text(value)]
+        source_ids = [
+            _text(value) for value in row.get("source_ids", []) if _text(value)
+        ]
         candidate_node_id = f"au_legal_claim_candidate:{fact_id}"
         authority_node_id = f"au_authority_surface:{fact_id}"
         visibility_state = "complete"
@@ -274,12 +349,20 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
             metadata={
                 "fact_id": fact_id,
                 "candidate_status": _text(row.get("candidate_status")),
-                "policy_outcomes": [value for value in row.get("policy_outcomes", []) if _text(value)],
-                "reason_codes": [value for value in row.get("reason_codes", []) if _text(value)],
-                "legal_procedural_predicates": [
-                    value for value in row.get("legal_procedural_predicates", []) if _text(value)
+                "policy_outcomes": [
+                    value for value in row.get("policy_outcomes", []) if _text(value)
                 ],
-                "candidate_vs_promoted_visibility": bool(_text(row.get("candidate_status")) and row.get("policy_outcomes")),
+                "reason_codes": [
+                    value for value in row.get("reason_codes", []) if _text(value)
+                ],
+                "legal_procedural_predicates": [
+                    value
+                    for value in row.get("legal_procedural_predicates", [])
+                    if _text(value)
+                ],
+                "candidate_vs_promoted_visibility": bool(
+                    _text(row.get("candidate_status")) and row.get("policy_outcomes")
+                ),
             },
         )
         add_edge(
@@ -314,8 +397,20 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
             for event_id in event_ids:
                 event_row = event_rows.get(event_id, {})
                 event_anchor_id = f"au_event_anchor:{fact_id}:{event_id}"
-                authority_rows = authority_by_event.get(_text((event_row.get("source_event_ids") or [event_id])[0])) or authority_by_event.get(event_id) or []
-                legal_rows = legal_by_event.get(_text((event_row.get("source_event_ids") or [event_id])[0])) or legal_by_event.get(event_id) or []
+                authority_rows = (
+                    authority_by_event.get(
+                        _text((event_row.get("source_event_ids") or [event_id])[0])
+                    )
+                    or authority_by_event.get(event_id)
+                    or []
+                )
+                legal_rows = (
+                    legal_by_event.get(
+                        _text((event_row.get("source_event_ids") or [event_id])[0])
+                    )
+                    or legal_by_event.get(event_id)
+                    or []
+                )
                 provision_node_id = f"au_legal_ref_container:{fact_id}:{event_id}"
                 parsed_node_id = f"au_parsed_legal_support:{fact_id}:{event_id}"
 
@@ -339,7 +434,9 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
                     {
                         _text(key)
                         for authority_row in authority_rows
-                        for key in (authority_row.get("jurisdiction_hint_counts") or {}).keys()
+                        for key in (
+                            authority_row.get("jurisdiction_hint_counts") or {}
+                        ).keys()
                         if _text(key)
                     }
                 )
@@ -347,14 +444,18 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
                     {
                         _text(key)
                         for authority_row in authority_rows
-                        for key in (authority_row.get("instrument_kind_counts") or {}).keys()
+                        for key in (
+                            authority_row.get("instrument_kind_counts") or {}
+                        ).keys()
                         if _text(key)
                     }
                 )
                 citation_count = sum(
                     len(authority_row.get("candidate_citation_details", []))
                     for authority_row in authority_rows
-                    if isinstance(authority_row.get("candidate_citation_details"), Sequence)
+                    if isinstance(
+                        authority_row.get("candidate_citation_details"), Sequence
+                    )
                 )
                 legal_route_targets = sorted(
                     {
@@ -368,7 +469,9 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
                     for value in event_row.get("source_event_ids", [])
                     if _text(value)
                 ]
-                instrument_or_jurisdiction_visible = bool(jurisdiction_keys or instrument_keys)
+                instrument_or_jurisdiction_visible = bool(
+                    jurisdiction_keys or instrument_keys
+                )
 
                 add_node(
                     event_anchor_id,
@@ -459,12 +562,24 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
         supporting_document_count = len(source_documents)
         authority_visibility = bool(
             operator_workflow_surface
-            and _text((review_bundle.get("workflow_summary") or {}).get("recommended_view"))
+            and _text(
+                (review_bundle.get("workflow_summary") or {}).get("recommended_view")
+            )
         )
         instrument_or_jurisdiction_visible = any(
             bool(
-                (authority_row.get("jurisdiction_hint_counts") if isinstance(authority_row.get("jurisdiction_hint_counts"), Mapping) else {})
-                or (authority_row.get("instrument_kind_counts") if isinstance(authority_row.get("instrument_kind_counts"), Mapping) else {})
+                (
+                    authority_row.get("jurisdiction_hint_counts")
+                    if isinstance(
+                        authority_row.get("jurisdiction_hint_counts"), Mapping
+                    )
+                    else {}
+                )
+                or (
+                    authority_row.get("instrument_kind_counts")
+                    if isinstance(authority_row.get("instrument_kind_counts"), Mapping)
+                    else {}
+                )
             )
             for event_id in event_ids
             for authority_row in authority_by_event.get(event_id, [])
@@ -478,8 +593,12 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
                 "recommended_view": _text(workflow_summary.get("recommended_view")),
                 "review_stage": _text(workflow_summary.get("stage")),
                 "supporting_document_count": supporting_document_count,
-                "authority_boundary_visibility": visibility_state if authority_visibility else "partial",
-                "instrument_or_jurisdiction_visible": _metadata_flag(instrument_or_jurisdiction_visible),
+                "authority_boundary_visibility": visibility_state
+                if authority_visibility
+                else "partial",
+                "instrument_or_jurisdiction_visible": _metadata_flag(
+                    instrument_or_jurisdiction_visible
+                ),
                 "candidate_vs_promoted_visibility": True,
                 "authority_surface": "au_authority_visibility_surface",
             },
@@ -523,7 +642,9 @@ def build_case(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
             default_lane_id="au",
             default_contract=build_contract(),
             default_contract_id=AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
-            default_notes=["AU fact-review linkage case loaded from the emitted lane receipt."],
+            default_notes=[
+                "AU fact-review linkage case loaded from the emitted lane receipt."
+            ],
         )
         if case is not None:
             return case
@@ -534,11 +655,17 @@ def build_case(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
             default_lane_id="au",
             default_contract=build_contract(),
             default_contract_id=AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
-            default_notes=["AU fact-review linkage case loaded from the projected linkage surface."],
+            default_notes=[
+                "AU fact-review linkage case loaded from the projected linkage surface."
+            ],
         )
         if case is not None:
             return case
-    artifact = _bundle_like_artifact(review_bundle) if isinstance(review_bundle, Mapping) else review_bundle
+    artifact = (
+        _bundle_like_artifact(review_bundle)
+        if isinstance(review_bundle, Mapping)
+        else review_bundle
+    )
     return _build_case_payload(artifact)
 
 
@@ -547,7 +674,9 @@ def build_receipt(
     *,
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    contract_payload = dict(contract) if isinstance(contract, Mapping) else build_contract()
+    contract_payload = (
+        dict(contract) if isinstance(contract, Mapping) else build_contract()
+    )
     case_payload = require_case_from_projection_artifact(
         review_bundle,
         case_kind="legal_authority_fixture",
@@ -555,7 +684,9 @@ def build_receipt(
         default_lane_id="au",
         default_contract=contract_payload,
         default_contract_id=AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
-        default_notes=["AU fact-review linkage case loaded from the projected linkage surface."],
+        default_notes=[
+            "AU fact-review linkage case loaded from the projected linkage surface."
+        ],
     )
     receipt = build_linkage_depth_receipt(
         case=case_payload,

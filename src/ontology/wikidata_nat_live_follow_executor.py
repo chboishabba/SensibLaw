@@ -7,11 +7,15 @@ import re
 from typing import Any, Callable, Mapping, Sequence
 
 from .wikidata import ENTITY_EXPORT_TEMPLATE, MEDIAWIKI_API_ENDPOINT, REQUEST_HEADERS
-from .wikidata_nat_live_follow_campaign import build_wikidata_nat_live_follow_campaign_plan
+from .wikidata_nat_live_follow_campaign import (
+    build_wikidata_nat_live_follow_campaign_plan,
+)
 
 
 LIVE_FOLLOW_RESULT_SCHEMA_VERSION = "sl.wikidata_nat.live_follow_result.v0_1"
-POLICY_RISK_PREFLIGHT_SCHEMA_VERSION = "sl.wikidata_nat.policy_risk_population_preview_preflight.v0_1"
+POLICY_RISK_PREFLIGHT_SCHEMA_VERSION = (
+    "sl.wikidata_nat.policy_risk_population_preview_preflight.v0_1"
+)
 
 
 JsonFetcher = Callable[..., Any]
@@ -106,7 +110,8 @@ def _sidecar_fixture_for_qid(qid: str) -> Mapping[str, Any] | None:
 
 def _attachment_coverage_fixture() -> Mapping[str, Any] | None:
     return _read_json_file(
-        _fixtures_root() / "wikidata_nat_review_packet_attachment_coverage_20260401.json"
+        _fixtures_root()
+        / "wikidata_nat_review_packet_attachment_coverage_20260401.json"
     )
 
 
@@ -217,7 +222,8 @@ def _cohort_c_reference_url_for_qid(qid: str) -> str | None:
 
 def _policy_risk_evidence_fixture() -> Mapping[str, Any] | None:
     return _read_json_file(
-        _fixtures_root() / "wikidata_nat_cohort_c_operator_evidence_packet_20260404.json"
+        _fixtures_root()
+        / "wikidata_nat_cohort_c_operator_evidence_packet_20260404.json"
     )
 
 
@@ -238,7 +244,9 @@ def _policy_risk_evidence_by_qid() -> dict[str, Mapping[str, Any]]:
     return index
 
 
-def _contains_policy_keyword(text: str | Mapping[str, Any] | None, *, keywords: Sequence[str]) -> bool:
+def _contains_policy_keyword(
+    text: str | Mapping[str, Any] | None, *, keywords: Sequence[str]
+) -> bool:
     normalized = _stringify(text).lower()
     if not normalized:
         return False
@@ -256,7 +264,9 @@ def _policy_risk_authority_score(
     if _contains_policy_keyword(row.get("uncertainty_kind"), keywords=policy_keywords):
         score += 0.15
     if evidence:
-        hold_text = evidence.get("operator_hold_reason") or evidence.get("preview_hold_reason")
+        hold_text = evidence.get("operator_hold_reason") or evidence.get(
+            "preview_hold_reason"
+        )
         if _contains_policy_keyword(hold_text, keywords=policy_keywords):
             score += 0.2
         if _stringify(evidence.get("reference_anchor")).strip():
@@ -356,7 +366,9 @@ def _reference_url_from_local_surface(row: Mapping[str, Any]) -> str | None:
                 if text:
                     return text
 
-    grounding_batch = _read_json_file(_fixtures_root() / "wikidata_nat_grounding_depth_batch_20260402.json")
+    grounding_batch = _read_json_file(
+        _fixtures_root() / "wikidata_nat_grounding_depth_batch_20260402.json"
+    )
     if grounding_batch:
         attachments = grounding_batch.get("attachments")
         if isinstance(attachments, list):
@@ -470,7 +482,9 @@ def _entity_summary(payload: Mapping[str, Any], *, qid: str) -> dict[str, Any]:
     return {
         "qid": qid,
         "entity_present": True,
-        "label": _stringify(english.get("value")) if isinstance(english, Mapping) else qid,
+        "label": _stringify(english.get("value"))
+        if isinstance(english, Mapping)
+        else qid,
         "claim_property_count": len(claims) if isinstance(claims, Mapping) else 0,
     }
 
@@ -670,12 +684,25 @@ def execute_wikidata_nat_live_follow_plan(
             if attempt.get("status") == "fetch_error" and error_result is None:
                 error_result = attempt
         final_result = selected_result or error_result
-        final_status = _stringify(final_result.get("status") if final_result else "").strip()
+        final_status = _stringify(
+            final_result.get("status") if final_result else ""
+        ).strip()
         if not final_status:
-            final_status = _stringify(attempts[-1]["status"]).strip() if attempts else "no_attempts"
-        chosen_source = _stringify(
-            final_result.get("source_class") if final_result else attempts[-1].get("source_class") if attempts else ""
-        ).strip() or None
+            final_status = (
+                _stringify(attempts[-1]["status"]).strip()
+                if attempts
+                else "no_attempts"
+            )
+        chosen_source = (
+            _stringify(
+                final_result.get("source_class")
+                if final_result
+                else attempts[-1].get("source_class")
+                if attempts
+                else ""
+            ).strip()
+            or None
+        )
         result = {
             "plan_id": _stringify(row.get("plan_id")).strip(),
             "category_id": _stringify(row.get("category_id")).strip(),
@@ -761,7 +788,9 @@ def build_policy_risk_population_preview_preflight(
                 "coverage_status": coverage_status,
                 "failure_modes": failure_entries,
                 "score": round(
-                    authority_score + certainty_score + (0.25 if follow_opportunity else 0),
+                    authority_score
+                    + certainty_score
+                    + (0.25 if follow_opportunity else 0),
                     3,
                 ),
             }
@@ -834,15 +863,23 @@ def _validate_split_heavy_business_family_plan(plan: Mapping[str, Any]) -> None:
         )
     rows = _split_heavy_plan_rows(plan)
     if not rows:
-        raise ValueError("split-heavy lane requires plan rows for split_heavy_business_family")
+        raise ValueError(
+            "split-heavy lane requires plan rows for split_heavy_business_family"
+        )
     for row in rows:
         max_hops = int(row.get("max_hops") or 0)
         if max_hops != _SPLIT_HEAVY_MAX_HOPS:
             raise ValueError("split-heavy lane requires max_hops=2")
         if not row.get("local_first"):
             raise ValueError("split-heavy lane expects local_packet_first ordering")
-        source_order = [cls for cls in (row.get("source_order") or []) if isinstance(cls, str)]
-        invalid = [cls for cls in source_order if cls not in _SPLIT_HEAVY_ALLOWED_SOURCE_CLASSES]
+        source_order = [
+            cls for cls in (row.get("source_order") or []) if isinstance(cls, str)
+        ]
+        invalid = [
+            cls
+            for cls in source_order
+            if cls not in _SPLIT_HEAVY_ALLOWED_SOURCE_CLASSES
+        ]
         if invalid:
             raise ValueError(
                 f"split-heavy lane does not support source classes {invalid}; open-ended searches are blocked"

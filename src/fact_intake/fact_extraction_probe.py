@@ -52,14 +52,18 @@ def _missing_receipts(receipts: Mapping[str, Any]) -> list[str]:
     return missing
 
 
-def _compare_evidence(query_atom: Mapping[str, Any], evidence_atoms: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _compare_evidence(
+    query_atom: Mapping[str, Any], evidence_atoms: Iterable[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
     comparisons: list[dict[str, Any]] = []
     for index, raw_atom in enumerate(evidence_atoms, start=1):
         atom = _dict(raw_atom)
         residual = meet_atom(query_atom, atom)
         comparisons.append(
             {
-                "evidence_ref": _text(atom.get("atom_id") or atom.get("id") or f"evidence:{index}"),
+                "evidence_ref": _text(
+                    atom.get("atom_id") or atom.get("id") or f"evidence:{index}"
+                ),
                 "residual": residual.to_dict(),
                 "residual_level": _residual_name(residual.level),
                 "structural_signature": _text(atom.get("structural_signature")),
@@ -104,7 +108,9 @@ def _status_for_case(
     return "supported"
 
 
-def build_fact_extraction_probe(*, fact_cases: Iterable[Mapping[str, Any]], source: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def build_fact_extraction_probe(
+    *, fact_cases: Iterable[Mapping[str, Any]], source: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     """Build a deterministic fact-extraction proof over supplied receipts.
 
     This is a probe/read-model surface. It does not parse raw text, call an LLM,
@@ -120,8 +126,16 @@ def build_fact_extraction_probe(*, fact_cases: Iterable[Mapping[str, Any]], sour
         candidate = _dict(case.get("fact_candidate"))
         query_atom = _dict(candidate.get("predicate_atom"))
         normalized_query = coerce_predicate_atom(query_atom)
-        evidence_atoms = [_dict(atom) for atom in _list(case.get("evidence_atoms")) if isinstance(atom, Mapping)]
-        comparisons = _compare_evidence(query_atom, evidence_atoms) if normalized_query is not None else []
+        evidence_atoms = [
+            _dict(atom)
+            for atom in _list(case.get("evidence_atoms"))
+            if isinstance(atom, Mapping)
+        ]
+        comparisons = (
+            _compare_evidence(query_atom, evidence_atoms)
+            if normalized_query is not None
+            else []
+        )
         aggregate_residual = _aggregate_residual(comparisons)
         receipts = _dict(case.get("receipts"))
         missing = _missing_receipts(receipts)
@@ -133,16 +147,21 @@ def build_fact_extraction_probe(*, fact_cases: Iterable[Mapping[str, Any]], sour
             explicit_status=_text(candidate.get("candidate_status")),
         )
         status_counts[status] = status_counts.get(status, 0) + 1
-        residual_counts[aggregate_residual] = residual_counts.get(aggregate_residual, 0) + 1
+        residual_counts[aggregate_residual] = (
+            residual_counts.get(aggregate_residual, 0) + 1
+        )
         cases.append(
             {
                 "case_id": _text(case.get("case_id")) or f"fact_case:{index}",
                 "lane": _text(case.get("lane")),
                 "source_span": _text(case.get("source_span")),
                 "fact_candidate": {
-                    "fact_id": _text(candidate.get("fact_id")) or f"fact_candidate:{index}",
+                    "fact_id": _text(candidate.get("fact_id"))
+                    or f"fact_candidate:{index}",
                     "label": _text(candidate.get("label")),
-                    "predicate_atom": normalized_query.to_dict() if normalized_query is not None else query_atom,
+                    "predicate_atom": normalized_query.to_dict()
+                    if normalized_query is not None
+                    else query_atom,
                     "status": status,
                 },
                 "receipts": receipts,
@@ -152,14 +171,22 @@ def build_fact_extraction_probe(*, fact_cases: Iterable[Mapping[str, Any]], sour
                 "support_count": sum(
                     1
                     for row in comparisons
-                    if _residual_rank(_text(row.get("residual_level"))) <= _residual_rank("partial")
+                    if _residual_rank(_text(row.get("residual_level")))
+                    <= _residual_rank("partial")
                 ),
-                "contradiction_count": sum(1 for row in comparisons if row.get("residual_level") == "contradiction"),
+                "contradiction_count": sum(
+                    1
+                    for row in comparisons
+                    if row.get("residual_level") == "contradiction"
+                ),
                 "promotion_gate": {
                     "promote_requested": bool(gate.get("promote")),
                     "gate_status": "passed" if status == "promoted" else "not_promoted",
                     "blockers": sorted(
-                        set(_list(gate.get("blockers")) + [f"missing_{receipt}_receipt" for receipt in missing])
+                        set(
+                            _list(gate.get("blockers"))
+                            + [f"missing_{receipt}_receipt" for receipt in missing]
+                        )
                     ),
                 },
                 "authority_policy": "review_only",
@@ -174,8 +201,12 @@ def build_fact_extraction_probe(*, fact_cases: Iterable[Mapping[str, Any]], sour
             "status_counts": dict(sorted(status_counts.items())),
             "residual_counts": dict(sorted(residual_counts.items())),
             "missing_receipt_cases": sum(1 for row in cases if row["missing_receipts"]),
-            "contested_cases": sum(1 for row in cases if row["fact_candidate"]["status"] == "contested"),
-            "abstained_cases": sum(1 for row in cases if row["fact_candidate"]["status"] == "abstained"),
+            "contested_cases": sum(
+                1 for row in cases if row["fact_candidate"]["status"] == "contested"
+            ),
+            "abstained_cases": sum(
+                1 for row in cases if row["fact_candidate"]["status"] == "abstained"
+            ),
         },
         "authority_boundary": {
             "receipt_backed_observation_classes_only": True,

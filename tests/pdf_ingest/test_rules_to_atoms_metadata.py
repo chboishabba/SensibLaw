@@ -93,8 +93,7 @@ def test_rules_to_atoms_attaches_text_span_with_revision_id(monkeypatch):
     element = structured.elements[0]
     assert element.text_span is not None
     assert (
-        body[element.text_span.start_char : element.text_span.end_char]
-        == element.text
+        body[element.text_span.start_char : element.text_span.end_char] == element.text
     )
 
 

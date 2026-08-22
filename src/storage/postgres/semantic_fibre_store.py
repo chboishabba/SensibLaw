@@ -300,9 +300,7 @@ def _observation_elements(
             if not isinstance(observation, Mapping):
                 continue
             observation_ref = str(observation.get("observation_ref") or "")
-            coordinate_ref = str(
-                observation.get("semantic_coordinate_ref") or ""
-            )
+            coordinate_ref = str(observation.get("semantic_coordinate_ref") or "")
             if not observation_ref or not coordinate_ref:
                 continue
             coordinate = SemanticCoordinate(
@@ -344,26 +342,18 @@ def _fibre_derivations(
     content_to_element_ref: Mapping[str, str],
 ) -> tuple[FibreDerivation, ...]:
     jobs = {
-        str(row.get("job_ref") or ""): row
-        for row in solver_jobs
-        if row.get("job_ref")
+        str(row.get("job_ref") or ""): row for row in solver_jobs if row.get("job_ref")
     }
     derivations: list[FibreDerivation] = []
     for receipt in solver_receipts:
         job = jobs.get(str(receipt.get("job_ref") or ""), {})
-        proposal_refs = tuple(
-            str(ref) for ref in receipt.get("proposal_refs") or ()
-        )
+        proposal_refs = tuple(str(ref) for ref in receipt.get("proposal_refs") or ())
         proposal_rows = [
-            proposal_by_ref[ref]
-            for ref in proposal_refs
-            if ref in proposal_by_ref
+            proposal_by_ref[ref] for ref in proposal_refs if ref in proposal_by_ref
         ]
         operation_kind = (
             str(
-                (proposal_rows[0].get("execution_metadata") or {}).get(
-                    "operation_kind"
-                )
+                (proposal_rows[0].get("execution_metadata") or {}).get("operation_kind")
                 or ""
             )
             if proposal_rows
@@ -387,9 +377,7 @@ def _fibre_derivations(
                 sub_executor_ref=str(receipt.get("backend_ref") or ""),
                 rule_set_revision=str(receipt.get("rule_set_revision") or ""),
                 receipt_ref=str(receipt.get("receipt_ref") or "") or None,
-                assumptions=tuple(
-                    str(ref) for ref in receipt.get("assumptions") or ()
-                ),
+                assumptions=tuple(str(ref) for ref in receipt.get("assumptions") or ()),
                 metrics=dict(receipt.get("metrics") or {}),
             )
         )
@@ -416,9 +404,7 @@ def persist_semantic_fibre_artifacts(
         document_ref,
         observation_deltas,
     )
-    content_to_element_ref = {
-        row.content_ref: row.element_ref for row in elements
-    }
+    content_to_element_ref = {row.content_ref: row.element_ref for row in elements}
     proposal_by_ref = {
         str(row.get("proposal_ref") or ""): row
         for row in proposals
@@ -473,9 +459,7 @@ def persist_semantic_fibre_artifacts(
             trigger_refs=tuple(row.get("trigger_refs") or ()),
             frontier_refs=tuple(row.get("frontier_refs") or ()),
             state=str(row.get("state") or "open"),
-            resource_limit_reached=bool(
-                row.get("resource_limit_reached", False)
-            ),
+            resource_limit_reached=bool(row.get("resource_limit_reached", False)),
         )
         for row in axis_obligations
     )
@@ -544,13 +528,9 @@ def persist_semantic_fibre_artifacts(
         )
 
     ledger = SemanticFibreLedger(
-        coordinates=tuple(
-            coordinates[key] for key in sorted(coordinates)
-        ),
+        coordinates=tuple(coordinates[key] for key in sorted(coordinates)),
         elements=tuple(sorted(elements, key=lambda row: row.element_ref)),
-        transports=tuple(
-            sorted(transport_rows, key=lambda row: row.transport_ref)
-        ),
+        transports=tuple(sorted(transport_rows, key=lambda row: row.transport_ref)),
         derivations=derivations,
         ontology_axes=tuple(sorted(axis_rows, key=lambda row: row.axis_ref)),
         axis_obligations=tuple(
@@ -563,9 +543,7 @@ def persist_semantic_fibre_artifacts(
     producer_receipt = IntegratedProducerReceipt(
         document_ref=document_ref,
         contract_ref=INTEGRATED_SEMANTIC_PRODUCER_CONTRACT,
-        proposal_refs=tuple(
-            sorted(str(row["proposal_ref"]) for row in proposals)
-        ),
+        proposal_refs=tuple(sorted(str(row["proposal_ref"]) for row in proposals)),
         sub_executor_receipt_refs=tuple(
             sorted(
                 str(row.get("receipt_ref") or "")

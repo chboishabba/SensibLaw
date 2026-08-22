@@ -60,14 +60,15 @@ class ZelphClosureExecutor:
         # that narrowly as successful execution for compatibility; production
         # bridge receipts always provide the explicit outcome.
         if outcome is None and result.get("status") == "ok":
-            outcome = "executed_with_output" if result.get("triples") else "executed_no_match"
+            outcome = (
+                "executed_with_output" if result.get("triples") else "executed_no_match"
+            )
         if outcome not in {
             "executed_with_output",
             "executed_no_match",
         }:
             raise ZelphExecutionError(
-                "Zelph closure failed: "
-                f"{outcome}: {result.get('stderr')}"
+                f"Zelph closure failed: {outcome}: {result.get('stderr')}"
             )
 
         decode_started = monotonic_ns()
@@ -174,10 +175,14 @@ def benchmark_closure_job(
         python_backend_ref=python_receipt.backend_ref,
         zelph_backend_ref=zelph_receipt.backend_ref,
         python_proposal_refs=tuple(
-            row.proposal_ref for row in sorted(python_receipt.proposals, key=lambda row: row.proposal_ref)
+            row.proposal_ref
+            for row in sorted(
+                python_receipt.proposals, key=lambda row: row.proposal_ref
+            )
         ),
         zelph_proposal_refs=tuple(
-            row.proposal_ref for row in sorted(zelph_receipt.proposals, key=lambda row: row.proposal_ref)
+            row.proposal_ref
+            for row in sorted(zelph_receipt.proposals, key=lambda row: row.proposal_ref)
         ),
         python_graph_ref=python_reduction.graph_ref,
         zelph_graph_ref=zelph_reduction.graph_ref,

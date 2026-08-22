@@ -24,7 +24,9 @@ def _copy_mapping(value: Any) -> dict[str, Any]:
 def _copy_text_list(values: Sequence[Any] | None) -> list[str]:
     if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
         return []
-    return [str(value) for value in values if isinstance(value, str) and str(value).strip()]
+    return [
+        str(value) for value in values if isinstance(value, str) and str(value).strip()
+    ]
 
 
 @dataclass(frozen=True)

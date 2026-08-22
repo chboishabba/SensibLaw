@@ -43,12 +43,16 @@ def test_tree_sitter_observer_emits_evidence_only_code_rows(tmp_path: Path) -> N
         "projection_boundary_observed",
     } <= kinds
     _assert_contract_rows(rows)
-    absence = [row for row in rows if row["observation_kind"] == "bounded_absence_scan"][0]
+    absence = [
+        row for row in rows if row["observation_kind"] == "bounded_absence_scan"
+    ][0]
     assert absence["pnf_candidates"] == []
     assert absence["scan_scope"]["observed_call_count"] == 0
 
 
-def test_tree_sitter_observer_covers_javascript_typescript_and_tsx(tmp_path: Path) -> None:
+def test_tree_sitter_observer_covers_javascript_typescript_and_tsx(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "example.js").write_text(
         "import fs from 'fs';\n"
         "function run(){ fs.readFileSync('x'); expect(value).toEqual(1); }\n",
@@ -71,13 +75,24 @@ def test_tree_sitter_observer_covers_javascript_typescript_and_tsx(tmp_path: Pat
     by_path = {}
     for row in rows:
         by_path.setdefault(row["path"], set()).add(row["observation_kind"])
-    assert {"symbol_declared", "import_observed", "file_read_observed", "test_assertion_observed"} <= by_path["example.js"]
-    assert {"symbol_declared", "import_observed", "call_observed"} <= by_path["example.ts"]
-    assert {"symbol_declared", "import_observed", "call_observed"} <= by_path["example.tsx"]
+    assert {
+        "symbol_declared",
+        "import_observed",
+        "file_read_observed",
+        "test_assertion_observed",
+    } <= by_path["example.js"]
+    assert {"symbol_declared", "import_observed", "call_observed"} <= by_path[
+        "example.ts"
+    ]
+    assert {"symbol_declared", "import_observed", "call_observed"} <= by_path[
+        "example.tsx"
+    ]
 
 
 def test_tree_sitter_observer_jsonl_serializable(tmp_path: Path) -> None:
-    (tmp_path / "example.py").write_text("def f():\n    return {'schema': 'x'}\n", encoding="utf-8")
+    (tmp_path / "example.py").write_text(
+        "def f():\n    return {'schema': 'x'}\n", encoding="utf-8"
+    )
     rows = observe_paths(tmp_path, include_globs=["**/*.py"])
     text = "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows)
     assert "code_observation_v1" in text

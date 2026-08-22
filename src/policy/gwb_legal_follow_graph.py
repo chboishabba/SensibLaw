@@ -3,8 +3,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from collections import defaultdict
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 try:
     from src.fact_intake.control_plane import (
@@ -20,7 +19,10 @@ except ModuleNotFoundError:
     )
 
 try:
-    from SensibLaw.src.sources.eur_lex_adapter import CELEX_METADATA, EurLexHierarchyAdapter
+    from SensibLaw.src.sources.eur_lex_adapter import (
+        CELEX_METADATA,
+        EurLexHierarchyAdapter,
+    )
 except ModuleNotFoundError:
     from sources.eur_lex_adapter import CELEX_METADATA, EurLexHierarchyAdapter
 
@@ -73,7 +75,9 @@ def _foundation_source_catalog() -> tuple[dict[str, str], ...]:
         jurisdiction = str(row.get("jurisdiction") or "").strip()
         if not name or not base_url:
             continue
-        catalog.append({"name": name, "base_url": base_url, "jurisdiction": jurisdiction})
+        catalog.append(
+            {"name": name, "base_url": base_url, "jurisdiction": jurisdiction}
+        )
     return tuple(catalog)
 
 
@@ -91,17 +95,24 @@ def _merge_unique(values: list[str], incoming: Sequence[str]) -> list[str]:
     return merged
 
 
-def _normalize_typing_signal(signal: Mapping[str, Any], *, default_source: str) -> dict[str, Any]:
+def _normalize_typing_signal(
+    signal: Mapping[str, Any], *, default_source: str
+) -> dict[str, Any]:
     if not isinstance(signal, Mapping):
         return {}
     entry = dict(signal)
-    entry.setdefault("signal_id", f"{default_source}:{str(entry.get('linked_seed_id') or entry.get('source_row_id') or 'typing')}")
+    entry.setdefault(
+        "signal_id",
+        f"{default_source}:{str(entry.get('linked_seed_id') or entry.get('source_row_id') or 'typing')}",
+    )
     entry.setdefault("source", default_source)
     entry.setdefault("signal_kind", "missing_instance_of_typing_deficit")
     return entry
 
 
-def _collect_gwb_typing_deficit_signals(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _collect_gwb_typing_deficit_signals(
+    rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     signals: list[dict[str, Any]] = []
     for row in rows:
         if not isinstance(row, Mapping):
@@ -112,13 +123,16 @@ def _collect_gwb_typing_deficit_signals(rows: Sequence[Mapping[str, Any]]) -> li
                 normalized = _normalize_typing_signal(signal, default_source="gwb")
                 if normalized:
                     signals.append(normalized)
-        elif row.get("missing_instance_of_typing_deficit") or row.get("typing_deficit_reason"):
+        elif row.get("missing_instance_of_typing_deficit") or row.get(
+            "typing_deficit_reason"
+        ):
             signals.append(
                 _normalize_typing_signal(
                     {
                         "source_row_id": row.get("source_row_id"),
                         "linked_seed_id": row.get("seed_id"),
-                        "details": row.get("typing_deficit_reason") or row.get("review_status"),
+                        "details": row.get("typing_deficit_reason")
+                        or row.get("review_status"),
                     },
                     default_source="gwb",
                 )
@@ -159,7 +173,12 @@ def _followed_source_url(receipt: Mapping[str, Any]) -> str | None:
     return None
 
 
-def _cite_classification(receipt: Mapping[str, Any], *, url: str | None = None, source_text: str | None = None) -> str:
+def _cite_classification(
+    receipt: Mapping[str, Any],
+    *,
+    url: str | None = None,
+    source_text: str | None = None,
+) -> str:
     url_text = str(url or "").strip().lower()
     for domain, family in _LEGAL_CITE_FAMILY_BY_DOMAIN.items():
         if domain in url_text:
@@ -174,14 +193,24 @@ def _cite_classification(receipt: Mapping[str, Any], *, url: str | None = None, 
     content = " ".join(word.strip().lower() for word in hints if word.strip())
     if any(token in content for token in _BREXIT_TOKENS):
         return "uk-eu"
-    if "uk" in content or "british" in content or "parliament" in content or "house of commons" in content:
+    if (
+        "uk" in content
+        or "british" in content
+        or "parliament" in content
+        or "house of commons" in content
+    ):
         return "uk-domestic"
     if "eu" in content or "european" in content or "commission" in content:
         return "eu-law"
     return "general"
 
 
-def _is_brexit_related(receipt: Mapping[str, Any], *, url: str | None = None, source_text: str | None = None) -> bool:
+def _is_brexit_related(
+    receipt: Mapping[str, Any],
+    *,
+    url: str | None = None,
+    source_text: str | None = None,
+) -> bool:
     hints = [
         str(receipt.get("kind") or ""),
         str(receipt.get("label") or ""),
@@ -200,7 +229,9 @@ def _edge_metadata_label_counts(
     for edge in edges:
         if str(edge.get("kind") or "") != kind:
             continue
-        metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        metadata = (
+            edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        )
         label = str(metadata.get(metadata_key) or "").strip()
         if not label:
             continue
@@ -213,7 +244,9 @@ def _cite_class_counts(nodes: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     for node in nodes:
         if node.get("kind") != "followed_source":
             continue
-        metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        metadata = (
+            node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        )
         cite_class = str(metadata.get("cite_class") or "").strip() or "general"
         counts[cite_class] = counts.get(cite_class, 0) + 1
     return counts
@@ -224,7 +257,9 @@ def _brexit_follow_count(nodes: Sequence[Mapping[str, Any]]) -> int:
     for node in nodes:
         if node.get("kind") != "followed_source":
             continue
-        metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        metadata = (
+            node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        )
         if bool(metadata.get("brexit_related")):
             count += 1
     return count
@@ -234,7 +269,9 @@ def _has_eur_lex_node(nodes: Sequence[Mapping[str, Any]]) -> bool:
     for node in nodes:
         if node.get("kind") != "followed_source":
             continue
-        metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        metadata = (
+            node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+        )
         if str(metadata.get("cite_class") or "").strip() == "eur_lex":
             return True
     return False
@@ -261,7 +298,9 @@ def _inject_deterministic_eur_lex_nodes(
         add_node(
             node_id,
             kind="followed_source",
-            label=payload.get("live_title") or payload.get("title") or f"EUR-Lex {celex_id}",
+            label=payload.get("live_title")
+            or payload.get("title")
+            or f"EUR-Lex {celex_id}",
             metadata={
                 "source_url": payload.get("canonical_url"),
                 "cite_class": "eur_lex",
@@ -290,7 +329,9 @@ def _gwb_follow_priority(
     brexit_related: bool,
     source_ref_count: int,
 ) -> tuple[int, str]:
-    authority_yield, base_score = _AUTHORITY_YIELD_BY_CITE_CLASS.get(cite_class, ("low", 1))
+    authority_yield, base_score = _AUTHORITY_YIELD_BY_CITE_CLASS.get(
+        cite_class, ("low", 1)
+    )
     score = base_score
     if brexit_related:
         score += 3
@@ -299,10 +340,16 @@ def _gwb_follow_priority(
     return score, authority_yield
 
 
-def _foundation_source_receipts(row: Mapping[str, Any], existing_urls: set[str]) -> list[dict[str, str]]:
+def _foundation_source_receipts(
+    row: Mapping[str, Any], existing_urls: set[str]
+) -> list[dict[str, str]]:
     text = " ".join(
         str(value or "").strip()
-        for value in (row.get("text"), row.get("source_family"), row.get("source_row_id"))
+        for value in (
+            row.get("text"),
+            row.get("source_family"),
+            row.get("source_row_id"),
+        )
         if str(value or "").strip()
     ).casefold()
     if not text:
@@ -328,8 +375,16 @@ def _foundation_source_receipts(row: Mapping[str, Any], existing_urls: set[str])
 def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, Any]:
     nodes = graph.get("nodes") if isinstance(graph.get("nodes"), list) else []
     edges = graph.get("edges") if isinstance(graph.get("edges"), list) else []
-    summary = dict(graph.get("summary", {})) if isinstance(graph.get("summary"), Mapping) else {}
-    typing_signals = graph.get("typing_deficit_signals") if isinstance(graph.get("typing_deficit_signals"), list) else []
+    summary = (
+        dict(graph.get("summary", {}))
+        if isinstance(graph.get("summary"), Mapping)
+        else {}
+    )
+    typing_signals = (
+        graph.get("typing_deficit_signals")
+        if isinstance(graph.get("typing_deficit_signals"), list)
+        else []
+    )
     highlights = [
         {
             "id": str(row.get("id") or ""),
@@ -337,9 +392,20 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
             "label": str(row.get("label") or ""),
         }
         for row in nodes
-        if str(row.get("kind") or "") in {"source_family", "linkage_kind", "support_kind", "review_status", "predicate"}
+        if str(row.get("kind") or "")
+        in {
+            "source_family",
+            "linkage_kind",
+            "support_kind",
+            "review_status",
+            "predicate",
+        }
     ][:8]
-    node_map = {str(row.get("id") or ""): row for row in nodes if str(row.get("id") or "").strip()}
+    node_map = {
+        str(row.get("id") or ""): row
+        for row in nodes
+        if str(row.get("id") or "").strip()
+    }
     follow_source_links: dict[str, list[dict[str, Any]]] = {}
     for edge in edges:
         if str(edge.get("kind") or "") != "follows_source":
@@ -349,11 +415,19 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
         if not source_id or not target_id:
             continue
         source_row = node_map.get(source_id) or {}
-        metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
-        source_metadata = source_row.get("metadata") if isinstance(source_row.get("metadata"), Mapping) else {}
+        metadata = (
+            edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        )
+        source_metadata = (
+            source_row.get("metadata")
+            if isinstance(source_row.get("metadata"), Mapping)
+            else {}
+        )
         follow_source_links.setdefault(target_id, []).append(
             {
-                "source_row_id": str(source_row.get("metadata", {}).get("source_row_id") or ""),
+                "source_row_id": str(
+                    source_row.get("metadata", {}).get("source_row_id") or ""
+                ),
                 "source_label": str(source_row.get("label") or source_id),
                 "receipt_kind": str(metadata.get("receipt_kind") or ""),
                 "event_ids": [
@@ -396,24 +470,48 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
                     for value in source_metadata.get("braid_candidate_link_ids", [])
                     if isinstance(value, str) and str(value).strip()
                 ],
-                "event_lineage_depth": str(source_metadata.get("event_lineage_depth") or "").strip(),
-                "cross_source_braid_depth": str(source_metadata.get("cross_source_braid_depth") or "").strip(),
-                "event_quality_status": str(source_metadata.get("event_quality_status") or "").strip(),
-                "event_quality_score": source_metadata.get("event_quality_score") if source_metadata.get("event_quality_score") is not None else None,
+                "event_lineage_depth": str(
+                    source_metadata.get("event_lineage_depth") or ""
+                ).strip(),
+                "cross_source_braid_depth": str(
+                    source_metadata.get("cross_source_braid_depth") or ""
+                ).strip(),
+                "event_quality_status": str(
+                    source_metadata.get("event_quality_status") or ""
+                ).strip(),
+                "event_quality_score": source_metadata.get("event_quality_score")
+                if source_metadata.get("event_quality_score") is not None
+                else None,
                 "event_quality_reasons": [
                     str(value)
                     for value in source_metadata.get("event_quality_reasons", [])
                     if isinstance(value, str) and str(value).strip()
-                ] if isinstance(source_metadata.get("event_quality_reasons"), list) else None,
-                "event_time_anchor_status": str(source_metadata.get("event_time_anchor_status") or "").strip() or None,
-                "resolved_historical_date": str(source_metadata.get("resolved_historical_date") or "").strip() or None,
+                ]
+                if isinstance(source_metadata.get("event_quality_reasons"), list)
+                else None,
+                "event_time_anchor_status": str(
+                    source_metadata.get("event_time_anchor_status") or ""
+                ).strip()
+                or None,
+                "resolved_historical_date": str(
+                    source_metadata.get("resolved_historical_date") or ""
+                ).strip()
+                or None,
             }
         )
     sample_edges = [
         {
             "kind": str(row.get("kind") or ""),
-            "source": str((node_map.get(str(row.get("source") or "")) or {}).get("label") or row.get("source") or ""),
-            "target": str((node_map.get(str(row.get("target") or "")) or {}).get("label") or row.get("target") or ""),
+            "source": str(
+                (node_map.get(str(row.get("source") or "")) or {}).get("label")
+                or row.get("source")
+                or ""
+            ),
+            "target": str(
+                (node_map.get(str(row.get("target") or "")) or {}).get("label")
+                or row.get("target")
+                or ""
+            ),
         }
         for row in edges[:8]
     ]
@@ -421,7 +519,9 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
     for row in nodes:
         if str(row.get("kind") or "") != "followed_source":
             continue
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        metadata = (
+            row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        )
         source_url = str(metadata.get("source_url") or "").strip()
         cite_class = str(metadata.get("cite_class") or "").strip() or "general"
         brexit_related = bool(metadata.get("brexit_related"))
@@ -442,8 +542,12 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
         if brexit_related:
             chips.append("brexit_related")
         live_title = str(metadata.get("live_title") or "").strip()
-        resolution_mode = str(metadata.get("resolution_mode") or "static_catalog").strip()
-        title_value = live_title or str(row.get("label") or source_url or "GWB legal follow")
+        resolution_mode = str(
+            metadata.get("resolution_mode") or "static_catalog"
+        ).strip()
+        title_value = live_title or str(
+            row.get("label") or source_url or "GWB legal follow"
+        )
         if resolution_mode == "live":
             priority_score += 1
             chips.append("live_resolved")
@@ -468,7 +572,8 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
                     "value": ", ".join(
                         source_ref["source_row_id"] or source_ref["source_label"]
                         for source_ref in source_refs
-                    ) or "none",
+                    )
+                    or "none",
                 },
                 {"label": "Resolution mode", "value": resolution_mode},
                 {"label": "Live title", "value": live_title or "(none)"},
@@ -483,9 +588,15 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
                 "resolution_mode": resolution_mode,
                 "live_title": live_title,
                 "receipt_kind_counts": {
-                    key: len([ref for ref in source_refs if ref.get("receipt_kind") == key])
+                    key: len(
+                        [ref for ref in source_refs if ref.get("receipt_kind") == key]
+                    )
                     for key in sorted(
-                        {ref.get("receipt_kind") for ref in source_refs if ref.get("receipt_kind")}
+                        {
+                            ref.get("receipt_kind")
+                            for ref in source_refs
+                            if ref.get("receipt_kind")
+                        }
                     )
                 },
             },
@@ -522,13 +633,15 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
             receipt_kind="followed_source",
             substrate_kind="legal_follow_graph",
             conjecture_kind="follow_needed_conjecture",
-            route_targets=list(queue_summary["route_target_counts"].keys()) or [
+            route_targets=list(queue_summary["route_target_counts"].keys())
+            or [
                 "citation_follow",
                 "uk_legislation_follow",
                 "eur_lex_follow",
                 "manual_review",
             ],
-            resolution_statuses=list(queue_summary["resolution_status_counts"].keys()) or [
+            resolution_statuses=list(queue_summary["resolution_status_counts"].keys())
+            or [
                 "open",
                 "resolved",
                 "reviewed",
@@ -560,8 +673,18 @@ def build_gwb_legal_follow_graph(
     node_index: dict[str, dict[str, Any]] = {}
     seen_edges: set[tuple[str, str, str]] = set()
 
-    def add_node(node_id: str, *, kind: str, label: str, metadata: Mapping[str, Any] | None = None) -> None:
-        clean_metadata = {key: value for key, value in dict(metadata or {}).items() if value not in (None, "", [], {})}
+    def add_node(
+        node_id: str,
+        *,
+        kind: str,
+        label: str,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        clean_metadata = {
+            key: value
+            for key, value in dict(metadata or {}).items()
+            if value not in (None, "", [], {})
+        }
         if node_id in node_index:
             existing = node_index[node_id]
             merged = dict(existing.get("metadata") or {})
@@ -576,17 +699,32 @@ def build_gwb_legal_follow_graph(
         node_index[node_id] = node
         nodes.append(node)
 
-    def add_edge(source: str, target: str, *, kind: str, metadata: Mapping[str, Any] | None = None) -> None:
+    def add_edge(
+        source: str,
+        target: str,
+        *,
+        kind: str,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
         key = (source, target, kind)
         if key in seen_edges:
             return
         seen_edges.add(key)
-        edges.append({"source": source, "target": target, "kind": kind, "metadata": dict(metadata or {})})
+        edges.append(
+            {
+                "source": source,
+                "target": target,
+                "kind": kind,
+                "metadata": dict(metadata or {}),
+            }
+        )
 
     def _ensure_debate_target_node(target_id: str) -> None:
         if not target_id or target_id in node_index:
             return
-        target_kind = "case_reference" if target_id.startswith("case:") else "legal_instrument"
+        target_kind = (
+            "case_reference" if target_id.startswith("case:") else "legal_instrument"
+        )
         add_node(
             target_id,
             kind=target_kind,
@@ -650,10 +788,19 @@ def build_gwb_legal_follow_graph(
             label=str(row.get("action_summary") or seed_id),
             metadata={
                 "seed_id": seed_id,
-                "coverage_status": str(row.get("coverage_status") or "").strip() or None,
+                "coverage_status": str(row.get("coverage_status") or "").strip()
+                or None,
                 "linkage_kind": str(row.get("linkage_kind") or "").strip() or None,
-                "support_kinds": [str(value) for value in row.get("support_kinds", []) if str(value or "").strip()],
-                "review_statuses": [str(value) for value in row.get("review_statuses", []) if str(value or "").strip()],
+                "support_kinds": [
+                    str(value)
+                    for value in row.get("support_kinds", [])
+                    if str(value or "").strip()
+                ],
+                "review_statuses": [
+                    str(value)
+                    for value in row.get("review_statuses", [])
+                    if str(value or "").strip()
+                ],
             },
         )
 
@@ -665,11 +812,19 @@ def build_gwb_legal_follow_graph(
         add_node(
             source_node_id,
             kind=source_kind or "source_row",
-            label=str(row.get("text") or row.get("source_family") or source_row_id or "source row"),
+            label=str(
+                row.get("text")
+                or row.get("source_family")
+                or source_row_id
+                or "source row"
+            ),
             metadata={
                 "source_row_id": source_row_id or None,
                 "review_status": str(row.get("review_status") or "").strip() or None,
-                "primary_workload_class": str(row.get("primary_workload_class") or "").strip() or None,
+                "primary_workload_class": str(
+                    row.get("primary_workload_class") or ""
+                ).strip()
+                or None,
                 "event_ids": [
                     str(value)
                     for value in row.get("event_ids", [])
@@ -733,15 +888,28 @@ def build_gwb_legal_follow_graph(
                     or ""
                 ).strip()
                 or None,
-                "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
-                "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                "event_quality_status": str(
+                    row.get("event_quality_status") or ""
+                ).strip()
+                or None,
+                "event_quality_score": row.get("event_quality_score")
+                if row.get("event_quality_score") is not None
+                else None,
                 "event_quality_reasons": [
                     str(value)
                     for value in row.get("event_quality_reasons", [])
                     if isinstance(value, str) and str(value).strip()
-                ] if isinstance(row.get("event_quality_reasons"), list) else None,
-                "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
-                "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
+                ]
+                if isinstance(row.get("event_quality_reasons"), list)
+                else None,
+                "event_time_anchor_status": str(
+                    row.get("event_time_anchor_status") or ""
+                ).strip()
+                or None,
+                "resolved_historical_date": str(
+                    row.get("resolved_historical_date") or ""
+                ).strip()
+                or None,
                 "candidate_vs_promoted_visibility": (
                     True
                     if (
@@ -757,7 +925,12 @@ def build_gwb_legal_follow_graph(
         )
         if seed_id:
             seed_node = f"seed:{_slug(seed_id)}"
-            add_edge(seed_node, source_node_id, kind="supports_source_row", metadata={"seed_id": seed_id})
+            add_edge(
+                seed_node,
+                source_node_id,
+                kind="supports_source_row",
+                metadata={"seed_id": seed_id},
+            )
 
         family = str(row.get("source_family") or "").strip()
         if family:
@@ -768,13 +941,20 @@ def build_gwb_legal_follow_graph(
                 label=family,
                 metadata={"source_family": family},
             )
-            add_edge(source_node_id, family_node, kind="mentions_source_family", metadata={"source_family": family})
+            add_edge(
+                source_node_id,
+                family_node,
+                kind="mentions_source_family",
+                metadata={"source_family": family},
+            )
 
         for anchor in row.get("candidate_anchors", []) or []:
             if not isinstance(anchor, Mapping):
                 continue
             anchor_kind = str(anchor.get("anchor_kind") or "").strip()
-            anchor_label = str(anchor.get("anchor_label") or anchor.get("anchor_value") or "").strip()
+            anchor_label = str(
+                anchor.get("anchor_label") or anchor.get("anchor_value") or ""
+            ).strip()
             if not anchor_kind or not anchor_label:
                 continue
             if anchor_kind == "predicate":
@@ -788,7 +968,10 @@ def build_gwb_legal_follow_graph(
                 anchor_node,
                 kind=node_kind,
                 label=anchor_label,
-                metadata={"anchor_kind": anchor_kind, "anchor_value": anchor.get("anchor_value")},
+                metadata={
+                    "anchor_kind": anchor_kind,
+                    "anchor_value": anchor.get("anchor_value"),
+                },
             )
             add_edge(
                 source_node_id,
@@ -803,14 +986,20 @@ def build_gwb_legal_follow_graph(
             for url in [_followed_source_url(receipt)]
             if url
         }
-        all_receipts = list(row.get("receipts", []) or []) + _foundation_source_receipts(row, existing_urls)
+        all_receipts = list(
+            row.get("receipts", []) or []
+        ) + _foundation_source_receipts(row, existing_urls)
         for receipt in all_receipts:
             url = _followed_source_url(receipt)
             if not url:
                 continue
             receipt_kind = str(receipt.get("kind") or "").strip() or "followed_source"
-            cite_class = _cite_classification(receipt, url=url, source_text=str(row.get("text") or ""))
-            brexit_related = _is_brexit_related(receipt, url=url, source_text=str(row.get("text") or ""))
+            cite_class = _cite_classification(
+                receipt, url=url, source_text=str(row.get("text") or "")
+            )
+            brexit_related = _is_brexit_related(
+                receipt, url=url, source_text=str(row.get("text") or "")
+            )
             node_id = f"followed_source:{_slug(url)}"
             node_metadata = {
                 "source_url": url,
@@ -818,7 +1007,11 @@ def build_gwb_legal_follow_graph(
                 "cite_class": cite_class,
                 "brexit_related": brexit_related,
             }
-            receipt_metadata = receipt.get("metadata") if isinstance(receipt.get("metadata"), Mapping) else {}
+            receipt_metadata = (
+                receipt.get("metadata")
+                if isinstance(receipt.get("metadata"), Mapping)
+                else {}
+            )
             node_metadata.update(receipt_metadata)
             add_node(
                 node_id,
@@ -837,8 +1030,18 @@ def build_gwb_legal_follow_graph(
         linkage_kind = str((review_row or {}).get("linkage_kind") or "").strip()
         if linkage_kind and seed_id:
             linkage_node = f"linkage_kind:{_slug(linkage_kind)}"
-            add_node(linkage_node, kind="linkage_kind", label=linkage_kind, metadata={"linkage_kind": linkage_kind})
-            add_edge(f"seed:{_slug(seed_id)}", linkage_node, kind="uses_linkage_kind", metadata={"linkage_kind": linkage_kind})
+            add_node(
+                linkage_node,
+                kind="linkage_kind",
+                label=linkage_kind,
+                metadata={"linkage_kind": linkage_kind},
+            )
+            add_edge(
+                f"seed:{_slug(seed_id)}",
+                linkage_node,
+                kind="uses_linkage_kind",
+                metadata={"linkage_kind": linkage_kind},
+            )
 
     _inject_debate_records()
 
@@ -857,17 +1060,27 @@ def build_gwb_legal_follow_graph(
             "edge_count": len(edges),
             "seed_lane_count": sum(1 for row in nodes if row["kind"] == "seed_lane"),
             "source_row_count": len(source_review_rows),
-            "source_row_node_count": sum(1 for row in nodes if str(row["id"]).startswith("source:")),
-            "source_family_count": sum(1 for row in nodes if row["kind"] == "source_family"),
+            "source_row_node_count": sum(
+                1 for row in nodes if str(row["id"]).startswith("source:")
+            ),
+            "source_family_count": sum(
+                1 for row in nodes if row["kind"] == "source_family"
+            ),
             "predicate_count": sum(1 for row in nodes if row["kind"] == "predicate"),
-            "review_status_count": sum(1 for row in nodes if row["kind"] == "review_status"),
-            "support_kind_count": sum(1 for row in nodes if row["kind"] == "support_kind"),
+            "review_status_count": sum(
+                1 for row in nodes if row["kind"] == "review_status"
+            ),
+            "support_kind_count": sum(
+                1 for row in nodes if row["kind"] == "support_kind"
+            ),
             "source_kind_counts": _source_kind_counts(nodes),
             "source_family_label_counts": _label_counts(nodes, kind="source_family"),
             "linkage_kind_counts": _label_counts(nodes, kind="linkage_kind"),
             "review_status_label_counts": _label_counts(nodes, kind="review_status"),
             "support_kind_label_counts": _label_counts(nodes, kind="support_kind"),
-            "followed_source_count": sum(1 for row in nodes if row["kind"] == "followed_source"),
+            "followed_source_count": sum(
+                1 for row in nodes if row["kind"] == "followed_source"
+            ),
             "followed_source_kind_counts": _label_counts(nodes, kind="followed_source"),
             "followed_source_receipt_kind_counts": _edge_metadata_label_counts(
                 edges, kind="follows_source", metadata_key="receipt_kind"

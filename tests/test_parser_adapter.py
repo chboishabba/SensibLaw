@@ -32,7 +32,10 @@ def test_public_interfaces_package_import_exposes_parser_boundary() -> None:
     imported = importlib.import_module("sensiblaw.interfaces")
 
     assert imported.parse_canonical_text is parse_canonical_text
-    assert imported.collect_canonical_operational_structure_occurrences is collect_canonical_operational_structure_occurrences
+    assert (
+        imported.collect_canonical_operational_structure_occurrences
+        is collect_canonical_operational_structure_occurrences
+    )
 
 
 def test_parser_adapter_matches_internal_spacy_parse_contract() -> None:
@@ -42,7 +45,9 @@ def test_parser_adapter_matches_internal_spacy_parse_contract() -> None:
 
 def test_parser_adapter_matches_internal_operational_structure_contract() -> None:
     text = "User: please run this.\n$ pytest SensibLaw/tests/test_lexeme_layer.py -q\n"
-    assert collect_canonical_operational_structure_occurrences(text) == collect_operational_structure_occurrences(text)
+    assert collect_canonical_operational_structure_occurrences(
+        text
+    ) == collect_operational_structure_occurrences(text)
 
 
 def test_parser_adapter_matches_internal_message_header_contract() -> None:
@@ -52,19 +57,23 @@ def test_parser_adapter_matches_internal_message_header_contract() -> None:
 
 def test_parser_adapter_matches_internal_time_range_header_contract() -> None:
     line = "[00:00:00,030 -> 00:00:21,970] Thanks."
-    assert parse_canonical_time_range_header(line) == parse_internal_time_range_header(line)
+    assert parse_canonical_time_range_header(line) == parse_internal_time_range_header(
+        line
+    )
 
 
 def test_parser_adapter_matches_internal_presemantic_normalization_contract() -> None:
     text = "The organisation emphasised that I was there."
     assert tokenize_presemantic_text(text) == tokenize_canonical_text(text)
-    assert strip_presemantic_enumeration_prefix("  2.1) The respondent cut off my internet") == strip_enumeration_prefix(
+    assert strip_presemantic_enumeration_prefix(
         "  2.1) The respondent cut off my internet"
-    )
-    assert split_presemantic_text_segments("First sentence. Second sentence!") == split_text_segments(
+    ) == strip_enumeration_prefix("  2.1) The respondent cut off my internet")
+    assert split_presemantic_text_segments(
         "First sentence. Second sentence!"
-    )
+    ) == split_text_segments("First sentence. Second sentence!")
     assert split_presemantic_text_clauses(
         "I opened the gate, but he stayed outside; I then called."
     ) == split_text_clauses("I opened the gate, but he stayed outside; I then called.")
-    assert split_presemantic_semicolon_clauses("one; two ; three") == split_semicolon_clauses("one; two ; three")
+    assert split_presemantic_semicolon_clauses(
+        "one; two ; three"
+    ) == split_semicolon_clauses("one; two ; three")

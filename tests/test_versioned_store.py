@@ -104,9 +104,7 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     return store, doc_id
 
 
-def add_nested_revision(
-    store: VersionedStore, doc_id: int, *, effective: date
-) -> int:
+def add_nested_revision(store: VersionedStore, doc_id: int, *, effective: date) -> int:
     """Add a revision containing parent/child toc + provisions for position tests."""
 
     meta = DocumentMetadata(
@@ -1906,9 +1904,10 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
 
     assert stored_doc_id is not None
     assert document.metadata.compression_stats
-    assert document.metadata.compression_stats == compute_compression_stats(
-        document.body
-    ).to_dict()
+    assert (
+        document.metadata.compression_stats
+        == compute_compression_stats(document.body).to_dict()
+    )
 
     store = VersionedStore(str(db_path))
     try:
@@ -1958,9 +1957,10 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
         ).fetchone()
         assert meta_row is not None
         stored_meta = DocumentMetadata.from_dict(json.loads(meta_row["metadata"]))
-        assert stored_meta.compression_stats == compute_compression_stats(
-            meta_row["body"]
-        ).to_dict()
+        assert (
+            stored_meta.compression_stats
+            == compute_compression_stats(meta_row["body"]).to_dict()
+        )
     finally:
         store.close()
 

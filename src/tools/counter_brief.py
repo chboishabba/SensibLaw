@@ -25,7 +25,9 @@ def _adversarial_response(claim: str) -> str:
     return f"Counter: the assertion '{claim}' lacks sufficient support."
 
 
-def generate_counter_brief(input_file: Path, output_dir: Path | None = None) -> Dict[str, List[Dict[str, str]]]:
+def generate_counter_brief(
+    input_file: Path, output_dir: Path | None = None
+) -> Dict[str, List[Dict[str, str]]]:
     """Create a counter brief from ``input_file`` and persist the result.
 
     Parameters

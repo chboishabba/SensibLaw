@@ -9,7 +9,9 @@ from pathlib import Path
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="DB-backed semantic review admin helpers.")
+    parser = argparse.ArgumentParser(
+        description="DB-backed semantic review admin helpers."
+    )
     parser.add_argument("--db-path", default=".cache_local/itir.sqlite")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -52,8 +54,12 @@ def main() -> int:
                 run_id=str(record["run_id"]),
                 corpus_label=str(record.get("corpus_label") or record["source"]),
                 event_id=str(record["event_id"]),
-                relation_id=str(record["relation_id"]) if record.get("relation_id") is not None else None,
-                anchor_key=str(record["anchor_key"]) if record.get("anchor_key") is not None else None,
+                relation_id=str(record["relation_id"])
+                if record.get("relation_id") is not None
+                else None,
+                anchor_key=str(record["anchor_key"])
+                if record.get("anchor_key") is not None
+                else None,
                 action_kind=str(record["action_kind"]),
                 proposed_payload=record.get("proposed_payload", {}),
                 evidence_refs=record.get("evidence_refs", []),

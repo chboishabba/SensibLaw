@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit trigger/target demand provenance without performing provider I/O."""
+
 from __future__ import annotations
 
 import argparse

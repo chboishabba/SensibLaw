@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Mapping, Sequence
 
-from .control_plane import build_follow_control_plane, build_follow_queue_item, summarize_follow_queue
+from .control_plane import (
+    build_follow_control_plane,
+    build_follow_queue_item,
+    summarize_follow_queue,
+)
 from .payload_builder import (
     build_excerpt_row,
     build_fact_candidate_row,
@@ -12,9 +15,12 @@ from .payload_builder import (
     build_source_rows,
     build_statement_row,
     ensure_event_source_row,
-    sha256_payload,
 )
-from .read_model import build_fact_intake_report, build_fact_review_operator_views, build_fact_review_run_summary
+from .read_model import (
+    build_fact_intake_report,
+    build_fact_review_operator_views,
+    build_fact_review_run_summary,
+)
 from .review_bundle import (
     build_abstentions,
     build_bundle_workflow_summary,
@@ -27,11 +33,13 @@ from .projection_helpers import (
     fact_status_for_statement,
     observation_status_from_relation,
 )
-from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_policy_record
+from src.models.action_policy import (
+    ACTION_POLICY_SCHEMA_VERSION,
+    build_action_policy_record,
+)
 from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
 from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
 from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
-from src.models.review_claim_record import REVIEW_CLAIM_RECORD_SCHEMA_VERSION
 from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
 from src.policy.compiler_contract import build_au_fact_review_bundle_contract
 from src.policy.legal_follow_graph import (
@@ -42,7 +50,9 @@ from src.policy.operator_workflow_surface import build_operator_workflow_surface
 from src.policy.product_gate import build_product_gate
 from src.policy.review_claim_records import build_review_claim_records_from_queue_rows
 from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
-from src.policy.suite_normalized_artifact import build_au_fact_review_bundle_normalized_artifact
+from src.policy.suite_normalized_artifact import (
+    build_au_fact_review_bundle_normalized_artifact,
+)
 
 _ROLE_TO_PREDICATE = {
     "party_appellant": ("actor", "actor_role", "Appellant"),
@@ -67,7 +77,13 @@ _AU_AUTHORITY_ROUTE_TARGET_SCORE = {
     "authority_title_resolution": ("medium", 3),
     "manual_review": ("low", 1),
 }
-AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION = "sl.au_fact_review_bundle_world_model.v0_1"
+AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION = (
+    "sl.au_fact_review_bundle_world_model.v0_1"
+)
+
+
+def _stringify(value: Any) -> str:
+    return str(value or "").strip()
 
 
 def _build_au_review_claim_records(
@@ -94,6 +110,7 @@ def _build_au_review_claim_records(
         include_proposition_relation=True,
     )
 
+
 def _normalize_opt_text(value: Any) -> str | None:
     if value is None:
         return None
@@ -101,7 +118,9 @@ def _normalize_opt_text(value: Any) -> str | None:
     return text or None
 
 
-def _collect_au_typing_deficit_signals(semantic_report: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _collect_au_typing_deficit_signals(
+    semantic_report: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     raw_signals = semantic_report.get("typing_deficit_signals")
     if isinstance(raw_signals, Sequence):
         normalized: list[dict[str, Any]] = []
@@ -137,8 +156,12 @@ def _edge_admissibility_counts(graph: Mapping[str, Any]) -> dict[str, int]:
         if not str(edge.get("kind") or "").startswith("asserts_"):
             continue
         edge_count += 1
-        metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
-        admissibility = metadata.get("edge_admissibility") if isinstance(metadata, Mapping) else {}
+        metadata = (
+            edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        )
+        admissibility = (
+            metadata.get("edge_admissibility") if isinstance(metadata, Mapping) else {}
+        )
         decision = str((admissibility or {}).get("decision") or "").strip().casefold()
         if decision in counts:
             counts[decision] += 1
@@ -189,7 +212,9 @@ def _detail_ref_kind_counts(details: list[Mapping[str, Any]]) -> dict[str, int]:
     return counts
 
 
-def _citation_label_counts(details: list[Mapping[str, Any]], key: str) -> dict[str, int]:
+def _citation_label_counts(
+    details: list[Mapping[str, Any]], key: str
+) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in details:
         label = str(row.get(key) or "").strip()
@@ -217,7 +242,9 @@ def _authority_follow_priority(
     legal_ref_count: int,
     citation_detail_count: int,
 ) -> tuple[int, str]:
-    authority_yield, base_score = _AU_AUTHORITY_ROUTE_TARGET_SCORE.get(route_target, ("low", 1))
+    authority_yield, base_score = _AU_AUTHORITY_ROUTE_TARGET_SCORE.get(
+        route_target, ("low", 1)
+    )
     score = base_score
     if authority_title_count:
         score += 1
@@ -228,7 +255,9 @@ def _authority_follow_priority(
     return score, authority_yield
 
 
-def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) -> dict[str, Any]:
+def _build_authority_follow_operator_view(
+    semantic_report: Mapping[str, Any],
+) -> dict[str, Any]:
     authority_receipts = semantic_report.get("authority_receipts")
     if not isinstance(authority_receipts, Mapping):
         return {
@@ -239,7 +268,12 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
                 receipt_kind="authority_ingest_receipt",
                 substrate_kind="authority_substrate_summary",
                 conjecture_kind="follow_needed_conjecture",
-                route_targets=["authority_title_resolution", "citation_follow", "known_authority_fetch", "manual_review"],
+                route_targets=[
+                    "authority_title_resolution",
+                    "citation_follow",
+                    "known_authority_fetch",
+                    "manual_review",
+                ],
                 resolution_statuses=["open", "resolved", "reviewed"],
             ),
             "summary": {
@@ -251,7 +285,11 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
             },
             "queue": [],
         }
-    summary = authority_receipts.get("summary") if isinstance(authority_receipts.get("summary"), Mapping) else {}
+    summary = (
+        authority_receipts.get("summary")
+        if isinstance(authority_receipts.get("summary"), Mapping)
+        else {}
+    )
     conjectures = [
         row
         for row in authority_receipts.get("follow_needed_conjectures", [])
@@ -276,16 +314,26 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
             if isinstance(value, str) and str(value).strip()
         ]
         legal_ref_details = [
-            value for value in row.get("legal_ref_details", []) if isinstance(value, Mapping)
+            value
+            for value in row.get("legal_ref_details", [])
+            if isinstance(value, Mapping)
         ]
         legal_ref_class_counts = _reference_class_counts(legal_ref_details)
         ref_kind_counts = _detail_ref_kind_counts(legal_ref_details)
-        jurisdiction_hint_counts = _detail_label_counts(legal_ref_details, "jurisdiction_hint")
-        instrument_kind_counts = _detail_label_counts(legal_ref_details, "instrument_kind")
+        jurisdiction_hint_counts = _detail_label_counts(
+            legal_ref_details, "jurisdiction_hint"
+        )
+        instrument_kind_counts = _detail_label_counts(
+            legal_ref_details, "instrument_kind"
+        )
         candidate_citation_details = [
-            value for value in row.get("candidate_citation_details", []) if isinstance(value, Mapping)
+            value
+            for value in row.get("candidate_citation_details", [])
+            if isinstance(value, Mapping)
         ]
-        citation_court_hint_counts = _citation_label_counts(candidate_citation_details, "court_hint")
+        citation_court_hint_counts = _citation_label_counts(
+            candidate_citation_details, "court_hint"
+        )
         citation_year_counts = _citation_year_counts(candidate_citation_details)
         authority_term_tokens = [
             str(value)
@@ -301,7 +349,8 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
         queue.append(
             build_follow_queue_item(
                 item_id=str(row.get("event_id") or ""),
-                title=_normalize_opt_text(row.get("event_section")) or "Authority follow",
+                title=_normalize_opt_text(row.get("event_section"))
+                or "Authority follow",
                 subtitle=str(row.get("conjecture_kind") or ""),
                 description=_normalize_opt_text(row.get("event_text")),
                 conjecture_kind=str(row.get("conjecture_kind") or ""),
@@ -309,17 +358,28 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
                 resolution_status="open",
                 chips=candidate_citations,
                 detail_rows=[
-                    {"label": "Resolution hint", "value": str(row.get("resolution_hint") or "")},
+                    {
+                        "label": "Resolution hint",
+                        "value": str(row.get("resolution_hint") or ""),
+                    },
                     {"label": "Authority yield", "value": authority_yield},
                     {"label": "Titles", "value": ", ".join(authority_titles)},
                     {"label": "Legal refs", "value": ", ".join(legal_refs)},
                     {
                         "label": "Reference classes",
-                        "value": ", ".join(f"{key}: {value}" for key, value in sorted(legal_ref_class_counts.items())) or "none",
+                        "value": ", ".join(
+                            f"{key}: {value}"
+                            for key, value in sorted(legal_ref_class_counts.items())
+                        )
+                        or "none",
                     },
                     {
                         "label": "Reference kinds",
-                        "value": ", ".join(f"{key}: {value}" for key, value in sorted(ref_kind_counts.items())) or "none",
+                        "value": ", ".join(
+                            f"{key}: {value}"
+                            for key, value in sorted(ref_kind_counts.items())
+                        )
+                        or "none",
                     },
                     {
                         "label": "Detected citations",
@@ -327,19 +387,35 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
                     },
                     {
                         "label": "Citation courts",
-                        "value": ", ".join(f"{key}: {value}" for key, value in sorted(citation_court_hint_counts.items())) or "none",
+                        "value": ", ".join(
+                            f"{key}: {value}"
+                            for key, value in sorted(citation_court_hint_counts.items())
+                        )
+                        or "none",
                     },
                     {
                         "label": "Citation years",
-                        "value": ", ".join(f"{key}: {value}" for key, value in sorted(citation_year_counts.items())) or "none",
+                        "value": ", ".join(
+                            f"{key}: {value}"
+                            for key, value in sorted(citation_year_counts.items())
+                        )
+                        or "none",
                     },
                     {
                         "label": "Jurisdictions",
-                        "value": ", ".join(f"{key}: {value}" for key, value in sorted(jurisdiction_hint_counts.items())) or "none",
+                        "value": ", ".join(
+                            f"{key}: {value}"
+                            for key, value in sorted(jurisdiction_hint_counts.items())
+                        )
+                        or "none",
                     },
                     {
                         "label": "Instrument kinds",
-                        "value": ", ".join(f"{key}: {value}" for key, value in sorted(instrument_kind_counts.items())) or "none",
+                        "value": ", ".join(
+                            f"{key}: {value}"
+                            for key, value in sorted(instrument_kind_counts.items())
+                        )
+                        or "none",
                     },
                     {"label": "Terms", "value": ", ".join(authority_term_tokens)},
                 ],
@@ -400,7 +476,9 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
         ),
         "summary": {
             "authority_receipt_count": int(summary.get("authority_receipt_count") or 0),
-            "follow_needed_event_count": int(summary.get("follow_needed_event_count") or 0),
+            "follow_needed_event_count": int(
+                summary.get("follow_needed_event_count") or 0
+            ),
             "conjecture_count": int(summary.get("conjecture_count") or 0),
             "legal_ref_class_counts": dict(summary.get("legal_ref_class_counts", {}))
             if isinstance(summary.get("legal_ref_class_counts"), Mapping)
@@ -408,24 +486,28 @@ def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) ->
             "ref_kind_counts": dict(summary.get("ref_kind_counts", {}))
             if isinstance(summary.get("ref_kind_counts"), Mapping)
             else {},
-            "citation_court_hint_counts": dict(summary.get("citation_court_hint_counts", {}))
+            "citation_court_hint_counts": dict(
+                summary.get("citation_court_hint_counts", {})
+            )
             if isinstance(summary.get("citation_court_hint_counts"), Mapping)
             else {},
             "citation_year_counts": dict(summary.get("citation_year_counts", {}))
             if isinstance(summary.get("citation_year_counts"), Mapping)
             else {},
-            "jurisdiction_hint_counts": dict(summary.get("jurisdiction_hint_counts", {}))
+            "jurisdiction_hint_counts": dict(
+                summary.get("jurisdiction_hint_counts", {})
+            )
             if isinstance(summary.get("jurisdiction_hint_counts"), Mapping)
             else {},
-                "instrument_kind_counts": dict(summary.get("instrument_kind_counts", {}))
-                if isinstance(summary.get("instrument_kind_counts"), Mapping)
-                else {},
-                "route_target_counts": queue_summary["route_target_counts"],
-                "resolution_status_counts": queue_summary["resolution_status_counts"],
-                "queue_count": queue_summary["queue_count"],
-                "priority_band_counts": priority_band_counts,
-                "highest_priority_score": highest_priority_score,
-                "highest_authority_yield": highest_authority_yield,
+            "instrument_kind_counts": dict(summary.get("instrument_kind_counts", {}))
+            if isinstance(summary.get("instrument_kind_counts"), Mapping)
+            else {},
+            "route_target_counts": queue_summary["route_target_counts"],
+            "resolution_status_counts": queue_summary["resolution_status_counts"],
+            "queue_count": queue_summary["queue_count"],
+            "priority_band_counts": priority_band_counts,
+            "highest_priority_score": highest_priority_score,
+            "highest_authority_yield": highest_authority_yield,
         },
         "queue": queue,
     }
@@ -441,15 +523,31 @@ def build_fact_intake_payload_from_au_semantic_report(
     semantic_run_id = str(report.get("run_id") or "").strip()
     if not semantic_run_id:
         raise ValueError("AU semantic report run_id is required")
-    per_event = timeline_events if timeline_events is not None else (
-        list(report.get("per_event", [])) if isinstance(report.get("per_event"), list) else []
+    per_event = (
+        timeline_events
+        if timeline_events is not None
+        else (
+            list(report.get("per_event", []))
+            if isinstance(report.get("per_event"), list)
+            else []
+        )
     )
-    report_relation_candidates = list(report.get("relation_candidates", [])) if isinstance(report.get("relation_candidates"), list) else []
+    report_relation_candidates = (
+        list(report.get("relation_candidates", []))
+        if isinstance(report.get("relation_candidates"), list)
+        else []
+    )
     relation_candidates_by_event: dict[str, list[Mapping[str, Any]]] = {}
     for row in report_relation_candidates:
         if isinstance(row, Mapping):
-            relation_candidates_by_event.setdefault(str(row.get("event_id") or ""), []).append(row)
-    source_documents = list(report.get("source_documents", [])) if isinstance(report.get("source_documents"), list) else []
+            relation_candidates_by_event.setdefault(
+                str(row.get("event_id") or ""), []
+            ).append(row)
+    source_documents = (
+        list(report.get("source_documents", []))
+        if isinstance(report.get("source_documents"), list)
+        else []
+    )
     run = build_fact_intake_run(
         run_kind="au_fact_intake_run",
         semantic_run_id=semantic_run_id,
@@ -463,7 +561,11 @@ def build_fact_intake_payload_from_au_semantic_report(
     event_source_document_map: dict[str, str] = {}
     for document in source_documents:
         source_document_id = str(document.get("sourceDocumentId") or "").strip()
-        for event_id in document.get("eventIds", []) if isinstance(document.get("eventIds"), list) else []:
+        for event_id in (
+            document.get("eventIds", [])
+            if isinstance(document.get("eventIds"), list)
+            else []
+        ):
             event_source_document_map[str(event_id)] = source_document_id
 
     sources, source_map = build_source_rows(
@@ -513,7 +615,11 @@ def build_fact_intake_payload_from_au_semantic_report(
             anchor_label=event_id,
             extra_provenance={"section": section} if section else None,
         )
-        chronology_hint = _normalize_opt_text((event.get("anchor") or {}).get("text") if isinstance(event.get("anchor"), Mapping) else None)
+        chronology_hint = _normalize_opt_text(
+            (event.get("anchor") or {}).get("text")
+            if isinstance(event.get("anchor"), Mapping)
+            else None
+        )
         statement = build_statement_row(
             run_id=run_id,
             semantic_run_id=semantic_run_id,
@@ -530,7 +636,9 @@ def build_fact_intake_payload_from_au_semantic_report(
         statements.append(statement)
 
         anchor = event.get("anchor") if isinstance(event.get("anchor"), Mapping) else {}
-        anchor_text = _normalize_opt_text(anchor.get("text")) or _normalize_opt_text(anchor.get("year"))
+        anchor_text = _normalize_opt_text(anchor.get("text")) or _normalize_opt_text(
+            anchor.get("year")
+        )
         if anchor_text:
             statement_observations.append(
                 build_relation_observation(
@@ -562,8 +670,12 @@ def build_fact_intake_payload_from_au_semantic_report(
                 continue
             role_kind = str(role.get("role_kind") or "").strip()
             mapping = _ROLE_TO_PREDICATE.get(role_kind)
-            entity = role.get("entity") if isinstance(role.get("entity"), Mapping) else {}
-            object_text = str(entity.get("canonical_label") or entity.get("canonical_key") or "").strip()
+            entity = (
+                role.get("entity") if isinstance(role.get("entity"), Mapping) else {}
+            )
+            object_text = str(
+                entity.get("canonical_label") or entity.get("canonical_key") or ""
+            ).strip()
             if mapping is None or not object_text:
                 continue
             primary_predicate, secondary_predicate, secondary_label = mapping
@@ -610,16 +722,33 @@ def build_fact_intake_payload_from_au_semantic_report(
                     )
                 )
 
-        for relation_index, relation in enumerate(relation_candidates_by_event.get(event_id, []), start=1):
+        for relation_index, relation in enumerate(
+            relation_candidates_by_event.get(event_id, []), start=1
+        ):
             if not isinstance(relation, Mapping):
                 continue
             predicate_key = str(relation.get("predicate_key") or "").strip()
-            subject = relation.get("subject") if isinstance(relation.get("subject"), Mapping) else {}
-            obj = relation.get("object") if isinstance(relation.get("object"), Mapping) else {}
+            subject = (
+                relation.get("subject")
+                if isinstance(relation.get("subject"), Mapping)
+                else {}
+            )
+            obj = (
+                relation.get("object")
+                if isinstance(relation.get("object"), Mapping)
+                else {}
+            )
             relation_status = observation_status_from_relation(relation)
             action_label = str(relation.get("display_label") or predicate_key).strip()
-            object_text = str(obj.get("canonical_label") or obj.get("canonical_key") or "").strip()
-            subject_text = str(subject.get("canonical_label") or subject.get("canonical_key") or "").strip() or None
+            object_text = str(
+                obj.get("canonical_label") or obj.get("canonical_key") or ""
+            ).strip()
+            subject_text = (
+                str(
+                    subject.get("canonical_label") or subject.get("canonical_key") or ""
+                ).strip()
+                or None
+            )
             if subject_text:
                 statement_observations.append(
                     build_relation_observation(
@@ -634,7 +763,9 @@ def build_fact_intake_payload_from_au_semantic_report(
                         predicate_key="actor",
                         predicate_family="actor_identification",
                         object_text=subject_text,
-                        object_type=str(subject.get("entity_kind") or "semantic_entity"),
+                        object_type=str(
+                            subject.get("entity_kind") or "semantic_entity"
+                        ),
                         object_ref=_normalize_opt_text(subject.get("canonical_key")),
                         subject_text=None,
                         observation_status=relation_status,
@@ -695,13 +826,16 @@ def build_fact_intake_payload_from_au_semantic_report(
                             predicate_family="legal_procedural",
                             object_text=legal_object_text,
                             object_type=str(obj.get("entity_kind") or "legal_relation"),
-                            object_ref=_normalize_opt_text(obj.get("canonical_key")) or predicate_key,
+                            object_ref=_normalize_opt_text(obj.get("canonical_key"))
+                            or predicate_key,
                             subject_text=subject_text,
                             observation_status=relation_status,
                             semantic_run_id=semantic_run_id,
                             relation_candidate_id=relation.get("candidate_id"),
                             source_predicate_key=predicate_key,
-                            promotion_status=str(relation.get("promotion_status") or ""),
+                            promotion_status=str(
+                                relation.get("promotion_status") or ""
+                            ),
                             extra_identity_fields={"subject_text": subject_text},
                         )
                     )
@@ -736,7 +870,9 @@ def build_fact_intake_payload_from_au_semantic_report(
                 run_id=run_id,
                 semantic_run_id=semantic_run_id,
                 event_id=event_id,
-                canonical_label=str(event.get("section") or event.get("text") or "")[:80],
+                canonical_label=str(event.get("section") or event.get("text") or "")[
+                    :80
+                ],
                 fact_text=str(event.get("text") or ""),
                 fact_type="au_timeline_statement_capture",
                 candidate_status=fact_status_for_statement(statement_observations),
@@ -767,7 +903,9 @@ def build_au_fact_review_bundle(
     fact_report = build_fact_intake_report(conn, run_id=fact_run_id)
     review_summary = build_fact_review_run_summary(conn, run_id=fact_run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=fact_run_id)
-    operator_views["authority_follow"] = _build_authority_follow_operator_view(semantic_report)
+    operator_views["authority_follow"] = _build_authority_follow_operator_view(
+        semantic_report
+    )
     legal_follow_graph = build_au_legal_follow_graph(
         semantic_report,
         source_events=source_events,
@@ -777,7 +915,9 @@ def build_au_fact_review_bundle(
         legal_follow_graph["summary"] = {
             **dict(legal_follow_graph["summary"]),
             "edge_admissibility_counts": legal_follow_edge_admissibility,
-            "assert_edge_admissibility_count": int(legal_follow_edge_admissibility.get("assert_edge_count") or 0),
+            "assert_edge_admissibility_count": int(
+                legal_follow_edge_admissibility.get("assert_edge_count") or 0
+            ),
         }
     operator_views["legal_follow_graph"] = build_au_legal_follow_operator_view(
         legal_follow_graph
@@ -792,19 +932,29 @@ def build_au_fact_review_bundle(
         legal_follow_operator_summary.update(
             {
                 "edge_admissibility_counts": legal_follow_edge_admissibility,
-                "assert_edge_admissibility_count": int(legal_follow_edge_admissibility.get("assert_edge_count") or 0),
+                "assert_edge_admissibility_count": int(
+                    legal_follow_edge_admissibility.get("assert_edge_count") or 0
+                ),
             }
         )
         operator_views["legal_follow_graph"] = {
             **legal_follow_operator_view,
             "summary": legal_follow_operator_summary,
         }
-    events = list(fact_report.get("events", [])) if isinstance(fact_report.get("events"), list) else []
+    events = (
+        list(fact_report.get("events", []))
+        if isinstance(fact_report.get("events"), list)
+        else []
+    )
     semantic_order = {
         str(row.get("event_id") or ""): index
         for index, row in enumerate(
-            source_events if source_events is not None else (
-                list(semantic_report.get("per_event", [])) if isinstance(semantic_report.get("per_event"), list) else []
+            source_events
+            if source_events is not None
+            else (
+                list(semantic_report.get("per_event", []))
+                if isinstance(semantic_report.get("per_event"), list)
+                else []
             ),
             start=1,
         )
@@ -816,9 +966,16 @@ def build_au_fact_review_bundle(
     legal_procedural_observations = [
         row
         for row in fact_report.get("observations", [])
-        if isinstance(row, Mapping) and str(row.get("predicate_family") or "") == "legal_procedural"
+        if isinstance(row, Mapping)
+        and str(row.get("predicate_family") or "") == "legal_procedural"
     ]
-    legal_procedural_predicates = sorted({str(row.get("predicate_key") or "") for row in legal_procedural_observations if row.get("predicate_key")})
+    legal_procedural_predicates = sorted(
+        {
+            str(row.get("predicate_key") or "")
+            for row in legal_procedural_observations
+            if row.get("predicate_key")
+        }
+    )
     compiler_contract = build_au_fact_review_bundle_contract(
         fact_report=fact_report_with_abstentions,
         review_summary=review_summary,
@@ -833,7 +990,10 @@ def build_au_fact_review_bundle(
     )
     suite_normalized_artifact = build_au_fact_review_bundle_normalized_artifact(
         semantic_run_id=str(semantic_report.get("run_id") or ""),
-        workflow_kind=str((fact_report.get("run") or {}).get("workflow_link", {}).get("workflow_kind") or ""),
+        workflow_kind=str(
+            (fact_report.get("run") or {}).get("workflow_link", {}).get("workflow_kind")
+            or ""
+        ),
         compiler_contract=compiler_contract,
         promotion_gate=promotion_gate,
         source_documents=list(semantic_report.get("source_documents", []))
@@ -849,7 +1009,9 @@ def build_au_fact_review_bundle(
         promotion_gate=promotion_gate,
     )
     review_queue = (
-        review_summary.get("review_queue") if isinstance(review_summary.get("review_queue"), list) else []
+        review_summary.get("review_queue")
+        if isinstance(review_summary.get("review_queue"), list)
+        else []
     )
     default_fact_id = (
         str(review_queue[0].get("fact_id") or "").strip()
@@ -902,7 +1064,9 @@ def build_au_fact_review_bundle(
             else {},
             **(
                 {
-                    "authority_receipts": dict(semantic_report.get("authority_receipts", {}))
+                    "authority_receipts": dict(
+                        semantic_report.get("authority_receipts", {})
+                    )
                 }
                 if isinstance(semantic_report.get("authority_receipts"), Mapping)
                 else {}
@@ -933,17 +1097,27 @@ def build_au_fact_review_bundle_world_model_report(
     if str(review_bundle.get("version") or "").strip() != "fact.review.bundle.v1":
         raise ValueError("world-model report requires AU fact review bundle payload")
 
-    run = review_bundle.get("run", {}) if isinstance(review_bundle.get("run"), Mapping) else {}
+    run = (
+        review_bundle.get("run", {})
+        if isinstance(review_bundle.get("run"), Mapping)
+        else {}
+    )
     run_id = str(run.get("fact_run_id") or "").strip()
     semantic_run_id = str(run.get("semantic_run_id") or "").strip()
     compiler_contract = (
-        review_bundle.get("compiler_contract") if isinstance(review_bundle.get("compiler_contract"), Mapping) else None
+        review_bundle.get("compiler_contract")
+        if isinstance(review_bundle.get("compiler_contract"), Mapping)
+        else None
     )
     promotion_gate = (
-        review_bundle.get("promotion_gate") if isinstance(review_bundle.get("promotion_gate"), Mapping) else None
+        review_bundle.get("promotion_gate")
+        if isinstance(review_bundle.get("promotion_gate"), Mapping)
+        else None
     )
     workflow_summary = (
-        review_bundle.get("workflow_summary") if isinstance(review_bundle.get("workflow_summary"), Mapping) else None
+        review_bundle.get("workflow_summary")
+        if isinstance(review_bundle.get("workflow_summary"), Mapping)
+        else None
     )
     operator_workflow_surface = (
         review_bundle.get("operator_workflow_surface")
@@ -955,7 +1129,9 @@ def build_au_fact_review_bundle_world_model_report(
         )
     )
     review_queue = review_bundle.get("review_queue", [])
-    if not isinstance(review_queue, Sequence) or isinstance(review_queue, (str, bytes, bytearray)):
+    if not isinstance(review_queue, Sequence) or isinstance(
+        review_queue, (str, bytes, bytearray)
+    ):
         review_queue = []
 
     claims: list[dict[str, Any]] = []
@@ -971,8 +1147,16 @@ def build_au_fact_review_bundle_world_model_report(
             "value": str(row.get("label") or "").strip(),
             "qualifiers": {
                 "candidate_status": [str(row.get("candidate_status") or "").strip()],
-                "reason_codes": [str(value) for value in row.get("reason_codes", []) if str(value).strip()],
-                "policy_outcomes": [str(value) for value in row.get("policy_outcomes", []) if str(value).strip()],
+                "reason_codes": [
+                    str(value)
+                    for value in row.get("reason_codes", [])
+                    if str(value).strip()
+                ],
+                "policy_outcomes": [
+                    str(value)
+                    for value in row.get("policy_outcomes", [])
+                    if str(value).strip()
+                ],
             },
             "references": [],
             "window_id": run_id,
@@ -988,7 +1172,11 @@ def build_au_fact_review_bundle_world_model_report(
                 "provenance_chain": {
                     "run_id": run_id,
                     "semantic_run_id": semantic_run_id,
-                    "event_ids": [str(value) for value in row.get("event_ids", []) if str(value).strip()],
+                    "event_ids": [
+                        str(value)
+                        for value in row.get("event_ids", [])
+                        if str(value).strip()
+                    ],
                 },
                 "verification_status": "review_bundle_selected",
             }
@@ -1072,7 +1260,10 @@ def build_au_fact_review_bundle_world_model_report(
         "summary": {
             "claim_count": len(claims),
             "must_review_count": sum(
-                1 for claim in claims if str(claim.get("action_policy", {}).get("actionability") or "") == "must_review"
+                1
+                for claim in claims
+                if str(claim.get("action_policy", {}).get("actionability") or "")
+                == "must_review"
             ),
         },
     }

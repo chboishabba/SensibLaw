@@ -77,7 +77,8 @@ def build_convergence_record(
         source_unit = SourceUnit(
             source_unit_id=_as_text(path.get("source_unit_id")),
             root_artifact_id=_as_text(path.get("root_artifact_id")),
-            source_family=_as_text(path.get("source_family")) or "wikidata_after_state_verification",
+            source_family=_as_text(path.get("source_family"))
+            or "wikidata_after_state_verification",
             authority_level=_as_text(path.get("authority_level")),
             verification_status=_as_text(path.get("verification_status")),
             provenance_chain=_copy_mapping(path.get("provenance_chain")),
@@ -98,7 +99,11 @@ def build_convergence_record(
         normalized_sources=normalized_sources,
         merged_evidence_basis={
             "source_count": len(normalized_sources),
-            "independent_root_artifact_ids": [_as_text(value) for value in independent_root_artifact_ids if _as_text(value)],
+            "independent_root_artifact_ids": [
+                _as_text(value)
+                for value in independent_root_artifact_ids
+                if _as_text(value)
+            ],
         },
         governance_basis={
             "claim_status": _as_text(claim_status),

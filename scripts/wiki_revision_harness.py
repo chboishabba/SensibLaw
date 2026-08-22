@@ -33,21 +33,40 @@ def _load_json(path: Optional[Path]) -> dict[str, Any] | None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Compare two Wikipedia revision artifacts.")
-    ap.add_argument("--previous-snapshot", type=Path, help="Previous wiki_pull_api snapshot JSON.")
-    ap.add_argument("--current-snapshot", type=Path, help="Current wiki_pull_api snapshot JSON.")
-    ap.add_argument("--previous-aoo", type=Path, help="Previous wiki_timeline_aoo_extract JSON.")
-    ap.add_argument("--current-aoo", type=Path, help="Current wiki_timeline_aoo_extract JSON.")
-    ap.add_argument("--previous-state", type=Path, help="Previous canonical wiki-state JSON.")
-    ap.add_argument("--current-state", type=Path, help="Current canonical wiki-state JSON.")
-    ap.add_argument("--review-context", type=Path, help="Optional review-context JSON keyed by event_id.")
+    ap = argparse.ArgumentParser(
+        description="Compare two Wikipedia revision artifacts."
+    )
+    ap.add_argument(
+        "--previous-snapshot", type=Path, help="Previous wiki_pull_api snapshot JSON."
+    )
+    ap.add_argument(
+        "--current-snapshot", type=Path, help="Current wiki_pull_api snapshot JSON."
+    )
+    ap.add_argument(
+        "--previous-aoo", type=Path, help="Previous wiki_timeline_aoo_extract JSON."
+    )
+    ap.add_argument(
+        "--current-aoo", type=Path, help="Current wiki_timeline_aoo_extract JSON."
+    )
+    ap.add_argument(
+        "--previous-state", type=Path, help="Previous canonical wiki-state JSON."
+    )
+    ap.add_argument(
+        "--current-state", type=Path, help="Current canonical wiki-state JSON."
+    )
+    ap.add_argument(
+        "--review-context",
+        type=Path,
+        help="Optional review-context JSON keyed by event_id.",
+    )
     ap.add_argument("--output", type=Path, help="Optional output path for the report.")
     args = ap.parse_args(argv)
 
     report = build_revision_comparison_report(
         previous_snapshot=_load_json(args.previous_snapshot),
         current_snapshot=_load_json(args.current_snapshot),
-        previous_payload=_load_json(args.previous_state) or _load_json(args.previous_aoo),
+        previous_payload=_load_json(args.previous_state)
+        or _load_json(args.previous_aoo),
         current_payload=_load_json(args.current_state) or _load_json(args.current_aoo),
         review_context=_load_json(args.review_context),
     )

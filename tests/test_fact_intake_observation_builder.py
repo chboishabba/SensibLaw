@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from src.fact_intake.observation_builder import build_observation_id, build_observation_row
+from src.fact_intake.observation_builder import (
+    build_observation_id,
+    build_observation_row,
+)
 
 
 def test_build_observation_id_is_deterministic() -> None:

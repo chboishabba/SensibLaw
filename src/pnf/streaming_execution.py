@@ -8,7 +8,11 @@ from time import monotonic_ns
 from typing import Any, Sequence
 
 from src.pnf.streaming_coordination import CoordinatedStreamingSemanticOwner
-from src.pnf.streaming_fixed_point import ClosureExecutor, ObservationDelta, SolverReceipt
+from src.pnf.streaming_fixed_point import (
+    ClosureExecutor,
+    ObservationDelta,
+    SolverReceipt,
+)
 
 
 @dataclass(frozen=True)
@@ -79,7 +83,9 @@ def _execute_batch(
     return receipts, closure_ms, reduction_ms
 
 
-def _timed_release(owner: CoordinatedStreamingSemanticOwner) -> tuple[tuple[str, ...], int]:
+def _timed_release(
+    owner: CoordinatedStreamingSemanticOwner,
+) -> tuple[tuple[str, ...], int]:
     started = monotonic_ns()
     released = owner.release_deferred_deltas()
     return released, max(0, (monotonic_ns() - started) // 1_000_000)

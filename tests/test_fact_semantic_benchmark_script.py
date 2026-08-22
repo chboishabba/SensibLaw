@@ -7,7 +7,9 @@ from scripts.benchmark_fact_semantics import main
 
 def test_benchmark_fact_semantics_script_smoke(tmp_path, capsys) -> None:
     db_path = tmp_path / "bench.sqlite"
-    exit_code = main(["--mode", "chat_archive", "--count", "5", "--db-path", str(db_path)])
+    exit_code = main(
+        ["--mode", "chat_archive", "--count", "5", "--db-path", str(db_path)]
+    )
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["mode"] == "chat_archive"
@@ -21,7 +23,9 @@ def test_benchmark_fact_semantics_script_smoke(tmp_path, capsys) -> None:
 def test_benchmark_fact_semantics_script_supports_corpus_file(tmp_path, capsys) -> None:
     db_path = tmp_path / "bench-corpus.sqlite"
     corpus_path = "tests/fixtures/fact_semantic_bench/wiki_revision_seed.json"
-    exit_code = main(["--corpus-file", corpus_path, "--count", "6", "--db-path", str(db_path)])
+    exit_code = main(
+        ["--corpus-file", corpus_path, "--count", "6", "--db-path", str(db_path)]
+    )
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["corpus_file"].endswith("wiki_revision_seed.json")
@@ -34,14 +38,20 @@ def test_benchmark_fact_semantics_script_supports_corpus_file(tmp_path, capsys) 
     assert payload["refresh"]["refresh_status"] == "ok"
 
 
-def test_benchmark_fact_semantics_script_groups_repeated_entries(tmp_path, capsys) -> None:
+def test_benchmark_fact_semantics_script_groups_repeated_entries(
+    tmp_path, capsys
+) -> None:
     db_path = tmp_path / "bench-repeated.sqlite"
     corpus_path = "tests/fixtures/fact_semantic_bench/chat_archive_seed.json"
-    exit_code = main(["--corpus-file", corpus_path, "--count", "20", "--db-path", str(db_path)])
+    exit_code = main(
+        ["--corpus-file", corpus_path, "--count", "20", "--db-path", str(db_path)]
+    )
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     diagnostics = payload["entry_diagnostics"]
     assert len(diagnostics) == 10
-    assert any(row["entry_id"] == "chat-adversarial-prompt-injection" for row in diagnostics)
+    assert any(
+        row["entry_id"] == "chat-adversarial-prompt-injection" for row in diagnostics
+    )
     assert all(row["occurrence_count"] == 2 for row in diagnostics)
     assert payload["expectation_summary"]["entry_count"] == 10

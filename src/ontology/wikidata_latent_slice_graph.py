@@ -13,7 +13,9 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def _node(*, node_id: str, kind: str, label: str, metadata: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def _node(
+    *, node_id: str, kind: str, label: str, metadata: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         "id": _text(node_id),
         "kind": _text(kind),
@@ -31,17 +33,23 @@ def _edge(*, source: str, target: str, kind: str) -> dict[str, Any]:
 
 
 def _emission_diagnostics(*, graph_payload: Mapping[str, Any]) -> dict[str, Any]:
-    nodes = graph_payload.get("nodes") if isinstance(graph_payload.get("nodes"), list) else []
-    edges = graph_payload.get("edges") if isinstance(graph_payload.get("edges"), list) else []
+    nodes = (
+        graph_payload.get("nodes")
+        if isinstance(graph_payload.get("nodes"), list)
+        else []
+    )
+    edges = (
+        graph_payload.get("edges")
+        if isinstance(graph_payload.get("edges"), list)
+        else []
+    )
     node_id_counts = Counter(
         _text(row.get("id"))
         for row in nodes
         if isinstance(row, Mapping) and _text(row.get("id"))
     )
     duplicate_node_ids = {
-        node_id: count
-        for node_id, count in sorted(node_id_counts.items())
-        if count > 1
+        node_id: count for node_id, count in sorted(node_id_counts.items()) if count > 1
     }
     return {
         "emitted_node_count": len(nodes),
@@ -53,9 +61,19 @@ def _emission_diagnostics(*, graph_payload: Mapping[str, Any]) -> dict[str, Any]
     }
 
 
-def _flatness_indicators(*, graph_payload: Mapping[str, Any], bundle: Mapping[str, Any]) -> dict[str, Any]:
-    nodes = graph_payload.get("nodes") if isinstance(graph_payload.get("nodes"), list) else []
-    edges = graph_payload.get("edges") if isinstance(graph_payload.get("edges"), list) else []
+def _flatness_indicators(
+    *, graph_payload: Mapping[str, Any], bundle: Mapping[str, Any]
+) -> dict[str, Any]:
+    nodes = (
+        graph_payload.get("nodes")
+        if isinstance(graph_payload.get("nodes"), list)
+        else []
+    )
+    edges = (
+        graph_payload.get("edges")
+        if isinstance(graph_payload.get("edges"), list)
+        else []
+    )
     node_kind_counts: dict[str, int] = {}
     for row in nodes:
         if not isinstance(row, Mapping):
@@ -121,10 +139,16 @@ def build_wikidata_latent_slice_graph(bundle: Mapping[str, Any]) -> dict[str, An
                 node_id=node_id,
                 kind="candidate_entity",
                 label=_text(row.get("label")) or qid,
-                metadata={"qid": qid, "role": _text(row.get("role")), "status": _text(row.get("status"))},
+                metadata={
+                    "qid": qid,
+                    "role": _text(row.get("role")),
+                    "status": _text(row.get("status")),
+                },
             )
         )
-        edges.append(_edge(source=f"lane:{lane_id}", target=node_id, kind="projects_entity"))
+        edges.append(
+            _edge(source=f"lane:{lane_id}", target=node_id, kind="projects_entity")
+        )
 
     for row in bundle.get("candidate_properties", []):
         if not isinstance(row, Mapping):
@@ -138,10 +162,16 @@ def build_wikidata_latent_slice_graph(bundle: Mapping[str, Any]) -> dict[str, An
                 node_id=node_id,
                 kind="candidate_property",
                 label=pid,
-                metadata={"pid": pid, "role": _text(row.get("role")), "status": _text(row.get("status"))},
+                metadata={
+                    "pid": pid,
+                    "role": _text(row.get("role")),
+                    "status": _text(row.get("status")),
+                },
             )
         )
-        edges.append(_edge(source=f"lane:{lane_id}", target=node_id, kind="projects_property"))
+        edges.append(
+            _edge(source=f"lane:{lane_id}", target=node_id, kind="projects_property")
+        )
 
     for index, row in enumerate(bundle.get("residuals", []), start=1):
         if not isinstance(row, Mapping):
@@ -153,10 +183,16 @@ def build_wikidata_latent_slice_graph(bundle: Mapping[str, Any]) -> dict[str, An
                 node_id=node_id,
                 kind="residual",
                 label=code,
-                metadata={"code": code, "status": _text(row.get("status")), "detail": _text(row.get("detail"))},
+                metadata={
+                    "code": code,
+                    "status": _text(row.get("status")),
+                    "detail": _text(row.get("detail")),
+                },
             )
         )
-        edges.append(_edge(source=f"lane:{lane_id}", target=node_id, kind="has_residual"))
+        edges.append(
+            _edge(source=f"lane:{lane_id}", target=node_id, kind="has_residual")
+        )
 
     for index, row in enumerate(bundle.get("receipts", []), start=1):
         if not isinstance(row, Mapping):
@@ -169,10 +205,16 @@ def build_wikidata_latent_slice_graph(bundle: Mapping[str, Any]) -> dict[str, An
                 node_id=node_id,
                 kind="receipt",
                 label=kind,
-                metadata={"kind": kind, "value": value, "status": _text(row.get("status"))},
+                metadata={
+                    "kind": kind,
+                    "value": value,
+                    "status": _text(row.get("status")),
+                },
             )
         )
-        edges.append(_edge(source=f"lane:{lane_id}", target=node_id, kind="has_receipt"))
+        edges.append(
+            _edge(source=f"lane:{lane_id}", target=node_id, kind="has_receipt")
+        )
 
     graph_payload = {"nodes": nodes, "edges": edges}
     diagnostics = build_graph_diagnostics(
@@ -183,7 +225,12 @@ def build_wikidata_latent_slice_graph(bundle: Mapping[str, Any]) -> dict[str, An
         projection_role="latent_slice_graph",
         graph_version=WIKIDATA_LATENT_SLICE_GRAPH_SCHEMA_VERSION,
         cone_seed_node_kinds=["lane"],
-        cone_allowed_edge_types=["projects_entity", "projects_property", "has_residual", "has_receipt"],
+        cone_allowed_edge_types=[
+            "projects_entity",
+            "projects_property",
+            "has_residual",
+            "has_receipt",
+        ],
         cone_max_depth=1,
     )
     return {
@@ -194,7 +241,9 @@ def build_wikidata_latent_slice_graph(bundle: Mapping[str, Any]) -> dict[str, An
         "graph_payload": graph_payload,
         "diagnostics": diagnostics,
         "emission_diagnostics": _emission_diagnostics(graph_payload=graph_payload),
-        "flatness_indicators": _flatness_indicators(graph_payload=graph_payload, bundle=bundle),
+        "flatness_indicators": _flatness_indicators(
+            graph_payload=graph_payload, bundle=bundle
+        ),
     }
 
 

@@ -32,7 +32,9 @@ _TARGET_ROLE_BY_RESIDUAL = {
 }
 
 
-def _role_contract(metadata: Mapping[str, Any], factor_type: str) -> tuple[str | None, dict[str, str]]:
+def _role_contract(
+    metadata: Mapping[str, Any], factor_type: str
+) -> tuple[str | None, dict[str, str]]:
     trigger_role = metadata.get("demand_trigger_role")
     if trigger_role is None:
         trigger_role = _TRIGGER_ROLE_BY_FACTOR_TYPE.get(factor_type)
@@ -57,7 +59,13 @@ def _occurrence_provenance(
         if str(role) and str(token_ref)
     }
     provenance_refs = tuple(
-        sorted({str(value) for value in metadata.get("provenance_refs") or () if str(value)})
+        sorted(
+            {
+                str(value)
+                for value in metadata.get("provenance_refs") or ()
+                if str(value)
+            }
+        )
     )
     trigger_role, target_roles = _role_contract(metadata, factor_type)
     trigger_ref = role_bindings.get(trigger_role or "")

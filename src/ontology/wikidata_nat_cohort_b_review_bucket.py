@@ -10,9 +10,7 @@ WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION = (
 EXPECTED_QUALIFIER_PROPERTIES = frozenset(
     {"P459", "P3831", "P585", "P580", "P582", "P518", "P7452"}
 )
-EXPECTED_REFERENCE_PROPERTIES = frozenset(
-    {"P854", "P1065", "P813", "P1476", "P2960"}
-)
+EXPECTED_REFERENCE_PROPERTIES = frozenset({"P854", "P1065", "P813", "P1476", "P2960"})
 BUSINESS_FAMILY_INSTANCE_OF = frozenset({"Q4830453", "Q6881511", "Q891723"})
 
 
@@ -29,7 +27,9 @@ def _string_list(value: Any) -> list[str]:
     return sorted({item for item in items if item})
 
 
-def _row_variance_flags(*, qualifier_properties: Sequence[str], reference_properties: Sequence[str]) -> list[str]:
+def _row_variance_flags(
+    *, qualifier_properties: Sequence[str], reference_properties: Sequence[str]
+) -> list[str]:
     qualifier_set = set(qualifier_properties)
     reference_set = set(reference_properties)
     flags: list[str] = []
@@ -46,25 +46,36 @@ def _row_variance_flags(*, qualifier_properties: Sequence[str], reference_proper
     return sorted(set(flags))
 
 
-def _reviewer_questions(*, instance_of_qid: str, variance_flags: Sequence[str]) -> list[str]:
+def _reviewer_questions(
+    *, instance_of_qid: str, variance_flags: Sequence[str]
+) -> list[str]:
     questions = [
         f"Does class {instance_of_qid or 'unknown'} preserve semantic equivalence under P5991 -> P14143 mapping?",
         "Are split axes sufficient to avoid claim-boundary collapse for this row?",
     ]
     flags = set(variance_flags)
     if "unexpected_qualifier_properties" in flags:
-        questions.append("Do unexpected qualifier properties represent class-local semantics requiring hold?")
+        questions.append(
+            "Do unexpected qualifier properties represent class-local semantics requiring hold?"
+        )
     if "unexpected_reference_properties" in flags:
-        questions.append("Do unexpected reference properties change source-trust or citation-shape assumptions?")
+        questions.append(
+            "Do unexpected reference properties change source-trust or citation-shape assumptions?"
+        )
     if "mixed_temporal_qualifier_resolution" in flags:
-        questions.append("Should temporal qualifiers be normalized before any migration decision?")
+        questions.append(
+            "Should temporal qualifiers be normalized before any migration decision?"
+        )
     return questions
 
 
 def build_nat_cohort_b_review_bucket(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
         raise ValueError("cohort B payload must be an object")
-    if _stringify(payload.get("schema_version")) != WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION:
+    if (
+        _stringify(payload.get("schema_version"))
+        != WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION
+    ):
         raise ValueError(
             "cohort B payload must use "
             f"{WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION}"
@@ -86,12 +97,18 @@ def build_nat_cohort_b_review_bucket(payload: Mapping[str, Any]) -> dict[str, An
 
         if not reconciled:
             violations.append(
-                {"row_id": row_id, "violation": "unreconciled_instance_of_in_cohort_b_payload"}
+                {
+                    "row_id": row_id,
+                    "violation": "unreconciled_instance_of_in_cohort_b_payload",
+                }
             )
             continue
         if instance_of_qid in BUSINESS_FAMILY_INSTANCE_OF:
             violations.append(
-                {"row_id": row_id, "violation": "business_family_instance_of_in_cohort_b_payload"}
+                {
+                    "row_id": row_id,
+                    "violation": "business_family_instance_of_in_cohort_b_payload",
+                }
             )
             continue
 
@@ -126,11 +143,14 @@ def build_nat_cohort_b_review_bucket(payload: Mapping[str, Any]) -> dict[str, An
         decision = "hold"
         decision_reasons.append("no_valid_cohort_b_candidates")
     if not decision_reasons:
-        decision_reasons.append("cohort_b_rows_require_reviewer_confirmation_before_migration")
+        decision_reasons.append(
+            "cohort_b_rows_require_reviewer_confirmation_before_migration"
+        )
 
     return {
         "schema_version": WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION,
-        "lane_id": _stringify(payload.get("lane_id")) or "wikidata_nat_wdu_p5991_p14143",
+        "lane_id": _stringify(payload.get("lane_id"))
+        or "wikidata_nat_wdu_p5991_p14143",
         "cohort_id": "cohort_b_reconciled_non_business",
         "decision": decision,
         "decision_reasons": sorted(set(decision_reasons)),
@@ -144,7 +164,9 @@ def build_nat_cohort_b_review_bucket(payload: Mapping[str, Any]) -> dict[str, An
             "input_candidate_count": len(rows),
             "valid_review_row_count": len(review_rows),
             "contract_violation_count": len(violations),
-            "review_only_row_count": len(review_rows) if decision == "review_only" else 0,
+            "review_only_row_count": len(review_rows)
+            if decision == "review_only"
+            else 0,
         },
         "non_claims": [
             "review-first bucket only",

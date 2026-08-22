@@ -18,7 +18,7 @@ import argparse
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 
 def _load_json(path: Path) -> dict:
@@ -55,7 +55,9 @@ def _lookup_api(
     cache_key = api._sha256_text(url)  # type: ignore[attr-defined]
 
     if not allow_network:
-        cached = api._read_cache(cache_dir, cache_key, max_age_s=max(0, cache_max_age_s))  # type: ignore[attr-defined]
+        cached = api._read_cache(
+            cache_dir, cache_key, max_age_s=max(0, cache_max_age_s)
+        )  # type: ignore[attr-defined]
         if cached is None:
             return {"ok": False, "error": "cache_miss_network_disallowed", "rows": []}
         return {"ok": True, "rows": cached.get("rows") or [], "cached": True}
@@ -79,7 +81,9 @@ def _lookup_api(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Annotate a DBpedia lookup queue by running lookup.dbpedia.org.")
+    ap = argparse.ArgumentParser(
+        description="Annotate a DBpedia lookup queue by running lookup.dbpedia.org."
+    )
     ap.add_argument(
         "--in",
         dest="in_path",
@@ -94,8 +98,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/.cache_local/dbpedia_lookup_queue_gwb.annotated.json"),
         help="Output annotated queue JSON (default: %(default)s)",
     )
-    ap.add_argument("--timeout-s", type=int, default=20, help="HTTP timeout seconds (default: 20)")
-    ap.add_argument("--cache-max-age-s", type=int, default=7 * 24 * 3600, help="Cache max age seconds (default: 7d)")
+    ap.add_argument(
+        "--timeout-s", type=int, default=20, help="HTTP timeout seconds (default: 20)"
+    )
+    ap.add_argument(
+        "--cache-max-age-s",
+        type=int,
+        default=7 * 24 * 3600,
+        help="Cache max age seconds (default: 7d)",
+    )
     ap.add_argument(
         "--cache-dir",
         type=Path,
@@ -113,8 +124,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=None,
         help="Optional DBpedia class/type filter passed to the Lookup service (reduces junk candidates).",
     )
-    ap.add_argument("--max-items", type=int, default=50, help="Max queue items to process (default: 50)")
-    ap.add_argument("--max-candidates", type=int, default=8, help="Max DBpedia candidates stored per title (default: 8)")
+    ap.add_argument(
+        "--max-items",
+        type=int,
+        default=50,
+        help="Max queue items to process (default: 50)",
+    )
+    ap.add_argument(
+        "--max-candidates",
+        type=int,
+        default=8,
+        help="Max DBpedia candidates stored per title (default: 8)",
+    )
     args = ap.parse_args(argv)
 
     q = _load_json(args.in_path)
@@ -165,23 +186,38 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
 
         note = item.get("notes") or ""
-        if res.get("ok") is False and res.get("error") == "cache_miss_network_disallowed":
+        if (
+            res.get("ok") is False
+            and res.get("error") == "cache_miss_network_disallowed"
+        ):
             item["dbpedia_candidates"] = slim
             item["status"] = "pending"
-            item["notes"] = (note + "\n" if note else "") + "dbpedia_lookup=cache_miss_network_disallowed"
+            item["notes"] = (
+                note + "\n" if note else ""
+            ) + "dbpedia_lookup=cache_miss_network_disallowed"
         elif res.get("ok") is False:
             # Do not silently "skip" on network failures; keep pending and annotate.
             item["status"] = "pending"
             err = str(res.get("error") or "unknown_error")
-            item["notes"] = (note + "\n" if note else "") + f"dbpedia_lookup=error; {err}"
+            item["notes"] = (
+                note + "\n" if note else ""
+            ) + f"dbpedia_lookup=error; {err}"
             item["dbpedia_candidates"] = slim
         elif res.get("cached") is True:
             item["dbpedia_candidates"] = slim
-            item["status"] = "ambiguous" if len(slim) > 1 else ("pending" if len(slim) == 1 else "skipped")
+            item["status"] = (
+                "ambiguous"
+                if len(slim) > 1
+                else ("pending" if len(slim) == 1 else "skipped")
+            )
             item["notes"] = (note + "\n" if note else "") + "dbpedia_lookup=cached"
         else:
             item["dbpedia_candidates"] = slim
-            item["status"] = "ambiguous" if len(slim) > 1 else ("pending" if len(slim) == 1 else "skipped")
+            item["status"] = (
+                "ambiguous"
+                if len(slim) > 1
+                else ("pending" if len(slim) == 1 else "skipped")
+            )
             item["notes"] = (note + "\n" if note else "") + "dbpedia_lookup=fetched"
 
         updated += 1
@@ -195,7 +231,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     }
     _write_json(args.out_path, q)
     elapsed = round(time.monotonic() - started, 3)
-    print(json.dumps({"ok": True, "out": str(args.out_path), "processed": processed, "updated": updated, "duration_s": elapsed}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "out": str(args.out_path),
+                "processed": processed,
+                "updated": updated,
+                "duration_s": elapsed,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

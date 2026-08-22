@@ -22,12 +22,7 @@ def test_gwb_mini_compiles_into_postgres_without_json_outputs() -> None:
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         pytest.skip("DATABASE_URL is required for the PostgreSQL integration proof")
-    fixture = (
-        Path(__file__).resolve().parents[1]
-        / "fixtures"
-        / "corpora"
-        / "gwb-mini"
-    )
+    fixture = Path(__file__).resolve().parents[1] / "fixtures" / "corpora" / "gwb-mini"
     if not fixture.exists():
         pytest.skip("gwb-mini fixture is not present on this branch")
     store = PostgresCompilerStore.connect(database_url)
@@ -189,9 +184,10 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
         assert "data-pnf-poison" not in canonical_text
         assert "RawTagActor" not in canonical_text
         assert "<html" not in canonical_text
-        assert canonical_sha256 == hashlib.sha256(
-            canonical_text.encode("utf-8")
-        ).hexdigest()
+        assert (
+            canonical_sha256
+            == hashlib.sha256(canonical_text.encode("utf-8")).hexdigest()
+        )
         assert mention_rows
         for start_char, end_char, surface in mention_rows:
             assert canonical_text[int(start_char) : int(end_char)] == str(surface)
@@ -222,8 +218,6 @@ def test_html_source_and_canonical_coordinates_remain_distinct(tmp_path: Path) -
                 """,
                 (first.corpus_ref,),
             )
-            assert {str(row[0]) for row in cursor.fetchall()} == {
-                "reused_compilation"
-            }
+            assert {str(row[0]) for row in cursor.fetchall()} == {"reused_compilation"}
     finally:
         store.close()

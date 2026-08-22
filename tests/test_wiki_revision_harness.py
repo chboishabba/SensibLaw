@@ -25,7 +25,10 @@ def _payload(*, title: str, revid: int, events: list[dict]) -> dict:
     return {
         "ok": True,
         "generated_at": "2026-03-09T00:00:20Z",
-        "source_timeline": {"path": "dummy.json", "snapshot": _snapshot(title=title, revid=revid, wikitext="")},
+        "source_timeline": {
+            "path": "dummy.json",
+            "snapshot": _snapshot(title=title, revid=revid, wikitext=""),
+        },
         "source_entity": {
             "id": "source:test",
             "type": "wikipedia_article",
@@ -55,7 +58,13 @@ def test_revision_harness_reports_no_material_graph_change_for_cosmetic_text() -
                 "action": "meet",
                 "actors": [{"label": "Alice"}],
                 "objects": [{"title": "Bob"}],
-                "steps": [{"action": "meet", "subjects": ["Alice"], "objects": [{"title": "Bob"}]}],
+                "steps": [
+                    {
+                        "action": "meet",
+                        "subjects": ["Alice"],
+                        "objects": [{"title": "Bob"}],
+                    }
+                ],
                 "claim_bearing": False,
                 "claim_step_indices": [],
                 "attributions": [],
@@ -72,7 +81,13 @@ def test_revision_harness_reports_no_material_graph_change_for_cosmetic_text() -
                 "action": "meet",
                 "actors": [{"label": "Alice"}],
                 "objects": [{"title": "Bob"}],
-                "steps": [{"action": "meet", "subjects": ["Alice"], "objects": [{"title": "Bob"}]}],
+                "steps": [
+                    {
+                        "action": "meet",
+                        "subjects": ["Alice"],
+                        "objects": [{"title": "Bob"}],
+                    }
+                ],
                 "claim_bearing": False,
                 "claim_step_indices": [],
                 "attributions": [],
@@ -96,7 +111,9 @@ def test_revision_harness_reports_no_material_graph_change_for_cosmetic_text() -
 
 def test_revision_harness_surfaces_epistemic_graph_and_state_delta() -> None:
     previous_snapshot = _snapshot(title="Example", revid=1, wikitext="Alice met Bob.")
-    current_snapshot = _snapshot(title="Example", revid=2, wikitext="Alice reported Bob resigned.")
+    current_snapshot = _snapshot(
+        title="Example", revid=2, wikitext="Alice reported Bob resigned."
+    )
     previous_payload = _payload(
         title="Example",
         revid=1,
@@ -107,7 +124,13 @@ def test_revision_harness_surfaces_epistemic_graph_and_state_delta() -> None:
                 "action": "meet",
                 "actors": [{"label": "Alice"}],
                 "objects": [{"title": "Bob"}],
-                "steps": [{"action": "meet", "subjects": ["Alice"], "objects": [{"title": "Bob"}]}],
+                "steps": [
+                    {
+                        "action": "meet",
+                        "subjects": ["Alice"],
+                        "objects": [{"title": "Bob"}],
+                    }
+                ],
                 "claim_bearing": False,
                 "claim_step_indices": [],
                 "attributions": [],
@@ -183,8 +206,14 @@ def test_revision_harness_surfaces_anchor_status_changes_from_canonical_state() 
     )
 
     report = build_revision_comparison_report(
-        previous_snapshot=_snapshot(title="Example", revid=1, wikitext="Jane patted the cat after lunch."),
-        current_snapshot=_snapshot(title="Example", revid=2, wikitext="On May 5, 2021, Jane patted the cat after lunch."),
+        previous_snapshot=_snapshot(
+            title="Example", revid=1, wikitext="Jane patted the cat after lunch."
+        ),
+        current_snapshot=_snapshot(
+            title="Example",
+            revid=2,
+            wikitext="On May 5, 2021, Jane patted the cat after lunch.",
+        ),
         previous_payload=previous_state,
         current_payload=current_state,
     )
@@ -205,8 +234,14 @@ def test_revision_harness_cli_writes_report(tmp_path: Path) -> None:
     current_snapshot_obj = _snapshot(title="Example", revid=2, wikitext="Alpha gamma")
     previous_snapshot.write_text(json.dumps(previous_snapshot_obj), encoding="utf-8")
     current_snapshot.write_text(json.dumps(current_snapshot_obj), encoding="utf-8")
-    previous_state.write_text(json.dumps(build_wiki_article_state(previous_snapshot_obj, no_spacy=True)), encoding="utf-8")
-    current_state.write_text(json.dumps(build_wiki_article_state(current_snapshot_obj, no_spacy=True)), encoding="utf-8")
+    previous_state.write_text(
+        json.dumps(build_wiki_article_state(previous_snapshot_obj, no_spacy=True)),
+        encoding="utf-8",
+    )
+    current_state.write_text(
+        json.dumps(build_wiki_article_state(current_snapshot_obj, no_spacy=True)),
+        encoding="utf-8",
+    )
 
     completed = subprocess.run(
         [

@@ -6,7 +6,11 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from src.policy.algebra import Factor, FactorConstraint, TypedAlternative
-from src.policy.carriers.canonical import canonical_mapping, canonical_refs, require_text
+from src.policy.carriers.canonical import (
+    canonical_mapping,
+    canonical_refs,
+    require_text,
+)
 
 from .graph import AnnotationGraph
 
@@ -26,7 +30,9 @@ class ReductionGrammar:
         return {
             "grammar_ref": require_text(self.grammar_ref, "grammar_ref"),
             "required_span_types": list(canonical_refs(self.required_span_types)),
-            "required_relation_types": list(canonical_refs(self.required_relation_types)),
+            "required_relation_types": list(
+                canonical_refs(self.required_relation_types)
+            ),
             "output_factor_type": require_text(
                 self.output_factor_type, "output_factor_type"
             ),

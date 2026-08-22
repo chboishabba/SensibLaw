@@ -34,41 +34,98 @@ def test_build_au_transcript_dense_substrate(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = build_dense_substrate(tmp_path / "out", transcript_paths=[hearing_txt, hearing_md])
+    result = build_dense_substrate(
+        tmp_path / "out", transcript_paths=[hearing_txt, hearing_md]
+    )
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
     assert payload["summary"]["source_file_count"] == 2
-    assert payload["summary"]["fact_count"] >= payload["overlay_projection"]["selected_fact_count"] >= 1
-    assert payload["summary"]["review_queue_count"] >= payload["overlay_projection"]["selected_review_queue_count"] >= 1
+    assert (
+        payload["summary"]["fact_count"]
+        >= payload["overlay_projection"]["selected_fact_count"]
+        >= 1
+    )
+    assert (
+        payload["summary"]["review_queue_count"]
+        >= payload["overlay_projection"]["selected_review_queue_count"]
+        >= 1
+    )
     assert payload["run"]["bundle_version"] == "fact.review.bundle.v1"
     assert payload["overlay_projection"]["selected_facts"]
-    assert payload["summary"]["hearing_act_count"] >= payload["summary"]["procedural_overlay_candidate_count"] >= 1
+    assert (
+        payload["summary"]["hearing_act_count"]
+        >= payload["summary"]["procedural_overlay_candidate_count"]
+        >= 1
+    )
     assert payload["procedural_overlay"]["selected_candidates"]
     assert payload["procedural_overlay"]["hearing_acts"]
-    assert any(row.get("speaker_label") for row in payload["procedural_overlay"]["hearing_acts"])
+    assert any(
+        row.get("speaker_label")
+        for row in payload["procedural_overlay"]["hearing_acts"]
+    )
     assert payload["summary"]["procedural_overlay_candidate_count"] >= 1
     assert payload["procedural_move_overlay"]["selected_moves"]
-    assert payload["summary"]["procedural_move_count"] >= payload["summary"]["procedural_move_selected_count"] >= 1
-    assert any(row.get("speaker_label") for row in payload["procedural_move_overlay"]["selected_moves"])
+    assert (
+        payload["summary"]["procedural_move_count"]
+        >= payload["summary"]["procedural_move_selected_count"]
+        >= 1
+    )
+    assert any(
+        row.get("speaker_label")
+        for row in payload["procedural_move_overlay"]["selected_moves"]
+    )
     assert payload["event_assembly_overlay"]["selected_events"]
-    assert payload["summary"]["assembled_event_count"] >= payload["summary"]["selected_event_count"] >= 1
-    assert payload["summary"]["reviewed_event_projection_count"] >= payload["summary"]["selected_reviewed_event_count"] >= 1
+    assert (
+        payload["summary"]["assembled_event_count"]
+        >= payload["summary"]["selected_event_count"]
+        >= 1
+    )
+    assert (
+        payload["summary"]["reviewed_event_projection_count"]
+        >= payload["summary"]["selected_reviewed_event_count"]
+        >= 1
+    )
     assert 0.0 <= payload["summary"]["reviewed_event_coverage_ratio"] <= 1.0
-    assert payload["summary"]["reviewed_event_review_queue_count"] >= payload["reviewed_event_projection"]["selected_review_queue_count"]
+    assert (
+        payload["summary"]["reviewed_event_review_queue_count"]
+        >= payload["reviewed_event_projection"]["selected_review_queue_count"]
+    )
     assert payload["summary"]["event_move_coverage_count"] >= 1
     assert payload["summary"]["event_move_coverage_ratio"] > 0.0
     assert payload["reviewed_event_projection"]["selected_reviewed_events"]
     assert payload["reviewed_event_projection"]["selected_review_queue"]
     assert any(
-        row["hearing_act_kind"] in {"party_submission", "statutory_argument", "court_intervention", "bench_question"}
+        row["hearing_act_kind"]
+        in {
+            "party_submission",
+            "statutory_argument",
+            "court_intervention",
+            "bench_question",
+        }
         for row in payload["procedural_overlay"]["selected_candidates"]
     )
     assert any(
-        row["move_kind"] in {"party_submission", "statutory_argument", "court_intervention", "bench_question"}
+        row["move_kind"]
+        in {
+            "party_submission",
+            "statutory_argument",
+            "court_intervention",
+            "bench_question",
+        }
         for row in payload["procedural_move_overlay"]["selected_moves"]
     )
     assert any(
-        row["event_kind"] in {"bench_question_exchange", "bench_counsel_exchange", "bench_counsel_exchange_chain", "party_submission_sequence", "authority_argument_sequence", "authority_argument_cluster", "extended_authority_argument_cluster", "procedural_direction_event"}
+        row["event_kind"]
+        in {
+            "bench_question_exchange",
+            "bench_counsel_exchange",
+            "bench_counsel_exchange_chain",
+            "party_submission_sequence",
+            "authority_argument_sequence",
+            "authority_argument_cluster",
+            "extended_authority_argument_cluster",
+            "procedural_direction_event",
+        }
         for row in payload["event_assembly_overlay"]["selected_events"]
     )
     assert any(
@@ -92,10 +149,14 @@ def test_build_au_transcript_dense_substrate(tmp_path: Path) -> None:
     )
     assert all(
         "score_breakdown" in row
-        and {"event_score", "review_bonus", "fact_bonus", "provenance_bonus"} <= set(row["score_breakdown"].keys())
+        and {"event_score", "review_bonus", "fact_bonus", "provenance_bonus"}
+        <= set(row["score_breakdown"].keys())
         for row in payload["reviewed_event_projection"]["selected_reviewed_events"]
     )
-    assert any("civil liability act" in row["excerpt_preview"].casefold() for row in payload["overlay_projection"]["selected_facts"])
+    assert any(
+        "civil liability act" in row["excerpt_preview"].casefold()
+        for row in payload["overlay_projection"]["selected_facts"]
+    )
 
 
 def test_build_au_transcript_dense_substrate_reports_progress(tmp_path: Path) -> None:
@@ -144,7 +205,9 @@ def test_build_au_transcript_dense_substrate_reports_progress(tmp_path: Path) ->
     assert stages[-1] == "build_finished"
 
 
-def test_build_au_transcript_dense_substrate_bench_counsel_pair_without_topic_overlap(tmp_path: Path) -> None:
+def test_build_au_transcript_dense_substrate_bench_counsel_pair_without_topic_overlap(
+    tmp_path: Path,
+) -> None:
     hearing_txt = tmp_path / "01_Hearing.txt"
     hearing_txt.write_text(
         "\n".join(
@@ -164,15 +227,26 @@ def test_build_au_transcript_dense_substrate_bench_counsel_pair_without_topic_ov
     selected_events = payload["event_assembly_overlay"]["selected_events"]
     event_kinds = {row["event_kind"] for row in selected_events}
 
-    assert "bench_question_exchange" in event_kinds or "bench_counsel_exchange" in event_kinds or "bench_counsel_exchange_chain" in event_kinds
+    assert (
+        "bench_question_exchange" in event_kinds
+        or "bench_counsel_exchange" in event_kinds
+        or "bench_counsel_exchange_chain" in event_kinds
+    )
     assert any(
-        row["event_kind"] in {"bench_question_exchange", "bench_counsel_exchange", "bench_counsel_exchange_chain"}
+        row["event_kind"]
+        in {
+            "bench_question_exchange",
+            "bench_counsel_exchange",
+            "bench_counsel_exchange_chain",
+        }
         and len(row.get("source_move_ids") or []) >= 2
         for row in selected_events
     )
 
 
-def test_build_au_transcript_dense_substrate_assembles_exchange_chains(tmp_path: Path) -> None:
+def test_build_au_transcript_dense_substrate_assembles_exchange_chains(
+    tmp_path: Path,
+) -> None:
     hearing_txt = tmp_path / "01_Hearing.txt"
     hearing_txt.write_text(
         "\n".join(
@@ -189,14 +263,22 @@ def test_build_au_transcript_dense_substrate_assembles_exchange_chains(tmp_path:
 
     result = build_dense_substrate(tmp_path / "out", transcript_paths=[hearing_txt])
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
-    event_kinds = {row["event_kind"] for row in payload["event_assembly_overlay"]["selected_events"]}
+    event_kinds = {
+        row["event_kind"]
+        for row in payload["event_assembly_overlay"]["selected_events"]
+    }
 
-    assert "bench_counsel_exchange_chain" in event_kinds or "bench_counsel_exchange" in event_kinds
+    assert (
+        "bench_counsel_exchange_chain" in event_kinds
+        or "bench_counsel_exchange" in event_kinds
+    )
     assert any(
-        row["event_kind"] == "bench_counsel_exchange_chain" and len(row.get("source_move_ids") or []) >= 3
+        row["event_kind"] == "bench_counsel_exchange_chain"
+        and len(row.get("source_move_ids") or []) >= 3
         for row in payload["event_assembly_overlay"]["selected_events"]
     ) or any(
-        row["event_kind"] == "bench_counsel_exchange" and len(row.get("source_move_ids") or []) >= 2
+        row["event_kind"] == "bench_counsel_exchange"
+        and len(row.get("source_move_ids") or []) >= 2
         for row in payload["event_assembly_overlay"]["selected_events"]
     )
     assert any(

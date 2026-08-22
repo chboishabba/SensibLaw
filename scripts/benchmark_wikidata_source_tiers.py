@@ -9,6 +9,7 @@ Factories are ``module:callable`` and return ``WikidataTransport`` objects. The
 snapshot factory is expected to carry its real manifest/artifact epoch; this
 script never hard-codes a Wikidata dump date.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,7 +21,10 @@ from time import perf_counter
 from typing import Callable, Sequence
 
 from src.policy.wikidata_late_provider import WikidataTransport
-from src.policy.wikidata_tiered_transport import TieredWikidataTransport, WikidataTierPolicy
+from src.policy.wikidata_tiered_transport import (
+    TieredWikidataTransport,
+    WikidataTierPolicy,
+)
 
 
 def _factory(spec: str) -> Callable[[], WikidataTransport]:
@@ -36,12 +40,18 @@ def _factory(spec: str) -> Callable[[], WikidataTransport]:
 
 def _workload(path: Path) -> tuple[tuple[str, ...], tuple[tuple[int, int], ...]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
-    labels = tuple(dict.fromkeys(str(value) for value in payload.get("labels", []) if str(value)))
-    properties = tuple(sorted(set(
-        (int(row[0]), int(row[1]))
-        for row in payload.get("properties", [])
-        if isinstance(row, list) and len(row) == 2
-    )))
+    labels = tuple(
+        dict.fromkeys(str(value) for value in payload.get("labels", []) if str(value))
+    )
+    properties = tuple(
+        sorted(
+            set(
+                (int(row[0]), int(row[1]))
+                for row in payload.get("properties", [])
+                if isinstance(row, list) and len(row) == 2
+            )
+        )
+    )
     return labels, properties
 
 
@@ -64,8 +74,12 @@ def _one(
         minimum_source_epoch=minimum_source_epoch,
     )
     elapsed = perf_counter() - started
-    candidate_hits = sum(bool(search.candidates_by_label.get(label)) for label in labels)
-    property_hits = sum(bool(property_batch.facts_by_key.get(key)) for key in properties)
+    candidate_hits = sum(
+        bool(search.candidates_by_label.get(label)) for label in labels
+    )
+    property_hits = sum(
+        bool(property_batch.facts_by_key.get(key)) for key in properties
+    )
     return {
         "elapsed_seconds": elapsed,
         "candidate_hits": candidate_hits,
@@ -73,8 +87,11 @@ def _one(
         "candidate_hit_fraction": (candidate_hits / len(labels) if labels else 1.0),
         "property_hits": property_hits,
         "property_total": len(properties),
-        "property_hit_fraction": (property_hits / len(properties) if properties else 1.0),
-        "acquisition_call_count": search.provider_call_count + property_batch.provider_call_count,
+        "property_hit_fraction": (
+            property_hits / len(properties) if properties else 1.0
+        ),
+        "acquisition_call_count": search.provider_call_count
+        + property_batch.provider_call_count,
         "minimum_source_epoch": minimum_source_epoch,
     }
 
@@ -181,7 +198,9 @@ def main() -> int:
         report["derived"] = {
             "snapshot_candidate_coverage": snapshot["candidate_hit_fraction"],
             "snapshot_property_coverage": snapshot["property_hit_fraction"],
-            "tiered_extra_calls_over_snapshot": float(tiered["median_acquisition_call_count"])
+            "tiered_extra_calls_over_snapshot": float(
+                tiered["median_acquisition_call_count"]
+            )
             - float(snapshot["median_acquisition_call_count"]),
             "freshness_floor_applied": args.minimum_source_epoch is not None,
             "live_forced_independent_of_floor": bool(args.require_live),

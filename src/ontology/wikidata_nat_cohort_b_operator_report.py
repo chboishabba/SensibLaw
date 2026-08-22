@@ -25,7 +25,9 @@ def _string_list(value: Any) -> list[str]:
 
 def _priority_counts(queue_items: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     counts = Counter(
-        _stringify(item.get("priority")) for item in queue_items if _stringify(item.get("priority"))
+        _stringify(item.get("priority"))
+        for item in queue_items
+        if _stringify(item.get("priority"))
     )
     return {key: counts[key] for key in sorted(counts)}
 
@@ -38,7 +40,9 @@ def _variance_counts(queue_items: Sequence[Mapping[str, Any]]) -> dict[str, int]
     return {key: counts[key] for key in sorted(counts)}
 
 
-def _top_instance_classes(queue_items: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _top_instance_classes(
+    queue_items: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     counts = Counter(
         _stringify(item.get("instance_of_qid"))
         for item in queue_items
@@ -59,7 +63,9 @@ def build_nat_cohort_b_operator_report(
     if not isinstance(queue_payload, Mapping):
         raise ValueError("Cohort B operator report requires queue payload object")
     if _stringify(queue_payload.get("cohort_id")) != "cohort_b_reconciled_non_business":
-        raise ValueError("Cohort B operator report requires cohort_b_reconciled_non_business queue")
+        raise ValueError(
+            "Cohort B operator report requires cohort_b_reconciled_non_business queue"
+        )
 
     queue_status = _stringify(queue_payload.get("queue_status")) or "hold"
     queue_items_raw = queue_payload.get("queue_items", [])
@@ -67,7 +73,10 @@ def build_nat_cohort_b_operator_report(
         raise ValueError("queue payload requires queue_items list")
     queue_items = [item for item in queue_items_raw if isinstance(item, Mapping)]
     blocked_packets = [
-        {"packet_id": _stringify(item.get("packet_id")), "reason": _stringify(item.get("reason"))}
+        {
+            "packet_id": _stringify(item.get("packet_id")),
+            "reason": _stringify(item.get("reason")),
+        }
         for item in queue_payload.get("blocked_packets", [])
         if isinstance(item, Mapping)
     ]
@@ -108,7 +117,9 @@ def build_nat_cohort_b_operator_report(
         json.dumps(
             {
                 "queue_status": queue_status,
-                "queue_items": [_stringify(item.get("queue_item_id")) for item in queue_items],
+                "queue_items": [
+                    _stringify(item.get("queue_item_id")) for item in queue_items
+                ],
                 "blocked_packets": blocked_packets,
                 "validation_errors": validation_errors,
             },
@@ -121,7 +132,8 @@ def build_nat_cohort_b_operator_report(
     return {
         "schema_version": WIKIDATA_NAT_COHORT_B_OPERATOR_REPORT_SCHEMA_VERSION,
         "report_id": f"cohort-b-report:{queue_digest}",
-        "lane_id": _stringify(queue_payload.get("lane_id")) or "wikidata_nat_wdu_p5991_p14143",
+        "lane_id": _stringify(queue_payload.get("lane_id"))
+        or "wikidata_nat_wdu_p5991_p14143",
         "cohort_id": "cohort_b_reconciled_non_business",
         "report_status": report_status,
         "queue_status": queue_status,

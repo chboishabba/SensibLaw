@@ -14,7 +14,9 @@ from src.gwb_us_law.semantic import (
 )
 
 
-def test_frozen_semantic_shape_handles_australian_review_pattern_without_schema_change() -> None:
+def test_frozen_semantic_shape_handles_australian_review_pattern_without_schema_change() -> (
+    None
+):
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     ensure_gwb_semantic_schema(conn)

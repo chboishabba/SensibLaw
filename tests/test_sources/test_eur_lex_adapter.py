@@ -29,7 +29,9 @@ from SensibLaw.src.sources.eur_lex_adapter import build_celex_url
         ),
     ],
 )
-def test_eur_lex_adapter_fetches_known_celex(citation: str, expected: dict[str, str]) -> None:
+def test_eur_lex_adapter_fetches_known_celex(
+    citation: str, expected: dict[str, str]
+) -> None:
     adapter = EurLexHierarchyAdapter()
     result = adapter.fetch(citation)
     payload = json.loads(result.content.decode("utf-8"))

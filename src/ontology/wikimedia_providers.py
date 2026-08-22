@@ -69,7 +69,9 @@ class MemoryLookupCache:
     def __init__(self) -> None:
         self._rows: dict[tuple[str, str], CacheEntry] = {}
 
-    def get(self, provider_ref: str, lookup_key: str, *, now: datetime) -> ProviderLookup | None:
+    def get(
+        self, provider_ref: str, lookup_key: str, *, now: datetime
+    ) -> ProviderLookup | None:
         row = self._rows.get((provider_ref, lookup_key))
         if row is None or row.expires_at <= now:
             return None
@@ -188,7 +190,9 @@ class WikidataProvider:
                 requests_used += 1
                 rows = payload.get("search", []) if isinstance(payload, Mapping) else []
                 search_rows[lookup_key] = [
-                    dict(row) for row in rows[: self.candidate_limit] if isinstance(row, Mapping)
+                    dict(row)
+                    for row in rows[: self.candidate_limit]
+                    if isinstance(row, Mapping)
                 ]
                 receipts[lookup_key].append(
                     _request_receipt(
@@ -236,7 +240,11 @@ class WikidataProvider:
             if requests_used >= request_budget:
                 break
             request_key = canonical_sha256(
-                {"provider": self.provider_ref, "operation": "wbgetentities", "ids": list(chunk)}
+                {
+                    "provider": self.provider_ref,
+                    "operation": "wbgetentities",
+                    "ids": list(chunk),
+                }
             )
             try:
                 payload = self._get(
@@ -250,7 +258,9 @@ class WikidataProvider:
                 )
                 requests_used += 1
                 snapshot = _snapshot_ref(self.provider_ref, payload)
-                raw_entities = payload.get("entities", {}) if isinstance(payload, Mapping) else {}
+                raw_entities = (
+                    payload.get("entities", {}) if isinstance(payload, Mapping) else {}
+                )
                 if isinstance(raw_entities, Mapping):
                     for qid, row in raw_entities.items():
                         if isinstance(row, Mapping):
@@ -286,20 +296,39 @@ class WikidataProvider:
                     continue
                 entity = entity_rows.get(qid, {})
                 labels = entity.get("labels", {}) if isinstance(entity, Mapping) else {}
-                descriptions = entity.get("descriptions", {}) if isinstance(entity, Mapping) else {}
-                aliases = entity.get("aliases", {}) if isinstance(entity, Mapping) else {}
+                descriptions = (
+                    entity.get("descriptions", {})
+                    if isinstance(entity, Mapping)
+                    else {}
+                )
+                aliases = (
+                    entity.get("aliases", {}) if isinstance(entity, Mapping) else {}
+                )
                 claims = entity.get("claims", {}) if isinstance(entity, Mapping) else {}
                 label = str(
-                    ((labels.get("en") or {}).get("value") if isinstance(labels, Mapping) else None)
+                    (
+                        (labels.get("en") or {}).get("value")
+                        if isinstance(labels, Mapping)
+                        else None
+                    )
                     or search_row.get("label")
                     or demand.surface
                 )
-                description = str(
-                    ((descriptions.get("en") or {}).get("value") if isinstance(descriptions, Mapping) else None)
-                    or search_row.get("description")
-                    or ""
-                ) or None
-                alias_rows = aliases.get("en", []) if isinstance(aliases, Mapping) else []
+                description = (
+                    str(
+                        (
+                            (descriptions.get("en") or {}).get("value")
+                            if isinstance(descriptions, Mapping)
+                            else None
+                        )
+                        or search_row.get("description")
+                        or ""
+                    )
+                    or None
+                )
+                alias_rows = (
+                    aliases.get("en", []) if isinstance(aliases, Mapping) else []
+                )
                 alias_values = tuple(
                     sorted(
                         {
@@ -333,10 +362,13 @@ class WikidataProvider:
                         type_refs=tuple(sorted(type_refs)),
                         candidate_kind="wikidata_item",
                         source_url=f"https://www.wikidata.org/wiki/{qid}",
-                        provider_score=(float(raw_score) if raw_score is not None else None),
+                        provider_score=(
+                            float(raw_score) if raw_score is not None else None
+                        ),
                         snapshot_ref=snapshot_ref,
                         evidence_refs=tuple(
-                            str(row["request_receipt_ref"]) for row in receipts[lookup_key]
+                            str(row["request_receipt_ref"])
+                            for row in receipts[lookup_key]
                         ),
                     )
                 )
@@ -435,9 +467,15 @@ class WiktionaryProvider:
                         payload=payload,
                     )
                     snapshot = _snapshot_ref(self.provider_ref, payload)
-                    query = payload.get("query", {}) if isinstance(payload, Mapping) else {}
+                    query = (
+                        payload.get("query", {}) if isinstance(payload, Mapping) else {}
+                    )
                     pages = query.get("pages", {}) if isinstance(query, Mapping) else {}
-                    page_rows = [row for row in pages.values() if isinstance(row, Mapping)] if isinstance(pages, Mapping) else []
+                    page_rows = (
+                        [row for row in pages.values() if isinstance(row, Mapping)]
+                        if isinstance(pages, Mapping)
+                        else []
+                    )
                 except (requests.RequestException, ValueError) as error:
                     requests_used += 1
                     receipt = _request_receipt(
@@ -460,7 +498,9 @@ class WiktionaryProvider:
                     candidates = tuple(
                         ExternalCandidate(
                             provider_ref=self.provider_ref,
-                            external_id=str(row.get("pageid") or row.get("title") or demand.surface),
+                            external_id=str(
+                                row.get("pageid") or row.get("title") or demand.surface
+                            ),
                             label=str(row.get("title") or demand.surface),
                             description=str(row.get("extract") or "") or None,
                             candidate_kind="wiktionary_lexical_entry",
@@ -536,7 +576,9 @@ class WikimediaMicrobatchRunner:
             ]
             misses: list[ExternalLookupDemand] = []
             for demand in applicable:
-                cached = self.cache.get(provider.provider_ref, demand.lookup_key, now=active_now)
+                cached = self.cache.get(
+                    provider.provider_ref, demand.lookup_key, now=active_now
+                )
                 key = (provider.provider_ref, demand.lookup_key)
                 if cached is not None:
                     lookups[key] = cached
@@ -582,9 +624,16 @@ class WikimediaMicrobatchRunner:
                     self.cache.put(
                         lookup,
                         now=active_now,
-                        ttl=(self.cache_ttl if lookup.candidates else self.negative_cache_ttl),
+                        ttl=(
+                            self.cache_ttl
+                            if lookup.candidates
+                            else self.negative_cache_ttl
+                        ),
                     )
-                if self.minimum_batch_interval_seconds > 0 and start + self.microbatch_size < len(misses):
+                if (
+                    self.minimum_batch_interval_seconds > 0
+                    and start + self.microbatch_size < len(misses)
+                ):
                     self.sleep(self.minimum_batch_interval_seconds)
 
         results: list[EnrichmentResult] = []
@@ -608,14 +657,20 @@ class WikimediaMicrobatchRunner:
                 candidate_sets.append(candidate_set)
                 pressure_receipts.append(pressure)
                 request_receipts.extend(lookup.request_receipts)
-                states.append(cache_states.get((provider.provider_ref, demand.lookup_key), "fresh"))
+                states.append(
+                    cache_states.get(
+                        (provider.provider_ref, demand.lookup_key), "fresh"
+                    )
+                )
             results.append(
                 EnrichmentResult(
                     demand=demand,
                     candidate_sets=tuple(candidate_sets),
                     pressure_receipts=tuple(pressure_receipts),
                     request_receipts=tuple(request_receipts),
-                    cache_state=(states[0] if states and len(set(states)) == 1 else "mixed"),
+                    cache_state=(
+                        states[0] if states and len(set(states)) == 1 else "mixed"
+                    ),
                 )
             )
         return tuple(results)

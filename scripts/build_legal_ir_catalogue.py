@@ -37,8 +37,16 @@ def _args() -> argparse.Namespace:
     parser.add_argument("--catalogue", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
-    parser.add_argument("--offline", action="store_true", help="Retained for compatibility; builds are always offline")
-    parser.add_argument("--force-refetch", action="store_true", help="Rejected; acquisition is a separate command")
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Retained for compatibility; builds are always offline",
+    )
+    parser.add_argument(
+        "--force-refetch",
+        action="store_true",
+        help="Rejected; acquisition is a separate command",
+    )
     parser.add_argument("--compile-workers", type=int, default=4)
     parser.add_argument("--closure-workers", type=int, default=4)
     parser.add_argument("--owner-partitions", type=int, default=8)
@@ -51,7 +59,9 @@ def _args() -> argparse.Namespace:
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
     if args.force_refetch:
-        parser.error("--force-refetch is unavailable; use scripts/acquire_legal_source.py")
+        parser.error(
+            "--force-refetch is unavailable; use scripts/acquire_legal_source.py"
+        )
     if not 1 <= args.compile_workers <= 32:
         parser.error("--compile-workers must be between 1 and 32")
     if not 1 <= args.closure_workers <= 32:
@@ -71,7 +81,9 @@ def _write_json(path: Path, value: object) -> None:
     )
 
 
-def _copy_plan(catalogue: dict[str, object], target_root: Path) -> tuple[tuple[Path, Path], ...]:
+def _copy_plan(
+    catalogue: dict[str, object], target_root: Path
+) -> tuple[tuple[Path, Path], ...]:
     rows: list[tuple[Path, Path]] = []
     for raw_family in catalogue.get("persisted_source_families", []):
         family = dict(raw_family)
@@ -83,7 +95,9 @@ def _copy_plan(catalogue: dict[str, object], target_root: Path) -> tuple[tuple[P
         if source.is_file():
             candidates = (source,)
         elif source.exists():
-            candidates = tuple(path for path in sorted(source.rglob("*")) if path.is_file())
+            candidates = tuple(
+                path for path in sorted(source.rglob("*")) if path.is_file()
+            )
         else:
             candidates = ()
         for path in candidates:
@@ -115,7 +129,9 @@ def _admission_rules(catalogue: dict[str, object]) -> tuple[dict[str, object], .
             {
                 "glob": f"{family_ref}/**",
                 "source_role": str(family.get("source_role") or "unclassified"),
-                "semantic_scope": str(family.get("semantic_scope") or "source_material"),
+                "semantic_scope": str(
+                    family.get("semantic_scope") or "source_material"
+                ),
                 "jurisdiction_ref": str(family.get("jurisdiction_ref") or ""),
                 "authority_level": str(family.get("authority_level") or ""),
                 "provider_profile_refs": family.get("provider_profile_refs") or (),
@@ -145,9 +161,7 @@ def _aggregate_timings(outcomes: tuple[object, ...]) -> dict[str, object]:
             )
     return {
         "stage_totals_ms": {key: totals[key] for key in sorted(totals)},
-        "stage_means_ms": {
-            key: totals[key] / counts[key] for key in sorted(totals)
-        },
+        "stage_means_ms": {key: totals[key] / counts[key] for key in sorted(totals)},
         "slowest_stage_instances": sorted(
             slowest,
             key=lambda row: (-int(row["elapsed_ms"]), str(row["document_ref"])),
@@ -214,7 +228,9 @@ def main() -> int:
         original_relative_paths,
         strict=True,
     ):
-        canonical_relative = Path(row.canonical_path).relative_to("canonical").as_posix()
+        canonical_relative = (
+            Path(row.canonical_path).relative_to("canonical").as_posix()
+        )
         source_metadata[canonical_relative] = {
             **original_metadata[original_path],
             "source_revision_ref": row.source_ref,

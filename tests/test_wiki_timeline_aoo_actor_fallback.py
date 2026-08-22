@@ -13,7 +13,13 @@ def test_actor_fallback_when_action_has_no_actor(tmp_path: Path) -> None:
                 "event_id": "ev:0001",
                 "section": "History",
                 "text": "On May 5, 2021, performed surgery on the plaintiff.",
-                "anchor": {"year": 2021, "month": 5, "day": 5, "precision": "day", "kind": "explicit"},
+                "anchor": {
+                    "year": 2021,
+                    "month": 5,
+                    "day": 5,
+                    "precision": "day",
+                    "kind": "explicit",
+                },
                 "links": [],
                 "links_para": [],
             }
@@ -24,11 +30,23 @@ def test_actor_fallback_when_action_has_no_actor(tmp_path: Path) -> None:
     out_path = tmp_path / "aoo.json"
     timeline_path.write_text(json.dumps(timeline), encoding="utf-8")
 
-    aoo_main(["--timeline", str(timeline_path), "--out", str(out_path), "--max-events", "8", "--no-db"])
+    aoo_main(
+        [
+            "--timeline",
+            str(timeline_path),
+            "--out",
+            str(out_path),
+            "--max-events",
+            "8",
+            "--no-db",
+        ]
+    )
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     events = payload.get("events") or []
     assert events, "expected events in output"
     actors = events[0].get("actors") or []
     assert actors, "expected fallback actor to be populated"
     provenances = [a.get("provenance", {}) for a in actors]
-    assert any(p.get("actor_fallback") for p in provenances), "expected actor_fallback provenance flag"
+    assert any(p.get("actor_fallback") for p in provenances), (
+        "expected actor_fallback provenance flag"
+    )

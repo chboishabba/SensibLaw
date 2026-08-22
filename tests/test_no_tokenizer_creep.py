@@ -21,4 +21,6 @@ def test_tokenize_simple_not_imported_outside_metrics():
         if "tokenize_simple" in text:
             offenders.append(str(rel))
 
-    assert offenders == [], f"tokenize_simple should not creep beyond metrics modules: {offenders}"
+    assert offenders == [], (
+        f"tokenize_simple should not creep beyond metrics modules: {offenders}"
+    )

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 
 @dataclass(frozen=True, slots=True)
 class LogisticMapFit:
     feature_names: Tuple[str, ...]  # includes "(intercept)" at index 0
-    coef: Tuple[float, ...]         # MAP coefficients aligned to feature_names
-    se: Tuple[float, ...]           # sqrt(diag(inv_hessian)) approximation
+    coef: Tuple[float, ...]  # MAP coefficients aligned to feature_names
+    se: Tuple[float, ...]  # sqrt(diag(inv_hessian)) approximation
     converged: bool
     n_iter: int
 
@@ -75,7 +75,7 @@ def fit_ridge_logistic_map(
             # Avoid exact zeros which can cause singular Hessian in separable data.
             if w < 1e-12:
                 w = 1e-12
-            r = (pi - float(y))
+            r = pi - float(y)
 
             # Gradient and Hessian updates for active indices only.
             for a in idxs:
@@ -147,7 +147,9 @@ def _solve_linear(A: List[List[float]], b: List[float]) -> List[float] | None:
     return x
 
 
-def _inv_diag_approx(rows: Sequence[Tuple[int, Sequence[int]]], beta: Sequence[float], p: int, lam: float) -> List[float]:
+def _inv_diag_approx(
+    rows: Sequence[Tuple[int, Sequence[int]]], beta: Sequence[float], p: int, lam: float
+) -> List[float]:
     # Use a diagonal approximation to inv(H) for a cheap uncertainty proxy.
     diag = [lam] * p
     for y, idxs in rows:
@@ -176,7 +178,9 @@ def build_sparse_binary_design(
     Features are one-hot for predicate presence.
     Returns (feature_names, rows) where feature 0 is '(intercept)'.
     """
-    vocab = sorted({str(k).strip() for ks in predicate_keys for k in (ks or []) if str(k).strip()})
+    vocab = sorted(
+        {str(k).strip() for ks in predicate_keys for k in (ks or []) if str(k).strip()}
+    )
     if len(vocab) > max_features:
         vocab = vocab[:max_features]
     feat_names = ("(intercept)",) + tuple(vocab)
@@ -194,4 +198,3 @@ def build_sparse_binary_design(
                 active.add(int(j))
         rows.append((1 if int(yi) != 0 else 0, tuple(sorted(active))))
     return feat_names, rows
-

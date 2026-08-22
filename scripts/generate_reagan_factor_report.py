@@ -18,9 +18,7 @@ from src.storage.postgres.epistemic_factor_report import (
 from src.storage.postgres.spacy_parser_model import connect
 
 
-DEFAULT_DATABASE_URL = (
-    "postgresql://postgres@127.0.0.1:5433/sensiblaw_sparse_bench"
-)
+DEFAULT_DATABASE_URL = "postgresql://postgres@127.0.0.1:5433/sensiblaw_sparse_bench"
 DEFAULT_OUTPUT = Path(
     ".tmp/exact-0008-current-20260804/trial-sparse-bench/gwb/"
     "reagan_factor_semantic_report.md"

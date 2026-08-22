@@ -136,6 +136,14 @@ def intern_morph_sets(
     cursor: Any,
     sets: Sequence[Sequence[tuple[int, int]]],
 ) -> dict[tuple[tuple[int, int], ...], int]:
+    """Intern one bounded morphology fibre with two set-wise SQL projections.
+
+    The canonical input is already a finite relation of morph-set digests and
+    numeric feature/value members. Do not decompose that relation into one INSERT
+    per set followed by one ``executemany`` per member family. PostgreSQL UNNEST
+    preserves the batch directly without introducing another temporary schema.
+    """
+
     canonical_sets = {
         tuple(sorted({(int(feature), int(value)) for feature, value in members}))
         for members in sets
@@ -151,44 +159,84 @@ def intern_morph_sets(
         )
         for members in canonical_sets
     }
-    cursor.executemany(
+    ordered_sets = tuple(sorted(digests.items(), key=lambda item: item[1]))
+    set_digests = [digest for _members, digest in ordered_sets]
+    member_counts = [len(members) for members, _digest in ordered_sets]
+
+    cursor.execute(
         """
+        WITH input AS (
+            SELECT *
+              FROM unnest(%s::BYTEA[], %s::SMALLINT[])
+                   AS row(morph_digest, member_count)
+        )
         INSERT INTO execution.semantic_morph_set
             (morph_digest, member_count)
-        VALUES (%s, %s)
+        SELECT morph_digest, member_count
+          FROM input
         ON CONFLICT (morph_digest) DO NOTHING
         """,
-        [(digest, len(members)) for members, digest in digests.items()],
+        (set_digests, member_counts),
     )
+
+    member_digest: list[bytes] = []
+    member_ordinal: list[int] = []
+    member_feature: list[int] = []
+    member_value: list[int] = []
+    for members, digest in ordered_sets:
+        for ordinal, (feature_id, value_id) in enumerate(members):
+            member_digest.append(digest)
+            member_ordinal.append(ordinal)
+            member_feature.append(feature_id)
+            member_value.append(value_id)
+
+    cursor.execute(
+        """
+        WITH member_input AS (
+            SELECT *
+              FROM unnest(
+                  %s::BYTEA[],
+                  %s::SMALLINT[],
+                  %s::BIGINT[],
+                  %s::BIGINT[]
+              ) AS row(
+                  morph_digest,
+                  ordinal,
+                  feature_symbol_id,
+                  value_symbol_id
+              )
+        )
+        INSERT INTO execution.semantic_morph_set_member
+            (morph_set_id, ordinal, feature_symbol_id, value_symbol_id)
+        SELECT morph.morph_set_id,
+               member.ordinal,
+               member.feature_symbol_id,
+               member.value_symbol_id
+          FROM member_input AS member
+          JOIN execution.semantic_morph_set AS morph
+            ON morph.morph_digest = member.morph_digest
+        ON CONFLICT DO NOTHING
+        """,
+        (member_digest, member_ordinal, member_feature, member_value),
+    )
+
     cursor.execute(
         """
         SELECT morph_set_id, morph_digest
           FROM execution.semantic_morph_set
          WHERE morph_digest = ANY(%s)
         """,
-        (list(digests.values()),),
+        (set_digests,),
     )
     by_digest = {
         bytes(digest): int(morph_set_id) for morph_set_id, digest in cursor.fetchall()
     }
     result: dict[tuple[tuple[int, int], ...], int] = {}
-    for members, digest in digests.items():
+    for members, digest in ordered_sets:
         morph_set_id = by_digest.get(digest)
         if morph_set_id is None:
             raise RuntimeError("numeric morphology interning lost a set")
         result[members] = morph_set_id
-        cursor.executemany(
-            """
-            INSERT INTO execution.semantic_morph_set_member
-                (morph_set_id, ordinal, feature_symbol_id, value_symbol_id)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT DO NOTHING
-            """,
-            [
-                (morph_set_id, ordinal, feature_id, value_id)
-                for ordinal, (feature_id, value_id) in enumerate(members)
-            ],
-        )
     return result
 
 

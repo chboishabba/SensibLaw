@@ -18,6 +18,8 @@ import signal
 from typing import Any, Iterable, Mapping
 from uuid import uuid4
 
+from src.policy.carriers.canonical import canonical_fields_sha256, canonical_sha256
+
 DURABLE_WORK_CONTRACT = "postgres-durable-work-item:v2"
 PARENT_DEATH_CONTRACT = "linux-pdeathsig:v1"
 BINARY_ARTIFACT_CONTRACT = "python-pickle:5"

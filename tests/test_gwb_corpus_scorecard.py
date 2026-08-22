@@ -33,5 +33,12 @@ def test_build_gwb_corpus_scorecard_artifact(tmp_path: Path) -> None:
     assert "checked_handoff" in summary_text
     assert "local_books" in summary_text
 
-    families = {row["family"] for row in slice_payload["slice"]["source_family_inventory"]}
-    assert families == {"checked_handoff", "public_bios_pack", "corpus_timeline", "local_books"}
+    families = {
+        row["family"] for row in slice_payload["slice"]["source_family_inventory"]
+    }
+    assert families == {
+        "checked_handoff",
+        "public_bios_pack",
+        "corpus_timeline",
+        "local_books",
+    }

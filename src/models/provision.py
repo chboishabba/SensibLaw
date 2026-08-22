@@ -84,7 +84,7 @@ class Atom:
                     else None
                 ),
                 glossary_id=data.get("glossary_id"),
-            )
+            ),
         )
 
     @property
@@ -153,7 +153,9 @@ class RuleReference:
             "family_key": self.family_key,
             "year": self.year,
             "jurisdiction_hint": self.jurisdiction_hint,
-            "provenance": dict(self.provenance) if self.provenance is not None else None,
+            "provenance": dict(self.provenance)
+            if self.provenance is not None
+            else None,
             "glossary_id": self.glossary_id,
         }
 
@@ -188,7 +190,9 @@ class RuleReference:
                 else None
             ),
             glossary=(
-                GlossaryLink(glossary_id=glossary_id) if glossary_id is not None else None
+                GlossaryLink(glossary_id=glossary_id)
+                if glossary_id is not None
+                else None
             ),
         )
 
@@ -231,7 +235,9 @@ class RuleReference:
             "year": year,
             "jurisdiction_hint": jurisdiction_hint,
         }
-        identity_json = json.dumps(identity_payload, sort_keys=True, separators=(",", ":"))
+        identity_json = json.dumps(
+            identity_payload, sort_keys=True, separators=(",", ":")
+        )
         identity_hash = hashlib.sha1(identity_json.encode("utf-8")).hexdigest()
 
         self.family_key = family_key
@@ -555,11 +561,7 @@ class RuleAtom:
             else self.glossary_id
         )
         glossary: Optional[GlossaryLink]
-        if (
-            gloss is not None
-            or gloss_metadata is not None
-            or glossary_id is not None
-        ):
+        if gloss is not None or gloss_metadata is not None or glossary_id is not None:
             glossary = GlossaryLink(
                 text=gloss,
                 metadata=_clone_metadata(gloss_metadata),
@@ -712,7 +714,13 @@ class Provision:
             "rule_tokens": serialized_rule_tokens,
             "cultural_flags": list(self.cultural_flags),
             "references": [
-                (ref.work, ref.section, ref.pinpoint, ref.citation_text, ref.glossary_id)
+                (
+                    ref.work,
+                    ref.section,
+                    ref.pinpoint,
+                    ref.citation_text,
+                    ref.glossary_id,
+                )
                 if isinstance(ref, RuleReference)
                 else tuple(ref)
                 for ref in self.references
@@ -745,9 +753,19 @@ class Provision:
             rule_tokens=rule_tokens,
             cultural_flags=list(data.get("cultural_flags", [])),
             references=[
-                (ref.work, ref.section, ref.pinpoint, ref.citation_text, ref.glossary_id)
+                (
+                    ref.work,
+                    ref.section,
+                    ref.pinpoint,
+                    ref.citation_text,
+                    ref.glossary_id,
+                )
                 if isinstance(ref, RuleReference)
-                else (tuple(ref) if isinstance(ref, (list, tuple)) else (str(ref), None, None, None, None))
+                else (
+                    tuple(ref)
+                    if isinstance(ref, (list, tuple))
+                    else (str(ref), None, None, None, None)
+                )
                 for ref in data.get("references", [])
             ],
             children=[cls.from_dict(c) for c in data.get("children", [])],
@@ -921,9 +939,7 @@ class Provision:
                         text=atom.text,
                         conditions=atom.conditions,
                         glossary=(
-                            atom.glossary.clone()
-                            if atom.glossary is not None
-                            else None
+                            atom.glossary.clone() if atom.glossary is not None else None
                         ),
                         references=[build_reference(ref) for ref in atom.refs],
                         atom_type=atom.type,

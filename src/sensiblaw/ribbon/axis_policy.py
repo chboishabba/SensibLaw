@@ -21,7 +21,9 @@ class AxisPoint:
     contact_lane: str
 
 
-def detect_axis_lane_collisions(points: Iterable[AxisPoint]) -> List[Tuple[AxisPoint, AxisPoint]]:
+def detect_axis_lane_collisions(
+    points: Iterable[AxisPoint],
+) -> List[Tuple[AxisPoint, AxisPoint]]:
     """
     Detect collisions where two points claim the same time/account/contact slot.
     """
@@ -47,8 +49,12 @@ def deterministic_2d_fallback(points: Iterable[AxisPoint]) -> List[dict]:
     - contact lane remains attached as metadata (not dropped).
     """
     pts = list(points)
-    account_order = {lane: idx for idx, lane in enumerate(sorted({p.account_lane for p in pts}))}
-    time_order = {bucket: idx for idx, bucket in enumerate(sorted({p.time_bucket for p in pts}))}
+    account_order = {
+        lane: idx for idx, lane in enumerate(sorted({p.account_lane for p in pts}))
+    }
+    time_order = {
+        bucket: idx for idx, bucket in enumerate(sorted({p.time_bucket for p in pts}))
+    }
 
     projected = [
         {
@@ -61,7 +67,12 @@ def deterministic_2d_fallback(points: Iterable[AxisPoint]) -> List[dict]:
         }
         for p in sorted(
             pts,
-            key=lambda p: (time_order[p.time_bucket], account_order[p.account_lane], p.contact_lane, p.point_id),
+            key=lambda p: (
+                time_order[p.time_bucket],
+                account_order[p.account_lane],
+                p.contact_lane,
+                p.point_id,
+            ),
         )
     ]
     return projected

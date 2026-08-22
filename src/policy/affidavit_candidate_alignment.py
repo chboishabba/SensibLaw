@@ -1,4 +1,5 @@
 """Shared affidavit candidate-alignment helpers."""
+
 from __future__ import annotations
 
 import re
@@ -24,21 +25,61 @@ SIBLING_ACTION_FAMILY_RULES = (
     {
         "family": "audio_control",
         "claim_tokens": frozenset({"listen", "listening", "audio", "computer"}),
-        "positive_tokens": frozenset({"listen", "listening", "audio", "computer", "pause", "paused", "turn", "stop", "off"}),
-        "negative_tokens": frozenset({"keyboard", "type", "typed", "typing", "pulled", "remove", "removed"}),
+        "positive_tokens": frozenset(
+            {
+                "listen",
+                "listening",
+                "audio",
+                "computer",
+                "pause",
+                "paused",
+                "turn",
+                "stop",
+                "off",
+            }
+        ),
+        "negative_tokens": frozenset(
+            {"keyboard", "type", "typed", "typing", "pulled", "remove", "removed"}
+        ),
     },
     {
         "family": "keyboard_control",
         "claim_tokens": frozenset({"keyboard", "type", "typed", "typing"}),
-        "positive_tokens": frozenset({"keyboard", "type", "typed", "typing", "pulled", "remove", "removed"}),
-        "negative_tokens": frozenset({"listen", "listening", "audio", "computer", "turn", "stop", "off", "pause", "paused"}),
+        "positive_tokens": frozenset(
+            {"keyboard", "type", "typed", "typing", "pulled", "remove", "removed"}
+        ),
+        "negative_tokens": frozenset(
+            {
+                "listen",
+                "listening",
+                "audio",
+                "computer",
+                "turn",
+                "stop",
+                "off",
+                "pause",
+                "paused",
+            }
+        ),
     },
 )
 
 EPOA_REVOCATION_FAMILY_RULE = {
     "claim_tokens": frozenset({"epoa", "revoke", "revocation"}),
-    "positive_tokens": frozenset({"revoke", "revocation", "attorney", "signature", "document", "documents", "received"}),
-    "negative_tokens": frozenset({"rta", "tenancy", "filed", "dispute", "resolution", "landlord"}),
+    "positive_tokens": frozenset(
+        {
+            "revoke",
+            "revocation",
+            "attorney",
+            "signature",
+            "document",
+            "documents",
+            "received",
+        }
+    ),
+    "negative_tokens": frozenset(
+        {"rta", "tenancy", "filed", "dispute", "resolution", "landlord"}
+    ),
 }
 
 
@@ -57,7 +98,10 @@ def is_quote_rebuttal_support_excerpt(excerpt_text: str) -> bool:
     excerpt = str(excerpt_text or "").strip()
     if not excerpt:
         return False
-    return any(re.search(pattern, excerpt, flags=re.IGNORECASE) for pattern in QUOTE_REBUTTAL_SUPPORT_PATTERNS)
+    return any(
+        re.search(pattern, excerpt, flags=re.IGNORECASE)
+        for pattern in QUOTE_REBUTTAL_SUPPORT_PATTERNS
+    )
 
 
 def family_alignment_adjustment(
@@ -80,17 +124,29 @@ def family_alignment_adjustment(
         if rule["family"] == "audio_control":
             control_tokens = {"turn", "stop", "off", "pause", "paused", "mute", "muted"}
             audio_tokens = {"listen", "listening", "audio", "computer"}
-            candidate_has_positive = bool(candidate_tokens & control_tokens) and bool(candidate_tokens & audio_tokens)
-            row_has_positive = bool(row_tokens & control_tokens) and bool(row_tokens & audio_tokens)
+            candidate_has_positive = bool(candidate_tokens & control_tokens) and bool(
+                candidate_tokens & audio_tokens
+            )
+            row_has_positive = bool(row_tokens & control_tokens) and bool(
+                row_tokens & audio_tokens
+            )
             candidate_has_negative = bool(candidate_tokens & negative_tokens) or (
                 bool(candidate_tokens & audio_tokens) and not candidate_has_positive
             )
         else:
-            candidate_has_positive = bool(candidate_tokens & {"keyboard", "type", "typed", "typing"})
-            if "keyboard" in candidate_tokens and bool(candidate_tokens & {"pulled", "remove", "removed"}):
+            candidate_has_positive = bool(
+                candidate_tokens & {"keyboard", "type", "typed", "typing"}
+            )
+            if "keyboard" in candidate_tokens and bool(
+                candidate_tokens & {"pulled", "remove", "removed"}
+            ):
                 candidate_has_positive = True
-            row_has_positive = bool(row_tokens & {"keyboard", "type", "typed", "typing"})
-            if "keyboard" in row_tokens and bool(row_tokens & {"pulled", "remove", "removed"}):
+            row_has_positive = bool(
+                row_tokens & {"keyboard", "type", "typed", "typing"}
+            )
+            if "keyboard" in row_tokens and bool(
+                row_tokens & {"pulled", "remove", "removed"}
+            ):
                 row_has_positive = True
             candidate_has_negative = bool(candidate_tokens & negative_tokens)
         if candidate_has_positive:
@@ -109,7 +165,9 @@ def family_alignment_adjustment(
         candidate_has_positive = bool(candidate_tokens & positive_tokens)
         candidate_has_negative = bool(candidate_tokens & negative_tokens)
         row_has_positive = bool(row_tokens & positive_tokens)
-        excerpt_is_strong_confirmation = is_quote_rebuttal_support_excerpt(candidate_excerpt)
+        excerpt_is_strong_confirmation = is_quote_rebuttal_support_excerpt(
+            candidate_excerpt
+        )
         if candidate_has_positive:
             adjustment += 0.14 if excerpt_is_strong_confirmation else 0.1
         elif candidate_has_negative:

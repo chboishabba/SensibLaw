@@ -96,7 +96,9 @@ def test_build_legal_review_extract_emits_weak_singleton_candidate_only_when_hin
 
 
 def test_build_legal_review_extract_uses_shared_text_and_candidate_surfaces() -> None:
-    adapter = TextDocumentMediaAdapter(source_artifact_ref="legal-review-shared-surfaces")
+    adapter = TextDocumentMediaAdapter(
+        source_artifact_ref="legal-review-shared-surfaces"
+    )
     canonical = adapter.adapt("5 The authority shall maintain records.")
     parsed_envelope = parse_canonical_text(canonical, parse_profile="legal_review")
 

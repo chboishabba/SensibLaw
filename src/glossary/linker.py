@@ -16,11 +16,9 @@ class GlossaryRegistryProtocol(Protocol):
         term: str,
         definition: str,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Any]:
-        ...
+    ) -> Optional[Any]: ...
 
-    def resolve(self, term: Optional[str]) -> Optional[Any]:
-        ...
+    def resolve(self, term: Optional[str]) -> Optional[Any]: ...
 
 
 def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -33,6 +31,7 @@ def _normalise_text(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
     return " ".join(value.strip().split()).lower() or None
+
 
 class GlossaryLinker:
     """Deduplicate glossary lookups and return shared link instances."""

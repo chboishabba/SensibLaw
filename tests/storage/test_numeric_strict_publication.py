@@ -5,12 +5,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_strict_numeric_publication_never_reenters_legacy_document_compiler() -> None:
-    wrapper = (
-        ROOT / "src/policy/streaming_spacy_parser_execution.py"
-    ).read_text(encoding="utf-8")
-    native = (
-        ROOT / "src/policy/numeric_pnf_compilation.py"
-    ).read_text(encoding="utf-8")
+    wrapper = (ROOT / "src/policy/streaming_spacy_parser_execution.py").read_text(
+        encoding="utf-8"
+    )
+    native = (ROOT / "src/policy/numeric_pnf_compilation.py").read_text(
+        encoding="utf-8"
+    )
 
     strict_compile = wrapper.split("def compile_wrapper", 1)[1].split(
         "def persist_wrapper", 1
@@ -28,14 +28,19 @@ def test_strict_numeric_publication_never_reenters_legacy_document_compiler() ->
     assert "parse_document_fibres" not in native
 
 
-def test_numeric_publication_exposes_only_document_interface_and_residual_demands() -> None:
-    native = (
-        ROOT / "src/policy/numeric_pnf_compilation.py"
-    ).read_text(encoding="utf-8")
+def test_numeric_publication_exposes_only_document_interface_and_residual_demands() -> (
+    None
+):
+    native = (ROOT / "src/policy/numeric_pnf_compilation.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "numeric-pnf-interface:" in native
     assert "numeric-pnf-demand:" in native
     assert "world_resolution_deferred" in native
-    assert "canonical_text" not in native.split(
-        '"numeric_pnf_authority":', 1
-    )[1].split('"phase_boundary":', 1)[0]
+    assert (
+        "canonical_text"
+        not in native.split('"numeric_pnf_authority":', 1)[1].split(
+            '"phase_boundary":', 1
+        )[0]
+    )

@@ -6,9 +6,7 @@ from pathlib import Path
 
 
 def _has_document_json_column(conn: sqlite3.Connection) -> bool:
-    columns = {
-        row["name"] for row in conn.execute("PRAGMA table_info(revisions)")
-    }
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(revisions)")}
     return "document_json" in columns
 
 

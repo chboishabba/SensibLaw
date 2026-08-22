@@ -35,7 +35,9 @@ def test_extract_interaction_signals_emits_interrogative_for_question() -> None:
     assert all(atom.family == "interaction" for atom in atoms)
 
 
-def test_collect_signal_state_projects_directed_request_from_direct_address_plus_imperative() -> None:
+def test_collect_signal_state_projects_directed_request_from_direct_address_plus_imperative() -> (
+    None
+):
     state = collect_signal_state(
         "Alice, explain the process.",
         include_families=("interaction", "directness", "audience", "uncertainty"),
@@ -70,7 +72,9 @@ def test_collect_signal_state_marks_targeted_other_without_route_claim() -> None
     assert "imperative" in summary["interaction"]
     assert "speech_act_request" in summary["directness"]
     assert "targeted_other" in summary["audience"]
-    assert all("route" not in atom.label for atoms in state.families.values() for atom in atoms)
+    assert all(
+        "route" not in atom.label for atoms in state.families.values() for atom in atoms
+    )
 
 
 def test_collect_signal_state_accepts_reused_parsed_and_structural_inputs() -> None:
@@ -87,9 +91,16 @@ def test_collect_signal_state_accepts_reused_parsed_and_structural_inputs() -> N
     summary = summarize_signal_state(state)
 
     assert "qa_turn" in summary["interaction"]
-    assert "imperative" in summary["interaction"] or "directed_request" in summary["interaction"]
+    assert (
+        "imperative" in summary["interaction"]
+        or "directed_request" in summary["interaction"]
+    )
     assert isinstance(state, SignalState)
-    assert all(isinstance(atom, SignalAtom) for atoms in state.families.values() for atom in atoms)
+    assert all(
+        isinstance(atom, SignalAtom)
+        for atoms in state.families.values()
+        for atom in atoms
+    )
 
 
 def test_collect_signal_state_marks_low_evidence_for_plain_statement() -> None:

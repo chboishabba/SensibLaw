@@ -88,9 +88,7 @@ def test_reference_surface_binds_logical_typing_refs(tmp_path) -> None:
                 "reference_backed": True,
                 "document_ref": "document:1",
                 "revision": 1,
-                "reference_finalization_contract": (
-                    "reference-backed-finalization:v1"
-                ),
+                "reference_finalization_contract": ("reference-backed-finalization:v1"),
                 "owner_fingerprint": {},
                 "materialized_reduction": {"graph_ref": "graph:1"},
                 "fixed_point_certificate": {
@@ -104,9 +102,7 @@ def test_reference_surface_binds_logical_typing_refs(tmp_path) -> None:
         },
     )
 
-    surface = receipt["amplification"]["identity_receipt"][
-        "reference_semantic_surface"
-    ]
+    surface = receipt["amplification"]["identity_receipt"]["reference_semantic_surface"]
     assert surface["logical_typing_refs"] == {
         "local_type_carrier_build": "logical-typing:carrier"
     }

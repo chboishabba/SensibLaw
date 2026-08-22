@@ -106,17 +106,47 @@ def test_observation_claim_wikidata_projection_is_deterministic_and_validates():
     assert report["projection_summary"]["total_records"] == 1
     assert len(report["projection_records"]) == 1
     assert report["projection_records"][0]["projection_id"] == "wdp:claim:1"
-    assert report["projection_records"][0]["evidence_refs"][0]["ref_value"] == "unit:1:0-34"
-    assert report["projection_records"][0]["evidence_refs"][-1]["ref_value"] == "receipt:2"
+    assert (
+        report["projection_records"][0]["evidence_refs"][0]["ref_value"]
+        == "unit:1:0-34"
+    )
+    assert (
+        report["projection_records"][0]["evidence_refs"][-1]["ref_value"] == "receipt:2"
+    )
     assert report["projection_records"][0]["state_transition_receipt_ids"] == ["tr:1"]
-    assert report["projection_records"][0]["state_transition_receipts"][0]["transition_receipt_id"] == "tr:1"
-    assert report["projection_records"][0]["state_transition_receipts"][0]["jurisdiction"] == "US_CA"
-    assert report["projection_records"][0]["state_transition_receipts"][0]["legal_version"] == "LAW-12:v20260327"
-    assert report["projection_records"][0]["state_transition_receipts"][0]["effective_from"] == "2026-03-27T00:00:00Z"
-    assert report["projection_records"][0]["state_transition_receipts"][0]["rule_version"] == "rule-set-v1"
+    assert (
+        report["projection_records"][0]["state_transition_receipts"][0][
+            "transition_receipt_id"
+        ]
+        == "tr:1"
+    )
+    assert (
+        report["projection_records"][0]["state_transition_receipts"][0]["jurisdiction"]
+        == "US_CA"
+    )
+    assert (
+        report["projection_records"][0]["state_transition_receipts"][0]["legal_version"]
+        == "LAW-12:v20260327"
+    )
+    assert (
+        report["projection_records"][0]["state_transition_receipts"][0][
+            "effective_from"
+        ]
+        == "2026-03-27T00:00:00Z"
+    )
+    assert (
+        report["projection_records"][0]["state_transition_receipts"][0]["rule_version"]
+        == "rule-set-v1"
+    )
     assert report["projection_records"][0]["temporal_scope"]["observed_at"] is None
-    assert report["projection_records"][0]["temporal_scope"]["asserted_at"] == "2026-03-27T00:01:00Z"
-    assert report["projection_records"][0]["temporal_scope"]["effective_from"] == "2026-03-27T00:01:00Z"
+    assert (
+        report["projection_records"][0]["temporal_scope"]["asserted_at"]
+        == "2026-03-27T00:01:00Z"
+    )
+    assert (
+        report["projection_records"][0]["temporal_scope"]["effective_from"]
+        == "2026-03-27T00:01:00Z"
+    )
     assert report["projection_records"][0]["temporal_scope"]["effective_to"] is None
     assert report["projection_records"][0]["provenance"]["jurisdiction"] == "US_CA"
     assert report["projection_summary"]["jurisdiction_count"] == 1
@@ -131,7 +161,9 @@ def test_transition_receipt_rejects_effective_to_before_effective_from():
     payload["transition_receipts"][0]["effective_from"] = "2026-03-27T12:00:00Z"
     payload["transition_receipts"][0]["effective_to"] = "2026-03-27T11:59:59Z"
     jsonschema.validate(payload, contract_schema)
-    with pytest.raises(ValueError, match="effective_to must be greater than or equal to effective_from"):
+    with pytest.raises(
+        ValueError, match="effective_to must be greater than or equal to effective_from"
+    ):
         build_wikidata_projection_report(payload)
 
 
@@ -159,7 +191,9 @@ def test_transition_receipts_reject_temporal_overlap_for_same_observation():
         }
     )
     jsonschema.validate(payload, contract_schema)
-    with pytest.raises(ValueError, match="temporal windows for obs:1 must be non-overlapping"):
+    with pytest.raises(
+        ValueError, match="temporal windows for obs:1 must be non-overlapping"
+    ):
         build_wikidata_projection_report(payload)
 
 
@@ -177,7 +211,10 @@ def test_transition_receipt_allows_hierarchical_jurisdiction_match():
     jsonschema.validate(payload, contract_schema)
     report = build_wikidata_projection_report(payload)
 
-    assert report["projection_records"][0]["state_transition_receipts"][0]["jurisdiction"] == "US"
+    assert (
+        report["projection_records"][0]["state_transition_receipts"][0]["jurisdiction"]
+        == "US"
+    )
 
 
 def test_transition_receipt_rejects_nonhierarchical_jurisdiction_mismatch():

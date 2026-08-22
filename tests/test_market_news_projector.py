@@ -23,7 +23,9 @@ def _canonical(text: str):
 def test_market_news_projector_rejects_unsupported_profile() -> None:
     canonical, parsed = _canonical("Plain text")
     try:
-        project_event_text_to_predicate_atoms(canonical, parsed, {}, extraction_profile="other")
+        project_event_text_to_predicate_atoms(
+            canonical, parsed, {}, extraction_profile="other"
+        )
     except ValueError as exc:
         assert "unsupported extraction_profile" in str(exc)
     else:  # pragma: no cover - must raise
@@ -32,10 +34,17 @@ def test_market_news_projector_rejects_unsupported_profile() -> None:
 
 def test_market_news_projector_returns_empty_for_blank_text() -> None:
     canonical, parsed = _canonical("")
-    assert project_event_text_to_predicate_atoms(canonical, parsed, {"provider": "newsapi"}) == []
+    assert (
+        project_event_text_to_predicate_atoms(
+            canonical, parsed, {"provider": "newsapi"}
+        )
+        == []
+    )
 
 
-def test_market_news_projector_wraps_shared_reducer_atoms_without_domain_recovery() -> None:
+def test_market_news_projector_wraps_shared_reducer_atoms_without_domain_recovery() -> (
+    None
+):
     canonical, parsed = _canonical("Example text")
     shared_atom = PredicateAtom(
         predicate="signals",
@@ -52,7 +61,7 @@ def test_market_news_projector_wraps_shared_reducer_atoms_without_domain_recover
         domain="generic",
     )
     with patch(
-        'src.sensiblaw.interfaces.market_news_projector.collect_canonical_predicate_atoms',
+        "src.sensiblaw.interfaces.market_news_projector.collect_canonical_predicate_atoms",
         return_value=[shared_atom],
     ):
         projected = project_event_text_to_predicate_atoms(
@@ -74,16 +83,20 @@ def test_market_news_projector_wraps_shared_reducer_atoms_without_domain_recover
     assert first.modifiers["candidate_status"] == "derived_candidate"
     assert f"text_id:{canonical.text_id}" in first.provenance
     assert f"envelope_id:{parsed.envelope_id}" in first.provenance
-    assert f"projector:sensiblaw_market_news_projector_v2" in first.provenance
+    assert "projector:sensiblaw_market_news_projector_v2" in first.provenance
 
 
-def test_market_news_projector_does_not_fabricate_when_shared_reducer_is_empty() -> None:
+def test_market_news_projector_does_not_fabricate_when_shared_reducer_is_empty() -> (
+    None
+):
     canonical, parsed = _canonical("Fed signals inflation risk.")
     with patch(
-        'src.sensiblaw.interfaces.market_news_projector.collect_canonical_predicate_atoms',
+        "src.sensiblaw.interfaces.market_news_projector.collect_canonical_predicate_atoms",
         return_value=[],
     ):
-        projected = project_event_text_to_predicate_atoms(canonical, parsed, {"provider": "newsapi"})
+        projected = project_event_text_to_predicate_atoms(
+            canonical, parsed, {"provider": "newsapi"}
+        )
     assert projected == []
 
 
@@ -91,13 +104,15 @@ def test_market_news_projector_is_importable_from_external_path_style() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repo_root))
     try:
-        from src.sensiblaw.interfaces import project_event_text_to_predicate_atoms as imported
+        from src.sensiblaw.interfaces import (
+            project_event_text_to_predicate_atoms as imported,
+        )
     finally:
         sys.path.pop(0)
 
     canonical, parsed = _canonical("Example text")
     with patch(
-        'src.sensiblaw.interfaces.market_news_projector.collect_canonical_predicate_atoms',
+        "src.sensiblaw.interfaces.market_news_projector.collect_canonical_predicate_atoms",
         return_value=[],
     ):
         projected = imported(canonical, parsed, {"provider": "newsapi"})

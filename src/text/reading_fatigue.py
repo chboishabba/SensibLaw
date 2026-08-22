@@ -19,7 +19,7 @@ be wired into whichever UI layer is consuming the structured bundle.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Iterator, List, Mapping, Sequence, Tuple
+from typing import Dict, Iterable, List, Sequence, Tuple
 
 from .similarity import simhash
 
@@ -88,7 +88,9 @@ def build_pin_cite_navigator(paragraphs: Iterable[Paragraph]) -> List[NavigatorE
             return
         shortcut = f"alt+{shortcut_index}"
         entries.append(
-            NavigatorEntry(label=label, paragraph_ids=tuple(para_ids), shortcut=shortcut)
+            NavigatorEntry(
+                label=label, paragraph_ids=tuple(para_ids), shortcut=shortcut
+            )
         )
         shortcut_index += 1
 
@@ -160,7 +162,9 @@ class DuplicateDetector:
                 if other_draft == draft_index:
                     continue
                 if _hamming_distance(fp, other_fp) <= self.threshold:
-                    hits.append(DuplicateHit(draft_index=other_draft, paragraph=other_para))
+                    hits.append(
+                        DuplicateHit(draft_index=other_draft, paragraph=other_para)
+                    )
                     consumed.add(other_idx)
             if len(hits) > 1:
                 consumed.add(idx)
@@ -201,4 +205,3 @@ __all__ = [
     "build_pin_cite_navigator",
     "focus_lane",
 ]
-

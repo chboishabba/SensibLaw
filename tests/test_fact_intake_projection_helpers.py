@@ -9,14 +9,26 @@ from src.fact_intake.projection_helpers import (
 
 
 def test_observation_status_from_relation_maps_promotion_states() -> None:
-    assert observation_status_from_relation({"promotion_status": "promoted"}) == "captured"
-    assert observation_status_from_relation({"promotion_status": "abstained"}) == "abstained"
-    assert observation_status_from_relation({"promotion_status": "candidate"}) == "uncertain"
+    assert (
+        observation_status_from_relation({"promotion_status": "promoted"}) == "captured"
+    )
+    assert (
+        observation_status_from_relation({"promotion_status": "abstained"})
+        == "abstained"
+    )
+    assert (
+        observation_status_from_relation({"promotion_status": "candidate"})
+        == "uncertain"
+    )
 
 
 def test_fact_status_for_statement_rolls_up_observation_statuses() -> None:
-    assert fact_status_for_statement([{"observation_status": "captured"}]) == "candidate"
-    assert fact_status_for_statement([{"observation_status": "abstained"}]) == "abstained"
+    assert (
+        fact_status_for_statement([{"observation_status": "captured"}]) == "candidate"
+    )
+    assert (
+        fact_status_for_statement([{"observation_status": "abstained"}]) == "abstained"
+    )
     assert fact_status_for_statement([]) == "no_fact"
 
 

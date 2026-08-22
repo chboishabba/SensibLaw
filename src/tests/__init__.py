@@ -4,7 +4,7 @@ from .evaluator import evaluate, ResultTable, ResultRow  # noqa: F401
 
 """Utility tests and evaluation support."""
 
-from .evaluator import FactorStatus, ResultTable, evaluate
+from .evaluator import FactorStatus
 from .templates import TEMPLATE_REGISTRY, Factor, TestTemplate
 
 __all__ = [

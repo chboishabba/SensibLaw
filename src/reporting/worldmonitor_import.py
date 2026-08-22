@@ -10,7 +10,10 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from src.reporting.source_loaders import resolve_loader_path
-from src.reporting.source_identity import build_worldmonitor_capture_id, format_local_iso_and_date_from_timestamp
+from src.reporting.source_identity import (
+    build_worldmonitor_capture_id,
+    format_local_iso_and_date_from_timestamp,
+)
 from src.reporting.text_unit_builders import build_header_body_text
 from src.reporting.observation_lanes import ObservationLaneAdapter
 from src.fact_intake.review_bundle import build_event_chronology
@@ -31,7 +34,11 @@ class WorldMonitorImportSummary:
 
 def _format_payload_text(row: Any) -> str:
     if isinstance(row, dict):
-        parts = [f"{key}: {row[key]}" for key in sorted(row.keys()) if row[key] is not None and row[key] != ""]
+        parts = [
+            f"{key}: {row[key]}"
+            for key in sorted(row.keys())
+            if row[key] is not None and row[key] != ""
+        ]
         if parts:
             return " | ".join(parts)
     text = json.dumps(row, ensure_ascii=False, sort_keys=True)
@@ -144,7 +151,9 @@ def _stable_fallback_timestamp(raw: str, index: int) -> int:
 
 def _to_row_text(row: dict[str, Any], *, source_row_id: str, source_kind: str) -> str:
     body = _format_payload_text(row)
-    label = str(source_row_id or "") or str(row.get("id") or row.get("label") or source_kind)
+    label = str(source_row_id or "") or str(
+        row.get("id") or row.get("label") or source_kind
+    )
     return build_header_body_text(header=f"{source_kind}: {label}", body=body)
 
 
@@ -168,7 +177,9 @@ def _build_rows_from_record(
                     "source_row_id": source_row_id,
                     "source_kind": "facility",
                     "row_label": str(row.get("id") or row.get("city") or source_row_id),
-                    "source_timestamp": source_extracted_ts + index if source_extracted_ts is not None else _stable_fallback_timestamp(
+                    "source_timestamp": source_extracted_ts + index
+                    if source_extracted_ts is not None
+                    else _stable_fallback_timestamp(
                         f"{source_file}|facility|{source_row_id}",
                         index,
                     ),
@@ -184,13 +195,25 @@ def _build_rows_from_record(
     }
 
     if isinstance(base, dict) and base:
-        metadata = {"source": base.get("source", ""), "url": base.get("url", ""), "extracted": base.get("extracted", "")}
+        metadata = {
+            "source": base.get("source", ""),
+            "url": base.get("url", ""),
+            "extracted": base.get("extracted", ""),
+        }
         metadata.update(
             {
-                "cities_count": len(base.get("cities", [])) if isinstance(base.get("cities"), list) else None,
-                "countries_count": len(base.get("countries", [])) if isinstance(base.get("countries"), list) else None,
-                "organizations_count": len(base.get("organizations", [])) if isinstance(base.get("organizations"), list) else None,
-                "real_values_count": len(base.get("realValues", [])) if isinstance(base.get("realValues"), list) else None,
+                "cities_count": len(base.get("cities", []))
+                if isinstance(base.get("cities"), list)
+                else None,
+                "countries_count": len(base.get("countries", []))
+                if isinstance(base.get("countries"), list)
+                else None,
+                "organizations_count": len(base.get("organizations", []))
+                if isinstance(base.get("organizations"), list)
+                else None,
+                "real_values_count": len(base.get("realValues", []))
+                if isinstance(base.get("realValues"), list)
+                else None,
             }
         )
         records.append(
@@ -199,7 +222,8 @@ def _build_rows_from_record(
                 "source_row_id": "metadata",
                 "source_kind": "metadata",
                 "row_label": "metadata",
-                "source_timestamp": source_extracted_ts or _stable_fallback_timestamp(source_file, 0),
+                "source_timestamp": source_extracted_ts
+                or _stable_fallback_timestamp(source_file, 0),
                 "payload": metadata,
             }
         )
@@ -221,7 +245,9 @@ def _build_rows_from_record(
                         "row_label": f"{key}:{index}",
                         "source_timestamp": (source_extracted_ts + index + 1)
                         if source_extracted_ts is not None
-                        else _stable_fallback_timestamp(f"{source_file}|{key}|{index}", index),
+                        else _stable_fallback_timestamp(
+                            f"{source_file}|{key}|{index}", index
+                        ),
                         "payload": payload_row,
                     }
                 )
@@ -234,7 +260,7 @@ def _source_path_rows(source_path: Path, *, limit: int | None = None) -> list[Pa
         return [source_path]
     if source_path.is_dir():
         paths = sorted(path for path in source_path.rglob("*.json") if path.is_file())
-        return paths if limit is None else paths[: limit]
+        return paths if limit is None else paths[:limit]
     raise FileNotFoundError(str(source_path))
 
 
@@ -277,7 +303,9 @@ def import_worldmonitor_data(
                     "payload": payload_text,
                     "source_path": str(resolved_source),
                     "payload_sha1": hashlib.sha1(
-                        json.dumps(payload_text, ensure_ascii=False, sort_keys=True).encode("utf-8")
+                        json.dumps(
+                            payload_text, ensure_ascii=False, sort_keys=True
+                        ).encode("utf-8")
                     ).hexdigest()[:20],
                 }
             )
@@ -315,7 +343,9 @@ def import_worldmonitor_data(
     imported_count = 0
     for item in rows:
         source_timestamp = int(item["source_timestamp"])
-        captured_at, captured_date = format_local_iso_and_date_from_timestamp(source_timestamp)
+        captured_at, captured_date = format_local_iso_and_date_from_timestamp(
+            source_timestamp
+        )
         capture_id = build_worldmonitor_capture_id(
             source_path=str(item["source_path"]),
             source_file=str(item["source_file"]),
@@ -365,10 +395,17 @@ def import_worldmonitor_data(
                     f"{capture_id}:1",
                     capture_id,
                     1,
-                    _to_row_text(item["payload"], source_row_id=str(item["source_row_id"]), source_kind=str(item["source_kind"])),
+                    _to_row_text(
+                        item["payload"],
+                        source_row_id=str(item["source_row_id"]),
+                        source_kind=str(item["source_kind"]),
+                    ),
                 ),
             )
-            ref_rows = [("source_path", item["source_path"]), ("source_file", item["source_file"])]
+            ref_rows = [
+                ("source_path", item["source_path"]),
+                ("source_file", item["source_file"]),
+            ]
             if str(item.get("row_label") or "").strip():
                 ref_rows.append(("row_label", str(item["row_label"])))
             for ref_order, (ref_kind, ref_value) in enumerate(ref_rows):
@@ -394,7 +431,9 @@ def import_worldmonitor_data(
         source_file_count=len(source_rows),
         source_record_count=len(rows),
         imported_capture_count=imported_count,
-        latest_source_timestamp=max((int(item["source_timestamp"]) for item in rows), default=None),
+        latest_source_timestamp=max(
+            (int(item["source_timestamp"]) for item in rows), default=None
+        ),
     )
 
 
@@ -612,7 +651,9 @@ def build_worldmonitor_capture_summary(
         "captureCount": total,
         "firstCapturedAt": totals["first_captured_at"] if totals is not None else None,
         "lastCapturedAt": totals["last_captured_at"] if totals is not None else None,
-        "labelCoverage": _coverage_payload(label_count, total) if total else _coverage_payload(0, 0),
+        "labelCoverage": _coverage_payload(label_count, total)
+        if total
+        else _coverage_payload(0, 0),
         "countsBySourceKind": [
             {
                 "sourceKind": str(row["source_kind"] or ""),
@@ -659,7 +700,9 @@ def query_worldmonitor_captures(
         where.append("LOWER(s.source_kind) = LOWER(?)")
         params.append(source_kind)
     if text_query is not None and text_query.strip():
-        where.append("(LOWER(u.text) LIKE ? OR LOWER(s.row_label) LIKE ? OR LOWER(s.source_row_id) LIKE ?)")
+        where.append(
+            "(LOWER(u.text) LIKE ? OR LOWER(s.row_label) LIKE ? OR LOWER(s.source_row_id) LIKE ?)"
+        )
         needle = f"%{text_query.strip().casefold()}%"
         params.extend([needle, needle, needle])
     sql = """
@@ -781,8 +824,12 @@ def build_worldmonitor_chronology(
             "sourceKind": source_kind,
         },
         "chronologyCount": len(enriched_chronology),
-        "firstCapturedAt": enriched_chronology[0]["time_start"] if enriched_chronology else None,
-        "lastCapturedAt": enriched_chronology[-1]["time_start"] if enriched_chronology else None,
+        "firstCapturedAt": enriched_chronology[0]["time_start"]
+        if enriched_chronology
+        else None,
+        "lastCapturedAt": enriched_chronology[-1]["time_start"]
+        if enriched_chronology
+        else None,
         "chronology": enriched_chronology,
     }
 

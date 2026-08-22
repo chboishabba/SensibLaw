@@ -25,8 +25,13 @@ def test_build_wikidata_dense_structural_review_artifact(tmp_path: Path) -> None
     assert summary["review_item_count"] == 9
     assert summary["review_required_item_count"] == 4
     assert summary["source_review_row_count"] > 30
-    assert summary["candidate_structural_cue_count"] > summary["source_review_row_count"]
-    assert summary["provisional_review_row_count"] == summary["candidate_structural_cue_count"]
+    assert (
+        summary["candidate_structural_cue_count"] > summary["source_review_row_count"]
+    )
+    assert (
+        summary["provisional_review_row_count"]
+        == summary["candidate_structural_cue_count"]
+    )
     assert summary["provisional_review_bundle_count"] == 9
     assert summary["baseline_confirmation_count"] >= 10
     assert summary["cluster_promotion_gap_count"] >= 10

@@ -33,8 +33,16 @@ def test_zelph_runner_bundle_mode_derives_expected_triples(tmp_path, capsys) -> 
 
     assert exit_code == 0
     assert payload["engine"]["status"] == "ok"
-    assert {"subject": "rev_1", "predicate": "signal_class", "object": "reversion_edit"} in _derived(payload)
-    assert {"subject": "Sentinel33", "predicate": "is", "object": "wiki sentinel"} in _derived(payload)
+    assert {
+        "subject": "rev_1",
+        "predicate": "signal_class",
+        "object": "reversion_edit",
+    } in _derived(payload)
+    assert {
+        "subject": "Sentinel33",
+        "predicate": "is",
+        "object": "wiki sentinel",
+    } in _derived(payload)
 
 
 def test_zelph_runner_db_mode_compiles_and_runs_queries(tmp_path, capsys) -> None:
@@ -50,17 +58,31 @@ def test_zelph_runner_db_mode_compiles_and_runs_queries(tmp_path, capsys) -> Non
     conn.commit()
     conn.close()
 
-    exit_code = main(["db", "--db-path", str(db_path), "--save-bundle-path", str(tmp_path / "db_bundle.zlp")])
+    exit_code = main(
+        [
+            "db",
+            "--db-path",
+            str(db_path),
+            "--save-bundle-path",
+            str(tmp_path / "db_bundle.zlp"),
+        ]
+    )
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
     assert payload["compile"]["returncode"] == 0
     assert payload["engine"]["status"] == "ok"
     assert Path(payload["engine"]["bundle_path"]).exists()
-    assert {"subject": "party1", "predicate": "has obligation", "object": "db_atom_0"} in _derived(payload)
+    assert {
+        "subject": "party1",
+        "predicate": "has obligation",
+        "object": "db_atom_0",
+    } in _derived(payload)
 
 
-def test_zelph_runner_text_mode_builds_programmatic_wiki_fixture(tmp_path, capsys) -> None:
+def test_zelph_runner_text_mode_builds_programmatic_wiki_fixture(
+    tmp_path, capsys
+) -> None:
     exit_code = main(
         [
             "text",
@@ -82,4 +104,8 @@ def test_zelph_runner_text_mode_builds_programmatic_wiki_fixture(tmp_path, capsy
     assert payload["lex"]["returncode"] == 0
     assert payload["engine"]["status"] == "ok"
     assert Path(payload["engine"]["bundle_path"]).exists()
-    assert {"subject": "BD2412", "predicate": "is", "object": "wiki sentinel"} in _derived(payload)
+    assert {
+        "subject": "BD2412",
+        "predicate": "is",
+        "object": "wiki sentinel",
+    } in _derived(payload)

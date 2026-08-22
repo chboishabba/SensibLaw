@@ -20,6 +20,7 @@ class DummySession:
     def get(self, url, headers=None):
         self.calls += 1
         self.last_headers = headers or {}
+
         class Resp:
             headers: dict
             status_code: int
@@ -148,4 +149,3 @@ def test_source_manifests_exist():
     hca = json.loads((base / "hca_manifest.json").read_text())
     assert frl["base_url"].startswith("https://")
     assert hca["base_url"].startswith("https://")
-

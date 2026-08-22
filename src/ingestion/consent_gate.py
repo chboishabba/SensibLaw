@@ -47,9 +47,7 @@ def check_consent(record: Dict[str, Any]) -> None:
     citation = record.get("metadata", {}).get("citation")
 
     if record.get("consent_required") and not (storage_consent and inference_consent):
-        logger.warning(
-            "Blocked record %s due to missing consent", citation
-        )
+        logger.warning("Blocked record %s due to missing consent", citation)
         raise ConsentError("Consent required for records with cultural flags")
 
     if action == "deny":
@@ -58,9 +56,7 @@ def check_consent(record: Dict[str, Any]) -> None:
 
     if action == "require" and not (storage_consent and inference_consent):
         record["body"] = SUMMARY_NOTE
-        logger.warning(
-            "Missing consent for record %s; storing summary only", citation
-        )
+        logger.warning("Missing consent for record %s; storing summary only", citation)
         return
 
     if action == "transform":

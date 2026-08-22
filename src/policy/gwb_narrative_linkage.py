@@ -14,7 +14,6 @@ from src.policy.linkage_adapters import (
     merge_linkage_fragments,
 )
 from src.policy.linkage_depth import (
-    LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION,
     build_expected_layer_contract,
     build_linkage_depth_case,
     build_linkage_depth_receipt,
@@ -51,7 +50,11 @@ def _source_family_for_document(document_id: str) -> str:
 
 def _is_external_source(document_id: str) -> bool:
     lowered = document_id.casefold()
-    return lowered.startswith("wikidata:") or "wikidata.org" in lowered or "wikipedia.org" in lowered
+    return (
+        lowered.startswith("wikidata:")
+        or "wikidata.org" in lowered
+        or "wikipedia.org" in lowered
+    )
 
 
 def build_contract() -> dict[str, Any]:
@@ -100,11 +103,15 @@ def build_contract() -> dict[str, Any]:
 def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
     run_id = _text(report.get("run_id"))
     if not run_id:
-        raise ValueError("GWB narrative/timeline linkage case requires semantic report run_id")
+        raise ValueError(
+            "GWB narrative/timeline linkage case requires semantic report run_id"
+        )
 
     per_event = _mapping_rows(report.get("per_event"))
     if not per_event:
-        raise ValueError("GWB narrative/timeline linkage case requires per_event semantic rows")
+        raise ValueError(
+            "GWB narrative/timeline linkage case requires per_event semantic rows"
+        )
 
     source_documents = {
         _text(row.get("sourceDocumentId")): row
@@ -120,7 +127,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
 
     for event in per_event:
         event_id = _text(event.get("event_id"))
-        source_document_id = _text(event.get("source_document_id")) or _text(event.get("source_id"))
+        source_document_id = _text(event.get("source_document_id")) or _text(
+            event.get("source_id")
+        )
         relation_rows = _mapping_rows(event.get("relation_candidates"))
         if not event_id or not source_document_id or not relation_rows:
             continue
@@ -154,7 +163,8 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                 label=f"GWB source document {document.get('title') or source_document_id}",
                 metadata={
                     "source_document_id": source_document_id,
-                    "source_type": _text(document.get("sourceType")) or _source_family_for_document(source_document_id),
+                    "source_type": _text(document.get("sourceType"))
+                    or _source_family_for_document(source_document_id),
                     "event_count": int(document.get("eventCount", 0) or 0),
                     "source_family": _source_family_for_document(source_document_id),
                 },
@@ -212,7 +222,8 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "from_layer": "domain_candidate",
                         "to_layer": "review_surface",
                         "event_id": event_id,
-                        "promotion_status": _text(relation.get("promotion_status")) or "candidate",
+                        "promotion_status": _text(relation.get("promotion_status"))
+                        or "candidate",
                     },
                 )
             )
@@ -236,7 +247,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
             )
 
     if not candidate_node_ids:
-        raise ValueError("GWB narrative/timeline linkage case requires at least one event candidate")
+        raise ValueError(
+            "GWB narrative/timeline linkage case requires at least one event candidate"
+        )
 
     source_document_count = len(source_documents)
     promoted_count = len(_mapping_rows(report.get("promoted_relations")))
@@ -336,7 +349,9 @@ def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
             default_lane_id="gwb",
             default_contract=build_contract(),
             default_contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
-            default_notes=["GWB narrative/timeline case loaded from the emitted lane receipt."],
+            default_notes=[
+                "GWB narrative/timeline case loaded from the emitted lane receipt."
+            ],
         )
         if case is not None:
             return case
@@ -347,7 +362,9 @@ def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
             default_lane_id="gwb",
             default_contract=build_contract(),
             default_contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
-            default_notes=["GWB narrative/timeline case loaded from the projected linkage surface."],
+            default_notes=[
+                "GWB narrative/timeline case loaded from the projected linkage surface."
+            ],
         )
         if case is not None:
             return case
@@ -359,7 +376,9 @@ def build_receipt(
     *,
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    contract_payload = dict(contract) if isinstance(contract, Mapping) else build_contract()
+    contract_payload = (
+        dict(contract) if isinstance(contract, Mapping) else build_contract()
+    )
     case_payload = require_case_from_projection_artifact(
         report,
         case_kind="narrative_timeline_fixture",
@@ -367,7 +386,9 @@ def build_receipt(
         default_lane_id="gwb",
         default_contract=contract_payload,
         default_contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
-        default_notes=["GWB narrative/timeline case loaded from the projected linkage surface."],
+        default_notes=[
+            "GWB narrative/timeline case loaded from the projected linkage surface."
+        ],
     )
     return build_linkage_depth_receipt(
         case=case_payload,

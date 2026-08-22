@@ -30,7 +30,9 @@ def test_link_precedence_over_token_reference():
         )
     ]
 
-    merged = _canonicalize_references(link_refs + token_refs, preferred_sources=("link", None))
+    merged = _canonicalize_references(
+        link_refs + token_refs, preferred_sources=("link", None)
+    )
     assert len(merged) == 1
     ref = merged[0]
     assert ref.source == "link"
@@ -65,7 +67,9 @@ def test_link_and_token_coexist_for_distinct_sections():
         )
     ]
 
-    merged = _canonicalize_references(link_refs + token_refs, preferred_sources=("link", None))
+    merged = _canonicalize_references(
+        link_refs + token_refs, preferred_sources=("link", None)
+    )
     keys = {(ref.section, ref.pinpoint) for ref in merged}
     assert keys == {("section", "4"), ("section", "6")}
     assert any(ref.source == "link" and ref.pinpoint == "4" for ref in merged)

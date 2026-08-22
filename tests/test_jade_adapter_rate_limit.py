@@ -35,7 +35,9 @@ class FakeSession:
 
 def test_jade_adapter_respects_rate_limit():
     c = FakeClock()
-    limiter = TokenBucketRateLimiter(RateLimit(rps=1.0, burst=1), now=c.now, sleep=c.sleep)
+    limiter = TokenBucketRateLimiter(
+        RateLimit(rps=1.0, burst=1), now=c.now, sleep=c.sleep
+    )
     session = FakeSession()
 
     adapter = JadeAdapter(api_base="https://jade.io", limiter=limiter, session=session)

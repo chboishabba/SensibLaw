@@ -8,7 +8,9 @@ from src.ontology import wikidata_hotspot as hotspot_module
 from src.transcript_semantic import semantic as transcript_module
 
 
-def test_contested_lane_truth_bearing_fields_flow_through_claim_state_and_central_gate() -> None:
+def test_contested_lane_truth_bearing_fields_flow_through_claim_state_and_central_gate() -> (
+    None
+):
     src = inspect.getsource(contested_module)
 
     assert "promote_contested_claim(" in src

@@ -116,11 +116,11 @@ def normalize_compiler_contract(
 ) -> dict[str, Any]:
     mapping = value if isinstance(value, Mapping) else {}
     return {
-        "schema_version": str(mapping.get("schema_version") or COMPILER_CONTRACT_SCHEMA_VERSION),
-        "lane": str(mapping.get("lane") or "").strip(),
-        "evidence_bundle": normalize_evidence_bundle(
-            mapping.get("evidence_bundle")
+        "schema_version": str(
+            mapping.get("schema_version") or COMPILER_CONTRACT_SCHEMA_VERSION
         ),
+        "lane": str(mapping.get("lane") or "").strip(),
+        "evidence_bundle": normalize_evidence_bundle(mapping.get("evidence_bundle")),
         "promoted_outcomes": normalize_promoted_outcomes(
             mapping.get("promoted_outcomes")
         ),
@@ -151,9 +151,19 @@ def build_compiler_contract_payload(
     )
 
 
-def build_au_public_handoff_contract(slice_payload: Mapping[str, Any]) -> dict[str, Any]:
-    summary = slice_payload.get("summary") if isinstance(slice_payload.get("summary"), Mapping) else {}
-    selected_facts = slice_payload.get("selected_facts") if isinstance(slice_payload.get("selected_facts"), list) else []
+def build_au_public_handoff_contract(
+    slice_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = (
+        slice_payload.get("summary")
+        if isinstance(slice_payload.get("summary"), Mapping)
+        else {}
+    )
+    selected_facts = (
+        slice_payload.get("selected_facts")
+        if isinstance(slice_payload.get("selected_facts"), list)
+        else []
+    )
     promoted_count = sum(
         1
         for row in selected_facts
@@ -203,9 +213,21 @@ def build_au_fact_review_bundle_contract(
     review_summary: Mapping[str, Any],
     source_documents: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    summary = fact_report.get("summary") if isinstance(fact_report.get("summary"), Mapping) else {}
-    review_queue = review_summary.get("review_queue") if isinstance(review_summary.get("review_queue"), list) else []
-    abstentions = fact_report.get("abstentions") if isinstance(fact_report.get("abstentions"), Mapping) else {}
+    summary = (
+        fact_report.get("summary")
+        if isinstance(fact_report.get("summary"), Mapping)
+        else {}
+    )
+    review_queue = (
+        review_summary.get("review_queue")
+        if isinstance(review_summary.get("review_queue"), list)
+        else []
+    )
+    abstentions = (
+        fact_report.get("abstentions")
+        if isinstance(fact_report.get("abstentions"), Mapping)
+        else {}
+    )
     abstained_count = _int(abstentions.get("fact_abstentions"))
     total_fact_count = _int(summary.get("fact_count"))
     review_count = len(review_queue)
@@ -243,10 +265,24 @@ def build_au_fact_review_bundle_contract(
     )
 
 
-def build_gwb_public_handoff_contract(slice_payload: Mapping[str, Any]) -> dict[str, Any]:
-    summary = slice_payload.get("summary") if isinstance(slice_payload.get("summary"), Mapping) else {}
-    seed_rows = slice_payload.get("selected_seed_lanes") if isinstance(slice_payload.get("selected_seed_lanes"), list) else []
-    unresolved_surfaces = slice_payload.get("unresolved_surfaces") if isinstance(slice_payload.get("unresolved_surfaces"), list) else []
+def build_gwb_public_handoff_contract(
+    slice_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = (
+        slice_payload.get("summary")
+        if isinstance(slice_payload.get("summary"), Mapping)
+        else {}
+    )
+    seed_rows = (
+        slice_payload.get("selected_seed_lanes")
+        if isinstance(slice_payload.get("selected_seed_lanes"), list)
+        else []
+    )
+    unresolved_surfaces = (
+        slice_payload.get("unresolved_surfaces")
+        if isinstance(slice_payload.get("unresolved_surfaces"), list)
+        else []
+    )
     matched_seed_count = sum(
         1
         for row in seed_rows
@@ -274,7 +310,10 @@ def build_gwb_public_handoff_contract(slice_payload: Mapping[str, Any]) -> dict[
             outcome_labels=_labels(
                 label
                 for label, count in (
-                    ("promoted_relation", _int(summary.get("selected_promoted_relation_count"))),
+                    (
+                        "promoted_relation",
+                        _int(summary.get("selected_promoted_relation_count")),
+                    ),
                     ("matched_seed_lane", matched_seed_count),
                     ("review_lane", review_count),
                 )
@@ -290,7 +329,9 @@ def build_gwb_public_handoff_contract(slice_payload: Mapping[str, Any]) -> dict[
 
 
 def build_gwb_public_review_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
-    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    summary = (
+        payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    )
     return build_compiler_contract_payload(
         lane="gwb",
         evidence_bundle=EvidenceBundleContract(
@@ -324,7 +365,9 @@ def build_gwb_public_review_contract(payload: Mapping[str, Any]) -> dict[str, An
 
 
 def build_gwb_broader_review_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
-    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    summary = (
+        payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    )
     derived_products = [
         DerivedProductContract("packet", "broader_review", True),
         DerivedProductContract("report", "normalized_review_summary", True),
@@ -362,11 +405,27 @@ def build_gwb_broader_review_contract(payload: Mapping[str, Any]) -> dict[str, A
     )
 
 
-def build_wikidata_migration_pack_contract(migration_pack: Mapping[str, Any]) -> dict[str, Any]:
-    summary = migration_pack.get("summary") if isinstance(migration_pack.get("summary"), Mapping) else {}
-    source_slice = migration_pack.get("source_slice") if isinstance(migration_pack.get("source_slice"), Mapping) else {}
-    checked_safe_subset = summary.get("checked_safe_subset") if isinstance(summary.get("checked_safe_subset"), list) else []
-    abstained = summary.get("abstained") if isinstance(summary.get("abstained"), list) else []
+def build_wikidata_migration_pack_contract(
+    migration_pack: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = (
+        migration_pack.get("summary")
+        if isinstance(migration_pack.get("summary"), Mapping)
+        else {}
+    )
+    source_slice = (
+        migration_pack.get("source_slice")
+        if isinstance(migration_pack.get("source_slice"), Mapping)
+        else {}
+    )
+    checked_safe_subset = (
+        summary.get("checked_safe_subset")
+        if isinstance(summary.get("checked_safe_subset"), list)
+        else []
+    )
+    abstained = (
+        summary.get("abstained") if isinstance(summary.get("abstained"), list) else []
+    )
     return build_compiler_contract_payload(
         lane="wikidata_nat",
         evidence_bundle=EvidenceBundleContract(
@@ -399,18 +458,36 @@ def build_wikidata_migration_pack_contract(migration_pack: Mapping[str, Any]) ->
     )
 
 
-def build_affidavit_coverage_review_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
-    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
-    source_input = payload.get("source_input") if isinstance(payload.get("source_input"), Mapping) else {}
-    affidavit_rows = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
+def build_affidavit_coverage_review_contract(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = (
+        payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    )
+    source_input = (
+        payload.get("source_input")
+        if isinstance(payload.get("source_input"), Mapping)
+        else {}
+    )
+    affidavit_rows = (
+        payload.get("affidavit_rows")
+        if isinstance(payload.get("affidavit_rows"), list)
+        else []
+    )
     promotion_statuses = [
         str((row or {}).get("promotion_status") or "").strip()
         for row in affidavit_rows
         if isinstance(row, Mapping)
     ]
-    promoted_true_count = sum(1 for status in promotion_statuses if status == "promoted_true")
-    promoted_false_count = sum(1 for status in promotion_statuses if status == "promoted_false")
-    conflict_count = sum(1 for status in promotion_statuses if status == "candidate_conflict")
+    promoted_true_count = sum(
+        1 for status in promotion_statuses if status == "promoted_true"
+    )
+    promoted_false_count = sum(
+        1 for status in promotion_statuses if status == "promoted_false"
+    )
+    conflict_count = sum(
+        1 for status in promotion_statuses if status == "candidate_conflict"
+    )
     abstained_count = sum(1 for status in promotion_statuses if status == "abstained")
 
     return build_compiler_contract_payload(
@@ -419,7 +496,8 @@ def build_affidavit_coverage_review_contract(payload: Mapping[str, Any]) -> dict
             bundle_kind="contested_affidavit_bundle",
             source_family=str(source_input.get("source_kind") or "affidavit_review"),
             source_count=1,
-            item_count=_int(summary.get("affidavit_proposition_count")) or len(affidavit_rows),
+            item_count=_int(summary.get("affidavit_proposition_count"))
+            or len(affidavit_rows),
             item_label="affidavit_proposition",
         ),
         promoted_outcomes=PromotedOutcomeContract(

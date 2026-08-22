@@ -15,7 +15,9 @@ class RibbonSegment:
     width_norm: float
 
 
-def compute_segments(lens: Dict[str, object], signals: Dict[str, List[float]], boundaries: List[int]) -> List[RibbonSegment]:
+def compute_segments(
+    lens: Dict[str, object], signals: Dict[str, List[float]], boundaries: List[int]
+) -> List[RibbonSegment]:
     if len(boundaries) < 2:
         raise ValueError("boundaries must include at least start/end")
     rho = evaluate_rho(lens, signals)
@@ -29,7 +31,7 @@ def compute_segments(lens: Dict[str, object], signals: Dict[str, List[float]], b
         width = 0.0 if total_mass == 0 else seg_mass / total_mass
         segments.append(
             RibbonSegment(
-                seg_id=f"seg-{idx+1}",
+                seg_id=f"seg-{idx + 1}",
                 start_idx=start,
                 end_idx=end,
                 mass=seg_mass,

@@ -13,7 +13,12 @@ def test_anchor_rule_atoms_to_normalized_tables(tmp_path):
         ),
         body="Sample body",
     )
-    rule_atom = RuleAtom(actor="a person", modality="must", action="pay damages", text="A person must pay damages")
+    rule_atom = RuleAtom(
+        actor="a person",
+        modality="must",
+        action="pay damages",
+        text="A person must pay damages",
+    )
 
     db_path = tmp_path / "ontology.db"
     with NormalizedOntologyStore(db_path) as store:
@@ -24,6 +29,8 @@ def test_anchor_rule_atoms_to_normalized_tables(tmp_path):
     try:
         assert conn.execute("SELECT COUNT(*) FROM legal_sources").fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM actor_classes").fetchone()[0] >= 1
-        assert conn.execute("SELECT COUNT(*) FROM rule_actor_classes").fetchone()[0] == len(results[0].actor_classes)
+        assert conn.execute("SELECT COUNT(*) FROM rule_actor_classes").fetchone()[
+            0
+        ] == len(results[0].actor_classes)
     finally:
         conn.close()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable, Sequence
+from typing import Sequence
 
 DEFAULT_FORBIDDEN_TERMS: tuple[str, ...] = (
     "compliance",
@@ -65,4 +65,6 @@ def assert_no_forbidden_language(
     hits = scan_forbidden_language(text, forbidden_terms)
     if hits:
         samples = "\n".join(f"- {hit.term}: ...{hit.context}..." for hit in hits[:10])
-        raise AssertionError(f"Forbidden language detected ({len(hits)} hits):\n{samples}")
+        raise AssertionError(
+            f"Forbidden language detected ({len(hits)} hits):\n{samples}"
+        )

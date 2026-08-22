@@ -85,7 +85,9 @@ def extract_citations(text: str) -> List[Dict[str, Optional[str]]]:
     return citations
 
 
-def fetch_debates(raw_debates: Iterable[Dict[str, str]]) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+def fetch_debates(
+    raw_debates: Iterable[Dict[str, str]],
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Convert raw debate data into graph ``nodes`` and ``edges``.
 
     Parameters
@@ -128,12 +130,14 @@ def fetch_debates(raw_debates: Iterable[Dict[str, str]]) -> Tuple[List[Dict[str,
             # Hansard tests expect a lean citation payload without internal metadata
             "citations": [ref.to_citation_dict() for ref in references],
         }
-        nodes.append({
-            "id": ident,
-            "type": "debate",
-            "body": body,
-            "metadata": metadata,
-        })
+        nodes.append(
+            {
+                "id": ident,
+                "type": "debate",
+                "body": body,
+                "metadata": metadata,
+            }
+        )
         for ref in references:
             if not ref.work:
                 continue

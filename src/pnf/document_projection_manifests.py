@@ -311,7 +311,9 @@ def partition_layer_records(
         for row in _annotation_rows(layer, "relation_annotations")
         if (mapped := _annotation_row_mapping(row)) is not None
         and int(
-            canonical_sha256({"relation_ref": str(mapped.get("relation_ref") or "")})[:8],
+            canonical_sha256({"relation_ref": str(mapped.get("relation_ref") or "")})[
+                :8
+            ],
             16,
         )
         % partition_count

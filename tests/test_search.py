@@ -1,9 +1,9 @@
 import json
-import json
 import subprocess
 from pathlib import Path
 
 import sys
+
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.storage import TextIndex

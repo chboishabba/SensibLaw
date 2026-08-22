@@ -17,7 +17,11 @@ def test_backfill_documents_migrates_rule_atoms(tmp_path):
         body="",
     )
     provision = Provision(text="sample provision")
-    provision.rule_atoms = [RuleAtom(actor="defendant", action="compensate", text="The defendant must compensate")]
+    provision.rule_atoms = [
+        RuleAtom(
+            actor="defendant", action="compensate", text="The defendant must compensate"
+        )
+    ]
     document.provisions.append(provision)
 
     db_path = tmp_path / "backfill.db"

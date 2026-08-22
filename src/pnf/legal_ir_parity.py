@@ -48,15 +48,21 @@ class IdentityParityResult:
 
     @property
     def result_ref(self) -> str:
-        return "semantic-identity-parity:" + canonical_sha256(self.to_dict(include_ref=False))
+        return "semantic-identity-parity:" + canonical_sha256(
+            self.to_dict(include_ref=False)
+        )
 
     def to_dict(self, *, include_ref: bool = True) -> dict[str, Any]:
         payload = {
             "control_snapshot_ref": self.control_snapshot_ref,
             "candidate_snapshot_ref": self.candidate_snapshot_ref,
             "identical": self.identical,
-            "added_refs": {key: list(value) for key, value in sorted(self.added_refs.items())},
-            "removed_refs": {key: list(value) for key, value in sorted(self.removed_refs.items())},
+            "added_refs": {
+                key: list(value) for key, value in sorted(self.added_refs.items())
+            },
+            "removed_refs": {
+                key: list(value) for key, value in sorted(self.removed_refs.items())
+            },
         }
         return {"result_ref": self.result_ref, **payload} if include_ref else payload
 

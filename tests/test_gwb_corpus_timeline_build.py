@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from scripts.gwb_corpus_timeline_build import _chunk_snippets, _is_tocish, _split_sentences
+from scripts.gwb_corpus_timeline_build import (
+    _chunk_snippets,
+    _is_tocish,
+    _split_sentences,
+)
 
 
 def test_split_sentences_and_toc_filter() -> None:
@@ -24,5 +28,11 @@ def test_chunk_snippets_prioritizes_salient_legal_sentences() -> None:
     ]
     chunks = _chunk_snippets(sents, max_snippets=4, snippet_chars=240)
     assert chunks
-    assert "Foreign Intelligence Surveillance Act" in chunks[0] or "Samuel Alito" in chunks[0]
-    assert any("John Roberts" in chunk or "Foreign Intelligence Surveillance Act" in chunk for chunk in chunks[:2])
+    assert (
+        "Foreign Intelligence Surveillance Act" in chunks[0]
+        or "Samuel Alito" in chunks[0]
+    )
+    assert any(
+        "John Roberts" in chunk or "Foreign Intelligence Surveillance Act" in chunk
+        for chunk in chunks[:2]
+    )

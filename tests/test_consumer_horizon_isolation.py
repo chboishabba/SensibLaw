@@ -4,17 +4,23 @@ from pathlib import Path
 
 import pytest
 
-from src.storage.postgres.consumer_sufficient_runtime_store import ConsumerSufficientRuntimeStore
+from src.storage.postgres.consumer_sufficient_runtime_store import (
+    ConsumerSufficientRuntimeStore,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
-M094 = ROOT / "database/postgres_migrations/094_context_scope_and_consumer_horizon_queue.sql"
+M094 = (
+    ROOT
+    / "database/postgres_migrations/094_context_scope_and_consumer_horizon_queue.sql"
+)
 
 
 def test_consumer_advance_uses_independent_queue_not_global_queue() -> None:
     sql = M094.read_text(encoding="utf-8")
     body = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.advance_numeric_pnf_horizon_work_for_consumer", 1
+        "CREATE OR REPLACE FUNCTION execution.advance_numeric_pnf_horizon_work_for_consumer",
+        1,
     )[1].split("$$;", 1)[0]
     assert "semantic_pnf_consumer_horizon_work_queue" in body
     assert "semantic_pnf_horizon_work_queue" not in body.replace(
@@ -28,7 +34,10 @@ def test_context_fit_is_scoped_by_numeric_mention_label() -> None:
     sql = M094.read_text(encoding="utf-8")
     view = sql.split(
         "CREATE OR REPLACE VIEW execution.semantic_pnf_world_context_fit_v1", 1
-    )[1].split("CREATE TABLE IF NOT EXISTS execution.semantic_pnf_consumer_horizon_work_queue", 1)[0]
+    )[1].split(
+        "CREATE TABLE IF NOT EXISTS execution.semantic_pnf_consumer_horizon_work_queue",
+        1,
+    )[0]
     assert "token.orth_symbol_id" in view
     assert "token.lemma_symbol_id" in view
     assert "requirement.label_symbol_id IN" in view

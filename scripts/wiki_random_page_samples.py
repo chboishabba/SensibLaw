@@ -29,7 +29,9 @@ def _fetch_random_titles(
     pacer: Optional[wiki_pull_api._RequestPacer],
 ) -> list[str]:
     if wiki not in wiki_pull_api.WIKIS:
-        raise SystemExit(f"unknown wiki '{wiki}' (choices: {', '.join(sorted(wiki_pull_api.WIKIS))})")
+        raise SystemExit(
+            f"unknown wiki '{wiki}' (choices: {', '.join(sorted(wiki_pull_api.WIKIS))})"
+        )
     url = wiki_pull_api._build_url(
         wiki_pull_api.WIKIS[wiki],
         {
@@ -89,7 +91,9 @@ def build_random_sample_manifest(
         ancestry_titles.add(str(parent_snapshot.title or "").strip())
         followed_rows: list[dict[str, Any]] = []
         seen_follow_titles: set[str] = set()
-        for follow_title in list(parent_snapshot.links or [])[: max(0, int(max_follow_links_per_page))]:
+        for follow_title in list(parent_snapshot.links or [])[
+            : max(0, int(max_follow_links_per_page))
+        ]:
             follow_title = str(follow_title or "").strip()
             if (
                 not follow_title
@@ -143,7 +147,9 @@ def build_random_sample_manifest(
             pacer=pacer,
         )
         snapshot_path = wiki_pull_api._write_snapshot(out_dir, snapshot)
-        followed_rows = _collect_followed_samples(parent_snapshot=snapshot, remaining_hops=int(follow_hops))
+        followed_rows = _collect_followed_samples(
+            parent_snapshot=snapshot, remaining_hops=int(follow_hops)
+        )
         sample_rows.append(
             {
                 "title": snapshot.title,
@@ -175,11 +181,19 @@ def build_random_sample_manifest(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Fetch random Wikipedia pages into a replayable snapshot manifest.")
-    parser.add_argument("--wiki", default="enwiki", choices=sorted(wiki_pull_api.WIKIS.keys()))
+    parser = argparse.ArgumentParser(
+        description="Fetch random Wikipedia pages into a replayable snapshot manifest."
+    )
+    parser.add_argument(
+        "--wiki", default="enwiki", choices=sorted(wiki_pull_api.WIKIS.keys())
+    )
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--namespace", type=int, default=0)
-    parser.add_argument("--out-dir", type=Path, default=Path("SensibLaw/.cache_local/wiki_random_page_samples"))
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=Path("SensibLaw/.cache_local/wiki_random_page_samples"),
+    )
     parser.add_argument("--out-manifest", type=Path, required=True)
     parser.add_argument("--max-links", type=int, default=50)
     parser.add_argument("--max-categories", type=int, default=50)
@@ -209,7 +223,10 @@ def main(argv: list[str] | None = None) -> int:
         max_follow_links_per_page=args.max_follow_links_per_page,
     )
     args.out_manifest.parent.mkdir(parents=True, exist_ok=True)
-    args.out_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    args.out_manifest.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     print(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 

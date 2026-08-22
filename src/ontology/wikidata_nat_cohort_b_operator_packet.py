@@ -73,7 +73,11 @@ def _normalize_review_rows(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
             }
         )
     normalized.sort(
-        key=lambda item: (-len(item["variance_flags"]), item["instance_of_qid"], item["row_id"])
+        key=lambda item: (
+            -len(item["variance_flags"]),
+            item["instance_of_qid"],
+            item["row_id"],
+        )
     )
     return normalized
 
@@ -89,7 +93,9 @@ def _variance_counts(rows: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     return {key: counts[key] for key in sorted(counts)}
 
 
-def _triage_prompts(*, decision: str, counts: Mapping[str, int], violations: Sequence[Mapping[str, Any]]) -> list[str]:
+def _triage_prompts(
+    *, decision: str, counts: Mapping[str, int], violations: Sequence[Mapping[str, Any]]
+) -> list[str]:
     if decision == "hold":
         if violations:
             return [
@@ -105,11 +111,17 @@ def _triage_prompts(*, decision: str, counts: Mapping[str, int], violations: Seq
         "Confirm class-local semantics before any migration-equivalence judgment.",
     ]
     if counts.get("unexpected_qualifier_properties", 0) > 0:
-        prompts.append("Inspect unexpected qualifier properties as potential class-specific semantics.")
+        prompts.append(
+            "Inspect unexpected qualifier properties as potential class-specific semantics."
+        )
     if counts.get("unexpected_reference_properties", 0) > 0:
-        prompts.append("Inspect unexpected reference properties for citation-shape drift.")
+        prompts.append(
+            "Inspect unexpected reference properties for citation-shape drift."
+        )
     if counts.get("mixed_temporal_qualifier_resolution", 0) > 0:
-        prompts.append("Resolve temporal qualifier-mode mixing before downstream decisions.")
+        prompts.append(
+            "Resolve temporal qualifier-mode mixing before downstream decisions."
+        )
     return prompts
 
 
@@ -119,16 +131,26 @@ def build_nat_cohort_b_operator_packet(
     max_rows: int = 5,
 ) -> dict[str, Any]:
     if not isinstance(review_bucket_payload, Mapping):
-        raise ValueError("Cohort B operator packet requires review bucket payload object")
-    if _stringify(review_bucket_payload.get("cohort_id")) != "cohort_b_reconciled_non_business":
-        raise ValueError("Cohort B operator packet requires cohort_b_reconciled_non_business payload")
+        raise ValueError(
+            "Cohort B operator packet requires review bucket payload object"
+        )
+    if (
+        _stringify(review_bucket_payload.get("cohort_id"))
+        != "cohort_b_reconciled_non_business"
+    ):
+        raise ValueError(
+            "Cohort B operator packet requires cohort_b_reconciled_non_business payload"
+        )
 
     source_decision = _stringify(review_bucket_payload.get("decision")) or "hold"
     if source_decision not in {"review_only", "hold"}:
         raise ValueError("review bucket decision must be review_only or hold")
 
     violations = [
-        {"row_id": _stringify(item.get("row_id")), "violation": _stringify(item.get("violation"))}
+        {
+            "row_id": _stringify(item.get("row_id")),
+            "violation": _stringify(item.get("violation")),
+        }
         for item in review_bucket_payload.get("contract_violations", [])
         if isinstance(item, Mapping)
     ]
@@ -208,12 +230,17 @@ def build_nat_cohort_b_operator_packet_world_model(
 ) -> dict[str, Any]:
     if not isinstance(operator_packet, Mapping):
         raise ValueError("world model requires operator packet object")
-    if _stringify(operator_packet.get("schema_version")) != WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_SCHEMA_VERSION:
+    if (
+        _stringify(operator_packet.get("schema_version"))
+        != WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_SCHEMA_VERSION
+    ):
         raise ValueError("world model requires Cohort B operator packet payload")
 
     context = _packet_context(operator_packet)
     selected_rows = operator_packet.get("selected_rows", [])
-    if not isinstance(selected_rows, Sequence) or isinstance(selected_rows, (str, bytes, bytearray)):
+    if not isinstance(selected_rows, Sequence) or isinstance(
+        selected_rows, (str, bytes, bytearray)
+    ):
         selected_rows = []
 
     mapping = ClaimStateRecordMapping(
@@ -264,16 +291,27 @@ def build_nat_cohort_b_operator_packet_world_model(
             "workflow_tranche_anchor",
         ],
         promotion_policy="review_only",
-        default_projection_kinds=["report", "claim_table", "review_surface", "linkage_case"],
+        default_projection_kinds=[
+            "report",
+            "claim_table",
+            "review_surface",
+            "linkage_case",
+        ],
         metadata={"lane_id": context["lane_id"], "cohort_id": context["cohort_id"]},
     )
     summary = {
         "claim_count": len(claims),
         "must_review_count": sum(
-            1 for claim in claims if _stringify(claim.get("action_policy", {}).get("actionability")) == "must_review"
+            1
+            for claim in claims
+            if _stringify(claim.get("action_policy", {}).get("actionability"))
+            == "must_review"
         ),
         "must_abstain_count": sum(
-            1 for claim in claims if _stringify(claim.get("action_policy", {}).get("actionability")) == "must_abstain"
+            1
+            for claim in claims
+            if _stringify(claim.get("action_policy", {}).get("actionability"))
+            == "must_abstain"
         ),
     }
     return build_candidate_world_model(
@@ -294,14 +332,24 @@ def build_nat_cohort_b_operator_packet_world_model(
             "governance": dict(operator_packet.get("governance"))
             if isinstance(operator_packet.get("governance"), Mapping)
             else {},
-            "selected_rows": [dict(row) for row in selected_rows if isinstance(row, Mapping)],
+            "selected_rows": [
+                dict(row) for row in selected_rows if isinstance(row, Mapping)
+            ],
         },
     )
 
 
 def _build_linkage_projection(world_model: Mapping[str, Any]) -> dict[str, Any]:
-    metadata = world_model.get("metadata") if isinstance(world_model.get("metadata"), Mapping) else {}
-    selected_rows = metadata.get("selected_rows") if isinstance(metadata.get("selected_rows"), Sequence) else []
+    metadata = (
+        world_model.get("metadata")
+        if isinstance(world_model.get("metadata"), Mapping)
+        else {}
+    )
+    selected_rows = (
+        metadata.get("selected_rows")
+        if isinstance(metadata.get("selected_rows"), Sequence)
+        else []
+    )
     packet_id = _stringify(metadata.get("packet_id")) or "operator-packet"
     lane_id = _stringify(metadata.get("lane_id")) or "nat"
     review_surface_id = f"operator_review_surface:{packet_id}"
@@ -435,7 +483,11 @@ def build_nat_cohort_b_operator_packet_world_model_report(
     operator_packet: Mapping[str, Any],
 ) -> dict[str, Any]:
     world_model = build_nat_cohort_b_operator_packet_world_model(operator_packet)
-    metadata = world_model.get("metadata") if isinstance(world_model.get("metadata"), Mapping) else {}
+    metadata = (
+        world_model.get("metadata")
+        if isinstance(world_model.get("metadata"), Mapping)
+        else {}
+    )
     lane_id = _stringify(metadata.get("lane_id"))
     packet_id = _stringify(metadata.get("packet_id"))
     claim_table = project_claim_table(
@@ -445,7 +497,9 @@ def build_nat_cohort_b_operator_packet_world_model_report(
     )
     review_surface = project_review_surface(
         world_model,
-        review_rows=metadata.get("selected_rows") if isinstance(metadata.get("selected_rows"), Sequence) else [],
+        review_rows=metadata.get("selected_rows")
+        if isinstance(metadata.get("selected_rows"), Sequence)
+        else [],
         workflow_summary={
             "decision": _stringify(metadata.get("decision")) or "hold",
             "review_first": True,
@@ -461,7 +515,9 @@ def build_nat_cohort_b_operator_packet_world_model_report(
         family_id="nat_cohort_b_operator_packet",
         workflow_summary=review_surface["payload"]["workflow_summary"],
         claims=world_model.get("claims"),
-        summary=world_model.get("summary") if isinstance(world_model.get("summary"), Mapping) else None,
+        summary=world_model.get("summary")
+        if isinstance(world_model.get("summary"), Mapping)
+        else None,
         projection_metadata={"profile_id": "nat_cohort_b_operator_packet"},
         extra_fields={
             "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
@@ -473,7 +529,9 @@ def build_nat_cohort_b_operator_packet_world_model_report(
             "cohort_id": _stringify(metadata.get("cohort_id")),
             "decision": _stringify(metadata.get("decision")) or "hold",
             "triage_prompts": _string_list(metadata.get("triage_prompts")),
-            "governance": dict(metadata.get("governance")) if isinstance(metadata.get("governance"), Mapping) else {},
+            "governance": dict(metadata.get("governance"))
+            if isinstance(metadata.get("governance"), Mapping)
+            else {},
             "review_surface": review_surface,
             "claim_table": claim_table,
             "linkage_case": linkage_case,

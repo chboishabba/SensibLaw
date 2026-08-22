@@ -145,7 +145,9 @@ def test_promote_contested_claim_preserves_non_reduction_with_fixture() -> None:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
 
     for case in payload["cases"]:
-        result = promote_contested_claim(build_contested_claim_candidate(**case["input"]))
+        result = promote_contested_claim(
+            build_contested_claim_candidate(**case["input"])
+        )
         expectation = case["expectation"]
         assert result["status"] == expectation["status"]
         assert result["needs_reconciliation"] == NEEDS_RECONCILIATION
@@ -211,7 +213,9 @@ def test_validate_relation_candidate_rejects_missing_required_field() -> None:
         raise AssertionError("Expected validate_relation_candidate to fail")
 
 
-def test_promote_relation_candidate_promotes_true_for_structural_promoted_relation() -> None:
+def test_promote_relation_candidate_promotes_true_for_structural_promoted_relation() -> (
+    None
+):
     result = promote_relation_candidate(
         build_relation_candidate(
             basis="structural",
@@ -226,7 +230,9 @@ def test_promote_relation_candidate_promotes_true_for_structural_promoted_relati
     assert result["status"] == PROMOTED_TRUE
 
 
-def test_promote_relation_candidate_abstains_for_non_promoted_or_non_structural_relation() -> None:
+def test_promote_relation_candidate_abstains_for_non_promoted_or_non_structural_relation() -> (
+    None
+):
     candidate_result = promote_relation_candidate(
         build_relation_candidate(
             basis="structural",

@@ -27,7 +27,9 @@ def test_template_residue_guard_detects_infobox_like_lines() -> None:
     assert ext._looks_like_template_residue(
         "<!--See WP:EDN--> | term_start1 = January 17, 1995 | term_end1 = December 21, 2000 | predecessor1 = Ann Richards"
     )
-    assert not ext._looks_like_template_residue("George Walker Bush was born on July 6, 1946, in New Haven.")
+    assert not ext._looks_like_template_residue(
+        "George Walker Bush was born on July 6, 1946, in New Haven."
+    )
 
 
 def test_parse_inline_anchors_extracts_embedded_month_day_year() -> None:
@@ -51,7 +53,9 @@ def test_parse_special_event_anchors_extracts_sept11_without_year() -> None:
 
 
 def test_parse_special_event_anchors_extracts_911_token() -> None:
-    anchors = ext._parse_special_event_anchors("He described 9/11 as a defining moment.")
+    anchors = ext._parse_special_event_anchors(
+        "He described 9/11 as a defining moment."
+    )
     assert len(anchors) == 1
     a = anchors[0]
     assert a.year == 2001 and a.month == 9 and a.day == 11
@@ -75,8 +79,22 @@ def test_lead_anchor_preference_drops_birth_day_when_service_range_present() -> 
         "who served as the 43rd president of the United States from 2001 to 2009."
     )
     anchors = [
-        ext.DateAnchor(year=1946, month=7, day=6, precision="day", text="July 6, 1946", kind="mention"),
-        ext.DateAnchor(year=2001, month=None, day=None, precision="year", text="from 2001 to 2009", kind="mention"),
+        ext.DateAnchor(
+            year=1946,
+            month=7,
+            day=6,
+            precision="day",
+            text="July 6, 1946",
+            kind="mention",
+        ),
+        ext.DateAnchor(
+            year=2001,
+            month=None,
+            day=None,
+            precision="year",
+            text="from 2001 to 2009",
+            kind="mention",
+        ),
     ]
     out = ext._apply_lead_anchor_preference("(lead)", sentence, anchors)
     assert any(a.year == 2001 and a.precision == "year" for a in out)

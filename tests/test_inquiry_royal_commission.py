@@ -19,13 +19,22 @@ def test_inquiry_contract_distinguishes_advisory_role():
 def test_sample_inquiries_include_influence_targets():
     inquiries = build_sample_inquiries()
     assert "inquiry:aus:rcs:2009:banking" in inquiries
-    assert "law:aus:consumer_credit" in inquiries["inquiry:aus:rcs:2009:banking"].influence_targets
+    assert (
+        "law:aus:consumer_credit"
+        in inquiries["inquiry:aus:rcs:2009:banking"].influence_targets
+    )
     assert "executive_power" in inquiries["inquiry:aus:rcs:2009:banking"].advisory_tags
-    assert inquiries["inquiry:uk:rcs:2015:child_protection"].jurisdiction == "United Kingdom"
+    assert (
+        inquiries["inquiry:uk:rcs:2015:child_protection"].jurisdiction
+        == "United Kingdom"
+    )
 
 
 def test_exported_reports_preserve_dates():
     exported = export_inquiry_reports()
     canada = exported["inquiry:ca:commission:2020:healthcare"]
     assert canada["issued_date"] == "2020-08-30"
-    assert "federalism" in canada["summary"].lower() or "federal" in canada["summary"].lower()
+    assert (
+        "federalism" in canada["summary"].lower()
+        or "federal" in canada["summary"].lower()
+    )

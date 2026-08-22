@@ -70,7 +70,10 @@ def test_human_event_writes_trace_line() -> None:
     stream = io.StringIO()
     with redirect_stderr(stream):
         assert callback is not None
-        callback("tokenized", {"proposition_id": "aff-prop:p1-s1", "tokens": ["internet", "november"]})
+        callback(
+            "tokenized",
+            {"proposition_id": "aff-prop:p1-s1", "tokens": ["internet", "november"]},
+        )
     output = stream.getvalue()
     assert "[trace] tokenized" in output
     assert "proposition_id=aff-prop:p1-s1" in output

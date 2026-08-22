@@ -46,16 +46,22 @@ def _as_question_lookup(cluster_pack: Mapping[str, Any]) -> dict[str, dict[str, 
             question_lookup: dict[str, dict[str, Any]] = {}
             for question in questions:
                 if not isinstance(question, Mapping):
-                    raise ValueError(f"cluster question entries must be objects: {cluster_id}")
+                    raise ValueError(
+                        f"cluster question entries must be objects: {cluster_id}"
+                    )
                 question_id = _require_string(question, "question_id")
                 _require_string(question, "text")
                 if question_id in question_lookup:
-                    raise ValueError(f"duplicate question id in cluster pack: {question_id}")
+                    raise ValueError(
+                        f"duplicate question id in cluster pack: {question_id}"
+                    )
                 question_lookup[question_id] = dict(question)
             lookup[cluster_id] = {
                 "pack_id": pack_id,
                 "cluster_family": _require_string(cluster, "cluster_family"),
-                "supporting_hotspot_family": _require_string(cluster, "supporting_hotspot_family"),
+                "supporting_hotspot_family": _require_string(
+                    cluster, "supporting_hotspot_family"
+                ),
                 "expected_polarity": _require_string(cluster, "expected_polarity"),
                 "questions": question_lookup,
             }
@@ -134,11 +140,15 @@ def evaluate_hotspot_cluster_pack(
             raise ValueError(
                 f"missing responses for cluster_id '{cluster_id}': {', '.join(missing)}"
             )
-        ordered_results = [responses[question_id] for question_id in cluster["questions"]]
+        ordered_results = [
+            responses[question_id] for question_id in cluster["questions"]
+        ]
         distribution = {"yes": 0, "no": 0, "abstain": 0}
         for item in ordered_results:
             distribution[item["label"]] += 1
-        non_abstain = [item["label"] for item in ordered_results if item["label"] != "abstain"]
+        non_abstain = [
+            item["label"] for item in ordered_results if item["label"] != "abstain"
+        ]
         expected = cluster["expected_polarity"]
         opposite = "no" if expected == "yes" else "yes"
         if not non_abstain:
@@ -166,14 +176,26 @@ def evaluate_hotspot_cluster_pack(
 
         hotspot_bucket = by_hotspot_family.setdefault(
             cluster["supporting_hotspot_family"],
-            {"total": 0, "consistent": 0, "inconsistent": 0, "incomplete": 0, "abstained": 0},
+            {
+                "total": 0,
+                "consistent": 0,
+                "inconsistent": 0,
+                "incomplete": 0,
+                "abstained": 0,
+            },
         )
         hotspot_bucket["total"] += 1
         hotspot_bucket[classification] += 1
 
         cluster_bucket = by_cluster_family.setdefault(
             cluster["cluster_family"],
-            {"total": 0, "consistent": 0, "inconsistent": 0, "incomplete": 0, "abstained": 0},
+            {
+                "total": 0,
+                "consistent": 0,
+                "inconsistent": 0,
+                "incomplete": 0,
+                "abstained": 0,
+            },
         )
         cluster_bucket["total"] += 1
         cluster_bucket[classification] += 1

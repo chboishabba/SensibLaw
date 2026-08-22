@@ -76,7 +76,9 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     _EpistemicClassifier = None
     try:  # pragma: no cover - repo-root script execution fallback
-        from SensibLaw.src.nlp.epistemic_classifier import EpistemicClassifier as _EpistemicClassifier
+        from SensibLaw.src.nlp.epistemic_classifier import (
+            EpistemicClassifier as _EpistemicClassifier,
+        )
     except Exception:
         pass
 
@@ -85,16 +87,22 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     _EventClassifier = None
     try:  # pragma: no cover - repo-root script execution fallback
-        from SensibLaw.src.nlp.event_classifier import EventClassifier as _EventClassifier
+        from SensibLaw.src.nlp.event_classifier import (
+            EventClassifier as _EventClassifier,
+        )
     except Exception:
         pass
 
 try:
-    from src.nlp.synset_mapper import DeterministicSynsetActionMapper as _SynsetActionMapper
+    from src.nlp.synset_mapper import (
+        DeterministicSynsetActionMapper as _SynsetActionMapper,
+    )
 except Exception:  # pragma: no cover - optional dependency
     _SynsetActionMapper = None
     try:  # pragma: no cover - repo-root script execution fallback
-        from SensibLaw.src.nlp.synset_mapper import DeterministicSynsetActionMapper as _SynsetActionMapper
+        from SensibLaw.src.nlp.synset_mapper import (
+            DeterministicSynsetActionMapper as _SynsetActionMapper,
+        )
     except Exception:
         pass
 
@@ -167,14 +175,18 @@ PARTY_ROLE_LABELS = {
     "the diocese",
     "diocese",
 }
-HONORIFIC_RE = re.compile(r"^(?:Mr|Mrs|Ms|Dr|Fr|Father|Justice|Judge)\.?\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)?$")
+HONORIFIC_RE = re.compile(
+    r"^(?:Mr|Mrs|Ms|Dr|Fr|Father|Justice|Judge)\.?\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)?$"
+)
 REQUESTER_TITLE_PREFIX_RE = re.compile(
     r"^(?:President|Prime Minister|PM|Senator|Governor|Justice|Judge|Mr|Mrs|Ms|Dr)\.?\s+",
     re.IGNORECASE,
 )
 CITATION_TOKEN_RE = re.compile(r"\b(?:CAB|SC|AS|RS|ABFM)\b", re.IGNORECASE)
 CITATION_PAREN_RE = re.compile(r"\(([^)]{1,180})\)")
-CITATION_TRAIL_RE = re.compile(r"(?:\s*[\[(](?:CAB|SC|AS|RS|ABFM)[^\])]{0,60}[\])])+\s*$", re.IGNORECASE)
+CITATION_TRAIL_RE = re.compile(
+    r"(?:\s*[\[(](?:CAB|SC|AS|RS|ABFM)[^\])]{0,60}[\])])+\s*$", re.IGNORECASE
+)
 POSSESSIVE_EVIDENCE_RE = re.compile(
     r"\b((?:Mr|Mrs|Ms|Dr|Fr|Father|Justice|Judge)\.?\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)?)\s*(?:’|')s\b",
     re.IGNORECASE,
@@ -274,7 +286,11 @@ def _resolve_requester_label(candidate: str, alias_map: Dict[str, str]) -> str:
     c = _normalize_requester_surface(candidate)
     if not c:
         return ""
-    alias_lower = {str(k).strip().lower(): str(v) for k, v in (alias_map or {}).items() if str(k).strip() and str(v).strip()}
+    alias_lower = {
+        str(k).strip().lower(): str(v)
+        for k, v in (alias_map or {}).items()
+        if str(k).strip() and str(v).strip()
+    }
     probes = [c]
     core = REQUESTER_TITLE_PREFIX_RE.sub("", c).strip()
     if core:
@@ -293,7 +309,9 @@ def _resolve_requester_label(candidate: str, alias_map: Dict[str, str]) -> str:
     return core or c
 
 
-def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optional[str], Optional[str], bool]:
+def _extract_requester_from_doc(
+    doc, alias_map: Dict[str, str]
+) -> Tuple[Optional[str], Optional[str], bool]:
     if doc is None:
         return None, None, False
     for tok in doc:
@@ -302,7 +320,11 @@ def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optiona
         if lemma != "request" or pos not in {"NOUN", "PROPN"}:
             continue
 
-        poss_tokens = [c for c in tok.children if str(getattr(c, "dep_", "") or "") in {"poss", "nmod:poss"}]
+        poss_tokens = [
+            c
+            for c in tok.children
+            if str(getattr(c, "dep_", "") or "") in {"poss", "nmod:poss"}
+        ]
         expanded = []
         for p in poss_tokens:
             expanded.append(p)
@@ -324,14 +346,21 @@ def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optiona
 
         candidate = _normalize_requester_surface(candidate)
         resolved = _resolve_requester_label(candidate, alias_map)
-        subtree_tokens = [str(getattr(x, "text", "") or "").lower() for x in getattr(tok, "subtree", [])]
-        has_title = "president" in subtree_tokens or str(candidate).lower().startswith("president ")
+        subtree_tokens = [
+            str(getattr(x, "text", "") or "").lower()
+            for x in getattr(tok, "subtree", [])
+        ]
+        has_title = "president" in subtree_tokens or str(candidate).lower().startswith(
+            "president "
+        )
         return candidate, resolved, has_title
 
     return None, None, False
 
 
-def _extract_requester_from_request_verbs(doc, alias_map: Dict[str, str]) -> Tuple[Optional[str], Optional[str], str]:
+def _extract_requester_from_request_verbs(
+    doc, alias_map: Dict[str, str]
+) -> Tuple[Optional[str], Optional[str], str]:
     """
     Extract the *target* of a request-like action (e.g. "urged Congress to ...").
     Returns (surface, resolved, source) or (None, None, "").
@@ -339,7 +368,11 @@ def _extract_requester_from_request_verbs(doc, alias_map: Dict[str, str]) -> Tup
     if doc is None:
         return None, None, ""
 
-    alias_lower = {str(k).strip().lower(): str(v) for k, v in (alias_map or {}).items() if str(k).strip() and str(v).strip()}
+    alias_lower = {
+        str(k).strip().lower(): str(v)
+        for k, v in (alias_map or {}).items()
+        if str(k).strip() and str(v).strip()
+    }
 
     def resolve(surface: str) -> str:
         s = _normalize_requester_surface(surface)
@@ -387,7 +420,10 @@ def _extract_requester_from_request_verbs(doc, alias_map: Dict[str, str]) -> Tup
                     continue
                 for gc in getattr(ch, "children", []):
                     dep = str(getattr(gc, "dep_", "") or "")
-                    if dep in {"mark", "aux"} and str(getattr(gc, "lemma_", "") or "").lower() == "to":
+                    if (
+                        dep in {"mark", "aux"}
+                        and str(getattr(gc, "lemma_", "") or "").lower() == "to"
+                    ):
                         has_inf = True
                         break
                 if has_inf:
@@ -420,7 +456,14 @@ def _extract_requester_from_request_verbs(doc, alias_map: Dict[str, str]) -> Tup
                 res = resolve(surf)
                 if not res:
                     continue
-                candidates.append((int(getattr(tok, "i", 10**9) or 10**9), surf, res, f"dep:req_verb:{lemma}"))
+                candidates.append(
+                    (
+                        int(getattr(tok, "i", 10**9) or 10**9),
+                        surf,
+                        res,
+                        f"dep:req_verb:{lemma}",
+                    )
+                )
         except Exception:
             continue
 
@@ -464,7 +507,9 @@ def _extract_passive_agents_from_doc(doc) -> List[str]:
     return out
 
 
-REQUEST_RE = re.compile(r"\bat\s+(?:President\s+)?([A-Z][a-z]+)(?:'s)?\s+request\b", re.IGNORECASE)
+REQUEST_RE = re.compile(
+    r"\bat\s+(?:President\s+)?([A-Z][a-z]+)(?:'s)?\s+request\b", re.IGNORECASE
+)
 
 
 DEFAULT_REQUESTER_TITLE_LABELS: Dict[str, str] = {
@@ -497,7 +542,14 @@ DEFAULT_COMMUNICATION_CHAIN_CONFIG: Dict[str, object] = {
 DEFAULT_MODAL_CONTAINER_GRAMMAR: Dict[str, Dict[str, object]] = {
     "have": {
         "container_deps": ["dobj", "obj", "attr"],
-        "container_nouns": ["tendency", "opportunity", "ability", "capacity", "failure", "requirement"],
+        "container_nouns": [
+            "tendency",
+            "opportunity",
+            "ability",
+            "capacity",
+            "failure",
+            "requirement",
+        ],
         "require_to": True,
         "promote": "xcomp",
     },
@@ -559,7 +611,9 @@ DEFAULT_ACTION_PATTERN_SPECS: List[Tuple[str, str]] = [
 ]
 
 
-def _compile_action_patterns(pattern_specs: List[Tuple[str, str]]) -> List[Tuple[str, re.Pattern[str]]]:
+def _compile_action_patterns(
+    pattern_specs: List[Tuple[str, str]],
+) -> List[Tuple[str, re.Pattern[str]]]:
     compiled: List[Tuple[str, re.Pattern[str]]] = []
     for label, pattern in pattern_specs:
         lab = str(label or "").strip()
@@ -573,7 +627,9 @@ def _compile_action_patterns(pattern_specs: List[Tuple[str, str]]) -> List[Tuple
     return compiled
 
 
-ACTION_PATTERNS: List[Tuple[str, re.Pattern[str]]] = _compile_action_patterns(DEFAULT_ACTION_PATTERN_SPECS)
+ACTION_PATTERNS: List[Tuple[str, re.Pattern[str]]] = _compile_action_patterns(
+    DEFAULT_ACTION_PATTERN_SPECS
+)
 
 # Passive agent extraction for "were advised by the X ...", stopping before "to" (or punctuation).
 # Keep this narrow and conservative; it's identity glue, not a full parser.
@@ -587,6 +643,7 @@ US_ALIASES = {
     "u.s": "United States",
     "united states": "United States",
 }
+
 
 def _is_year_token(tok: str) -> bool:
     s = (tok or "").strip()
@@ -784,7 +841,9 @@ def _profile_requester_title_labels(profile_payload: dict) -> Dict[str, str]:
     return out
 
 
-def _profile_modal_container_grammar(profile_payload: dict) -> Dict[str, Dict[str, object]]:
+def _profile_modal_container_grammar(
+    profile_payload: dict,
+) -> Dict[str, Dict[str, object]]:
     rows = profile_payload.get("modal_container_grammar")
     if not isinstance(rows, dict):
         return dict(DEFAULT_MODAL_CONTAINER_GRAMMAR)
@@ -793,11 +852,23 @@ def _profile_modal_container_grammar(profile_payload: dict) -> Dict[str, Dict[st
         hk = str(head or "").strip().lower()
         if not hk or not isinstance(rule, dict):
             continue
-        deps = [str(x).strip() for x in (rule.get("container_deps") or []) if str(x).strip()]
-        nouns = [str(x).strip().lower() for x in (rule.get("container_nouns") or []) if str(x).strip()]
+        deps = [
+            str(x).strip() for x in (rule.get("container_deps") or []) if str(x).strip()
+        ]
+        nouns = [
+            str(x).strip().lower()
+            for x in (rule.get("container_nouns") or [])
+            if str(x).strip()
+        ]
         out[hk] = {
-            "container_deps": deps or list(DEFAULT_MODAL_CONTAINER_GRAMMAR.get(hk, {}).get("container_deps") or []),
-            "container_nouns": nouns or list(DEFAULT_MODAL_CONTAINER_GRAMMAR.get(hk, {}).get("container_nouns") or []),
+            "container_deps": deps
+            or list(
+                DEFAULT_MODAL_CONTAINER_GRAMMAR.get(hk, {}).get("container_deps") or []
+            ),
+            "container_nouns": nouns
+            or list(
+                DEFAULT_MODAL_CONTAINER_GRAMMAR.get(hk, {}).get("container_nouns") or []
+            ),
             "require_to": bool(rule.get("require_to", True)),
             "promote": str(rule.get("promote") or "xcomp"),
         }
@@ -819,7 +890,9 @@ def _profile_communication_chain_config(profile_payload: dict) -> Dict[str, obje
             cfg[key] = bool(rows.get(key))
     if "embedded_step_limit" in rows:
         try:
-            cfg["embedded_step_limit"] = max(1, int(rows.get("embedded_step_limit") or 1))
+            cfg["embedded_step_limit"] = max(
+                1, int(rows.get("embedded_step_limit") or 1)
+            )
         except Exception:
             pass
     heads = rows.get("embedded_step_heads")
@@ -836,13 +909,19 @@ def _profile_communication_chain_config(profile_payload: dict) -> Dict[str, obje
     return cfg
 
 
-def _profile_epistemic_verbs(profile_payload: dict, comm_cfg: Dict[str, object]) -> List[str]:
+def _profile_epistemic_verbs(
+    profile_payload: dict, comm_cfg: Dict[str, object]
+) -> List[str]:
     explicit = profile_payload.get("epistemic_verbs")
     if isinstance(explicit, list):
         out = [str(x or "").strip().lower() for x in explicit if str(x or "").strip()]
         if out:
             return list(dict.fromkeys(out))
-    comm = [str(x or "").strip().lower() for x in (comm_cfg.get("communication_verbs") or []) if str(x or "").strip()]
+    comm = [
+        str(x or "").strip().lower()
+        for x in (comm_cfg.get("communication_verbs") or [])
+        if str(x or "").strip()
+    ]
     return list(dict.fromkeys(comm))
 
 
@@ -850,7 +929,9 @@ _ALLOWED_SEMANTIC_RESOURCES = {"none", "wordnet", "babelnet", "wordnet+babelnet"
 _ALLOWED_WSD_POLICIES = {"none", "rule_deterministic", "model_version_pinned"}
 
 
-def _profile_semantic_backbone_config(profile_payload: dict) -> Tuple[Dict[str, object], List[str], Optional[str]]:
+def _profile_semantic_backbone_config(
+    profile_payload: dict,
+) -> Tuple[Dict[str, object], List[str], Optional[str]]:
     cfg_raw = profile_payload.get("semantic_backbone")
     cfg = cfg_raw if isinstance(cfg_raw, dict) else {}
     warnings: List[str] = []
@@ -942,7 +1023,9 @@ def _profile_semantic_version_pins(profile_payload: dict) -> Dict[str, str]:
     return out
 
 
-def _try_load_spacy(model: str) -> Tuple[Optional[object], Optional[dict], Optional[str]]:
+def _try_load_spacy(
+    model: str,
+) -> Tuple[Optional[object], Optional[dict], Optional[str]]:
     try:
         import spacy  # type: ignore
 
@@ -981,12 +1064,23 @@ def _try_load_spacy(model: str) -> Tuple[Optional[object], Optional[dict], Optio
         return None, None, f"{type(e).__name__}: {e}"
 
 
-def _span_type_for_np(chunk_text: str, head_lemma: str, has_acronym: bool, has_propn: bool) -> str:
+def _span_type_for_np(
+    chunk_text: str, head_lemma: str, has_acronym: bool, has_propn: bool
+) -> str:
     # Span candidates are explicitly not entities; this is a shallow hint for surfacing.
     # This must not be used as a truth admissibility gate.
     lemma = (head_lemma or "").lower()
     if has_acronym or has_propn:
-        if lemma in {"inspector", "inspectors", "official", "officials", "troop", "troops", "guard", "guards"}:
+        if lemma in {
+            "inspector",
+            "inspectors",
+            "official",
+            "officials",
+            "troop",
+            "troops",
+            "guard",
+            "guards",
+        }:
             return "COLLECTIVE_ROLE"
     if lemma in {"inspectors", "inspector"}:
         return "COLLECTIVE_ROLE"
@@ -1045,7 +1139,9 @@ def _extract_purpose_from_doc(doc) -> Optional[str]:
             purpose = str(getattr(span, "text", "") or "").strip()
             if purpose.lower().startswith("to "):
                 purpose = purpose[3:].strip()
-            purpose = _clean_entity_surface(_strip_parenthetical_citation_noise(purpose))
+            purpose = _clean_entity_surface(
+                _strip_parenthetical_citation_noise(purpose)
+            )
             if not purpose:
                 continue
             if len(purpose) > 220:
@@ -1082,15 +1178,25 @@ def _promote_modal_container_action(
         if str(rule.get("promote") or "").strip().lower() != "xcomp":
             return action, None
 
-        dep_allow = {str(x).strip() for x in (rule.get("container_deps") or []) if str(x).strip()}
-        noun_allow = {str(x).strip().lower() for x in (rule.get("container_nouns") or []) if str(x).strip()}
+        dep_allow = {
+            str(x).strip() for x in (rule.get("container_deps") or []) if str(x).strip()
+        }
+        noun_allow = {
+            str(x).strip().lower()
+            for x in (rule.get("container_nouns") or [])
+            if str(x).strip()
+        }
 
         container = None
         for c in root.children:
             dep = str(getattr(c, "dep_", "") or "")
             if dep_allow and dep not in dep_allow:
                 continue
-            lem = str(getattr(c, "lemma_", "") or getattr(c, "text", "") or "").strip().lower()
+            lem = (
+                str(getattr(c, "lemma_", "") or getattr(c, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if noun_allow and lem not in noun_allow:
                 continue
             container = c
@@ -1134,12 +1240,24 @@ def _promote_modal_container_action(
             if not has_to:
                 return action, None
 
-        promoted = str(getattr(promoted_verb, "lemma_", "") or getattr(promoted_verb, "text", "") or "").strip().lower()
+        promoted = (
+            str(
+                getattr(promoted_verb, "lemma_", "")
+                or getattr(promoted_verb, "text", "")
+                or ""
+            )
+            .strip()
+            .lower()
+        )
         if not promoted:
             return action, None
         mod = {
             "kind": "modal_container",
-            "container": str(getattr(container, "lemma_", "") or getattr(container, "text", "") or "").strip().lower(),
+            "container": str(
+                getattr(container, "lemma_", "") or getattr(container, "text", "") or ""
+            )
+            .strip()
+            .lower(),
             "governing_action": root_lemma,
             "source": "dep_modal_container",
         }
@@ -1217,7 +1335,11 @@ def _action_lemmas(action: str) -> Tuple[str, ...]:
 
 
 def _is_claim_bearing_action(action: str, epistemic_verbs: List[str]) -> bool:
-    verbs = {str(x or "").strip().lower() for x in (epistemic_verbs or []) if str(x or "").strip()}
+    verbs = {
+        str(x or "").strip().lower()
+        for x in (epistemic_verbs or [])
+        if str(x or "").strip()
+    }
     if not verbs:
         return False
     for lemma in _action_lemmas(action):
@@ -1253,7 +1375,11 @@ def _step_token_map_for_actions(doc, steps: List[dict]) -> Dict[int, object]:
     out: Dict[int, object] = {}
     used = set()
     for idx, step in enumerate(steps):
-        lemmas = {str(x or "").strip().lower() for x in _action_lemmas(str(step.get("action") or "")) if str(x or "").strip()}
+        lemmas = {
+            str(x or "").strip().lower()
+            for x in _action_lemmas(str(step.get("action") or ""))
+            if str(x or "").strip()
+        }
         if not lemmas:
             continue
         cands = []
@@ -1304,10 +1430,14 @@ def _annotate_claim_bearing_steps(
             if classifier is not None:
                 try:
                     ci = classifier.classify_from_doc(doc, int(getattr(tok, "i", -1)))
-                    ptype = str(getattr(getattr(ci, "predicate_type", None), "value", "") or "")
+                    ptype = str(
+                        getattr(getattr(ci, "predicate_type", None), "value", "") or ""
+                    )
                     if ptype:
                         step["predicate_type"] = ptype
-                    step["predicate_confidence"] = float(getattr(ci, "confidence", 0.0) or 0.0)
+                    step["predicate_confidence"] = float(
+                        getattr(ci, "confidence", 0.0) or 0.0
+                    )
                     feats = getattr(ci, "features", None)
                     if isinstance(feats, dict):
                         step["classification_features"] = feats
@@ -1332,11 +1462,17 @@ def _canonical_action_from_doc(doc, action: str) -> Tuple[str, Optional[dict]]:
     base = _base_action_label(action)
     if not base:
         return "", None
-    lemmas = {str(x or "").strip().lower() for x in _action_lemmas(base) if str(x or "").strip()}
+    lemmas = {
+        str(x or "").strip().lower()
+        for x in _action_lemmas(base)
+        if str(x or "").strip()
+    }
     if not doc:
         fallback_lemma = next(iter(lemmas)) if lemmas else base
         if _unknown_action_morphology is not None:
-            meta = _unknown_action_morphology(surface=str(action or ""), source="fallback:action_lemmas")
+            meta = _unknown_action_morphology(
+                surface=str(action or ""), source="fallback:action_lemmas"
+            )
         else:
             meta = {
                 "surface": str(action or ""),
@@ -1361,7 +1497,9 @@ def _canonical_action_from_doc(doc, action: str) -> Tuple[str, Optional[dict]]:
     if not candidates:
         fallback_lemma = next(iter(lemmas)) if lemmas else base
         if _unknown_action_morphology is not None:
-            meta = _unknown_action_morphology(surface=str(action or ""), source="fallback:action_lemmas")
+            meta = _unknown_action_morphology(
+                surface=str(action or ""), source="fallback:action_lemmas"
+            )
         else:
             meta = {
                 "surface": str(action or ""),
@@ -1460,7 +1598,18 @@ def _token_set(s: str) -> set:
     return out
 
 
-_NON_VERB_HEAD_WORDS = {"for", "with", "into", "of", "in", "on", "at", "by", "from", "about"}
+_NON_VERB_HEAD_WORDS = {
+    "for",
+    "with",
+    "into",
+    "of",
+    "in",
+    "on",
+    "at",
+    "by",
+    "from",
+    "about",
+}
 _NUMERIC_VALUE_RE = re.compile(r"^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?%?$")
 _NUMERIC_MENTION_RE = re.compile(
     r"(?:(?:us\$|a\$|[$€£])\s*|(?:usd|aud|eur|gbp)\s+)?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:%|percent|per\s+cent|million|billion|trillion|thousand|hundred|years?|months?|days?|lines?|points?|dollars?|usd|aud|eur|gbp)?",
@@ -1705,7 +1854,9 @@ def _numeric_key(raw: str) -> str:
             unit = uniq_units[0]
         elif len(uniq_units) == 2:
             scale = next((u for u in uniq_units if u in _NUMERIC_SCALE_TOKENS), "")
-            currency = next((u for u in uniq_units if u in _NUMERIC_CURRENCY_WORD_TOKENS), "")
+            currency = next(
+                (u for u in uniq_units if u in _NUMERIC_CURRENCY_WORD_TOKENS), ""
+            )
             if not (scale and currency):
                 return ""
             multiplier = _NUMERIC_SCALE_MULTIPLIERS.get(scale)
@@ -1784,7 +1935,9 @@ def _numeric_expression_metadata(raw: str, nk: str) -> dict:
                     scale_word = cand_scale
     if scale_word in _NUMERIC_SCALE_MULTIPLIERS:
         try:
-            exp_str = format(_NUMERIC_SCALE_MULTIPLIERS[scale_word], "E").split("E", 1)[1]
+            exp_str = format(_NUMERIC_SCALE_MULTIPLIERS[scale_word], "E").split("E", 1)[
+                1
+            ]
             exponent = int(exp_str)
         except Exception:
             exponent = None
@@ -1793,7 +1946,10 @@ def _numeric_expression_metadata(raw: str, nk: str) -> dict:
     coercion_applied = False
     if mantissa_text and canonical_value:
         try:
-            coercion_applied = format(Decimal(mantissa_text).normalize(), "f").rstrip("0").rstrip(".") != canonical_value
+            coercion_applied = (
+                format(Decimal(mantissa_text).normalize(), "f").rstrip("0").rstrip(".")
+                != canonical_value
+            )
         except Exception:
             coercion_applied = bool(scale_word)
     elif scale_word:
@@ -1825,13 +1981,13 @@ def _numeric_surface_metadata(raw: str) -> dict:
     elif re.search(r"(?:us\$|a\$|\$|€|£)\s*$", text, flags=re.IGNORECASE):
         currency_symbol_position = "suffix"
     compact_suffix_used = bool(re.search(r"\d(?:k|m|bn|b|t)\b", low))
-    scale_word_used = bool(re.search(r"\b(?:hundred|thousand|million|billion|trillion)\b", low)) or bool(
-        re.search(r"\d(?:hundred|thousand|million|billion|trillion)\b", low)
-    )
+    scale_word_used = bool(
+        re.search(r"\b(?:hundred|thousand|million|billion|trillion)\b", low)
+    ) or bool(re.search(r"\d(?:hundred|thousand|million|billion|trillion)\b", low))
     thousands_separator_used = bool(re.search(r"\d,\d", text))
-    if re.search(r"\d(?:hundred|thousand|million|billion|trillion)\b", low) or re.search(
-        r"(?:us\$|a\$|\$|€|£)\d", text, flags=re.IGNORECASE
-    ):
+    if re.search(
+        r"\d(?:hundred|thousand|million|billion|trillion)\b", low
+    ) or re.search(r"(?:us\$|a\$|\$|€|£)\d", text, flags=re.IGNORECASE):
         spacing_pattern = "no_space"
     elif re.search(r"\d\s+(?:hundred|thousand|million|billion|trillion)\b", low):
         spacing_pattern = "space"
@@ -1843,7 +1999,9 @@ def _numeric_surface_metadata(raw: str) -> dict:
         "scale_word_used": scale_word_used,
         "thousands_separator_used": thousands_separator_used,
         "spacing_pattern": spacing_pattern,
-        "raw_surface_hash": hashlib.sha1(low.encode("utf-8")).hexdigest()[:16] if low else None,
+        "raw_surface_hash": hashlib.sha1(low.encode("utf-8")).hexdigest()[:16]
+        if low
+        else None,
     }
 
 
@@ -1935,7 +2093,13 @@ def _collect_date_like_char_ranges(doc) -> List[Tuple[int, int]]:
 
             j = i + 1
             # Skip punctuation like commas between month and day.
-            while j < len(toks) and str(getattr(toks[j], "text", "") or "").strip() in {",", ".", "–", "-", "—"}:
+            while j < len(toks) and str(getattr(toks[j], "text", "") or "").strip() in {
+                ",",
+                ".",
+                "–",
+                "-",
+                "—",
+            }:
                 j += 1
             if j >= len(toks):
                 i += 1
@@ -1947,7 +2111,13 @@ def _collect_date_like_char_ranges(doc) -> List[Tuple[int, int]]:
                 continue
 
             k = j + 1
-            while k < len(toks) and str(getattr(toks[k], "text", "") or "").strip() in {",", ".", "–", "-", "—"}:
+            while k < len(toks) and str(getattr(toks[k], "text", "") or "").strip() in {
+                ",",
+                ".",
+                "–",
+                "-",
+                "—",
+            }:
                 k += 1
             if k < len(toks):
                 w2 = str(getattr(toks[k], "text", "") or "").strip()
@@ -2107,7 +2277,13 @@ def _infer_numeric_role(action: str, nk: str, context: str) -> str:
     if unit == "percent":
         return "percentage_of" if " of " in ctx else "rate"
 
-    is_currency = bool(unit in {"usd", "aud", "eur", "gbp"} or unit.endswith("_usd") or unit.endswith("_aud") or unit.endswith("_eur") or unit.endswith("_gbp"))
+    is_currency = bool(
+        unit in {"usd", "aud", "eur", "gbp"}
+        or unit.endswith("_usd")
+        or unit.endswith("_aud")
+        or unit.endswith("_eur")
+        or unit.endswith("_gbp")
+    )
     if is_currency:
         if act in _NUMERIC_ROLE_INVEST_ACTIONS:
             return "personal_investment"
@@ -2116,7 +2292,13 @@ def _infer_numeric_role(action: str, nk: str, context: str) -> str:
         if act in _NUMERIC_ROLE_COST_ACTIONS:
             return "cost"
         if act in _NUMERIC_ROLE_TRANSACTION_ACTIONS:
-            if " purchase " in ctx or " acquire " in ctx or " sale " in ctx or " sell " in ctx or " stake " in ctx:
+            if (
+                " purchase " in ctx
+                or " acquire " in ctx
+                or " sale " in ctx
+                or " sell " in ctx
+                or " stake " in ctx
+            ):
                 return "transaction_price"
             if " for " in ctx:
                 return "transaction_price"
@@ -2136,14 +2318,22 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
         try:
             for child in head_tok.children:
                 dep = str(getattr(child, "dep_", "") or "")
-                lem = str(getattr(child, "lemma_", "") or getattr(child, "text", "") or "").strip().lower()
+                lem = (
+                    str(
+                        getattr(child, "lemma_", "") or getattr(child, "text", "") or ""
+                    )
+                    .strip()
+                    .lower()
+                )
                 if dep not in {"prep", "nmod"} or lem != "of":
                     continue
                 for pobj in child.children:
                     pdep = str(getattr(pobj, "dep_", "") or "")
                     if pdep not in {"pobj", "obj"}:
                         continue
-                    surfaced = _clean_entity_surface(_subject_surface_for_token(doc, pobj))
+                    surfaced = _clean_entity_surface(
+                        _subject_surface_for_token(doc, pobj)
+                    )
                     if surfaced:
                         return surfaced
         except Exception:
@@ -2162,11 +2352,21 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
             head = getattr(tok, "head", None)
             if head is None:
                 return cand
-            head_lemma = str(getattr(head, "lemma_", "") or getattr(head, "text", "") or "").strip().lower()
+            head_lemma = (
+                str(getattr(head, "lemma_", "") or getattr(head, "text", "") or "")
+                .strip()
+                .lower()
+            )
             head_text = _clean_entity_surface(str(getattr(head, "text", "") or ""))
             # Recover omitted count units from dependency heads (e.g., "71 ... lines").
-            if not _numeric_unit_from_key(str(cand.get("key") or "")) and head_lemma in _NUMERIC_DEP_UNIT_HEADS and head_text:
-                composed = _normalize_numeric_mention(f"{str(cand.get('value') or '')} {head_text}")
+            if (
+                not _numeric_unit_from_key(str(cand.get("key") or ""))
+                and head_lemma in _NUMERIC_DEP_UNIT_HEADS
+                and head_text
+            ):
+                composed = _normalize_numeric_mention(
+                    f"{str(cand.get('value') or '')} {head_text}"
+                )
                 nk2 = _numeric_key(composed)
                 if nk2:
                     cand["value"] = composed
@@ -2188,16 +2388,26 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
         currency_code = ""
         if start_tok_i >= 0:
             try:
-                first_tok = str(getattr(doc[start_tok_i], "text", "") or "").strip().lower()
+                first_tok = (
+                    str(getattr(doc[start_tok_i], "text", "") or "").strip().lower()
+                )
                 if first_tok in _NUMERIC_CURRENCY_PREFIX_TOKENS:
                     currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(first_tok, "")
                 elif start_tok_i > 0:
-                    prev_tok = str(getattr(doc[start_tok_i - 1], "text", "") or "").strip().lower()
+                    prev_tok = (
+                        str(getattr(doc[start_tok_i - 1], "text", "") or "")
+                        .strip()
+                        .lower()
+                    )
                     if prev_tok in _NUMERIC_CURRENCY_PREFIX_TOKENS:
-                        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(prev_tok, "")
+                        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(
+                            prev_tok, ""
+                        )
             except Exception:
                 currency_code = ""
-        if currency_code and not re.search(r"(?i)\b(?:usd|aud|eur|gbp|dollars?)\b", val):
+        if currency_code and not re.search(
+            r"(?i)\b(?:usd|aud|eur|gbp|dollars?)\b", val
+        ):
             val = _normalize_numeric_mention(f"{val} {currency_code}")
         nk = _numeric_key(val)
         if not nk:
@@ -2209,7 +2419,9 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
         end = int(getattr(span, "end_char", -1))
         if _is_slash_date_fragment(str(getattr(doc, "text", "") or ""), start, end, nk):
             return
-        overlaps_date = any(ds < end and start < de for ds, de in date_ranges if ds >= 0 and de > ds)
+        overlaps_date = any(
+            ds < end and start < de for ds, de in date_ranges if ds >= 0 and de > ds
+        )
         if overlaps_date and _is_date_like_numeric_key(nk):
             return
         # Prefer a numeric modifier token (`nummod`) within the span as the
@@ -2285,7 +2497,12 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
             j = i + 1
             while j < len(toks):
                 nxt = str(getattr(toks[j], "text", "") or "").strip().lower()
-                if nxt in _NUMERIC_UNIT_TOKENS or nxt in _NUMERIC_SCALE_TOKENS or nxt in _NUMERIC_CURRENCY_WORD_TOKENS or nxt == "%":
+                if (
+                    nxt in _NUMERIC_UNIT_TOKENS
+                    or nxt in _NUMERIC_SCALE_TOKENS
+                    or nxt in _NUMERIC_CURRENCY_WORD_TOKENS
+                    or nxt == "%"
+                ):
                     j += 1
                     continue
                 break
@@ -2295,7 +2512,13 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
     except Exception:
         pass
 
-    out.sort(key=lambda x: (int(x.get("start", -1)), int(x.get("end", -1)), str(x.get("key") or "")))
+    out.sort(
+        key=lambda x: (
+            int(x.get("start", -1)),
+            int(x.get("end", -1)),
+            str(x.get("key") or ""),
+        )
+    )
     return out
 
 
@@ -2370,16 +2593,24 @@ def _extract_step_numeric_claims(
             else:
                 anc = getattr(gov, "head", None)
                 hops = 0
-                while anc is not None and anc is not getattr(anc, "head", None) and hops < 12:
+                while (
+                    anc is not None
+                    and anc is not getattr(anc, "head", None)
+                    and hops < 12
+                ):
                     apos = str(getattr(anc, "pos_", "") or "")
                     if apos in {"VERB", "AUX"}:
                         anc_lemma = str(getattr(anc, "lemma_", "") or "").lower()
                         anc_i = int(getattr(anc, "i", -1))
-                        anc_match = [i for i, lems in enumerate(step_lemmas) if anc_lemma in lems]
+                        anc_match = [
+                            i for i, lems in enumerate(step_lemmas) if anc_lemma in lems
+                        ]
                         if anc_match:
                             target_idx = min(
                                 anc_match,
-                                key=lambda i: _nearest_token_distance(step_verb_indices[i], anc_i),
+                                key=lambda i: _nearest_token_distance(
+                                    step_verb_indices[i], anc_i
+                                ),
                             )
                             alignment = "dep_verb_chain"
                             break
@@ -2420,7 +2651,11 @@ def _extract_step_numeric_claims(
             subs = [str(x) for x in (step.get("subjects") or []) if str(x).strip()]
             applies_to = subs[0] if subs else None
         elif role == "transaction_price":
-            ents = [str(x) for x in (step.get("entity_objects") or step.get("objects") or []) if str(x).strip()]
+            ents = [
+                str(x)
+                for x in (step.get("entity_objects") or step.get("objects") or [])
+                if str(x).strip()
+            ]
             applies_to = ents[0] if ents else None
         elif role in {"count", "percentage_of"}:
             qo = _clean_entity_surface(str(cand.get("quantity_of") or ""))
@@ -2437,7 +2672,9 @@ def _extract_step_numeric_claims(
             "role": role,
             "alignment": alignment,
             "governing_action": _base_action_label(action),
-            "normalized": _numeric_normalized_payload(nk, raw=str(cand.get("raw") or "")),
+            "normalized": _numeric_normalized_payload(
+                nk, raw=str(cand.get("raw") or "")
+            ),
         }
         years = _nearest_years_from_doc(doc, root_i, limit=2)
         nearest_date_text = _nearest_date_text_from_doc(doc, root_i)
@@ -2452,7 +2689,11 @@ def _extract_step_numeric_claims(
             # "May 2004"). If we have an event anchor year and the DATE mention
             # is month-qualified, prefer anchoring to the event-year to avoid
             # losing attribution precision.
-            if compact_anchor and _contains_month_word(nearest_date_text) and not _years_in_text(nearest_date_text):
+            if (
+                compact_anchor
+                and _contains_month_word(nearest_date_text)
+                and not _years_in_text(nearest_date_text)
+            ):
                 ay = compact_anchor.get("year")
                 atxt = str(compact_anchor.get("text") or "").strip()
                 if isinstance(ay, int) and ay > 0:
@@ -2468,7 +2709,9 @@ def _extract_step_numeric_claims(
         claims_by_step[target_idx].append(claim)
 
     for idx in list(claims_by_step.keys()):
-        claims_by_step[idx].sort(key=lambda x: (str(x.get("key") or ""), str(x.get("role") or "")))
+        claims_by_step[idx].sort(
+            key=lambda x: (str(x.get("key") or ""), str(x.get("role") or ""))
+        )
     return claims_by_step
 
 
@@ -2480,7 +2723,13 @@ def _dedupe_numeric_objects_prefer_currency(values: List[str]) -> List[str]:
             continue
         parts = [p for p in val.split() if p]
         has_currency = any(p.lower() in _NUMERIC_CURRENCY_WORD_TOKENS for p in parts)
-        base = " ".join([p for p in parts if p.lower() not in _NUMERIC_CURRENCY_WORD_TOKENS]).strip().lower()
+        base = (
+            " ".join(
+                [p for p in parts if p.lower() not in _NUMERIC_CURRENCY_WORD_TOKENS]
+            )
+            .strip()
+            .lower()
+        )
         key = base or val.lower()
         prev = chosen.get(key)
         if prev is None:
@@ -2496,14 +2745,19 @@ def _dedupe_numeric_objects_prefer_currency(values: List[str]) -> List[str]:
     return [x[2] for x in sorted(chosen.values(), key=lambda t: t[0])]
 
 
-def _fallback_source_entity_id(entity_type: str, title: str, url: str, version_hash: str) -> str:
+def _fallback_source_entity_id(
+    entity_type: str, title: str, url: str, version_hash: str
+) -> str:
     payload = f"{entity_type}|{title}|{url}|{version_hash}".strip().lower()
     return f"source:{hashlib.sha1(payload.encode('utf-8')).hexdigest()[:16]}"
 
 
 def _build_source_entity(snapshot: dict) -> dict:
     snap = snapshot if isinstance(snapshot, dict) else {}
-    title = str(snap.get("title") or "Wikipedia timeline source").strip() or "Wikipedia timeline source"
+    title = (
+        str(snap.get("title") or "Wikipedia timeline source").strip()
+        or "Wikipedia timeline source"
+    )
     url = str(snap.get("source_url") or "").strip()
     version_hash = str(snap.get("revid") or "").strip()
     publication_date = str(snap.get("rev_timestamp") or "").strip() or None
@@ -2536,7 +2790,11 @@ def _attribution_id_for_claim(
     reporting_actor_id: str = "",
 ) -> str:
     if _attribution_id is not None and _AttributionType is not None:
-        enum_type = _AttributionType.REPORTED_STATEMENT if attribution_type == "reported_statement" else _AttributionType.DIRECT_STATEMENT
+        enum_type = (
+            _AttributionType.REPORTED_STATEMENT
+            if attribution_type == "reported_statement"
+            else _AttributionType.DIRECT_STATEMENT
+        )
         return _attribution_id(
             claim_id=claim_id,
             attributed_actor_id=attributed_actor_id,
@@ -2554,7 +2812,11 @@ def _build_event_attributions(
     source_entity_id: str,
     communication_verbs: List[str],
 ) -> List[dict]:
-    comm = {str(x or "").strip().lower() for x in (communication_verbs or []) if str(x or "").strip()}
+    comm = {
+        str(x or "").strip().lower()
+        for x in (communication_verbs or [])
+        if str(x or "").strip()
+    }
     out: List[dict] = []
     seen = set()
     for idx, step in enumerate(steps):
@@ -2568,7 +2830,9 @@ def _build_event_attributions(
         attr_type = "reported_statement" if (lemmas & comm) else "direct_statement"
         claim_id = str(step.get("claim_id") or f"{event_id}:step:{idx}")
         attributed_actor = subs[0]
-        aid = _attribution_id_for_claim(claim_id, attributed_actor, attr_type, source_entity_id)
+        aid = _attribution_id_for_claim(
+            claim_id, attributed_actor, attr_type, source_entity_id
+        )
         key = (claim_id, attributed_actor.lower(), attr_type)
         if key in seen:
             continue
@@ -2585,7 +2849,12 @@ def _build_event_attributions(
                 "extraction_method": "summary",
             }
         )
-    out.sort(key=lambda x: (int(x.get("step_index", 0)), str(x.get("attributed_actor_id") or "")))
+    out.sort(
+        key=lambda x: (
+            int(x.get("step_index", 0)),
+            str(x.get("attributed_actor_id") or ""),
+        )
+    )
     return out
 
 
@@ -2605,7 +2874,9 @@ def _requester_coverage_summary(events: List[dict]) -> dict:
             if isinstance(a, dict)
         )
         text = str(ev.get("text") or "")
-        has_request_clause = bool(re.search(r"\bat\s+[^.]{1,120}?\brequest\b", text, flags=re.IGNORECASE))
+        has_request_clause = bool(
+            re.search(r"\bat\s+[^.]{1,120}?\brequest\b", text, flags=re.IGNORECASE)
+        )
         if not (has_request_clause or has_requester):
             continue
         request_signal_events += 1
@@ -2675,12 +2946,18 @@ def _fallback_actor_from_text(text: str) -> Optional[str]:
     return _clean_entity_surface(m.group(1))
 
 
-def _build_extraction_record(source_entity_id: str, parser_info: Optional[dict], generated_at: str) -> dict:
+def _build_extraction_record(
+    source_entity_id: str, parser_info: Optional[dict], generated_at: str
+) -> dict:
     parser_version = "wiki_timeline_aoo_extract@unknown"
     if isinstance(parser_info, dict):
-        model = str(parser_info.get("model") or parser_info.get("model_name") or "unknown").strip()
+        model = str(
+            parser_info.get("model") or parser_info.get("model_name") or "unknown"
+        ).strip()
         version = str(parser_info.get("model_version") or "").strip()
-        parser_version = f"wiki_timeline_aoo_extract@{model}{('-' + version) if version else ''}"
+        parser_version = (
+            f"wiki_timeline_aoo_extract@{model}{('-' + version) if version else ''}"
+        )
     if _extraction_record_id is not None:
         rid = _extraction_record_id(
             source_entity_id_value=source_entity_id,
@@ -2751,7 +3028,9 @@ def _object_row_score(row: dict) -> float:
                     score += 2.0
             elif kind == "near":
                 score += 5.0 + hs
-    if _strip_leading_determiner(str(row.get("title") or "")) == str(row.get("title") or ""):
+    if _strip_leading_determiner(str(row.get("title") or "")) == str(
+        row.get("title") or ""
+    ):
         score += 1.0
     return score
 
@@ -2821,7 +3100,9 @@ def _step_subject_key(subjects: List[str]) -> Tuple[str, ...]:
     return tuple(sorted(vals))
 
 
-def _step_object_key(objects: List[str], object_row_by_key: Dict[str, dict]) -> Tuple[str, ...]:
+def _step_object_key(
+    objects: List[str], object_row_by_key: Dict[str, dict]
+) -> Tuple[str, ...]:
     vals = set()
     for obj in objects or []:
         cleaned = _clean_entity_surface(str(obj or ""))
@@ -2846,7 +3127,9 @@ def _is_entity_like_object(title: str, row: Optional[dict]) -> bool:
     cleaned_title = _clean_entity_surface(title)
     if not cleaned_title:
         return False
-    if _looks_like_person_mention(cleaned_title) or _looks_like_party_role(cleaned_title):
+    if _looks_like_person_mention(cleaned_title) or _looks_like_party_role(
+        cleaned_title
+    ):
         return True
     if not isinstance(row, dict):
         return False
@@ -2883,7 +3166,9 @@ def _is_numeric_object(title: str, row: Optional[dict]) -> bool:
     cleaned_title = _clean_entity_surface(title)
     if not cleaned_title:
         return False
-    if _looks_like_person_mention(cleaned_title) or _looks_like_party_role(cleaned_title):
+    if _looks_like_person_mention(cleaned_title) or _looks_like_party_role(
+        cleaned_title
+    ):
         return False
     # Keep temporal anchors in the time lane, not numeric objects.
     if re.fullmatch(r"(?:19|20)\d{2}", cleaned_title):
@@ -2891,7 +3176,10 @@ def _is_numeric_object(title: str, row: Optional[dict]) -> bool:
     low = cleaned_title.lower()
     if any(m in low for m in MONTH_WORDS) and re.search(r"\b(?:19|20)\d{2}\b", low):
         return False
-    toks = [re.sub(r"^[^A-Za-z0-9%+-]+|[^A-Za-z0-9%+-]+$", "", t) for t in cleaned_title.split()]
+    toks = [
+        re.sub(r"^[^A-Za-z0-9%+-]+|[^A-Za-z0-9%+-]+$", "", t)
+        for t in cleaned_title.split()
+    ]
     toks = [t for t in toks if t]
     if not toks:
         return False
@@ -2934,7 +3222,9 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
     seen = set()
     date_ranges = _collect_date_like_char_ranges(doc)
 
-    def _emit(cand: str, start_char: int = -1, end_char: int = -1, window_text: str = "") -> None:
+    def _emit(
+        cand: str, start_char: int = -1, end_char: int = -1, window_text: str = ""
+    ) -> None:
         c = _normalize_numeric_mention(cand)
         if not c:
             return
@@ -2951,7 +3241,9 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
         if _is_slash_date_fragment(s, start_char, end_char, k):
             return
         if start_char >= 0 and end_char > start_char:
-            overlaps_date = any(ds < end_char and start_char < de for ds, de in date_ranges)
+            overlaps_date = any(
+                ds < end_char and start_char < de for ds, de in date_ranges
+            )
             if overlaps_date and unit in {"", "year", "month", "day"}:
                 return
         if unit in {"", "year", "month", "day"}:
@@ -2995,7 +3287,11 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                     een = int(getattr(ent, "end_char", -1))
                     if _covered_overlap(est, een):
                         continue
-                    _emit(str(getattr(ent, "text", "") or ""), start_char=est, end_char=een)
+                    _emit(
+                        str(getattr(ent, "text", "") or ""),
+                        start_char=est,
+                        end_char=een,
+                    )
         except Exception:
             pass
 
@@ -3014,7 +3310,9 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                 compact_num = compact
                 for pfx in ("us$", "a$", "$", "€", "£"):
                     if compact_num.lower().startswith(pfx):
-                        token_currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(pfx, "")
+                        token_currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(
+                            pfx, ""
+                        )
                         compact_num = compact_num[len(pfx) :]
                         break
                 is_num = (
@@ -3031,11 +3329,15 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                 start_i = i
                 currency_code = token_currency_code
                 if i > 0:
-                    prev_tok = str(getattr(toks[i - 1], "text", "") or "").strip().lower()
+                    prev_tok = (
+                        str(getattr(toks[i - 1], "text", "") or "").strip().lower()
+                    )
                     if prev_tok in _NUMERIC_CURRENCY_PREFIX_TOKENS:
                         start_i = i - 1
                     if not currency_code:
-                        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(prev_tok, "")
+                        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(
+                            prev_tok, ""
+                        )
 
                 parts = [ttxt]
                 j = i + 1
@@ -3069,9 +3371,16 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                         continue
                     nl = nt.lower()
                     if nl == "per" and (j + 1) < len(toks):
-                        nxt = str(getattr(toks[j + 1], "text", "") or "").strip().lower()
+                        nxt = (
+                            str(getattr(toks[j + 1], "text", "") or "").strip().lower()
+                        )
                         if nxt == "cent":
-                            parts.extend([nt, str(getattr(toks[j + 1], "text", "") or "").strip()])
+                            parts.extend(
+                                [
+                                    nt,
+                                    str(getattr(toks[j + 1], "text", "") or "").strip(),
+                                ]
+                            )
                             j += 2
                             continue
                     if nl in _NUMERIC_UNIT_TOKENS or nl == "%":
@@ -3081,8 +3390,13 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                     break
 
                 if currency_code:
-                    low_parts = {str(x).strip().lower() for x in parts if str(x).strip()}
-                    if not any(x in {"usd", "aud", "eur", "gbp", "dollar", "dollars"} for x in low_parts):
+                    low_parts = {
+                        str(x).strip().lower() for x in parts if str(x).strip()
+                    }
+                    if not any(
+                        x in {"usd", "aud", "eur", "gbp", "dollar", "dollars"}
+                        for x in low_parts
+                    ):
                         parts.append(currency_code)
 
                 # Skip obvious month/day/year contexts.
@@ -3090,12 +3404,18 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                 end_tok = toks[j - 1] if j > i else tok
                 win_end = min(
                     len(s),
-                    int((getattr(end_tok, "idx", 0) or 0) + len(str(getattr(end_tok, "text", "") or ""))) + 16,
+                    int(
+                        (getattr(end_tok, "idx", 0) or 0)
+                        + len(str(getattr(end_tok, "text", "") or ""))
+                    )
+                    + 16,
                 )
                 window = s[win_start:win_end].lower()
                 candidate = " ".join([x for x in parts if x])
                 if any(month in window for month in MONTH_WORDS):
-                    if re.fullmatch(r"\d{1,2}|\d{4}", _normalize_numeric_mention(candidate)):
+                    if re.fullmatch(
+                        r"\d{1,2}|\d{4}", _normalize_numeric_mention(candidate)
+                    ):
                         i = j
                         continue
 
@@ -3110,7 +3430,12 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                 if _covered_overlap(span_start_char, span_end_char):
                     i = j
                     continue
-                _emit(candidate, start_char=span_start_char, end_char=span_end_char, window_text=window)
+                _emit(
+                    candidate,
+                    start_char=span_start_char,
+                    end_char=span_end_char,
+                    window_text=window,
+                )
                 i = j
                 continue
         except Exception:
@@ -3132,7 +3457,12 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
             if any(month in window for month in MONTH_WORDS):
                 if re.fullmatch(r"\d{1,2}|\d{4}", _normalize_numeric_mention(cand)):
                     continue
-            _emit(cand, start_char=int(m.start()), end_char=int(m.end()), window_text=window)
+            _emit(
+                cand,
+                start_char=int(m.start()),
+                end_char=int(m.end()),
+                window_text=window,
+            )
 
     return out
 
@@ -3152,7 +3482,11 @@ def _collect_dep_objects(doc) -> List[str]:
             dep = str(getattr(root, "dep_", "") or "")
             if dep not in obj_deps:
                 # Handle conjunct objects.
-                if dep == "conj" and str(getattr(getattr(root, "head", None), "dep_", "") or "") in obj_deps:
+                if (
+                    dep == "conj"
+                    and str(getattr(getattr(root, "head", None), "dep_", "") or "")
+                    in obj_deps
+                ):
                     pass
                 else:
                     continue
@@ -3236,7 +3570,9 @@ def _objects_for_action(
                 continue
             if CITATION_TOKEN_RE.search(k):
                 continue
-            if _base_action_label(action) != "request" and re.search(r"\brequest\b", k, flags=re.IGNORECASE):
+            if _base_action_label(action) != "request" and re.search(
+                r"\brequest\b", k, flags=re.IGNORECASE
+            ):
                 continue
             lk = k.lower()
             if lk in seen_fb:
@@ -3261,7 +3597,9 @@ def _objects_for_action(
             return
         if CITATION_TOKEN_RE.search(k):
             return
-        if base_action != "request" and re.search(r"\brequest\b", k, flags=re.IGNORECASE):
+        if base_action != "request" and re.search(
+            r"\brequest\b", k, flags=re.IGNORECASE
+        ):
             return
         lk = k.lower()
         if lk in seen:
@@ -3274,13 +3612,19 @@ def _objects_for_action(
         try:
             for ch in getattr(doc, "noun_chunks", []):
                 root = getattr(ch, "root", None)
-                if root is not None and int(getattr(root, "i", -1)) == int(getattr(tok, "i", -2)):
-                    txt = re.sub(r"\s+", " ", str(getattr(ch, "text", "") or "")).strip()
+                if root is not None and int(getattr(root, "i", -1)) == int(
+                    getattr(tok, "i", -2)
+                ):
+                    txt = re.sub(
+                        r"\s+", " ", str(getattr(ch, "text", "") or "")
+                    ).strip()
                     break
         except Exception:
             txt = ""
         if not txt:
-            idxs = [x.i for x in getattr(tok, "subtree", [])] or [int(getattr(tok, "i", 0))]
+            idxs = [x.i for x in getattr(tok, "subtree", [])] or [
+                int(getattr(tok, "i", 0))
+            ]
             span = doc[min(idxs) : max(idxs) + 1]
             txt = _clean_entity_surface(str(getattr(span, "text", "") or ""))
         if txt:
@@ -3366,7 +3710,12 @@ def _action_negation(doc, action: str) -> Optional[dict]:
     return None
 
 
-def _resolver_hints_for_object(obj_title: str, sent_links: List[str], para_links: List[str], candidate_titles: List[str]) -> List[dict]:
+def _resolver_hints_for_object(
+    obj_title: str,
+    sent_links: List[str],
+    para_links: List[str],
+    candidate_titles: List[str],
+) -> List[dict]:
     """Return deterministic exact/near resolver hints for a non-wikilink object phrase."""
     obj = str(obj_title or "").strip()
     if not obj:
@@ -3387,7 +3736,9 @@ def _resolver_hints_for_object(obj_title: str, sent_links: List[str], para_links
         if key in seen:
             return
         seen.add(key)
-        hints.append({"lane": lane, "kind": kind, "title": t, "score": round(float(score), 4)})
+        hints.append(
+            {"lane": lane, "kind": kind, "title": t, "score": round(float(score), 4)}
+        )
 
     def eval_lane(titles: List[str], lane: str) -> None:
         for t in titles:
@@ -3414,7 +3765,13 @@ def _resolver_hints_for_object(obj_title: str, sent_links: List[str], para_links
     eval_lane(para_links or [], "paragraph_link")
     eval_lane(candidate_titles or [], "candidate_title")
 
-    hints.sort(key=lambda h: (-float(h.get("score") or 0.0), str(h.get("lane") or ""), str(h.get("title") or "")))
+    hints.sort(
+        key=lambda h: (
+            -float(h.get("score") or 0.0),
+            str(h.get("lane") or ""),
+            str(h.get("title") or ""),
+        )
+    )
     return hints[:8]
 
 
@@ -3454,7 +3811,9 @@ def _subject_surface_for_token(doc, tok) -> str:
         except Exception:
             pass
 
-        out = re.sub(r"\s+", " ", " ".join(str(getattr(t, "text", "") or "") for t in toks)).strip()
+        out = re.sub(
+            r"\s+", " ", " ".join(str(getattr(t, "text", "") or "") for t in toks)
+        ).strip()
         # Appositive/participial tails often appear after commas; keep the head NP.
         if "," in out:
             out = out.split(",", 1)[0].strip()
@@ -3463,7 +3822,9 @@ def _subject_surface_for_token(doc, tok) -> str:
         return str(getattr(tok, "text", "") or "").strip()
 
 
-def _resolve_subject_surface(surface: str, actors: List[dict], root_actor: str, root_surname: str) -> str:
+def _resolve_subject_surface(
+    surface: str, actors: List[dict], root_actor: str, root_surname: str
+) -> str:
     s = _normalize_subject_label(surface)
     if not s:
         return s
@@ -3500,12 +3861,16 @@ def _resolve_subject_surface(surface: str, actors: List[dict], root_actor: str, 
         return _canonicalize_root_actor_surface(best, root_actor, root_surname)
 
     # Surname fallback for standalone root-actor references.
-    if root_surname and re.search(rf"\b{re.escape(root_surname)}\b", s, flags=re.IGNORECASE):
+    if root_surname and re.search(
+        rf"\b{re.escape(root_surname)}\b", s, flags=re.IGNORECASE
+    ):
         return _normalize_subject_label(root_actor or s)
     return _normalize_subject_label(s)
 
 
-def _canonicalize_root_actor_surface(surface: str, root_actor: str, root_surname: str) -> str:
+def _canonicalize_root_actor_surface(
+    surface: str, root_actor: str, root_surname: str
+) -> str:
     """Map partial root-actor name surfaces back to canonical root actor.
 
     Example: "Walker Bush" in lead passive clauses should resolve to root actor
@@ -3522,6 +3887,7 @@ def _canonicalize_root_actor_surface(surface: str, root_actor: str, root_surname
     r_parts = [p for p in root.split() if p]
     if len(s_parts) < 2 or len(r_parts) < 2:
         return s
+
     def norm_tok(x: str) -> str:
         return re.sub(r"[^a-z]", "", str(x or "").lower())
 
@@ -3542,7 +3908,9 @@ def _canonicalize_root_actor_surface(surface: str, root_actor: str, root_surname
     return s
 
 
-def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, root_surname: str) -> List[str]:
+def _subjects_for_action(
+    doc, action: str, actors: List[dict], root_actor: str, root_surname: str
+) -> List[str]:
     if doc is None:
         return []
     act = _base_action_label(action)
@@ -3559,7 +3927,11 @@ def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, 
                 toks = [str(getattr(t, "text", "") or "") for t in doc]  # type: ignore[assignment]
             except Exception:
                 toks = []
-            text_low = " ".join(toks).lower() if toks else str(getattr(doc, "text", doc) or "").lower()
+            text_low = (
+                " ".join(toks).lower()
+                if toks
+                else str(getattr(doc, "text", doc) or "").lower()
+            )
             # Only absorb nominative first-person pronouns as subjects.
             if any(p in text_low.split() for p in ("i", "we")):
                 return [_normalize_subject_label(root_actor)]
@@ -3577,7 +3949,13 @@ def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, 
             verbs.append(t)
     if not verbs:
         return []
-    verbs = sorted(verbs, key=lambda x: (0 if str(getattr(x, "dep_", "")) == "ROOT" else 1, int(getattr(x, "i", 10_000))))
+    verbs = sorted(
+        verbs,
+        key=lambda x: (
+            0 if str(getattr(x, "dep_", "")) == "ROOT" else 1,
+            int(getattr(x, "i", 10_000)),
+        ),
+    )
 
     out: List[str] = []
     seen = set()
@@ -3613,7 +3991,9 @@ def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, 
                     subj_tokens.extend(list(getattr(c, "conjuncts", [])))
             for st in subj_tokens:
                 surf = _subject_surface_for_token(doc, st)
-                resolved = _resolve_subject_surface(surf, actors, root_actor, root_surname)
+                resolved = _resolve_subject_surface(
+                    surf, actors, root_actor, root_surname
+                )
                 key = resolved.lower()
                 if resolved and key not in seen:
                     seen.add(key)
@@ -3688,13 +4068,17 @@ def _objects_for_verb_token(doc, verb_token) -> List[str]:
         try:
             for ch in getattr(doc, "noun_chunks", []):
                 root = getattr(ch, "root", None)
-                if root is not None and int(getattr(root, "i", -1)) == int(getattr(tok, "i", -2)):
+                if root is not None and int(getattr(root, "i", -1)) == int(
+                    getattr(tok, "i", -2)
+                ):
                     txt = _clean_entity_surface(str(getattr(ch, "text", "") or ""))
                     break
         except Exception:
             txt = ""
         if not txt:
-            idxs = [x.i for x in getattr(tok, "subtree", [])] or [int(getattr(tok, "i", 0))]
+            idxs = [x.i for x in getattr(tok, "subtree", [])] or [
+                int(getattr(tok, "i", 0))
+            ]
             span = doc[min(idxs) : max(idxs) + 1]
             txt = _clean_entity_surface(str(getattr(span, "text", "") or ""))
         if txt:
@@ -3728,15 +4112,30 @@ def _extract_communication_chain_steps(
 ) -> List[dict]:
     if doc is None:
         return []
-    verbs_allow = {str(x or "").strip().lower() for x in (comm_cfg.get("communication_verbs") or []) if str(x or "").strip()}
+    verbs_allow = {
+        str(x or "").strip().lower()
+        for x in (comm_cfg.get("communication_verbs") or [])
+        if str(x or "").strip()
+    }
     if not verbs_allow:
         return []
     emit_attr = bool(comm_cfg.get("emit_attribution_step", True))
     emit_embedded = bool(comm_cfg.get("emit_embedded_steps", True))
     emb_limit = max(1, int(comm_cfg.get("embedded_step_limit") or 2))
-    emb_heads = {str(x or "").strip() for x in (comm_cfg.get("embedded_step_heads") or []) if str(x or "").strip()}
-    subj_policy = str(comm_cfg.get("embedded_subject_policy") or "prefer_local_subject").strip().lower()
-    attr_key = str(comm_cfg.get("attribution_modifier_key") or "according_to").strip() or "according_to"
+    emb_heads = {
+        str(x or "").strip()
+        for x in (comm_cfg.get("embedded_step_heads") or [])
+        if str(x or "").strip()
+    }
+    subj_policy = (
+        str(comm_cfg.get("embedded_subject_policy") or "prefer_local_subject")
+        .strip()
+        .lower()
+    )
+    attr_key = (
+        str(comm_cfg.get("attribution_modifier_key") or "according_to").strip()
+        or "according_to"
+    )
 
     comm_heads = []
     for t in doc:
@@ -3750,7 +4149,11 @@ def _extract_communication_chain_steps(
 
     steps: List[dict] = []
     for head in comm_heads[:3]:
-        head_lemma = str(getattr(head, "lemma_", "") or getattr(head, "text", "") or "").strip().lower()
+        head_lemma = (
+            str(getattr(head, "lemma_", "") or getattr(head, "text", "") or "")
+            .strip()
+            .lower()
+        )
         if not head_lemma:
             continue
         attr_subjects = _subjects_for_verb_token(
@@ -3769,7 +4172,12 @@ def _extract_communication_chain_steps(
                     "subjects": list(attr_subjects),
                     "objects": attr_objs,
                     "purpose": None,
-                    "modifiers": [{"kind": "communication_attribution", "source": "dep_communication"}],
+                    "modifiers": [
+                        {
+                            "kind": "communication_attribution",
+                            "source": "dep_communication",
+                        }
+                    ],
                 }
             )
         if not emit_embedded:
@@ -3798,7 +4206,11 @@ def _extract_communication_chain_steps(
         dedup_emb = sorted(dedup_emb, key=lambda t: int(getattr(t, "i", 0)))[:emb_limit]
 
         for e in dedup_emb:
-            e_lemma = str(getattr(e, "lemma_", "") or getattr(e, "text", "") or "").strip().lower()
+            e_lemma = (
+                str(getattr(e, "lemma_", "") or getattr(e, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if not e_lemma:
                 continue
             subjects = _subjects_for_verb_token(
@@ -3834,7 +4246,9 @@ def _extract_communication_chain_steps(
     return steps
 
 
-def _purpose_to_step(purpose: Optional[str], fallback_subjects: List[str], nlp: Optional[object] = None) -> Optional[dict]:
+def _purpose_to_step(
+    purpose: Optional[str], fallback_subjects: List[str], nlp: Optional[object] = None
+) -> Optional[dict]:
     p = re.sub(r"\s+", " ", str(purpose or "").strip())
     if not p:
         return None
@@ -3843,7 +4257,10 @@ def _purpose_to_step(purpose: Optional[str], fallback_subjects: List[str], nlp: 
             doc = nlp(p)
             vt = None
             for t in doc:
-                if str(getattr(t, "pos_", "") or "") == "VERB" and str(getattr(t, "dep_", "") or "") == "ROOT":
+                if (
+                    str(getattr(t, "pos_", "") or "") == "VERB"
+                    and str(getattr(t, "dep_", "") or "") == "ROOT"
+                ):
                     vt = t
                     break
             if vt is None:
@@ -3853,15 +4270,32 @@ def _purpose_to_step(purpose: Optional[str], fallback_subjects: List[str], nlp: 
                         break
             if vt is None:
                 return None
-            verb = str(getattr(vt, "lemma_", "") or getattr(vt, "text", "") or "").strip().lower()
+            verb = (
+                str(getattr(vt, "lemma_", "") or getattr(vt, "text", "") or "")
+                .strip()
+                .lower()
+            )
             if not verb or verb in _NON_VERB_HEAD_WORDS:
                 return None
-            obj = re.sub(r"\s+", " ", str(doc[int(getattr(vt, "i", 0)) + 1 :].text or "")).strip()
+            obj = re.sub(
+                r"\s+", " ", str(doc[int(getattr(vt, "i", 0)) + 1 :].text or "")
+            ).strip()
             if not obj:
                 for c in vt.children:
-                    if str(getattr(c, "dep_", "") or "") in {"dobj", "obj", "attr", "oprd", "dative", "pobj"}:
-                        idxs = [x.i for x in getattr(c, "subtree", [])] or [int(getattr(c, "i", 0))]
-                        obj = re.sub(r"\s+", " ", str(doc[min(idxs) : max(idxs) + 1].text or "")).strip()
+                    if str(getattr(c, "dep_", "") or "") in {
+                        "dobj",
+                        "obj",
+                        "attr",
+                        "oprd",
+                        "dative",
+                        "pobj",
+                    }:
+                        idxs = [x.i for x in getattr(c, "subtree", [])] or [
+                            int(getattr(c, "i", 0))
+                        ]
+                        obj = re.sub(
+                            r"\s+", " ", str(doc[min(idxs) : max(idxs) + 1].text or "")
+                        ).strip()
                         if obj:
                             break
             if not obj:
@@ -3889,7 +4323,9 @@ def _purpose_to_step(purpose: Optional[str], fallback_subjects: List[str], nlp: 
     }
 
 
-def _infer_requester_from_steps(steps: List[dict], requester_title_label: str) -> Optional[str]:
+def _infer_requester_from_steps(
+    steps: List[dict], requester_title_label: str
+) -> Optional[str]:
     title_norm = str(requester_title_label or "").strip().lower()
     for s in steps or []:
         if _base_action_label(str(s.get("action") or "")) != "request":
@@ -3907,7 +4343,9 @@ def _infer_requester_from_steps(steps: List[dict], requester_title_label: str) -
     return None
 
 
-def _surname_is_part_of_name(text: str, surname: str, blocked_first_tokens: Optional[set] = None) -> bool:
+def _surname_is_part_of_name(
+    text: str, surname: str, blocked_first_tokens: Optional[set] = None
+) -> bool:
     # Heuristic: if sentence contains "<Capitalized> <Surname>", treat surname as part of a name
     # and avoid mapping it to the root actor by default.
     if not surname:
@@ -3916,7 +4354,18 @@ def _surname_is_part_of_name(text: str, surname: str, blocked_first_tokens: Opti
     pat = re.compile(rf"\b([A-Z][a-z]+)(?:\s+[A-Z][a-z]+)?\s+{re.escape(surname)}\b")
     for m in pat.finditer(text):
         first = (m.group(1) or "").strip()
-        if first.lower() in {"president", "governor", "senator", "rep", "representative", "mr", "mrs", "ms", "dr", "chief"}:
+        if first.lower() in {
+            "president",
+            "governor",
+            "senator",
+            "rep",
+            "representative",
+            "mr",
+            "mrs",
+            "ms",
+            "dr",
+            "chief",
+        }:
             continue
         if first.lower() in blocked:
             continue
@@ -3939,8 +4388,21 @@ def _extract_capitalized_surname_names(
         return []
     out: List[str] = []
     blocked = blocked_first_tokens or set()
-    title_like = {"president", "governor", "senator", "rep", "representative", "mr", "mrs", "ms", "dr", "chief"}
-    for m in re.finditer(rf"\b((?:[A-Z][a-z]+\s+)?[A-Z][a-z]+)\s+{re.escape(surname)}\b", text):
+    title_like = {
+        "president",
+        "governor",
+        "senator",
+        "rep",
+        "representative",
+        "mr",
+        "mrs",
+        "ms",
+        "dr",
+        "chief",
+    }
+    for m in re.finditer(
+        rf"\b((?:[A-Z][a-z]+\s+)?[A-Z][a-z]+)\s+{re.escape(surname)}\b", text
+    ):
         prefix = [p for p in str(m.group(1) or "").split() if p]
         if not prefix:
             continue
@@ -3982,10 +4444,16 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
     requester_title_labels = _profile_requester_title_labels(profile_payload)
     modal_container_grammar = _profile_modal_container_grammar(profile_payload)
     communication_chain_config = _profile_communication_chain_config(profile_payload)
-    epistemic_verbs = _profile_epistemic_verbs(profile_payload, communication_chain_config)
-    semantic_backbone, semantic_warnings, semantic_error = _profile_semantic_backbone_config(profile_payload)
+    epistemic_verbs = _profile_epistemic_verbs(
+        profile_payload, communication_chain_config
+    )
+    semantic_backbone, semantic_warnings, semantic_error = (
+        _profile_semantic_backbone_config(profile_payload)
+    )
     if semantic_error:
-        raise SystemExit(f"invalid extraction profile semantic_backbone: {semantic_error}")
+        raise SystemExit(
+            f"invalid extraction profile semantic_backbone: {semantic_error}"
+        )
     action_pattern_specs = _profile_action_pattern_specs(profile_payload)
     action_patterns = _compile_action_patterns(action_pattern_specs)
     if not action_patterns:
@@ -4003,12 +4471,22 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         "communication_chain": communication_chain_config,
         "semantic_backbone": semantic_backbone,
         "semantic_version_pins": _profile_semantic_version_pins(profile_payload),
-        "synset_action_map_count": int(len(_profile_synset_action_map(profile_payload))),
-        "synset_action_map_sha256": _sha256_json(_profile_synset_action_map(profile_payload)),
-        "babelnet_table_sha256": _sha256_json(_profile_babelnet_lemma_synsets(profile_payload)),
+        "synset_action_map_count": int(
+            len(_profile_synset_action_map(profile_payload))
+        ),
+        "synset_action_map_sha256": _sha256_json(
+            _profile_synset_action_map(profile_payload)
+        ),
+        "babelnet_table_sha256": _sha256_json(
+            _profile_babelnet_lemma_synsets(profile_payload)
+        ),
         "epistemic_verbs": epistemic_verbs,
-        "predicate_classifier": "src.nlp.epistemic_classifier" if _EpistemicClassifier is not None else "builtin_step_signals",
-        "action_classifier": "src.nlp.event_classifier" if _EventClassifier is not None else "regex_fallback",
+        "predicate_classifier": "src.nlp.epistemic_classifier"
+        if _EpistemicClassifier is not None
+        else "builtin_step_signals",
+        "action_classifier": "src.nlp.event_classifier"
+        if _EventClassifier is not None
+        else "regex_fallback",
         "warnings": semantic_warnings,
         "error": profile_error,
     }
@@ -4039,7 +4517,11 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
     parser_error = None
     if not args.no_spacy:
         nlp, parser_info, parser_error = _try_load_spacy(str(args.spacy_model))
-    classifier = _EpistemicClassifier(nlp) if (_EpistemicClassifier is not None and nlp is not None) else None
+    classifier = (
+        _EpistemicClassifier(nlp)
+        if (_EpistemicClassifier is not None and nlp is not None)
+        else None
+    )
 
     synset_mapper = None
     if (
@@ -4053,19 +4535,28 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
 
         # Enforce runtime version pins before enabling semantic mapping.
         req_wn = str(pins.get("wordnet") or "").strip()
-        if "wordnet" in str((semantic_backbone or {}).get("resource") or "").lower() and not req_wn:
-            raise SystemExit("invalid extraction profile: semantic_version_pins.wordnet required when wordnet enabled")
+        if (
+            "wordnet" in str((semantic_backbone or {}).get("resource") or "").lower()
+            and not req_wn
+        ):
+            raise SystemExit(
+                "invalid extraction profile: semantic_version_pins.wordnet required when wordnet enabled"
+            )
 
         req_syn_map = str(pins.get("synset_action_map_sha256") or "").strip()
         if not req_syn_map:
-            raise SystemExit("invalid extraction profile: semantic_version_pins.synset_action_map_sha256 required when semantic mapping enabled")
+            raise SystemExit(
+                "invalid extraction profile: semantic_version_pins.synset_action_map_sha256 required when semantic mapping enabled"
+            )
         if _sha256_json(synset_action_map) != req_syn_map:
             raise SystemExit("synset_action_map sha256 pin mismatch")
 
         if "babelnet" in str((semantic_backbone or {}).get("resource") or "").lower():
             req_babel = str(pins.get("babelnet_table_sha256") or "").strip()
             if not req_babel:
-                raise SystemExit("invalid extraction profile: semantic_version_pins.babelnet_table_sha256 required when babelnet enabled")
+                raise SystemExit(
+                    "invalid extraction profile: semantic_version_pins.babelnet_table_sha256 required when babelnet enabled"
+                )
             if _sha256_json(babelnet_lemma_synsets) != req_babel:
                 raise SystemExit("babelnet table sha256 pin mismatch")
 
@@ -4077,9 +4568,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             babelnet_lemma_synsets=babelnet_lemma_synsets,
         )
 
-        wn_ver = str(getattr(synset_mapper, "metadata", lambda: {})().get("wordnet_version") or "").strip()
+        wn_ver = str(
+            getattr(synset_mapper, "metadata", lambda: {})().get("wordnet_version")
+            or ""
+        ).strip()
         if req_wn and wn_ver and wn_ver != req_wn:
-            raise SystemExit(f"wordnet version pin mismatch: required={req_wn} actual={wn_ver}")
+            raise SystemExit(
+                f"wordnet version pin mismatch: required={req_wn} actual={wn_ver}"
+            )
 
     event_classifier = (
         _EventClassifier(ACTION_LEMMAS, synset_mapper=synset_mapper)
@@ -4111,7 +4607,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             except Exception:
                 doc = None
 
-        action, w_action = _extract_action(parse_text, action_patterns, doc=doc, event_classifier=event_classifier)
+        action, w_action = _extract_action(
+            parse_text, action_patterns, doc=doc, event_classifier=event_classifier
+        )
         warnings.extend(w_action)
         purpose = _extract_purpose_from_doc(doc) if doc is not None else None
         if not action and doc is not None:
@@ -4119,7 +4617,10 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             try:
                 cand = None
                 for t in doc:
-                    if getattr(t, "dep_", "") == "ROOT" and getattr(t, "pos_", "") in {"VERB", "AUX"}:
+                    if getattr(t, "dep_", "") == "ROOT" and getattr(t, "pos_", "") in {
+                        "VERB",
+                        "AUX",
+                    }:
                         cand = t
                         break
                 if cand is None:
@@ -4141,7 +4642,13 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     for t in doc:
                         if getattr(t, "pos_", "") != "VERB":
                             continue
-                        if getattr(t, "dep_", "") in {"ccomp", "xcomp", "acl", "conj", "relcl"}:
+                        if getattr(t, "dep_", "") in {
+                            "ccomp",
+                            "xcomp",
+                            "acl",
+                            "conj",
+                            "relcl",
+                        }:
                             cand = t
                             break
                 if cand is None:
@@ -4157,7 +4664,10 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                             for t in doc:
                                 if getattr(t, "pos_", "") != "VERB":
                                     continue
-                                if (getattr(t, "lemma_", "") or "").strip().lower() in {"be", "have"}:
+                                if (getattr(t, "lemma_", "") or "").strip().lower() in {
+                                    "be",
+                                    "have",
+                                }:
                                     continue
                                 if getattr(t, "dep_", "") == dep:
                                     preferred = t
@@ -4167,7 +4677,11 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                         if preferred is not None:
                             cand = preferred
                 if cand is not None:
-                    lab = (getattr(cand, "lemma_", "") or getattr(cand, "text", "") or "").strip().lower()
+                    lab = (
+                        (getattr(cand, "lemma_", "") or getattr(cand, "text", "") or "")
+                        .strip()
+                        .lower()
+                    )
                     if lab:
                         action = lab
                         warnings.append("fallback_action_spacy")
@@ -4177,7 +4691,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         modal_container_modifier = None
         modal_promoted_action = ""
         if doc is not None and action:
-            promoted_action, modal_container_modifier = _promote_modal_container_action(doc, action, modal_container_grammar)
+            promoted_action, modal_container_modifier = _promote_modal_container_action(
+                doc, action, modal_container_grammar
+            )
             if promoted_action and promoted_action != action:
                 action = promoted_action
                 warnings.append("modal_container_promoted")
@@ -4201,26 +4717,44 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         requester: Optional[str] = None
         requester_resolved: Optional[str] = None
         requester_has_title = False
-        requester_title_label = requester_title_labels.get("president", DEFAULT_REQUESTER_TITLE_LABELS.get("president", "U.S. President"))
+        requester_title_label = requester_title_labels.get(
+            "president",
+            DEFAULT_REQUESTER_TITLE_LABELS.get("president", "U.S. President"),
+        )
 
         # Dependency-first requester extraction; regex fallback remains safety rail.
-        requester, requester_resolved, requester_has_title = _extract_requester_from_doc(doc, alias_map)
+        requester, requester_resolved, requester_has_title = (
+            _extract_requester_from_doc(doc, alias_map)
+        )
         requester_source = "dep:request"
         if not requester:
-            req2, req2_res, req2_src = _extract_requester_from_request_verbs(doc, alias_map)
+            req2, req2_res, req2_src = _extract_requester_from_request_verbs(
+                doc, alias_map
+            )
             if req2:
                 requester = req2
                 requester_resolved = req2_res
                 requester_has_title = False
                 requester_source = req2_src
         if not requester:
-            allow_regex = os.getenv("ITIR_ALLOW_REQUEST_REGEX", "").lower() in {"1", "true", "yes", "on"}
+            allow_regex = os.getenv("ITIR_ALLOW_REQUEST_REGEX", "").lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
             if allow_regex:
                 rm = REQUEST_RE.search(parse_text)
                 if rm:
                     requester = _normalize_requester_surface(rm.group(1))
                     requester_resolved = _resolve_requester_label(requester, alias_map)
-                    requester_has_title = bool(re.search(r"\bPresident\b", str(rm.group(0) or ""), flags=re.IGNORECASE))
+                    requester_has_title = bool(
+                        re.search(
+                            r"\bPresident\b",
+                            str(rm.group(0) or ""),
+                            flags=re.IGNORECASE,
+                        )
+                    )
                     requester_source = "fallback_regex:request"
                     warnings.append("fallback_requester_regex_disabled_default")
 
@@ -4229,11 +4763,18 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
 
         # Requester (alias-resolved if possible).
         if requester:
-            resolved = _normalize_subject_label(requester_resolved or alias_map.get(requester) or requester)
+            resolved = _normalize_subject_label(
+                requester_resolved or alias_map.get(requester) or requester
+            )
             requester = _normalize_subject_label(requester)
             requester_resolved = resolved
             actors.append(
-                {"label": requester, "resolved": resolved, "role": "requester", "source": requester_source}
+                {
+                    "label": requester,
+                    "resolved": resolved,
+                    "role": "requester",
+                    "source": requester_source,
+                }
             )
             if requester_has_title:
                 actors.append(
@@ -4249,21 +4790,37 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         if (
             root_surname_ev
             and re.search(rf"\b{re.escape(root_surname_ev)}\b", parse_text)
-            and not _surname_is_part_of_name(parse_text, root_surname_ev, blocked_first_tokens=alias_keys)
+            and not _surname_is_part_of_name(
+                parse_text, root_surname_ev, blocked_first_tokens=alias_keys
+            )
         ):
             actors.append(
-                {"label": root_surname_ev, "resolved": root_actor_ev, "role": "subject", "source": "root_surname"}
+                {
+                    "label": root_surname_ev,
+                    "resolved": root_actor_ev,
+                    "role": "subject",
+                    "source": "root_surname",
+                }
             )
 
         # If surname appears as part of a name, include the surface full-name as an actor.
-        if root_surname_ev and _surname_is_part_of_name(parse_text, root_surname_ev, blocked_first_tokens=alias_keys):
+        if root_surname_ev and _surname_is_part_of_name(
+            parse_text, root_surname_ev, blocked_first_tokens=alias_keys
+        ):
             for full in _extract_capitalized_surname_names(
                 parse_text,
                 root_surname_ev,
                 blocked_first_tokens=alias_keys,
                 root_actor=root_actor_ev,
             ):
-                actors.append({"label": full, "resolved": full, "role": "subject", "source": "surface_name"})
+                actors.append(
+                    {
+                        "label": full,
+                        "resolved": full,
+                        "role": "subject",
+                        "source": "surface_name",
+                    }
+                )
 
         # Other alias-resolved person tokens in the sentence.
         for tok in tokens:
@@ -4272,7 +4829,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             if root_surname_ev and tok.lower() == root_surname_ev.lower():
                 continue
             if tok in alias_map:
-                actors.append({"label": tok, "resolved": alias_map[tok], "role": "subject", "source": "alias_map"})
+                actors.append(
+                    {
+                        "label": tok,
+                        "resolved": alias_map[tok],
+                        "role": "subject",
+                        "source": "alias_map",
+                    }
+                )
 
         # Promote person-looking wikilinks as actors too (sentence-local identity glue).
         links = ev.get("links") or []
@@ -4284,14 +4848,28 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 if not title:
                     continue
                 if _looks_like_person_title(title):
-                    actors.append({"label": title, "resolved": title, "role": "subject", "source": "wikilink_person"})
+                    actors.append(
+                        {
+                            "label": title,
+                            "resolved": title,
+                            "role": "subject",
+                            "source": "wikilink_person",
+                        }
+                    )
 
         # Passive agent extraction: dependency-first; regex fallback is safety rail.
         dep_agents = _extract_passive_agents_from_doc(doc)
         if dep_agents:
             for agent in dep_agents:
                 n_agent = _normalize_subject_label(agent)
-                actors.append({"label": n_agent, "resolved": n_agent, "role": "subject", "source": "dep:by_agent"})
+                actors.append(
+                    {
+                        "label": n_agent,
+                        "resolved": n_agent,
+                        "role": "subject",
+                        "source": "dep:by_agent",
+                    }
+                )
         else:
             am = BY_AGENT_RE.search(parse_text)
             if am:
@@ -4314,7 +4892,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         seen = set()
         deduped: List[dict] = []
         for a in actors:
-            key = _normalize_subject_label(str(a.get("resolved") or a.get("label") or ""))
+            key = _normalize_subject_label(
+                str(a.get("resolved") or a.get("label") or "")
+            )
             if not key or key in seen:
                 continue
             seen.add(key)
@@ -4325,7 +4905,13 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
 
         # Dependency subject pass for the primary action; fills obvious gaps like
         # "the Pentagon reported ..." or "U.S. and British forces initiated ...".
-        dep_subjects = _subjects_for_action(doc, action or "", actors, root_actor_ev, root_surname_ev) if doc is not None else []
+        dep_subjects = (
+            _subjects_for_action(
+                doc, action or "", actors, root_actor_ev, root_surname_ev
+            )
+            if doc is not None
+            else []
+        )
         if dep_subjects:
             existing = {str(a.get("resolved") or "").strip().lower() for a in actors}
             for ds in dep_subjects:
@@ -4349,10 +4935,19 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             low = str(parse_text or "").lower()
             toks = low.split()
             if "i" in toks or "we" in toks:
-                existing = {str(a.get("resolved") or "").strip().lower() for a in actors}
+                existing = {
+                    str(a.get("resolved") or "").strip().lower() for a in actors
+                }
                 ra = _normalize_subject_label(root_actor_ev)
                 if ra and ra.lower() not in existing:
-                    actors.append({"label": ra, "resolved": ra, "role": "subject", "source": "surface_pronoun"})
+                    actors.append(
+                        {
+                            "label": ra,
+                            "resolved": ra,
+                            "role": "subject",
+                            "source": "surface_pronoun",
+                        }
+                    )
                     warnings.append("fallback_subject_pronoun")
         if not actors and action:
             fallback_actor = None
@@ -4371,7 +4966,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                             "resolved": fa_norm,
                             "role": "subject",
                             "source": "actor_fallback",
-                            "provenance": {"actor_fallback": str(fallback_source or "fallback")},
+                            "provenance": {
+                                "actor_fallback": str(fallback_source or "fallback")
+                            },
                         }
                     )
 
@@ -4396,7 +4993,11 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         # This is still deterministic and sentence-local; no causal inference.
         if re.search(r"\bthe war\b", parse_text, flags=re.IGNORECASE):
             objects.append({"title": "the war", "source": "surface_phrase"})
-        wm = re.search(r"\b(?:to\s+)?continue\s+weakening\s+(.+?)(?:[.;]|$)", parse_text, flags=re.IGNORECASE)
+        wm = re.search(
+            r"\b(?:to\s+)?continue\s+weakening\s+(.+?)(?:[.;]|$)",
+            parse_text,
+            flags=re.IGNORECASE,
+        )
         if wm:
             tail = re.sub(r"\s+", " ", str(wm.group(1) or "")).strip()
             if tail:
@@ -4420,16 +5021,27 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 if kn in {"a number", "number"}:
                     continue
                 kt = _token_set(k)
-                if kt and any(kt <= wts and len(kt) <= 2 for wts in wikilink_token_sets if wts):
+                if kt and any(
+                    kt <= wts and len(kt) <= 2 for wts in wikilink_token_sets if wts
+                ):
                     continue
             row = {"title": k, "source": src}
             if src == "wikilink":
-                row["resolver_hints"] = [{"lane": "sentence_link", "kind": "exact", "title": k, "score": 1.0}]
+                row["resolver_hints"] = [
+                    {"lane": "sentence_link", "kind": "exact", "title": k, "score": 1.0}
+                ]
             else:
-                hints = _resolver_hints_for_object(k, links if isinstance(links, list) else [], para_links if isinstance(para_links, list) else [], candidate_titles)
+                hints = _resolver_hints_for_object(
+                    k,
+                    links if isinstance(links, list) else [],
+                    para_links if isinstance(para_links, list) else [],
+                    candidate_titles,
+                )
                 if hints:
                     row["resolver_hints"] = hints
-            keys = _row_identity_keys(row) or [_norm_phrase(x) for x in _object_keys(k) if _norm_phrase(x)]
+            keys = _row_identity_keys(row) or [
+                _norm_phrase(x) for x in _object_keys(k) if _norm_phrase(x)
+            ]
             existing_pos = None
             for key in keys:
                 if key in obj_pos_by_key:
@@ -4440,7 +5052,7 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 dedup_obj.append(row)
                 score = _object_row_score(row)
                 obj_score_by_pos[pos] = score
-                for key in (_row_identity_keys(row) or keys):
+                for key in _row_identity_keys(row) or keys:
                     obj_pos_by_key[key] = pos
                 continue
             prev = dedup_obj[existing_pos]
@@ -4451,7 +5063,11 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             for h in (prev_hints or []) + (new_hints or []):
                 if not isinstance(h, dict):
                     continue
-                hk = (str(h.get("lane") or ""), str(h.get("kind") or ""), str(h.get("title") or ""))
+                hk = (
+                    str(h.get("lane") or ""),
+                    str(h.get("kind") or ""),
+                    str(h.get("title") or ""),
+                )
                 if hk in seen_hint:
                     continue
                 seen_hint.add(hk)
@@ -4464,7 +5080,7 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 row["resolver_hints"] = merged_hints
                 dedup_obj[existing_pos] = row
                 obj_score_by_pos[existing_pos] = new_score
-                for key in (_row_identity_keys(row) or keys):
+                for key in _row_identity_keys(row) or keys:
                     obj_pos_by_key[key] = existing_pos
         objects = dedup_obj
 
@@ -4487,12 +5103,30 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         anchor_year = int((ev.get("anchor") or {}).get("year") or 0) or None
 
         # Joined + commissioned split (override any single-action default).
-        if re.search(r"\bjoined\b", parse_text, flags=re.IGNORECASE) and re.search(r"\bcommissioned\b.*\binto\b", parse_text, flags=re.IGNORECASE):
-            joined_objs = [o.get("title") for o in objects if "Air Force" in str(o.get("title") or "")] or [o.get("title") for o in objects]
-            guard_objs = [o.get("title") for o in objects if "Guard" in str(o.get("title") or "")] or [o.get("title") for o in objects]
+        if re.search(r"\bjoined\b", parse_text, flags=re.IGNORECASE) and re.search(
+            r"\bcommissioned\b.*\binto\b", parse_text, flags=re.IGNORECASE
+        ):
+            joined_objs = [
+                o.get("title")
+                for o in objects
+                if "Air Force" in str(o.get("title") or "")
+            ] or [o.get("title") for o in objects]
+            guard_objs = [
+                o.get("title") for o in objects if "Guard" in str(o.get("title") or "")
+            ] or [o.get("title") for o in objects]
             steps = [
-                {"action": "joined", "subjects": subj_all, "objects": joined_objs, "purpose": None},
-                {"action": "commissioned_into", "subjects": subj_all, "objects": guard_objs, "purpose": None},
+                {
+                    "action": "joined",
+                    "subjects": subj_all,
+                    "objects": joined_objs,
+                    "purpose": None,
+                },
+                {
+                    "action": "commissioned_into",
+                    "subjects": subj_all,
+                    "objects": guard_objs,
+                    "purpose": None,
+                },
             ]
 
         # Speech + threw split (very common structure).
@@ -4507,18 +5141,34 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     thrower = r
                     break
 
-            if re.search(r"\b(?:was\s+)?giving\s+a\s+speech\b|\bgave\s+a\s+speech\b", parse_text, flags=re.IGNORECASE):
-                loc_objs = [o.get("title") for o in objects if any(k in str(o.get("title") or "") for k in ("Square", "Tbilisi"))] or [o.get("title") for o in objects]
+            if re.search(
+                r"\b(?:was\s+)?giving\s+a\s+speech\b|\bgave\s+a\s+speech\b",
+                parse_text,
+                flags=re.IGNORECASE,
+            ):
+                loc_objs = [
+                    o.get("title")
+                    for o in objects
+                    if any(
+                        k in str(o.get("title") or "") for k in ("Square", "Tbilisi")
+                    )
+                ] or [o.get("title") for o in objects]
                 steps.append(
                     {
                         "action": "gave_speech",
-                        "subjects": [root_actor_ev] if root_actor_ev in subj_all else subj_all,
+                        "subjects": [root_actor_ev]
+                        if root_actor_ev in subj_all
+                        else subj_all,
                         "objects": loc_objs,
                         "purpose": None,
                     }
                 )
 
-            grenade_obj = ["hand grenade"] if re.search(r"\bgrenade\b", parse_text, flags=re.IGNORECASE) else []
+            grenade_obj = (
+                ["hand grenade"]
+                if re.search(r"\bgrenade\b", parse_text, flags=re.IGNORECASE)
+                else []
+            )
             steps.append(
                 {
                     "action": "threw",
@@ -4562,7 +5212,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             for _, lab in hits:
                 if lab == "advised":
                     # Prefer the extracted passive agent as the doer if present.
-                    agent = next((a.get("resolved") for a in actors if a.get("source") == "pattern:by_agent"), None)
+                    agent = next(
+                        (
+                            a.get("resolved")
+                            for a in actors
+                            if a.get("source") == "pattern:by_agent"
+                        ),
+                        None,
+                    )
                     subj = [agent] if agent else subj_all
                     step_objs = _objects_for_action(
                         doc,
@@ -4572,7 +5229,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                         alias_map,
                         anchor_year,
                     )
-                    steps.append({"action": "advised", "subjects": [x for x in subj if x], "objects": step_objs, "purpose": None})
+                    steps.append(
+                        {
+                            "action": "advised",
+                            "subjects": [x for x in subj if x],
+                            "objects": step_objs,
+                            "purpose": None,
+                        }
+                    )
                 else:
                     step_objs = _objects_for_action(
                         doc,
@@ -4582,7 +5246,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                         alias_map,
                         anchor_year,
                     )
-                    steps.append({"action": lab, "subjects": subj_all, "objects": step_objs, "purpose": None})
+                    steps.append(
+                        {
+                            "action": lab,
+                            "subjects": subj_all,
+                            "objects": step_objs,
+                            "purpose": None,
+                        }
+                    )
 
         # Dependency-based communication/complement chains (profile-driven) replace sentence-family hacks
         # like "reported ... cautioned ...". This captures attribution + embedded payload steps.
@@ -4597,13 +5268,17 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             if comm_steps:
                 comm_verbs = {
                     str(x or "").strip().lower()
-                    for x in (communication_chain_config.get("communication_verbs") or [])
+                    for x in (
+                        communication_chain_config.get("communication_verbs") or []
+                    )
                     if str(x or "").strip()
                 }
                 existing_lemmas = []
                 for s in steps:
                     base = _base_action_label(str(s.get("action") or ""))
-                    existing_lemmas.extend([str(l).lower() for l in _action_lemmas(base)])
+                    existing_lemmas.extend(
+                        [str(l).lower() for l in _action_lemmas(base)]
+                    )
                 existing_has_comm = any(l in comm_verbs for l in existing_lemmas)
                 if existing_has_comm or not steps:
                     steps = comm_steps
@@ -4625,7 +5300,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     "action": action,
                     "subjects": subj_all,
                     "objects": step_objs,
-                    "modifiers": [modal_container_modifier] if isinstance(modal_container_modifier, dict) else [],
+                    "modifiers": [modal_container_modifier]
+                    if isinstance(modal_container_modifier, dict)
+                    else [],
                     "purpose": purpose,
                 }
             )
@@ -4644,9 +5321,15 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             for st in steps:
                 act = str(st.get("action") or "")
                 if _base_action_label(act) == "request" and requester_resolved:
-                    st["subjects"] = [requester_title_label, requester_resolved] if requester_has_title else [requester_resolved]
+                    st["subjects"] = (
+                        [requester_title_label, requester_resolved]
+                        if requester_has_title
+                        else [requester_resolved]
+                    )
                     continue
-                ss = _subjects_for_action(doc, act, actors, root_actor_ev, root_surname_ev)
+                ss = _subjects_for_action(
+                    doc, act, actors, root_actor_ev, root_surname_ev
+                )
                 if ss:
                     st["subjects"] = ss
                 step_objs = _objects_for_action(
@@ -4665,7 +5348,8 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 if (
                     isinstance(modal_container_modifier, dict)
                     and modal_promoted_action
-                    and _base_action_label(act) == _base_action_label(modal_promoted_action)
+                    and _base_action_label(act)
+                    == _base_action_label(modal_promoted_action)
                 ):
                     mods = st.get("modifiers")
                     if not isinstance(mods, list):
@@ -4676,13 +5360,21 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
 
         # Normalize "at ... request" into a requester-led step and avoid actor leakage.
         if requester_resolved and steps:
-            request_idxs = [i for i, s in enumerate(steps) if _base_action_label(str(s.get("action") or "")) in {"requested", "request"}]
+            request_idxs = [
+                i
+                for i, s in enumerate(steps)
+                if _base_action_label(str(s.get("action") or ""))
+                in {"requested", "request"}
+            ]
             if request_idxs:
                 non_request_subjects: List[str] = []
                 for s in steps:
-                    if _base_action_label(str(s.get("action") or "")) in {"requested", "request"}:
+                    if _base_action_label(str(s.get("action") or "")) in {
+                        "requested",
+                        "request",
+                    }:
                         continue
-                    for sub in (s.get("subjects") or []):
+                    for sub in s.get("subjects") or []:
                         if sub and sub not in non_request_subjects:
                             non_request_subjects.append(sub)
                 request_objects = non_request_subjects or [x for x in subj_all if x]
@@ -4695,7 +5387,12 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     "objects": request_objects,
                     "purpose": None,
                 }
-                keep = [s for s in steps if _base_action_label(str(s.get("action") or "")) not in {"requested", "request"}]
+                keep = [
+                    s
+                    for s in steps
+                    if _base_action_label(str(s.get("action") or ""))
+                    not in {"requested", "request"}
+                ]
                 steps = [request_step] + keep
 
         # Fallback: if request action exists but requester role wasn't extracted
@@ -4704,9 +5401,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             inferred_req = _infer_requester_from_steps(steps, requester_title_label)
             if inferred_req:
                 requester = _normalize_subject_label(inferred_req)
-                requester_resolved = _normalize_subject_label(_resolve_requester_label(inferred_req, alias_map) or inferred_req)
+                requester_resolved = _normalize_subject_label(
+                    _resolve_requester_label(inferred_req, alias_map) or inferred_req
+                )
                 already = {
-                    (str(a.get("resolved") or a.get("label") or "").strip().lower(), str(a.get("role") or "").strip().lower())
+                    (
+                        str(a.get("resolved") or a.get("label") or "").strip().lower(),
+                        str(a.get("role") or "").strip().lower(),
+                    )
                     for a in actors
                     if isinstance(a, dict)
                 }
@@ -4725,7 +5427,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         # Start a minimal nesting/chain lane: if a purpose clause is present, emit a derived
         # purpose-step (verb + object phrase) when it is not already represented.
         if steps and purpose:
-            pstep = _purpose_to_step(purpose, list(steps[-1].get("subjects") or subj_all), nlp=nlp)
+            pstep = _purpose_to_step(
+                purpose, list(steps[-1].get("subjects") or subj_all), nlp=nlp
+            )
             if pstep:
                 pverb = str(pstep.get("action") or "").lower()
                 represented = {str(s.get("action") or "").lower() for s in steps}
@@ -4810,9 +5514,16 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     if head_pos in {"PRON", "DET"} and len(words) == 1:
                         continue
                     head_lemma = getattr(head, "lemma_", "") if head is not None else ""
-                    has_acronym = any(getattr(t, "is_upper", False) and getattr(t, "is_alpha", False) and len(getattr(t, "text", "")) >= 2 for t in chunk)
+                    has_acronym = any(
+                        getattr(t, "is_upper", False)
+                        and getattr(t, "is_alpha", False)
+                        and len(getattr(t, "text", "")) >= 2
+                        for t in chunk
+                    )
                     has_propn = any(getattr(t, "pos_", "") == "PROPN" for t in chunk)
-                    span_type = _span_type_for_np(sn, head_lemma, has_acronym=has_acronym, has_propn=has_propn)
+                    span_type = _span_type_for_np(
+                        sn, head_lemma, has_acronym=has_acronym, has_propn=has_propn
+                    )
 
                     start = int(getattr(chunk, "start_char", 0))
                     end = int(getattr(chunk, "end_char", start + len(sn)))
@@ -4837,8 +5548,14 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     # Token overlap suppression: drop if the chunk is largely composed of resolved entity tokens.
                     non_stop = []
                     for t in chunk:
-                        if getattr(t, "is_alpha", False) and not getattr(t, "is_stop", False):
-                            non_stop.append(re.sub(r"[^a-z]+", "", str(getattr(t, "text", "")).lower()))
+                        if getattr(t, "is_alpha", False) and not getattr(
+                            t, "is_stop", False
+                        ):
+                            non_stop.append(
+                                re.sub(
+                                    r"[^a-z]+", "", str(getattr(t, "text", "")).lower()
+                                )
+                            )
                     non_stop = [w for w in non_stop if w]
                     if non_stop and all(w in resolved_tokens for w in non_stop):
                         overlaps_resolved = True
@@ -4885,7 +5602,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                         },
                     }
                     span_candidates.append(cand)
-                    span_seen.setdefault((sn.lower(), span_type), set()).add(str(ev.get("event_id")))
+                    span_seen.setdefault((sn.lower(), span_type), set()).add(
+                        str(ev.get("event_id"))
+                    )
             except Exception:
                 # If parsing fails, keep lane empty; provenance is still preserved in event.text.
                 pass
@@ -4894,7 +5613,7 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         for s in steps:
             subj_vals: List[str] = []
             subj_seen = set()
-            for sub in (s.get("subjects") or []):
+            for sub in s.get("subjects") or []:
                 ns = _normalize_subject_label(sub)
                 k = ns.lower()
                 if not ns or k in subj_seen:
@@ -4930,7 +5649,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             key = (
                 str(s.get("action") or ""),
                 _step_subject_key([x for x in (s.get("subjects") or []) if x]),
-                _step_object_key([x for x in (s.get("objects") or []) if x], object_row_by_key),
+                _step_object_key(
+                    [x for x in (s.get("objects") or []) if x], object_row_by_key
+                ),
                 str((s.get("negation") or {}).get("kind") or ""),
             )
             if key in seen_steps:
@@ -4981,7 +5702,10 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                     lk = _numeric_key(cleaned_obj)
                     if not lk:
                         continue
-                    if allowed_step_numeric_keys is not None and lk not in allowed_step_numeric_keys:
+                    if (
+                        allowed_step_numeric_keys is not None
+                        and lk not in allowed_step_numeric_keys
+                    ):
                         continue
                     if lk not in seen_numeric:
                         seen_numeric.add(lk)
@@ -4996,7 +5720,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             s["modifier_objects"] = modifier_objects
 
         # Step-scoped numeric role typing and multi-verb alignment.
-        step_numeric_claims = _extract_step_numeric_claims(doc, text, steps, event_anchor=ev.get("anchor"))
+        step_numeric_claims = _extract_step_numeric_claims(
+            doc, text, steps, event_anchor=ev.get("anchor")
+        )
         for i, s in enumerate(steps):
             claims = list(step_numeric_claims.get(i) or [])
             if claims and s.get("claim_id"):
@@ -5005,13 +5731,20 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                         c["claim_id"] = str(s.get("claim_id") or "")
             s["numeric_claims"] = claims
             if claims:
-                seen_num = {_numeric_key(str(x)) for x in (s.get("numeric_objects") or []) if str(x).strip()}
+                seen_num = {
+                    _numeric_key(str(x))
+                    for x in (s.get("numeric_objects") or [])
+                    if str(x).strip()
+                }
                 for c in claims:
                     nk = str(c.get("key") or "")
                     val = str(c.get("value") or "")
                     if not nk or not val:
                         continue
-                    if allowed_step_numeric_keys is not None and nk not in allowed_step_numeric_keys:
+                    if (
+                        allowed_step_numeric_keys is not None
+                        and nk not in allowed_step_numeric_keys
+                    ):
                         continue
                     if nk in seen_num:
                         continue
@@ -5029,7 +5762,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 base = _base_action_label(str(s.get("action") or ""))
                 for lm in _action_lemmas(base):
                     step_by_action.setdefault(str(lm).lower(), []).append(i)
-            seen_chain = {(c.get("from_step"), c.get("to_step"), c.get("kind")) for c in chains}
+            seen_chain = {
+                (c.get("from_step"), c.get("to_step"), c.get("kind")) for c in chains
+            }
             for tok in doc:
                 dep = str(getattr(tok, "dep_", "") or "")
                 if dep not in {"ccomp", "xcomp"}:
@@ -5045,35 +5780,56 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 to_idxs = step_by_action.get(child_lemma, [])
                 if not from_idxs or not to_idxs:
                     continue
-                key = (from_idxs[0], to_idxs[0], "content_clause" if dep == "ccomp" else "infinitive_clause")
+                key = (
+                    from_idxs[0],
+                    to_idxs[0],
+                    "content_clause" if dep == "ccomp" else "infinitive_clause",
+                )
                 if key in seen_chain:
                     continue
-                chains.append({"from_step": from_idxs[0], "to_step": to_idxs[0], "kind": key[2]})
+                chains.append(
+                    {"from_step": from_idxs[0], "to_step": to_idxs[0], "kind": key[2]}
+                )
                 seen_chain.add(key)
         for i, s in enumerate(steps):
             if s.get("purpose"):
-                chains.append({"from_step": i, "to": "purpose", "kind": "purpose_clause"})
+                chains.append(
+                    {"from_step": i, "to": "purpose", "kind": "purpose_clause"}
+                )
 
-        event_entity_objects = [o.get("title") for o in objects if _is_entity_like_object(str(o.get("title") or ""), o)]
-        event_numeric_objects = [o.get("title") for o in objects if _is_numeric_object(str(o.get("title") or ""), o)]
+        event_entity_objects = [
+            o.get("title")
+            for o in objects
+            if _is_entity_like_object(str(o.get("title") or ""), o)
+        ]
+        event_numeric_objects = [
+            o.get("title")
+            for o in objects
+            if _is_numeric_object(str(o.get("title") or ""), o)
+        ]
         event_modifier_objects = [
             o.get("title")
             for o in objects
-            if (not _is_entity_like_object(str(o.get("title") or ""), o)) and (not _is_numeric_object(str(o.get("title") or ""), o))
+            if (not _is_entity_like_object(str(o.get("title") or ""), o))
+            and (not _is_numeric_object(str(o.get("title") or ""), o))
         ]
         # Second pass: preserve raw numeric mentions from sentence text in a dedicated lane.
-        seen_event_numeric = {_numeric_key(str(x)) for x in event_numeric_objects if str(x).strip()}
+        seen_event_numeric = {
+            _numeric_key(str(x)) for x in event_numeric_objects if str(x).strip()
+        }
         for n in _extract_numeric_mentions(text, doc=doc):
             nk = _numeric_key(n)
             if not nk or nk in seen_event_numeric:
                 continue
             seen_event_numeric.add(nk)
             event_numeric_objects.append(_normalize_numeric_mention(n))
-        event_numeric_objects = _dedupe_numeric_objects_prefer_currency(event_numeric_objects)
+        event_numeric_objects = _dedupe_numeric_objects_prefer_currency(
+            event_numeric_objects
+        )
 
         event_numeric_claims: List[dict] = []
         for idx, s in enumerate(steps):
-            for c in (s.get("numeric_claims") or []):
+            for c in s.get("numeric_claims") or []:
                 if not isinstance(c, dict):
                     continue
                 cc = dict(c)
@@ -5084,7 +5840,10 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             event_id=event_id,
             steps=steps,
             source_entity_id=str(source_entity.get("id") or ""),
-            communication_verbs=[str(x or "") for x in (communication_chain_config.get("communication_verbs") or [])],
+            communication_verbs=[
+                str(x or "")
+                for x in (communication_chain_config.get("communication_verbs") or [])
+            ],
         )
 
         # Source-pack / per-row source hints: preserve URL/path metadata when present on the
@@ -5092,7 +5851,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         citations: List[dict] = []
         row_url = str(ev.get("url") or "").strip()
         row_source_id = str(ev.get("source_id") or "").strip()
-        row_title = str(ev.get("title") or "").strip() or str(ev.get("text") or "").strip()
+        row_title = (
+            str(ev.get("title") or "").strip() or str(ev.get("text") or "").strip()
+        )
         if row_url:
             provider = "source_document"
             mode = "url"
@@ -5110,7 +5871,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             # Local pack seed paths use the url field to carry a filesystem path.
             row_path = str(ev.get("path") or "").strip()
             if row_path:
-                follow = [{"provider": "source_document", "mode": "path", "path": row_path}]
+                follow = [
+                    {"provider": "source_document", "mode": "path", "path": row_path}
+                ]
                 citations.append(
                     {
                         "text": row_title or row_path,
@@ -5130,7 +5893,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
                 "actors": actors,
                 "action": action,
                 "action_meta": event_action_meta,
-                "action_surface": event_action_surface if action and event_action_surface and event_action_surface != action else None,
+                "action_surface": event_action_surface
+                if action and event_action_surface and event_action_surface != action
+                else None,
                 "steps": steps,
                 "objects": objects,
                 "entity_objects": event_entity_objects,
@@ -5170,7 +5935,11 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
         "parser": (
             parser_info
             if parser_info
-            else ({"name": "spacy", "model": str(args.spacy_model), "error": parser_error} if parser_error else None)
+            else (
+                {"name": "spacy", "model": str(args.spacy_model), "error": parser_error}
+                if parser_error
+                else None
+            )
         ),
         "extraction_profile": profile_info,
         "source_timeline": {
@@ -5178,7 +5947,9 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
             "snapshot": tl.get("snapshot"),
         },
         "source_entity": source_entity,
-        "extraction_record": _build_extraction_record(str(source_entity.get("id") or ""), parser_info, generated_at),
+        "extraction_record": _build_extraction_record(
+            str(source_entity.get("id") or ""), parser_info, generated_at
+        ),
         "requester_coverage": requester_coverage,
         "root_actor": {"label": root_actor, "surname": root_surname},
         "events": out_events,
@@ -5198,22 +5969,32 @@ def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
     if not args.no_db:
         persist_fn = None
         try:
-            from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run as persist_fn
+            from src.wiki_timeline.sqlite_store import (
+                persist_wiki_timeline_aoo_run as persist_fn,
+            )
         except Exception:  # pragma: no cover - script execution outside package layout
             try:
-                from SensibLaw.src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run as persist_fn
+                from SensibLaw.src.wiki_timeline.sqlite_store import (
+                    persist_wiki_timeline_aoo_run as persist_fn,
+                )
             except Exception:
                 persist_fn = None
 
         if persist_fn is None:
-            raise SystemExit("SQLite persistence requested but src.wiki_timeline.sqlite_store is unavailable")
+            raise SystemExit(
+                "SQLite persistence requested but src.wiki_timeline.sqlite_store is unavailable"
+            )
 
         res = persist_fn(
             db_path=Path(args.db_path),
             out_payload=out,
             timeline_path=Path(args.timeline),
-            candidates_path=Path(args.candidates) if args.candidates and Path(args.candidates).exists() else None,
-            profile_path=Path(args.profile) if args.profile and Path(args.profile).exists() else None,
+            candidates_path=Path(args.candidates)
+            if args.candidates and Path(args.candidates).exists()
+            else None,
+            profile_path=Path(args.profile)
+            if args.profile and Path(args.profile).exists()
+            else None,
             extractor_path=Path(__file__),
         )
         out["run_id"] = res.run_id
@@ -5268,7 +6049,9 @@ def build_aoo_payload_from_timeline(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Extract AAO mini-graphs from wiki timeline candidates.")
+    ap = argparse.ArgumentParser(
+        description="Extract AAO mini-graphs from wiki timeline candidates."
+    )
     ap.add_argument(
         "--timeline",
         type=Path,
@@ -5287,9 +6070,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/.cache_local/wiki_timeline_gwb_aoo.json"),
         help="Output AAO JSON (default: %(default)s)",
     )
-    ap.add_argument("--root-actor", default="George W. Bush", help="Root actor label for 'Bush' mentions")
-    ap.add_argument("--root-surname", default="Bush", help="Surname token that resolves to root actor")
-    ap.add_argument("--max-events", type=int, default=260, help="Max events to process (default: 260)")
+    ap.add_argument(
+        "--root-actor",
+        default="George W. Bush",
+        help="Root actor label for 'Bush' mentions",
+    )
+    ap.add_argument(
+        "--root-surname",
+        default="Bush",
+        help="Surname token that resolves to root actor",
+    )
+    ap.add_argument(
+        "--max-events",
+        type=int,
+        default=260,
+        help="Max events to process (default: 260)",
+    )
     ap.add_argument(
         "--profile",
         type=Path,
@@ -5302,15 +6098,33 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path(".cache_local/itir.sqlite"),
         help="SQLite persistence target for canonical storage (JSON remains an export) (default: %(default)s)",
     )
-    ap.add_argument("--no-db", action="store_true", help="Disable SQLite persistence (export JSON only)")
-    ap.add_argument("--spacy-model", default="en_core_web_sm", help="spaCy model for deterministic role/attachment parsing")
-    ap.add_argument("--no-spacy", action="store_true", help="Disable spaCy parsing (span candidates lane will be empty)")
+    ap.add_argument(
+        "--no-db",
+        action="store_true",
+        help="Disable SQLite persistence (export JSON only)",
+    )
+    ap.add_argument(
+        "--spacy-model",
+        default="en_core_web_sm",
+        help="spaCy model for deterministic role/attachment parsing",
+    )
+    ap.add_argument(
+        "--no-spacy",
+        action="store_true",
+        help="Disable spaCy parsing (span candidates lane will be empty)",
+    )
     args = ap.parse_args(argv)
 
     out = _build_aoo_payload_from_namespace(args)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out), "events": len(out.get("events") or [])}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {"ok": True, "out": str(args.out), "events": len(out.get("events") or [])},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

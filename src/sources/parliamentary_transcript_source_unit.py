@@ -19,7 +19,12 @@ class ClauseIR:
 
 
 def _slug(value: str) -> str:
-    return "".join(ch if ch.isalnum() else "_" for ch in str(value or "")).strip("_").lower() or "unknown"
+    return (
+        "".join(ch if ch.isalnum() else "_" for ch in str(value or ""))
+        .strip("_")
+        .lower()
+        or "unknown"
+    )
 
 
 def build_parliamentary_source_unit_from_transcript(
@@ -38,9 +43,7 @@ def build_parliamentary_source_unit_from_transcript(
     authority_level: str = "parliamentary_interpretive",
     timestamp: str | None = None,
 ) -> dict[str, Any]:
-    source_unit_id = (
-        f"sourceunit:parliamentary:{_slug(transcript_id)}:{_slug(speaker_name)}:{utterance_index}"
-    )
+    source_unit_id = f"sourceunit:parliamentary:{_slug(transcript_id)}:{_slug(speaker_name)}:{utterance_index}"
     normalized = build_normalized_source_unit(
         source_id=source_unit_id,
         source_family=source_family,

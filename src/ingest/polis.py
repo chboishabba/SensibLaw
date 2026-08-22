@@ -37,7 +37,9 @@ DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "concepts"
 POLIS_API = "https://pol.is/api/v3/conversations"
 
 DEFAULT_MAX_RETRIES = int(os.environ.get("SENSIBLAW_MAX_RETRIES", 3))
-DEFAULT_SLEEP_BETWEEN_RETRIES = float(os.environ.get("SENSIBLAW_SLEEP_BETWEEN_RETRIES", 1.0))
+DEFAULT_SLEEP_BETWEEN_RETRIES = float(
+    os.environ.get("SENSIBLAW_SLEEP_BETWEEN_RETRIES", 1.0)
+)
 
 _REQUEST_CACHE: "OrderedDict[Tuple[str, str, Optional[int]], Dict]" = OrderedDict()
 _MAX_CACHE_SIZE = 128
@@ -57,11 +59,15 @@ def _resolve_retry_config(
     return resolved_max, resolved_sleep
 
 
-def _cache_key(provider: str, term: str, limit: Optional[int]) -> Tuple[str, str, Optional[int]]:
+def _cache_key(
+    provider: str, term: str, limit: Optional[int]
+) -> Tuple[str, str, Optional[int]]:
     return provider, term, limit
 
 
-def _get_cached_response(provider: str, term: str, limit: Optional[int]) -> Optional[Dict]:
+def _get_cached_response(
+    provider: str, term: str, limit: Optional[int]
+) -> Optional[Dict]:
     key = _cache_key(provider, term, limit)
     cached = _REQUEST_CACHE.get(key)
     if cached is not None:
@@ -69,7 +75,9 @@ def _get_cached_response(provider: str, term: str, limit: Optional[int]) -> Opti
     return cached
 
 
-def _store_cached_response(provider: str, term: str, limit: Optional[int], data: Dict) -> None:
+def _store_cached_response(
+    provider: str, term: str, limit: Optional[int], data: Dict
+) -> None:
     key = _cache_key(provider, term, limit)
     _REQUEST_CACHE[key] = data
     _REQUEST_CACHE.move_to_end(key)
@@ -185,9 +193,9 @@ def fetch_conversation(
         cluster_id = stmt.get("cluster")
         cluster_label = None
         if cluster_id in clusters:
-            cluster_label = clusters[cluster_id].get("name") or clusters[cluster_id].get(
-                "label"
-            )
+            cluster_label = clusters[cluster_id].get("name") or clusters[
+                cluster_id
+            ].get("label")
         seed = {
             "id": f"polis_{convo_id}_{sid}",
             "label": text,

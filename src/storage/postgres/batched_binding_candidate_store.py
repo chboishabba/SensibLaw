@@ -97,7 +97,9 @@ def persist_binding_candidate_sets_batched(
     member_rows = []
     exclusion_rows = []
     persisted_reference_revisions: dict[str, str] = {}
-    for row in sorted(candidate_sets, key=lambda value: str(value["candidate_set_ref"])):
+    for row in sorted(
+        candidate_sets, key=lambda value: str(value["candidate_set_ref"])
+    ):
         candidate_set_ref = str(row["candidate_set_ref"])
         reference_factor_ref = str(row["reference_factor_ref"])
         reference_revision = factor_revisions.get(reference_factor_ref)

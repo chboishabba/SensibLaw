@@ -89,12 +89,9 @@ def test_diagnostics_detects_candidate_explosion() -> None:
         constraint_assessments=tuple(
             {"assessment_ref": f"assessment:{index}"} for index in range(200)
         ),
-        local_meet_plan=tuple(
-            {"plan_ref": f"plan:{index}"} for index in range(200)
-        ),
+        local_meet_plan=tuple({"plan_ref": f"plan:{index}"} for index in range(200)),
         typed_meets=tuple(
-            {"meet_ref": f"meet:{index}", "state": "rejected"}
-            for index in range(200)
+            {"meet_ref": f"meet:{index}", "state": "rejected"} for index in range(200)
         ),
     ).to_dict()
 

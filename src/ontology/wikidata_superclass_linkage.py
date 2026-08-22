@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
 from src.policy.linkage_adapters import (
@@ -62,7 +61,11 @@ def _string_list(value: Any) -> list[str]:
 
 
 def _row_key(row: Mapping[str, Any]) -> str:
-    return _text(row.get("row_id")) or _text(row.get("queue_item_id")) or _text(row.get("packet_id"))
+    return (
+        _text(row.get("row_id"))
+        or _text(row.get("queue_item_id"))
+        or _text(row.get("packet_id"))
+    )
 
 
 def _q43229_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -79,7 +82,9 @@ def _q43229_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return filtered
 
 
-def _q43229_rows_by_field(rows: Sequence[Mapping[str, Any]], *, key_field: str) -> list[dict[str, Any]]:
+def _q43229_rows_by_field(
+    rows: Sequence[Mapping[str, Any]], *, key_field: str
+) -> list[dict[str, Any]]:
     filtered: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row in rows:
@@ -120,10 +125,14 @@ def build_world_model(
     operator_report: Mapping[str, Any],
     batch_report: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    lane_id = _text(operator_packet.get("lane_id")) or _text(operator_report.get("lane_id"))
+    lane_id = _text(operator_packet.get("lane_id")) or _text(
+        operator_report.get("lane_id")
+    )
     packet_id = _text(operator_packet.get("packet_id"))
     report_id = _text(operator_report.get("report_id"))
-    cohort_id = _text(operator_packet.get("cohort_id")) or _text(operator_report.get("cohort_id"))
+    cohort_id = _text(operator_packet.get("cohort_id")) or _text(
+        operator_report.get("cohort_id")
+    )
 
     packet_rows = _q43229_rows(_mapping_rows(operator_packet.get("selected_rows")))
     bucket_rows = _q43229_rows(_mapping_rows(review_bucket.get("candidates")))
@@ -134,11 +143,17 @@ def build_world_model(
         if isinstance(operator_queue.get("queue"), Mapping)
         else []
     )
-    queue_rows = _q43229_rows_by_field(_mapping_rows(queue_payload), key_field="queue_item_id")
-    report_rows = _q43229_rows_by_field(_mapping_rows(operator_report.get("examples")), key_field="queue_item_id")
+    queue_rows = _q43229_rows_by_field(
+        _mapping_rows(queue_payload), key_field="queue_item_id"
+    )
+    report_rows = _q43229_rows_by_field(
+        _mapping_rows(operator_report.get("examples")), key_field="queue_item_id"
+    )
 
     if not packet_rows:
-        raise ValueError("Q43229 superclass-pressure report requires at least one packet row for Q43229")
+        raise ValueError(
+            "Q43229 superclass-pressure report requires at least one packet row for Q43229"
+        )
 
     case_rows = []
     if isinstance(batch_report, Mapping):
@@ -146,7 +161,11 @@ def build_world_model(
             if packet_id and _text(row.get("packet_id")) == packet_id:
                 case_rows.append(dict(row))
 
-    decision = _text(operator_packet.get("decision")) or _text(operator_report.get("report_status")) or "review"
+    decision = (
+        _text(operator_packet.get("decision"))
+        or _text(operator_report.get("report_status"))
+        or "review"
+    )
     governance = (
         dict(operator_report.get("governance"))
         if isinstance(operator_report.get("governance"), Mapping)
@@ -162,12 +181,16 @@ def build_world_model(
         "case_count": len(case_rows),
         "review_first": bool(operator_packet.get("summary", {}).get("review_first"))
         or bool(operator_report.get("summary", {}).get("review_first")),
-        "variance_flag_counts": dict(operator_report.get("summary", {}).get("variance_flag_counts", {}))
+        "variance_flag_counts": dict(
+            operator_report.get("summary", {}).get("variance_flag_counts", {})
+        )
         if isinstance(operator_report.get("summary"), Mapping)
         else dict(operator_packet.get("summary", {}).get("variance_flag_counts", {}))
         if isinstance(operator_packet.get("summary"), Mapping)
         else {},
-        "priority_counts": dict(operator_report.get("summary", {}).get("priority_counts", {}))
+        "priority_counts": dict(
+            operator_report.get("summary", {}).get("priority_counts", {})
+        )
         if isinstance(operator_report.get("summary"), Mapping)
         else {},
     }
@@ -225,7 +248,12 @@ def build_world_model(
         ],
         external_bridges=["wikidata"],
         promotion_policy="review_only",
-        default_projection_kinds=["report", "claim_table", "review_surface", "linkage_case"],
+        default_projection_kinds=[
+            "report",
+            "claim_table",
+            "review_surface",
+            "linkage_case",
+        ],
         metadata={"target_instance_of_qid": Q43229_TARGET_QID},
     )
     return build_candidate_world_model(
@@ -244,7 +272,9 @@ def build_world_model(
             "target_instance_of_qid": Q43229_TARGET_QID,
             "packet_id": packet_id,
             "report_id": report_id,
-            "batch_status": _text(batch_report.get("batch_status")) if isinstance(batch_report, Mapping) else "",
+            "batch_status": _text(batch_report.get("batch_status"))
+            if isinstance(batch_report, Mapping)
+            else "",
             "decision": decision,
             "governance": governance,
             "packet_rows": packet_rows,
@@ -259,22 +289,39 @@ def build_world_model(
 
 
 def _report_payload_from_world_model(world_model: Mapping[str, Any]) -> dict[str, Any]:
-    metadata = world_model.get("metadata") if isinstance(world_model.get("metadata"), Mapping) else {}
-    summary = world_model.get("summary") if isinstance(world_model.get("summary"), Mapping) else {}
+    metadata = (
+        world_model.get("metadata")
+        if isinstance(world_model.get("metadata"), Mapping)
+        else {}
+    )
+    summary = (
+        world_model.get("summary")
+        if isinstance(world_model.get("summary"), Mapping)
+        else {}
+    )
     return {
         "schema_version": WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
         "lane_id": _text(metadata.get("lane_id")),
         "cohort_id": _text(metadata.get("cohort_id")),
-        "target_instance_of_qid": _text(metadata.get("target_instance_of_qid")) or Q43229_TARGET_QID,
+        "target_instance_of_qid": _text(metadata.get("target_instance_of_qid"))
+        or Q43229_TARGET_QID,
         "packet_id": _text(metadata.get("packet_id")),
         "report_id": _text(metadata.get("report_id")),
         "batch_status": _text(metadata.get("batch_status")),
         "decision": _text(metadata.get("decision")) or "review",
-        "governance": dict(metadata.get("governance")) if isinstance(metadata.get("governance"), Mapping) else {},
-        "packet_rows": [dict(row) for row in _mapping_rows(metadata.get("packet_rows"))],
-        "review_bucket_rows": [dict(row) for row in _mapping_rows(metadata.get("review_bucket_rows"))],
+        "governance": dict(metadata.get("governance"))
+        if isinstance(metadata.get("governance"), Mapping)
+        else {},
+        "packet_rows": [
+            dict(row) for row in _mapping_rows(metadata.get("packet_rows"))
+        ],
+        "review_bucket_rows": [
+            dict(row) for row in _mapping_rows(metadata.get("review_bucket_rows"))
+        ],
         "queue_rows": [dict(row) for row in _mapping_rows(metadata.get("queue_rows"))],
-        "report_rows": [dict(row) for row in _mapping_rows(metadata.get("report_rows"))],
+        "report_rows": [
+            dict(row) for row in _mapping_rows(metadata.get("report_rows"))
+        ],
         "case_rows": [dict(row) for row in _mapping_rows(metadata.get("case_rows"))],
         "triage_prompts": _string_list(metadata.get("triage_prompts")),
         "recommendations": _string_list(metadata.get("recommendations")),
@@ -283,7 +330,9 @@ def _report_payload_from_world_model(world_model: Mapping[str, Any]) -> dict[str
 
 
 def _build_linkage_projection(world_model: Mapping[str, Any]) -> dict[str, Any]:
-    case = _build_q43229_superclass_pressure_case_payload(_report_payload_from_world_model(world_model))
+    case = _build_q43229_superclass_pressure_case_payload(
+        _report_payload_from_world_model(world_model)
+    )
     return project_linkage_case(
         world_model,
         case_id=case["case_id"],
@@ -302,7 +351,9 @@ def _build_linkage_projection(world_model: Mapping[str, Any]) -> dict[str, Any]:
 
 def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     model = world_model if isinstance(world_model, Mapping) else {}
-    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    metadata = (
+        model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    )
     summary = model.get("summary") if isinstance(model.get("summary"), Mapping) else {}
     report_payload = _report_payload_from_world_model(model)
     review_surface = project_review_surface(
@@ -326,7 +377,9 @@ def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     return project_world_model_report(
         model,
         schema_version=WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
-        artifact_id=report_payload["report_id"] or report_payload["packet_id"] or model.get("model_id"),
+        artifact_id=report_payload["report_id"]
+        or report_payload["packet_id"]
+        or model.get("model_id"),
         lane_id=report_payload["lane_id"] or Q43229_LANE_FAMILY,
         family_id=Q43229_PROFILE_ID,
         promotion_gate={
@@ -432,9 +485,16 @@ def _report_row_index(report: Mapping[str, Any]) -> dict[str, list[Mapping[str, 
     return by_row_id
 
 
-def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
-    if _text(report.get("schema_version")) != WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION:
-        raise ValueError("Q43229 superclass-pressure linkage case requires superclass-pressure report payload")
+def _build_q43229_superclass_pressure_case_payload(
+    report: Mapping[str, Any],
+) -> dict[str, Any]:
+    if (
+        _text(report.get("schema_version"))
+        != WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION
+    ):
+        raise ValueError(
+            "Q43229 superclass-pressure linkage case requires superclass-pressure report payload"
+        )
 
     packet_rows = _mapping_rows(report.get("packet_rows"))
     if not packet_rows:
@@ -516,11 +576,25 @@ def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) ->
                 metadata={
                     "row_id": row_id,
                     "entity_qid": entity_qid,
-                    "qualifier_properties": _string_list(bucket_row.get("qualifier_properties")),
-                    "reference_properties": _string_list(bucket_row.get("reference_properties")),
-                    "queue_item_ids": [_text(q.get("queue_item_id")) for q in queue_rows if _text(q.get("queue_item_id"))],
-                    "priorities": [_text(q.get("priority")) for q in queue_rows if _text(q.get("priority"))],
-                    "counterexample_cone_visibility": "complete" if bucket_row else "partial",
+                    "qualifier_properties": _string_list(
+                        bucket_row.get("qualifier_properties")
+                    ),
+                    "reference_properties": _string_list(
+                        bucket_row.get("reference_properties")
+                    ),
+                    "queue_item_ids": [
+                        _text(q.get("queue_item_id"))
+                        for q in queue_rows
+                        if _text(q.get("queue_item_id"))
+                    ],
+                    "priorities": [
+                        _text(q.get("priority"))
+                        for q in queue_rows
+                        if _text(q.get("priority"))
+                    ],
+                    "counterexample_cone_visibility": "complete"
+                    if bucket_row
+                    else "partial",
                 },
                 target_id=pressure_node_id,
                 edge_kind="class_lattice_pressure_projection",
@@ -542,7 +616,11 @@ def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) ->
                     "instance_of_qid": Q43229_TARGET_QID,
                     "recommendations": _string_list(report.get("recommendations")),
                     "triage_prompts": _string_list(report.get("triage_prompts")),
-                    "report_priorities": [_text(r.get("priority")) for r in report_rows if _text(r.get("priority"))],
+                    "report_priorities": [
+                        _text(r.get("priority"))
+                        for r in report_rows
+                        if _text(r.get("priority"))
+                    ],
                     "candidate_vs_promoted_visibility": True,
                 },
                 source_id=pressure_node_id,
@@ -564,7 +642,9 @@ def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) ->
         )
 
     if not repair_node_ids:
-        raise ValueError("Q43229 superclass-pressure linkage case requires at least one repair candidate")
+        raise ValueError(
+            "Q43229 superclass-pressure linkage case requires at least one repair candidate"
+        )
 
     fragments.append(
         build_collection_adapter_fragment(
@@ -576,8 +656,12 @@ def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) ->
                 "packet_id": packet_id,
                 "queue_row_count": len(_mapping_rows(report.get("queue_rows"))),
                 "review_first": bool(report.get("summary", {}).get("review_first")),
-                "variance_flag_counts": dict(report.get("summary", {}).get("variance_flag_counts", {})),
-                "class_lattice_pressure_visibility": "complete" if counterexample_node_ids else "partial",
+                "variance_flag_counts": dict(
+                    report.get("summary", {}).get("variance_flag_counts", {})
+                ),
+                "class_lattice_pressure_visibility": "complete"
+                if counterexample_node_ids
+                else "partial",
             },
             upstream_node_ids=counterexample_node_ids,
             edge_kind="class_lattice_pressure_projection",
@@ -652,10 +736,16 @@ def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) ->
 
 
 def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
-    receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
-    if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
+    receipt = (
+        report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
+    )
+    if (
+        isinstance(receipt, Mapping)
+        and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
+    ):
         return build_linkage_depth_case(
-            case_id=_text(receipt.get("case_id")) or "wikidata_q43229_superclass_pressure",
+            case_id=_text(receipt.get("case_id"))
+            or "wikidata_q43229_superclass_pressure",
             case_kind="wd_structural_pressure_fixture",
             contract_id=_text((receipt.get("contract") or {}).get("contract_id"))
             or WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
@@ -670,21 +760,32 @@ def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
             if isinstance(receipt.get("contract"), Mapping)
             else build_contract(),
         )
-    linkage_projection = report.get("linkage_case") if isinstance(report, Mapping) else None
+    linkage_projection = (
+        report.get("linkage_case") if isinstance(report, Mapping) else None
+    )
     if (
         isinstance(linkage_projection, Mapping)
         and _text(linkage_projection.get("projection_kind")) == "linkage_case"
     ):
-        payload = linkage_projection.get("payload") if isinstance(linkage_projection.get("payload"), Mapping) else {}
+        payload = (
+            linkage_projection.get("payload")
+            if isinstance(linkage_projection.get("payload"), Mapping)
+            else {}
+        )
         return build_linkage_depth_case(
-            case_id=_text(payload.get("case_id")) or "wikidata_q43229_superclass_pressure",
+            case_id=_text(payload.get("case_id"))
+            or "wikidata_q43229_superclass_pressure",
             case_kind="wd_structural_pressure_fixture",
-            contract_id=_text(payload.get("contract_id")) or WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
+            contract_id=_text(payload.get("contract_id"))
+            or WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
             expected_anchor_ids=payload.get("expected_anchor_ids", []),
             expected_terminal_ids=payload.get("expected_terminal_ids", []),
             nodes=payload.get("nodes", []),
             edges=payload.get("edges", []),
-            lane_id=_text((linkage_projection.get("source_model") or {}).get("lane_family")) or Q43229_LANE_FAMILY,
+            lane_id=_text(
+                (linkage_projection.get("source_model") or {}).get("lane_family")
+            )
+            or Q43229_LANE_FAMILY,
             case_source="projected_world_model_artifact",
             notes=payload.get("notes", []),
             contract=build_contract(),
@@ -698,9 +799,7 @@ def build_receipt(
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract_payload = (
-        dict(contract)
-        if isinstance(contract, Mapping)
-        else build_contract()
+        dict(contract) if isinstance(contract, Mapping) else build_contract()
     )
     case = require_case_from_projection_artifact(
         report,
@@ -709,7 +808,9 @@ def build_receipt(
         default_lane_id=Q43229_LANE_FAMILY,
         default_contract=contract_payload,
         default_contract_id=WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
-        default_notes=["Q43229 superclass-pressure case loaded from the projected linkage surface."],
+        default_notes=[
+            "Q43229 superclass-pressure case loaded from the projected linkage surface."
+        ],
     )
     return build_linkage_depth_receipt(
         case=case,

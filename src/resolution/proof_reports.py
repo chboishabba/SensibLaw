@@ -9,7 +9,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
-from src.policy.carriers.canonical import canonical_json, canonical_refs, canonical_sha256, require_text
+from src.policy.carriers.canonical import (
+    canonical_json,
+    canonical_refs,
+    canonical_sha256,
+    require_text,
+)
 
 
 @dataclass(frozen=True)
@@ -60,7 +65,9 @@ def build_proof_report(
             "editing_authority": False,
             "identity_resolution_establishes_claim_truth": False,
         },
-        "provenance_refs": list(canonical_refs((fixture.fixture_ref, fixture.document_ref))),
+        "provenance_refs": list(
+            canonical_refs((fixture.fixture_ref, fixture.document_ref))
+        ),
     }
     row["report_sha256"] = canonical_sha256(row)
     return row

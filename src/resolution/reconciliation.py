@@ -35,9 +35,7 @@ def reconcile_meets(
     *, assessment_ref: str, subject_ref: str, meets: tuple[TypedMeet, ...]
 ) -> ReconciliationAssessment:
     states = {MeetState(meet.state) for meet in meets}
-    residuals = tuple(
-        sorted({ref for meet in meets for ref in meet.residual_refs})
-    )
+    residuals = tuple(sorted({ref for meet in meets for ref in meet.residual_refs}))
     if MeetState.CONTRADICTION in states:
         outcome = "contradiction"
     elif MeetState.NO_TYPED_MEET in states:

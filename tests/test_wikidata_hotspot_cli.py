@@ -12,7 +12,12 @@ FIXTURE_DIR = ROOT / "tests" / "fixtures" / "wikidata" / "hotspot_eval_v1"
 
 
 def test_wikidata_hotspot_generate_clusters_cli_writes_report(tmp_path, capsys) -> None:
-    manifest_path = ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    manifest_path = (
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    )
     out_path = tmp_path / "hotspot_cluster_pack.json"
 
     cli_main.main(
@@ -34,11 +39,20 @@ def test_wikidata_hotspot_generate_clusters_cli_writes_report(tmp_path, capsys) 
     assert stdout["output"] == str(out_path)
     assert payload["selected_pack_ids"] == ["software_entity_kind_collapse_pack_v0"]
     assert payload["packs"][0]["cluster_count"] >= 3
-    assert payload["packs"][0]["clusters"][0]["questions"][0]["question_id"].endswith(":q0")
+    assert payload["packs"][0]["clusters"][0]["questions"][0]["question_id"].endswith(
+        ":q0"
+    )
 
 
-def test_wikidata_hotspot_generate_clusters_cli_defaults_to_all_entries(tmp_path, capsys) -> None:
-    manifest_path = ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+def test_wikidata_hotspot_generate_clusters_cli_defaults_to_all_entries(
+    tmp_path, capsys
+) -> None:
+    manifest_path = (
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    )
     out_path = tmp_path / "hotspot_cluster_pack_all.json"
 
     cli_main.main(
@@ -62,7 +76,12 @@ def test_wikidata_hotspot_generate_clusters_cli_defaults_to_all_entries(tmp_path
 
 
 def test_wikidata_hotspot_eval_cli_writes_report(tmp_path, capsys) -> None:
-    manifest_path = ROOT.parent / "docs" / "planning" / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    manifest_path = (
+        ROOT.parent
+        / "docs"
+        / "planning"
+        / "wikidata_hotspot_pilot_pack_v1.manifest.json"
+    )
     cluster_path = tmp_path / "cluster_pack.json"
     out_path = tmp_path / "eval_report.json"
 
@@ -87,7 +106,10 @@ def test_wikidata_hotspot_eval_cli_writes_report(tmp_path, capsys) -> None:
             "--cluster-pack",
             str(cluster_path),
             "--responses",
-            str(FIXTURE_DIR / "qualifier_drift_p166_live_pack_v1_responses_consistent.json"),
+            str(
+                FIXTURE_DIR
+                / "qualifier_drift_p166_live_pack_v1_responses_consistent.json"
+            ),
             "--output",
             str(out_path),
         ]
@@ -98,4 +120,6 @@ def test_wikidata_hotspot_eval_cli_writes_report(tmp_path, capsys) -> None:
 
     assert stdout["output"] == str(out_path)
     assert payload["schema_version"] == "wikidata_hotspot_eval/v1"
-    assert payload["summary"]["cluster_counts"]["total"] == len(payload["cluster_results"])
+    assert payload["summary"]["cluster_counts"]["total"] == len(
+        payload["cluster_results"]
+    )

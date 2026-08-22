@@ -8,16 +8,22 @@ import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from src.storage.repo_roots import resolve_repo_root, resolve_sensiblaw_root
 
 REPO_ROOT = resolve_repo_root(__file__)
 SENSIBLAW_ROOT = resolve_sensiblaw_root(__file__)
 
-from scripts.report_wiki_random_lexer_coverage import score_snapshot_payload as score_reducer_payload  # noqa: E402
-from scripts.report_wiki_random_timeline_readiness import score_snapshot_payload as score_timeline_payload  # noqa: E402
-from src.wiki_timeline.article_state import build_article_sentence_surface, build_wiki_article_state  # noqa: E402
+from scripts.report_wiki_random_lexer_coverage import (
+    score_snapshot_payload as score_reducer_payload,
+)  # noqa: E402
+from scripts.report_wiki_random_timeline_readiness import (
+    score_snapshot_payload as score_timeline_payload,
+)  # noqa: E402
+from src.wiki_timeline.article_state import (
+    build_wiki_article_state,
+)  # noqa: E402
 
 
 SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_11"
@@ -31,10 +37,44 @@ _CATEGORY_LINE_RE = re.compile(r"\[\[\s*category:[^\]]+\]\]", re.IGNORECASE)
 _DEFAULTSORT_RE = re.compile(r"\{\{\s*defaultsort:[^}]+\}\}", re.IGNORECASE)
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 _BIOGRAPHY_CATEGORY_TERMS = (" births", " deaths", "people", "biography")
-_PLACE_TERMS = ("city", "town", "village", "county", "district", "province", "state", "metropolitan area")
-_FACILITY_TERMS = ("complex", "stadium", "hotel", "airport", "museum", "building", "arena", "bridge")
-_PROJECT_TERMS = ("project", "repository", "organization", "organisation", "authority", "company", "institution")
-_SPECIES_CATEGORY_TERMS = ("species", "moths", "birds", "plants", "taxa", "genera", "fauna")
+_PLACE_TERMS = (
+    "city",
+    "town",
+    "village",
+    "county",
+    "district",
+    "province",
+    "state",
+    "metropolitan area",
+)
+_FACILITY_TERMS = (
+    "complex",
+    "stadium",
+    "hotel",
+    "airport",
+    "museum",
+    "building",
+    "arena",
+    "bridge",
+)
+_PROJECT_TERMS = (
+    "project",
+    "repository",
+    "organization",
+    "organisation",
+    "authority",
+    "company",
+    "institution",
+)
+_SPECIES_CATEGORY_TERMS = (
+    "species",
+    "moths",
+    "birds",
+    "plants",
+    "taxa",
+    "genera",
+    "fauna",
+)
 _LIST_TEXT_MARKERS = (
     "list of",
     "may refer to",
@@ -54,9 +94,7 @@ _TITLE_AGGREGATION_SUFFIXES = (
     " by country",
     " by state",
 )
-_WARNING_AGGREGATION_MARKERS = (
-    "partial_lists_continue_present",
-)
+_WARNING_AGGREGATION_MARKERS = ("partial_lists_continue_present",)
 _TITLE_BROAD_ADMIN_TERMS = (
     "district",
     "electoral district",
@@ -199,7 +237,9 @@ def _extract_wikitext(snapshot: Mapping[str, Any]) -> str:
         # Some payloads may carry page objects as a one-element list/dict wrapper.
         for key in ("revisions", "pages", "query"):
             value = root_value.get(key)
-            extracted = _extract_wikitext_from_iterable(value) if value is not None else ""
+            extracted = (
+                _extract_wikitext_from_iterable(value) if value is not None else ""
+            )
             if extracted:
                 return extracted
 
@@ -314,13 +354,23 @@ def _tokenize_key_terms(text: Any) -> list[str]:
     ]
 
 
-def extract_key_terms(article_state: Mapping[str, Any], *, limit: int = 40) -> list[str]:
-    existing_terms = article_state.get("key_terms") if isinstance(article_state, Mapping) else None
-    if isinstance(existing_terms, list) and any(str(term).strip() for term in existing_terms):
-        terms = [str(term).strip().lower() for term in existing_terms if str(term).strip()]
+def extract_key_terms(
+    article_state: Mapping[str, Any], *, limit: int = 40
+) -> list[str]:
+    existing_terms = (
+        article_state.get("key_terms") if isinstance(article_state, Mapping) else None
+    )
+    if isinstance(existing_terms, list) and any(
+        str(term).strip() for term in existing_terms
+    ):
+        terms = [
+            str(term).strip().lower() for term in existing_terms if str(term).strip()
+        ]
         return terms[: max(0, int(limit))]
     counter: Counter[str] = Counter()
-    article = article_state.get("article") if isinstance(article_state, Mapping) else None
+    article = (
+        article_state.get("article") if isinstance(article_state, Mapping) else None
+    )
     if isinstance(article, Mapping):
         for token in _tokenize_key_terms(article.get("title")):
             counter[token] += 2
@@ -344,37 +394,66 @@ def extract_key_terms(article_state: Mapping[str, Any], *, limit: int = 40) -> l
         for actor in event.get("actors") or []:
             for token in _tokenize_key_terms(actor):
                 counter[token] += 2
-        for field in ("objects", "entity_objects", "modifier_objects", "numeric_objects"):
+        for field in (
+            "objects",
+            "entity_objects",
+            "modifier_objects",
+            "numeric_objects",
+        ):
             for obj in event.get(field) or []:
                 for token in _tokenize_key_terms(obj):
                     counter[token] += 2
-    terms = [token for token, _ in sorted(counter.items(), key=lambda item: (-item[1], item[0]))[: max(0, int(limit))]]
+    terms = [
+        token
+        for token, _ in sorted(counter.items(), key=lambda item: (-item[1], item[0]))[
+            : max(0, int(limit))
+        ]
+    ]
     return terms
 
 
 def compute_richness_score(state: Mapping[str, Any]) -> float:
-    sentence_count = int(state.get("article_sentence_count") or len(state.get("sentence_units") or []))
-    observation_count = int(state.get("observation_count") or len(state.get("observations") or []))
-    event_count = int(state.get("article_aao_event_count") or len(state.get("event_candidates") or []))
+    sentence_count = int(
+        state.get("article_sentence_count") or len(state.get("sentence_units") or [])
+    )
+    observation_count = int(
+        state.get("observation_count") or len(state.get("observations") or [])
+    )
+    event_count = int(
+        state.get("article_aao_event_count") or len(state.get("event_candidates") or [])
+    )
     sentence_score = min(1.0, sentence_count / 40.0)
     observation_score = min(1.0, observation_count / 25.0)
     event_score = min(1.0, event_count / 15.0)
-    return _clamp01(round(0.5 * sentence_score + 0.3 * observation_score + 0.2 * event_score, 6))
+    return _clamp01(
+        round(0.5 * sentence_score + 0.3 * observation_score + 0.2 * event_score, 6)
+    )
 
 
 def _follow_structure_counts(state: Mapping[str, Any]) -> tuple[int, int, int]:
-    sentence_count = int(state.get("article_sentence_count") or len(state.get("sentence_units") or []))
-    observation_count = int(state.get("observation_count") or len(state.get("observations") or []))
-    event_count = int(state.get("article_aao_event_count") or len(state.get("event_candidates") or []))
+    sentence_count = int(
+        state.get("article_sentence_count") or len(state.get("sentence_units") or [])
+    )
+    observation_count = int(
+        state.get("observation_count") or len(state.get("observations") or [])
+    )
+    event_count = int(
+        state.get("article_aao_event_count") or len(state.get("event_candidates") or [])
+    )
     return sentence_count, observation_count, event_count
 
 
-def compute_content_lift_profile(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> dict[str, Any]:
+def compute_content_lift_profile(
+    root_state: Mapping[str, Any], follow_state: Mapping[str, Any]
+) -> dict[str, Any]:
     root_terms = set(extract_key_terms(root_state or {})[:12])
     follow_terms = extract_key_terms(follow_state)[:12]
     novel_follow_terms = [term for term in follow_terms if term not in root_terms]
 
-    event_count = int(follow_state.get("article_aao_event_count") or len(follow_state.get("event_candidates") or []))
+    event_count = int(
+        follow_state.get("article_aao_event_count")
+        or len(follow_state.get("event_candidates") or [])
+    )
     action_event_count = int(follow_state.get("action_event_count") or event_count)
     object_event_count = int(follow_state.get("object_event_count") or 0)
     claim_event_count = int(follow_state.get("claim_event_count") or 0)
@@ -390,7 +469,9 @@ def compute_content_lift_profile(root_state: Mapping[str, Any], follow_state: Ma
         if event_count
         else 0.0
     )
-    novel_term_support_score = _clamp01(round(min(1.0, len(novel_follow_terms) / 4.0), 6))
+    novel_term_support_score = _clamp01(
+        round(min(1.0, len(novel_follow_terms) / 4.0), 6)
+    )
     content_lift_score = _clamp01(
         round(0.65 * relation_surface_score + 0.35 * novel_term_support_score, 6)
     )
@@ -399,7 +480,10 @@ def compute_content_lift_profile(root_state: Mapping[str, Any], follow_state: Ma
         reason_markers.append("relation_bearing_lift")
     if novel_term_support_score >= 0.5:
         reason_markers.append("novel_term_lift")
-    if event_count and _ratio(claim_event_count + attribution_event_count, event_count) >= 0.25:
+    if (
+        event_count
+        and _ratio(claim_event_count + attribution_event_count, event_count) >= 0.25
+    ):
         reason_markers.append("epistemic_lift")
     return {
         "relation_surface_score": relation_surface_score,
@@ -502,11 +586,22 @@ def _derive_specificity_profile(
 
     title_overlap = _token_overlap_ratio(follow_title_tokens, root_title_tokens)
     term_overlap = _token_overlap_ratio(follow_terms[:12], root_terms[:12])
-    novel_follow_terms = [term for term in follow_terms[:12] if term not in set(root_terms[:12])]
+    novel_follow_terms = [
+        term for term in follow_terms[:12] if term not in set(root_terms[:12])
+    ]
 
-    if root_title and follow_title and root_title != follow_title and title_overlap >= 0.5:
+    if (
+        root_title
+        and follow_title
+        and root_title != follow_title
+        and title_overlap >= 0.5
+    ):
         lexical_markers.append("title_overlap_generalization")
-    if len(follow_title_tokens) <= 2 and term_overlap >= 0.5 and len(root_title_tokens) >= len(follow_title_tokens):
+    if (
+        len(follow_title_tokens) <= 2
+        and term_overlap >= 0.5
+        and len(root_title_tokens) >= len(follow_title_tokens)
+    ):
         lexical_markers.append("short_broad_generalization")
     if (
         len(follow_title_tokens) == 1
@@ -517,12 +612,20 @@ def _derive_specificity_profile(
         )
     ):
         lexical_markers.append("short_broad_generalization")
-    if follow_title_tokens and root_terms and all(token in set(root_terms) for token in follow_title_tokens):
+    if (
+        follow_title_tokens
+        and root_terms
+        and all(token in set(root_terms) for token in follow_title_tokens)
+    ):
         lexical_markers.append("title_tokens_contained_in_root_terms")
 
     if term_overlap >= 0.5 and len(novel_follow_terms) <= 2:
         no_lift_markers.append("same_neighborhood_low_lift")
-    if len(novel_follow_terms) <= 1 and len(follow_terms[:12]) >= 3 and term_overlap >= 0.34:
+    if (
+        len(novel_follow_terms) <= 1
+        and len(follow_terms[:12]) >= 3
+        and term_overlap >= 0.34
+    ):
         no_lift_markers.append("few_novel_terms")
     if (
         "parent_child_generalization" in title_markers
@@ -577,8 +680,12 @@ def _classify_follow_list_subtype(
     list_warning_markers = set(non_list_profile.get("list_warning_markers") or [])
     title_markers = set(non_list_profile.get("specificity_title_markers") or [])
     lexical_markers = set(non_list_profile.get("specificity_lexical_markers") or [])
-    information_gain_score = float(information_gain_profile.get("information_gain_score") or 0.0)
-    content_lift_score = float(information_gain_profile.get("content_lift_score") or 0.0)
+    information_gain_score = float(
+        information_gain_profile.get("information_gain_score") or 0.0
+    )
+    content_lift_score = float(
+        information_gain_profile.get("content_lift_score") or 0.0
+    )
     non_list_score = float(non_list_profile.get("non_list_score") or 0.0)
 
     list_title_markers = set(non_list_profile.get("list_title_markers") or [])
@@ -586,7 +693,12 @@ def _classify_follow_list_subtype(
     has_list_text = bool(list_text_markers)
     has_warning_markers = bool(list_warning_markers)
     has_disambiguation = "disambiguation_title" in list_title_markers
-    has_structural = has_list_text or has_warning_markers or has_disambiguation or has_title_aggregation
+    has_structural = (
+        has_list_text
+        or has_warning_markers
+        or has_disambiguation
+        or has_title_aggregation
+    )
 
     if has_structural:
         return {
@@ -608,7 +720,8 @@ def _classify_follow_list_subtype(
 
     if (
         "title_overlap_generalization" in lexical_markers
-        and "same_neighborhood_low_lift" not in set(non_list_profile.get("specificity_no_lift_markers") or [])
+        and "same_neighborhood_low_lift"
+        not in set(non_list_profile.get("specificity_no_lift_markers") or [])
         and (content_lift_score >= 0.45 or information_gain_score >= 0.40)
     ):
         return {
@@ -676,14 +789,24 @@ def compute_non_list_profile(
     *,
     root_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    raw_text = str(state.get("raw_text") or state.get("source_text") or state.get("wikitext") or "")
+    raw_text = str(
+        state.get("raw_text") or state.get("source_text") or state.get("wikitext") or ""
+    )
     raw_text = _canonicalize_follow_text_for_listiness(raw_text).lower()
     title = str(state.get("title") or "").strip()
     lower_title = title.lower()
-    warnings = [str(item).strip().lower() for item in (state.get("snapshot_warnings") or state.get("warnings") or []) if str(item).strip()]
+    warnings = [
+        str(item).strip().lower()
+        for item in (state.get("snapshot_warnings") or state.get("warnings") or [])
+        if str(item).strip()
+    ]
 
     text_markers = [marker for marker in _LIST_TEXT_MARKERS if marker in raw_text]
-    title_markers = [marker.strip() for marker in _TITLE_AGGREGATION_MARKERS if lower_title.startswith(marker)]
+    title_markers = [
+        marker.strip()
+        for marker in _TITLE_AGGREGATION_MARKERS
+        if lower_title.startswith(marker)
+    ]
     if "(disambiguation)" in lower_title:
         title_markers.append("disambiguation_title")
     if _YEAR_AGGREGATION_TITLE_RE.search(lower_title):
@@ -691,7 +814,9 @@ def compute_non_list_profile(
     for suffix in _TITLE_AGGREGATION_SUFFIXES:
         if lower_title.endswith(suffix):
             title_markers.append(suffix.strip())
-    warning_markers = [marker for marker in _WARNING_AGGREGATION_MARKERS if marker in warnings]
+    warning_markers = [
+        marker for marker in _WARNING_AGGREGATION_MARKERS if marker in warnings
+    ]
     specificity_profile = _derive_specificity_profile(root_state, state)
 
     weighted_hits = (
@@ -716,23 +841,30 @@ def compute_non_list_score(state: Mapping[str, Any]) -> float:
     return float(compute_non_list_profile(state)["non_list_score"])
 
 
-def compute_regime_similarity_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
+def compute_regime_similarity_score(
+    root_state: Mapping[str, Any], follow_state: Mapping[str, Any]
+) -> float:
     root_regime = _coerce_regime_vector(root_state)
     follow_regime = _coerce_regime_vector(follow_state)
     return round(
         min(
             1.0,
             (
-                float(root_regime.get("narrative") or 0.0) * float(follow_regime.get("narrative") or 0.0)
-                + float(root_regime.get("descriptive") or 0.0) * float(follow_regime.get("descriptive") or 0.0)
-                + float(root_regime.get("formal") or 0.0) * float(follow_regime.get("formal") or 0.0)
+                float(root_regime.get("narrative") or 0.0)
+                * float(follow_regime.get("narrative") or 0.0)
+                + float(root_regime.get("descriptive") or 0.0)
+                * float(follow_regime.get("descriptive") or 0.0)
+                + float(root_regime.get("formal") or 0.0)
+                * float(follow_regime.get("formal") or 0.0)
             ),
         ),
         6,
     )
 
 
-def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> dict[str, Any]:
+def compute_information_gain_profile(
+    root_state: Mapping[str, Any], follow_state: Mapping[str, Any]
+) -> dict[str, Any]:
     root_terms = extract_key_terms(root_state)
     follow_terms = extract_key_terms(follow_state)
     overlap = jaccard_similarity(root_terms, follow_terms)
@@ -754,11 +886,21 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
     lexical_markers = set(specificity["specificity_lexical_markers"])
     no_lift_markers = set(specificity["specificity_no_lift_markers"])
     content_lift = compute_content_lift_profile(root_state, follow_state)
-    novelty_floor_triggered = int(specificity["novel_follow_term_count"]) <= 1 and float(specificity["term_overlap_ratio"]) >= 0.34
+    novelty_floor_triggered = (
+        int(specificity["novel_follow_term_count"]) <= 1
+        and float(specificity["term_overlap_ratio"]) >= 0.34
+    )
     title_overlap_ratio = float(specificity["title_overlap_ratio"])
-    low_lift_evidence = bool(no_lift_markers) or novelty_floor_triggered or float(content_lift["content_lift_score"]) < 0.34
+    low_lift_evidence = (
+        bool(no_lift_markers)
+        or novelty_floor_triggered
+        or float(content_lift["content_lift_score"]) < 0.34
+    )
     generic_breadth_signal = (
-        bool(title_markers & {"umbrella_title", "generic_umbrella_title", "year_prefixed_title"})
+        bool(
+            title_markers
+            & {"umbrella_title", "generic_umbrella_title", "year_prefixed_title"}
+        )
         and title_overlap_ratio >= 0.5
         and int(specificity["novel_follow_term_count"]) <= 4
         and float(content_lift["content_lift_score"]) < 0.55
@@ -772,7 +914,6 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
 
     if generic_breadth_signal:
         reason_markers.append("generic_breadth")
-
 
     if "year_prefixed_title" in title_markers:
         reason_markers.append("year_prefixed_title")
@@ -794,7 +935,10 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
             penalty_markers.append("short_broad_generalization")
     if "title_overlap_generalization" in lexical_markers:
         reason_markers.append("title_overlap_generalization")
-        if float(specificity["term_overlap_ratio"]) >= 0.45 and int(specificity["novel_follow_term_count"]) <= 2:
+        if (
+            float(specificity["term_overlap_ratio"]) >= 0.45
+            and int(specificity["novel_follow_term_count"]) <= 2
+        ):
             penalty += 0.06
             if "title_overlap_no_lift" not in penalty_markers:
                 penalty_markers.append("title_overlap_no_lift")
@@ -849,7 +993,9 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
     penalty = round(min(0.6, penalty), 6)
     content_lift_bonus = 0.0
     if not penalty_markers and float(content_lift["content_lift_score"]) >= 0.45:
-        content_lift_bonus = round(min(0.12, (float(content_lift["content_lift_score"]) - 0.45) * 0.30), 6)
+        content_lift_bonus = round(
+            min(0.12, (float(content_lift["content_lift_score"]) - 0.45) * 0.30), 6
+        )
     score = _clamp01(round(base_score - penalty + content_lift_bonus, 6))
     primary_reason = reason_markers[0] if reason_markers else None
     return {
@@ -860,7 +1006,9 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
         "relation_surface_score": float(content_lift["relation_surface_score"]),
         "novel_term_support_score": float(content_lift["novel_term_support_score"]),
         "content_lift_bonus": content_lift_bonus,
-        "content_lift_reason_markers": list(content_lift["content_lift_reason_markers"]),
+        "content_lift_reason_markers": list(
+            content_lift["content_lift_reason_markers"]
+        ),
         "information_gain_penalty": penalty,
         "information_gain_reason_markers": reason_markers,
         "information_gain_penalty_markers": penalty_markers,
@@ -868,8 +1016,14 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
     }
 
 
-def compute_information_gain_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
-    return float(compute_information_gain_profile(root_state, follow_state)["information_gain_score"])
+def compute_information_gain_score(
+    root_state: Mapping[str, Any], follow_state: Mapping[str, Any]
+) -> float:
+    return float(
+        compute_information_gain_profile(root_state, follow_state)[
+            "information_gain_score"
+        ]
+    )
 
 
 def _prefer_low_information_primary_bucket(
@@ -880,7 +1034,9 @@ def _prefer_low_information_primary_bucket(
     information_gain_profile: Mapping[str, Any],
     list_like_profile: Mapping[str, Any],
 ) -> bool:
-    sentence_count, observation_count, event_count = _follow_structure_counts(follow_state)
+    sentence_count, observation_count, event_count = _follow_structure_counts(
+        follow_state
+    )
     is_true_stub = (
         richness_score < 0.12
         and sentence_count <= 1
@@ -894,13 +1050,16 @@ def _prefer_low_information_primary_bucket(
         or event_count >= 1
     )
     generic_continuation_signal = bool(
-        list_like_profile.get("list_follow_subtype") == "generic_continuation_routing_to_low_information"
+        list_like_profile.get("list_follow_subtype")
+        == "generic_continuation_routing_to_low_information"
         or non_list_profile.get("specificity_title_markers")
         or non_list_profile.get("specificity_lexical_markers")
         or non_list_profile.get("specificity_no_lift_markers")
         or information_gain_profile.get("information_gain_reason_markers")
     )
-    return bool(not is_true_stub and has_meaningful_structure and generic_continuation_signal)
+    return bool(
+        not is_true_stub and has_meaningful_structure and generic_continuation_signal
+    )
 
 
 def _primary_follow_failure_bucket(
@@ -914,14 +1073,21 @@ def _primary_follow_failure_bucket(
 ) -> str:
     if not quality_flags:
         return "stable_follow"
-    if "list_like_follow" in quality_flags and str(list_like_profile.get("list_follow_subtype") or "") == "parent_child_aggregation":
+    if (
+        "list_like_follow" in quality_flags
+        and str(list_like_profile.get("list_follow_subtype") or "")
+        == "parent_child_aggregation"
+    ):
         return "list_like_follow"
-    if "low_information_gain_follow" in quality_flags and _prefer_low_information_primary_bucket(
-        follow_state=follow_state,
-        richness_score=richness_score,
-        non_list_profile=non_list_profile,
-        information_gain_profile=information_gain_profile,
-        list_like_profile=list_like_profile,
+    if (
+        "low_information_gain_follow" in quality_flags
+        and _prefer_low_information_primary_bucket(
+            follow_state=follow_state,
+            richness_score=richness_score,
+            non_list_profile=non_list_profile,
+            information_gain_profile=information_gain_profile,
+            list_like_profile=list_like_profile,
+        )
     ):
         return "low_information_gain_follow"
     return quality_flags[0]
@@ -935,7 +1101,9 @@ def compute_follow_target_quality(
     non_list_profile = compute_non_list_profile(follow_state, root_state=root_state)
     non_list_score = float(non_list_profile["non_list_score"])
     regime_similarity_score = compute_regime_similarity_score(root_state, follow_state)
-    information_gain_profile = compute_information_gain_profile(root_state, follow_state)
+    information_gain_profile = compute_information_gain_profile(
+        root_state, follow_state
+    )
     information_gain_score = float(information_gain_profile["information_gain_score"])
     list_like_profile = _classify_follow_list_subtype(
         non_list_profile,
@@ -983,24 +1151,48 @@ def compute_follow_target_quality(
         "list_text_markers": list(non_list_profile["list_text_markers"]),
         "list_title_markers": list(non_list_profile["list_title_markers"]),
         "list_warning_markers": list(non_list_profile["list_warning_markers"]),
-        "specificity_title_markers": list(non_list_profile["specificity_title_markers"]),
-        "specificity_lexical_markers": list(non_list_profile["specificity_lexical_markers"]),
-        "specificity_no_lift_markers": list(non_list_profile["specificity_no_lift_markers"]),
-        "specificity_signal_weight": float(non_list_profile["specificity_signal_weight"]),
+        "specificity_title_markers": list(
+            non_list_profile["specificity_title_markers"]
+        ),
+        "specificity_lexical_markers": list(
+            non_list_profile["specificity_lexical_markers"]
+        ),
+        "specificity_no_lift_markers": list(
+            non_list_profile["specificity_no_lift_markers"]
+        ),
+        "specificity_signal_weight": float(
+            non_list_profile["specificity_signal_weight"]
+        ),
         "primary_specificity_reason": non_list_profile["primary_specificity_reason"],
         "title_overlap_ratio": float(non_list_profile["title_overlap_ratio"]),
         "term_overlap_ratio": float(non_list_profile["term_overlap_ratio"]),
         "novel_follow_term_count": int(non_list_profile["novel_follow_term_count"]),
-        "base_information_gain_score": float(information_gain_profile["base_information_gain_score"]),
+        "base_information_gain_score": float(
+            information_gain_profile["base_information_gain_score"]
+        ),
         "content_lift_score": float(information_gain_profile["content_lift_score"]),
-        "relation_surface_score": float(information_gain_profile["relation_surface_score"]),
-        "novel_term_support_score": float(information_gain_profile["novel_term_support_score"]),
+        "relation_surface_score": float(
+            information_gain_profile["relation_surface_score"]
+        ),
+        "novel_term_support_score": float(
+            information_gain_profile["novel_term_support_score"]
+        ),
         "content_lift_bonus": float(information_gain_profile["content_lift_bonus"]),
-        "content_lift_reason_markers": list(information_gain_profile["content_lift_reason_markers"]),
-        "information_gain_penalty": float(information_gain_profile["information_gain_penalty"]),
-        "information_gain_reason_markers": list(information_gain_profile["information_gain_reason_markers"]),
-        "information_gain_penalty_markers": list(information_gain_profile["information_gain_penalty_markers"]),
-        "primary_information_gain_reason": information_gain_profile["primary_information_gain_reason"],
+        "content_lift_reason_markers": list(
+            information_gain_profile["content_lift_reason_markers"]
+        ),
+        "information_gain_penalty": float(
+            information_gain_profile["information_gain_penalty"]
+        ),
+        "information_gain_reason_markers": list(
+            information_gain_profile["information_gain_reason_markers"]
+        ),
+        "information_gain_penalty_markers": list(
+            information_gain_profile["information_gain_penalty_markers"]
+        ),
+        "primary_information_gain_reason": information_gain_profile[
+            "primary_information_gain_reason"
+        ],
         "quality_flags": quality_flags,
         "primary_failure_bucket": primary_failure_bucket,
     }
@@ -1037,7 +1229,12 @@ def _event_has_object(event: Mapping[str, Any]) -> bool:
     for step in event.get("steps") or []:
         if not isinstance(step, Mapping):
             continue
-        for lane_name in ("entity_objects", "numeric_objects", "modifier_objects", "objects"):
+        for lane_name in (
+            "entity_objects",
+            "numeric_objects",
+            "modifier_objects",
+            "objects",
+        ):
             if _lane_has_value(step.get(lane_name)):
                 return True
     return False
@@ -1068,13 +1265,20 @@ def _dominant_regime(regime: Mapping[str, float]) -> str:
 
 
 def _step_has_actor_binding(step: Mapping[str, Any]) -> bool:
-    return bool(str(step.get("action") or "").strip()) and _lane_has_value(step.get("subjects"))
+    return bool(str(step.get("action") or "").strip()) and _lane_has_value(
+        step.get("subjects")
+    )
 
 
 def _step_has_object_binding(step: Mapping[str, Any]) -> bool:
     if not str(step.get("action") or "").strip():
         return False
-    for lane_name in ("objects", "entity_objects", "modifier_objects", "numeric_objects"):
+    for lane_name in (
+        "objects",
+        "entity_objects",
+        "modifier_objects",
+        "numeric_objects",
+    ):
         if _lane_has_value(step.get(lane_name)):
             return True
     return False
@@ -1139,10 +1343,14 @@ def _detect_text_hygiene(
             )
     if not article_aao_rows:
         return 0.0, warnings
-    return round(max(0.0, 1.0 - (flagged_count / float(len(article_aao_rows)))), 6), warnings
+    return round(
+        max(0.0, 1.0 - (flagged_count / float(len(article_aao_rows)))), 6
+    ), warnings
 
 
-def _score_actor_action_binding(article_aao_rows: list[Mapping[str, Any]]) -> tuple[float, int, int, list[str]]:
+def _score_actor_action_binding(
+    article_aao_rows: list[Mapping[str, Any]],
+) -> tuple[float, int, int, list[str]]:
     action_events = 0
     bound_events = 0
     for row in article_aao_rows:
@@ -1153,14 +1361,22 @@ def _score_actor_action_binding(article_aao_rows: list[Mapping[str, Any]]) -> tu
         if steps:
             if any(_step_has_actor_binding(step) for step in steps):
                 bound_events += 1
-        elif bool(str(row.get("action") or "").strip()) and _lane_has_value(row.get("actors")):
+        elif bool(str(row.get("action") or "").strip()) and _lane_has_value(
+            row.get("actors")
+        ):
             bound_events += 1
     score = _ratio(bound_events, action_events) if action_events else 0.0
-    issues = ["weak_actor_action_binding"] if action_events and bound_events < action_events else []
+    issues = (
+        ["weak_actor_action_binding"]
+        if action_events and bound_events < action_events
+        else []
+    )
     return score, bound_events, action_events, issues
 
 
-def _score_object_binding(article_aao_rows: list[Mapping[str, Any]]) -> tuple[float, int, int, list[str]]:
+def _score_object_binding(
+    article_aao_rows: list[Mapping[str, Any]],
+) -> tuple[float, int, int, list[str]]:
     action_events = 0
     bound_events = 0
     for row in article_aao_rows:
@@ -1174,7 +1390,11 @@ def _score_object_binding(article_aao_rows: list[Mapping[str, Any]]) -> tuple[fl
         elif bool(str(row.get("action") or "").strip()) and _event_has_object(row):
             bound_events += 1
     score = _ratio(bound_events, action_events) if action_events else 0.0
-    issues = ["weak_object_binding"] if action_events and bound_events < action_events else []
+    issues = (
+        ["weak_object_binding"]
+        if action_events and bound_events < action_events
+        else []
+    )
     return score, bound_events, action_events, issues
 
 
@@ -1194,13 +1414,23 @@ def _timeline_honesty(
             [],
         )
 
-    explicit_count = sum(1 for row in timeline_rows if str(row.get("anchor_status") or "none") == "explicit")
-    weak_count = sum(1 for row in timeline_rows if str(row.get("anchor_status") or "none") == "weak")
-    none_count = sum(1 for row in timeline_rows if str(row.get("anchor_status") or "none") == "none")
+    explicit_count = sum(
+        1
+        for row in timeline_rows
+        if str(row.get("anchor_status") or "none") == "explicit"
+    )
+    weak_count = sum(
+        1 for row in timeline_rows if str(row.get("anchor_status") or "none") == "weak"
+    )
+    none_count = sum(
+        1 for row in timeline_rows if str(row.get("anchor_status") or "none") == "none"
+    )
     explicit_anchor_ratio = _ratio(explicit_count, len(timeline_rows))
     weak_anchor_ratio = _ratio(weak_count, len(timeline_rows))
     none_anchor_ratio = _ratio(none_count, len(timeline_rows))
-    timeline_honesty_score = round((explicit_count + (0.5 * weak_count)) / float(len(timeline_rows)), 6)
+    timeline_honesty_score = round(
+        (explicit_count + (0.5 * weak_count)) / float(len(timeline_rows)), 6
+    )
     issues: list[str] = []
     if none_anchor_ratio >= 0.8:
         issues.append("timeline_mostly_undated")
@@ -1223,35 +1453,71 @@ def _classify_page_family(
     payload: Mapping[str, Any],
     article_sentences: list[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    categories = [str(item).lower() for item in (payload.get("categories") or []) if str(item).strip()]
-    lead_text = str(article_sentences[0].get("text") or "").lower() if article_sentences else ""
+    categories = [
+        str(item).lower()
+        for item in (payload.get("categories") or [])
+        if str(item).strip()
+    ]
+    lead_text = (
+        str(article_sentences[0].get("text") or "").lower() if article_sentences else ""
+    )
     title = str(payload.get("title") or "")
     title_lc = title.lower()
     candidates: list[tuple[str, float, str]] = []
 
-    if any(any(term in category for term in _SPECIES_CATEGORY_TERMS) for category in categories) or any(
-        term in lead_text for term in ("species of", "family geometr", "family of moth", "species of moth")
+    if any(
+        any(term in category for term in _SPECIES_CATEGORY_TERMS)
+        for category in categories
+    ) or any(
+        term in lead_text
+        for term in (
+            "species of",
+            "family geometr",
+            "family of moth",
+            "species of moth",
+        )
     ):
-        candidates.append(("species_taxonomy", 0.95 if categories else 0.82, "species/taxonomy signal"))
-    if any(any(term in category for term in _BIOGRAPHY_CATEGORY_TERMS) for category in categories) or (
-        re.search(r"\(\d{4}[–-]\d{4}\)", lead_text) and " was " in lead_text
-    ):
-        candidates.append(("biography", 0.97 if categories else 0.84, "biography signal"))
-    if any(any(term in category for term in _PLACE_TERMS) for category in categories) or any(
-        term in lead_text for term in _PLACE_TERMS
-    ):
-        candidates.append(("place", 0.92 if categories else 0.8, "place/geography signal"))
-    if any(any(term in category for term in _FACILITY_TERMS) for category in categories) or any(
-        term in lead_text or term in title_lc for term in _FACILITY_TERMS
-    ):
+        candidates.append(
+            (
+                "species_taxonomy",
+                0.95 if categories else 0.82,
+                "species/taxonomy signal",
+            )
+        )
+    if any(
+        any(term in category for term in _BIOGRAPHY_CATEGORY_TERMS)
+        for category in categories
+    ) or (re.search(r"\(\d{4}[–-]\d{4}\)", lead_text) and " was " in lead_text):
+        candidates.append(
+            ("biography", 0.97 if categories else 0.84, "biography signal")
+        )
+    if any(
+        any(term in category for term in _PLACE_TERMS) for category in categories
+    ) or any(term in lead_text for term in _PLACE_TERMS):
+        candidates.append(
+            ("place", 0.92 if categories else 0.8, "place/geography signal")
+        )
+    if any(
+        any(term in category for term in _FACILITY_TERMS) for category in categories
+    ) or any(term in lead_text or term in title_lc for term in _FACILITY_TERMS):
         candidates.append(("facility", 0.9 if categories else 0.78, "facility signal"))
-    if any(any(term in category for term in _PROJECT_TERMS) for category in categories) or any(
-        term in lead_text or term in title_lc for term in _PROJECT_TERMS
-    ):
-        candidates.append(("project_institution", 0.9 if categories else 0.78, "project/institution signal"))
+    if any(
+        any(term in category for term in _PROJECT_TERMS) for category in categories
+    ) or any(term in lead_text or term in title_lc for term in _PROJECT_TERMS):
+        candidates.append(
+            (
+                "project_institution",
+                0.9 if categories else 0.78,
+                "project/institution signal",
+            )
+        )
 
     if not candidates:
-        return {"family": "general", "confidence": 0.55, "signals": ["fallback_general"]}
+        return {
+            "family": "general",
+            "confidence": 0.55,
+            "signals": ["fallback_general"],
+        }
     family, confidence, signal = max(candidates, key=lambda item: item[1])
     return {"family": family, "confidence": round(confidence, 6), "signals": [signal]}
 
@@ -1261,7 +1527,16 @@ def _sentence_structural_reasons(text: str, *, page_family: str) -> list[str]:
     reasons: list[str] = []
     if ":" in text or text.count(",") >= 5 or ";" in text:
         reasons.append("list_like")
-    if page_family == "species_taxonomy" and any(term in lower for term in ("species of", "wingspan", "larvae feed", "recorded from", "found in")):
+    if page_family == "species_taxonomy" and any(
+        term in lower
+        for term in (
+            "species of",
+            "wingspan",
+            "larvae feed",
+            "recorded from",
+            "found in",
+        )
+    ):
         reasons.append("taxonomy_like")
     if re.search(r"\b\d+\s*(mm|cm|km|m|kg|%)\b", lower):
         reasons.append("measurement_like")
@@ -1288,7 +1563,12 @@ def _collect_surface_terms(event: Mapping[str, Any]) -> set[str]:
             norm = _normalized_surface(subject)
             if norm:
                 terms.add(norm)
-        for field in ("objects", "entity_objects", "modifier_objects", "numeric_objects"):
+        for field in (
+            "objects",
+            "entity_objects",
+            "modifier_objects",
+            "numeric_objects",
+        ):
             for obj in step.get(field) or []:
                 norm = _normalized_surface(obj)
                 if norm:
@@ -1363,7 +1643,9 @@ def _score_link_relevance(
     relevant_sentence_link_count = 0
     relevant_link_titles: set[str] = set()
     for sentence in article_sentences:
-        links = [str(link) for link in (sentence.get("links") or []) if str(link).strip()]
+        links = [
+            str(link) for link in (sentence.get("links") or []) if str(link).strip()
+        ]
         if not links:
             continue
         total_sentence_link_count += len(links)
@@ -1383,13 +1665,24 @@ def _score_link_relevance(
         if total_sentence_link_count
         else None
     )
-    followed_titles = [str(row.get("title") or "") for row in follow_rows if str(row.get("title") or "").strip()]
+    followed_titles = [
+        str(row.get("title") or "")
+        for row in follow_rows
+        if str(row.get("title") or "").strip()
+    ]
     followed_relevant_count = sum(
         1
         for title in followed_titles
-        if any(_surface_match(_normalized_surface(title), _normalized_surface(link)) for link in relevant_link_titles)
+        if any(
+            _surface_match(_normalized_surface(title), _normalized_surface(link))
+            for link in relevant_link_titles
+        )
     )
-    followed_link_relevance_score = _ratio(followed_relevant_count, len(followed_titles)) if followed_titles else None
+    followed_link_relevance_score = (
+        _ratio(followed_relevant_count, len(followed_titles))
+        if followed_titles
+        else None
+    )
     issues: list[str] = []
     if total_sentence_link_count >= 3 and (root_link_relevance_score or 0.0) < 0.15:
         issues.append("low_link_relevance")
@@ -1416,8 +1709,16 @@ def _score_follow_target_quality(
     return {
         **details,
         "follow_title": str(
-            (follow_page_row.get("title") if isinstance(follow_page_row, Mapping) else "")
-            or (follow_sample_row.get("title") if isinstance(follow_sample_row, Mapping) else "")
+            (
+                follow_page_row.get("title")
+                if isinstance(follow_page_row, Mapping)
+                else ""
+            )
+            or (
+                follow_sample_row.get("title")
+                if isinstance(follow_sample_row, Mapping)
+                else ""
+            )
             or ""
         ),
     }
@@ -1429,8 +1730,12 @@ def _score_follow_yield(link_metrics: Mapping[str, Any]) -> dict[str, Any]:
     follow_target_quality_score = link_metrics.get("follow_target_quality_score")
     follow_yield_score = _mean_optional(
         [
-            float(followed_link_relevance_score) if followed_link_relevance_score is not None else None,
-            float(follow_target_quality_score) if follow_target_quality_score is not None else None,
+            float(followed_link_relevance_score)
+            if followed_link_relevance_score is not None
+            else None,
+            float(follow_target_quality_score)
+            if follow_target_quality_score is not None
+            else None,
         ]
     )
     return {
@@ -1451,12 +1756,21 @@ def compute_path_score(
     coherence_01 = compute_regime_similarity_score(root_state, hop1_state)
     coherence_12 = compute_regime_similarity_score(hop1_state, hop2_state)
     path_coherence = round(0.5 * coherence_01 + 0.5 * coherence_12, 6)
-    return _clamp01(round(0.4 * float(hop1_quality) + 0.4 * float(hop2_quality) + 0.2 * path_coherence, 6))
+    return _clamp01(
+        round(
+            0.4 * float(hop1_quality)
+            + 0.4 * float(hop2_quality)
+            + 0.2 * path_coherence,
+            6,
+        )
+    )
 
 
 def _collect_tree_graph_metrics(root_node: Mapping[str, Any]) -> dict[str, Any]:
     root_page_row = root_node.get("page_row") if isinstance(root_node, Mapping) else {}
-    root_edges = [edge for edge in root_node.get("edge_scores") or [] if isinstance(edge, Mapping)]
+    root_edges = [
+        edge for edge in root_node.get("edge_scores") or [] if isinstance(edge, Mapping)
+    ]
     hop1_details: list[dict[str, Any]] = []
     hop2_details: list[dict[str, Any]] = []
     candidate_paths: list[dict[str, Any]] = []
@@ -1471,8 +1785,18 @@ def _collect_tree_graph_metrics(root_node: Mapping[str, Any]) -> dict[str, Any]:
         if edge1_score is not None:
             hop1_scores.append(float(edge1_score))
         child_node = edge1.get("child")
-        child_page_row = child_node.get("page_row") if isinstance(child_node, Mapping) else {}
-        child_edges = [edge for edge in (child_node.get("edge_scores") or []) if isinstance(edge, Mapping)] if isinstance(child_node, Mapping) else []
+        child_page_row = (
+            child_node.get("page_row") if isinstance(child_node, Mapping) else {}
+        )
+        child_edges = (
+            [
+                edge
+                for edge in (child_node.get("edge_scores") or [])
+                if isinstance(edge, Mapping)
+            ]
+            if isinstance(child_node, Mapping)
+            else []
+        )
         for edge2 in child_edges:
             detail2 = dict(edge2.get("detail") or {})
             if detail2:
@@ -1481,8 +1805,16 @@ def _collect_tree_graph_metrics(root_node: Mapping[str, Any]) -> dict[str, Any]:
             if edge2_score is not None:
                 hop2_scores.append(float(edge2_score))
             grandchild_node = edge2.get("child")
-            grandchild_page_row = grandchild_node.get("page_row") if isinstance(grandchild_node, Mapping) else {}
-            if not isinstance(root_page_row, Mapping) or not isinstance(child_page_row, Mapping) or not isinstance(grandchild_page_row, Mapping):
+            grandchild_page_row = (
+                grandchild_node.get("page_row")
+                if isinstance(grandchild_node, Mapping)
+                else {}
+            )
+            if (
+                not isinstance(root_page_row, Mapping)
+                or not isinstance(child_page_row, Mapping)
+                or not isinstance(grandchild_page_row, Mapping)
+            ):
                 continue
             if edge1_score is None or edge2_score is None:
                 continue
@@ -1511,13 +1843,27 @@ def _collect_tree_graph_metrics(root_node: Mapping[str, Any]) -> dict[str, Any]:
         if hop1_quality is not None and hop2_quality is not None
         else None
     )
-    hop2_listiness_rate = _mean_optional([round(1.0 - float(detail.get("non_list_score") or 0.0), 6) for detail in hop2_details] or [])
-    hop2_regime_jump_rate = _mean_optional(
-        [round(1.0 - float(detail.get("regime_similarity_score") or 0.0), 6) for detail in hop2_details] or []
+    hop2_listiness_rate = _mean_optional(
+        [
+            round(1.0 - float(detail.get("non_list_score") or 0.0), 6)
+            for detail in hop2_details
+        ]
+        or []
     )
-    avg_candidate_path_score = _mean_optional([float(item["score"]) for item in candidate_paths] or [])
+    hop2_regime_jump_rate = _mean_optional(
+        [
+            round(1.0 - float(detail.get("regime_similarity_score") or 0.0), 6)
+            for detail in hop2_details
+        ]
+        or []
+    )
+    avg_candidate_path_score = _mean_optional(
+        [float(item["score"]) for item in candidate_paths] or []
+    )
     if candidate_paths:
-        best_path = max(candidate_paths, key=lambda item: (item["score"], item["titles"]))
+        best_path = max(
+            candidate_paths, key=lambda item: (item["score"], item["titles"])
+        )
         best_path_score = float(best_path["score"])
         best_path_titles = list(best_path["titles"])
         best_path_vs_avg_gap = (
@@ -1560,7 +1906,9 @@ def _score_claim_attribution_grounding(
         if bool(row.get("claim_bearing")):
             claim_event_count += 1
             if str(row.get("text") or "").strip() and (
-                _event_has_action(row) or _event_has_actor(row) or bool(row.get("attributions"))
+                _event_has_action(row)
+                or _event_has_actor(row)
+                or bool(row.get("attributions"))
             ):
                 grounded_claim_event_count += 1
         attributions = row.get("attributions") or []
@@ -1571,19 +1919,24 @@ def _score_claim_attribution_grounding(
                 if not isinstance(attr, Mapping):
                     attribution_grounded = False
                     continue
-                if not str(attr.get("attribution_type") or "").strip() and not str(
-                    attr.get("attributed_actor_id") or ""
-                ).strip():
+                if (
+                    not str(attr.get("attribution_type") or "").strip()
+                    and not str(attr.get("attributed_actor_id") or "").strip()
+                ):
                     attribution_grounded = False
             if attribution_grounded:
                 grounded_attribution_event_count += 1
     denominator = claim_event_count + attribution_event_count
     score = (
-        _ratio(grounded_claim_event_count + grounded_attribution_event_count, denominator)
+        _ratio(
+            grounded_claim_event_count + grounded_attribution_event_count, denominator
+        )
         if denominator
         else None
     )
-    issues = ["weak_claim_attribution_grounding"] if denominator and score != 1.0 else []
+    issues = (
+        ["weak_claim_attribution_grounding"] if denominator and score != 1.0 else []
+    )
     return (
         {
             "claim_event_count": claim_event_count,
@@ -1610,12 +1963,30 @@ def _page_row_from_outputs(
     article_events = article_state.get("event_candidates")
     observation_rows = article_state.get("observations")
     timeline_projection = article_state.get("timeline_projection")
-    article_sentences = [row for row in sentence_rows if isinstance(row, Mapping)] if isinstance(sentence_rows, list) else []
-    article_aao_rows = [row for row in article_events if isinstance(row, Mapping)] if isinstance(article_events, list) else []
-    observations = [row for row in observation_rows if isinstance(row, Mapping)] if isinstance(observation_rows, list) else []
-    timeline_rows = [row for row in timeline_projection if isinstance(row, Mapping)] if isinstance(timeline_projection, list) else []
+    article_sentences = (
+        [row for row in sentence_rows if isinstance(row, Mapping)]
+        if isinstance(sentence_rows, list)
+        else []
+    )
+    article_aao_rows = (
+        [row for row in article_events if isinstance(row, Mapping)]
+        if isinstance(article_events, list)
+        else []
+    )
+    observations = (
+        [row for row in observation_rows if isinstance(row, Mapping)]
+        if isinstance(observation_rows, list)
+        else []
+    )
+    timeline_rows = (
+        [row for row in timeline_projection if isinstance(row, Mapping)]
+        if isinstance(timeline_projection, list)
+        else []
+    )
     follow_rows = [row for row in (follow_rows or []) if isinstance(row, Mapping)]
-    follow_target_rows = [row for row in (follow_target_rows or []) if isinstance(row, Mapping)]
+    follow_target_rows = [
+        row for row in (follow_target_rows or []) if isinstance(row, Mapping)
+    ]
     regime = _coerce_regime_vector(article_state)
     regime_narrative_weight = regime["narrative"]
     regime_descriptive_weight = regime["descriptive"]
@@ -1623,7 +1994,11 @@ def _page_row_from_outputs(
     dominant_regime = _dominant_regime(regime)
     page_profile = _classify_page_family(payload, article_sentences)
     page_family = str(page_profile["family"])
-    raw_text = str(payload.get("wikitext") or article_state.get("source_text", {}).get("wikitext") or "")
+    raw_text = str(
+        payload.get("wikitext")
+        or article_state.get("source_text", {}).get("wikitext")
+        or ""
+    )
     key_terms = extract_key_terms(article_state)
 
     article_sentence_count = len(article_sentences)
@@ -1632,16 +2007,28 @@ def _page_row_from_outputs(
     actor_event_count = sum(1 for row in article_aao_rows if _event_has_actor(row))
     action_event_count = sum(1 for row in article_aao_rows if _event_has_action(row))
     object_event_count = sum(1 for row in article_aao_rows if _event_has_object(row))
-    step_count = sum(len(row.get("steps") or []) for row in article_aao_rows if isinstance(row.get("steps"), list))
+    step_count = sum(
+        len(row.get("steps") or [])
+        for row in article_aao_rows
+        if isinstance(row.get("steps"), list)
+    )
     zero_step_event_count = sum(
-        1 for row in article_aao_rows if not (isinstance(row.get("steps"), list) and len(row.get("steps") or []) > 0)
+        1
+        for row in article_aao_rows
+        if not (isinstance(row.get("steps"), list) and len(row.get("steps") or []) > 0)
     )
     multi_step_event_count = sum(
-        1 for row in article_aao_rows if isinstance(row.get("steps"), list) and len(row.get("steps") or []) > 1
+        1
+        for row in article_aao_rows
+        if isinstance(row.get("steps"), list) and len(row.get("steps") or []) > 1
     )
-    claim_event_count = sum(1 for row in article_aao_rows if bool(row.get("claim_bearing")))
+    claim_event_count = sum(
+        1 for row in article_aao_rows if bool(row.get("claim_bearing"))
+    )
     attribution_event_count = sum(
-        1 for row in article_aao_rows if isinstance(row.get("attributions"), list) and bool(row.get("attributions"))
+        1
+        for row in article_aao_rows
+        if isinstance(row.get("attributions"), list) and bool(row.get("attributions"))
     )
     unresolved_sentence_count = max(0, article_sentence_count - article_aao_event_count)
     sentence_retention_score = _ratio(article_aao_event_count, article_sentence_count)
@@ -1650,7 +2037,13 @@ def _page_row_from_outputs(
     action_surface_score = _ratio(action_event_count, article_aao_event_count)
     object_surface_score = _ratio(object_event_count, article_aao_event_count)
     article_ingest_score = round(
-        (sentence_retention_score + actor_surface_score + action_surface_score + object_surface_score) / 4.0,
+        (
+            sentence_retention_score
+            + actor_surface_score
+            + action_surface_score
+            + object_surface_score
+        )
+        / 4.0,
         6,
     )
     explosion_score, explosion_metrics, explosion_issues = _score_observation_explosion(
@@ -1659,12 +2052,18 @@ def _page_row_from_outputs(
         article_aao_event_count=article_aao_event_count,
     )
     text_hygiene_score, text_hygiene_warnings = _detect_text_hygiene(article_aao_rows)
-    actor_action_binding_score, actor_action_bound_event_count, actor_action_action_event_count, actor_binding_issues = (
-        _score_actor_action_binding(article_aao_rows)
-    )
-    object_binding_score, object_bound_event_count, object_action_event_count, object_binding_issues = (
-        _score_object_binding(article_aao_rows)
-    )
+    (
+        actor_action_binding_score,
+        actor_action_bound_event_count,
+        actor_action_action_event_count,
+        actor_binding_issues,
+    ) = _score_actor_action_binding(article_aao_rows)
+    (
+        object_binding_score,
+        object_bound_event_count,
+        object_action_event_count,
+        object_binding_issues,
+    ) = _score_object_binding(article_aao_rows)
     honesty_multiplier = _mean(
         [
             explosion_score,
@@ -1674,26 +2073,40 @@ def _page_row_from_outputs(
         ]
     )
     article_ingest_honest_score = round(article_ingest_score * honesty_multiplier, 6)
-    regime_observation_explosion_score = _regime_weighted_deficit_score(explosion_score, regime_narrative_weight)
+    regime_observation_explosion_score = _regime_weighted_deficit_score(
+        explosion_score, regime_narrative_weight
+    )
     regime_actor_action_binding_score = _regime_weighted_deficit_score(
         actor_action_binding_score,
         _clamp01(regime_narrative_weight + (0.5 * regime_descriptive_weight)),
     )
-    regime_object_binding_score = _regime_weighted_deficit_score(object_binding_score, regime_narrative_weight)
+    regime_object_binding_score = _regime_weighted_deficit_score(
+        object_binding_score, regime_narrative_weight
+    )
     regime_honesty_multiplier = _mean(
         [
-            regime_observation_explosion_score if regime_observation_explosion_score is not None else explosion_score,
+            regime_observation_explosion_score
+            if regime_observation_explosion_score is not None
+            else explosion_score,
             text_hygiene_score,
-            regime_actor_action_binding_score if regime_actor_action_binding_score is not None else actor_action_binding_score,
-            regime_object_binding_score if regime_object_binding_score is not None else object_binding_score,
+            regime_actor_action_binding_score
+            if regime_actor_action_binding_score is not None
+            else actor_action_binding_score,
+            regime_object_binding_score
+            if regime_object_binding_score is not None
+            else object_binding_score,
         ]
     )
-    regime_article_ingest_honest_score = round(article_ingest_score * regime_honesty_multiplier, 6)
+    regime_article_ingest_honest_score = round(
+        article_ingest_score * regime_honesty_multiplier, 6
+    )
     density_metrics = {
         "observations_per_sentence": explosion_metrics["observations_per_sentence"],
         "observations_per_event": explosion_metrics["observations_per_event"],
         "steps_per_event": _ratio(step_count, article_aao_event_count),
-        "multi_step_event_ratio": _ratio(multi_step_event_count, article_aao_event_count),
+        "multi_step_event_ratio": _ratio(
+            multi_step_event_count, article_aao_event_count
+        ),
         "zero_step_event_ratio": _ratio(zero_step_event_count, article_aao_event_count),
     }
 
@@ -1702,10 +2115,12 @@ def _page_row_from_outputs(
         key = str(row.get("anchor_status") or "none")
         anchor_status_counts[key] = anchor_status_counts.get(key, 0) + 1
     timeline_honesty, timeline_honesty_issues = _timeline_honesty(timeline_rows)
-    abstention_metrics, abstention_issues, abstention_warnings = _score_abstention_calibration(
-        article_sentences,
-        article_aao_rows,
-        page_family=page_family,
+    abstention_metrics, abstention_issues, abstention_warnings = (
+        _score_abstention_calibration(
+            article_sentences,
+            article_aao_rows,
+            page_family=page_family,
+        )
     )
     link_metrics, link_relevance_issues = _score_link_relevance(
         article_sentences,
@@ -1727,7 +2142,10 @@ def _page_row_from_outputs(
             )
         )
     follow_target_quality_score = _mean_optional(
-        [detail["follow_target_quality_score"] for detail in follow_target_quality_details]
+        [
+            detail["follow_target_quality_score"]
+            for detail in follow_target_quality_details
+        ]
     )
     if follow_target_quality_score is not None:
         follow_target_quality_score = round(follow_target_quality_score, 6)
@@ -1740,7 +2158,9 @@ def _page_row_from_outputs(
         }
     )
     follow_yield_metrics["follow_target_quality_score"] = follow_target_quality_score
-    follow_yield_metrics["follow_target_quality_count"] = len(follow_target_quality_details)
+    follow_yield_metrics["follow_target_quality_count"] = len(
+        follow_target_quality_details
+    )
     if follow_target_quality_details:
         for key in (
             "richness_score",
@@ -1749,11 +2169,22 @@ def _page_row_from_outputs(
             "information_gain_score",
             "content_lift_score",
         ):
-            component_values = [detail.get(key) for detail in follow_target_quality_details]
-            follow_yield_metrics[key] = _mean_optional([float(value) if value is not None else None for value in component_values])
+            component_values = [
+                detail.get(key) for detail in follow_target_quality_details
+            ]
+            follow_yield_metrics[key] = _mean_optional(
+                [
+                    float(value) if value is not None else None
+                    for value in component_values
+                ]
+            )
     if follow_target_quality_details:
-        follow_yield_metrics["follow_target_quality_preview"] = follow_target_quality_details[:3]
-    claim_attribution_metrics, claim_attr_issues = _score_claim_attribution_grounding(article_aao_rows)
+        follow_yield_metrics["follow_target_quality_preview"] = (
+            follow_target_quality_details[:3]
+        )
+    claim_attribution_metrics, claim_attr_issues = _score_claim_attribution_grounding(
+        article_aao_rows
+    )
     regime_abstention_score = _regime_weighted_deficit_score(
         abstention_metrics["abstention_calibration_score"],
         _clamp01(regime_narrative_weight + regime_descriptive_weight),
@@ -1769,7 +2200,11 @@ def _page_row_from_outputs(
 
     link_count = int(payload.get("links") and len(payload.get("links") or []) or 0)
     followed_snapshot_count = len(follow_rows)
-    follow_budget_used_ratio = _ratio(followed_snapshot_count, max_follow_links_per_page) if max_follow_links_per_page else 0.0
+    follow_budget_used_ratio = (
+        _ratio(followed_snapshot_count, max_follow_links_per_page)
+        if max_follow_links_per_page
+        else 0.0
+    )
 
     issues: list[str] = []
     if article_sentence_count == 0:
@@ -1782,15 +2217,28 @@ def _page_row_from_outputs(
         issues.append("no_action_surface")
     if article_aao_event_count > 0 and object_event_count == 0:
         issues.append("no_object_surface")
-    if max_follow_links_per_page > 0 and link_count > 0 and followed_snapshot_count == 0:
+    if (
+        max_follow_links_per_page > 0
+        and link_count > 0
+        and followed_snapshot_count == 0
+    ):
         issues.append("follow_budget_unused")
-    honesty_issues = explosion_issues + actor_binding_issues + object_binding_issues + timeline_honesty_issues
+    honesty_issues = (
+        explosion_issues
+        + actor_binding_issues
+        + object_binding_issues
+        + timeline_honesty_issues
+    )
     if text_hygiene_warnings:
         honesty_issues.append("text_hygiene_warning")
     calibration_scores = {
-        "abstention_calibration_score": abstention_metrics["abstention_calibration_score"],
+        "abstention_calibration_score": abstention_metrics[
+            "abstention_calibration_score"
+        ],
         "link_relevance_score": link_metrics["root_link_relevance_score"],
-        "claim_attribution_grounding_score": claim_attribution_metrics["claim_attribution_grounding_score"],
+        "claim_attribution_grounding_score": claim_attribution_metrics[
+            "claim_attribution_grounding_score"
+        ],
     }
     regime_calibration_scores = {
         "abstention_calibration_score": regime_abstention_score,
@@ -1807,7 +2255,9 @@ def _page_row_from_outputs(
     if calibration_multiplier is None:
         calibration_multiplier = 1.0
     calibration_multiplier = round(calibration_multiplier, 6)
-    article_ingest_calibrated_score = round(article_ingest_honest_score * calibration_multiplier, 6)
+    article_ingest_calibrated_score = round(
+        article_ingest_honest_score * calibration_multiplier, 6
+    )
     regime_calibration_multiplier = _mean_optional(
         [
             regime_abstention_score,
@@ -1923,8 +2373,12 @@ def _page_row_from_outputs(
             {
                 "event_id": str(row.get("event_id") or ""),
                 "action": str(row.get("action") or ""),
-                "actor_count": len(row.get("actors") or []) if isinstance(row.get("actors"), list) else 0,
-                "step_count": len(row.get("steps") or []) if isinstance(row.get("steps"), list) else 0,
+                "actor_count": len(row.get("actors") or [])
+                if isinstance(row.get("actors"), list)
+                else 0,
+                "step_count": len(row.get("steps") or [])
+                if isinstance(row.get("steps"), list)
+                else 0,
                 "anchor_status": str(row.get("anchor_status") or "none"),
                 "text": str(row.get("text") or "")[:180],
             }
@@ -1944,23 +2398,35 @@ def _page_row_from_outputs(
                     "event_id": str(row.get("event_id") or ""),
                     "order_index": int(row.get("order_index") or 0),
                     "anchor_status": str(row.get("anchor_status") or "none"),
-                    "ordering_basis": str(row.get("ordering_basis") or "source_text_order"),
+                    "ordering_basis": str(
+                        row.get("ordering_basis") or "source_text_order"
+                    ),
                     "text": str(row.get("text") or "")[:180],
                 }
                 for row in timeline_rows[:5]
             ],
         },
         "timeline_readiness": {
-            "timeline_candidate_count": int(timeline_row.get("timeline_candidate_count") or 0),
-            "dated_timeline_candidate_count": int(timeline_row.get("dated_timeline_candidate_count") or 0),
+            "timeline_candidate_count": int(
+                timeline_row.get("timeline_candidate_count") or 0
+            ),
+            "dated_timeline_candidate_count": int(
+                timeline_row.get("dated_timeline_candidate_count") or 0
+            ),
             "aao_event_count": int(timeline_row.get("aao_event_count") or 0),
             "scores": dict(timeline_row.get("scores") or {}),
             "issues": list(timeline_row.get("issues") or []),
         },
         "shared_reducer": {
-            "structural_token_count": int(reducer_row.get("structural_token_count") or 0),
-            "meaningful_lexeme_count": int(reducer_row.get("meaningful_lexeme_count") or 0),
-            "meaningful_structure_count": int(reducer_row.get("meaningful_structure_count") or 0),
+            "structural_token_count": int(
+                reducer_row.get("structural_token_count") or 0
+            ),
+            "meaningful_lexeme_count": int(
+                reducer_row.get("meaningful_lexeme_count") or 0
+            ),
+            "meaningful_structure_count": int(
+                reducer_row.get("meaningful_structure_count") or 0
+            ),
             "scores": dict(reducer_row.get("scores") or {}),
             "issues": list(reducer_row.get("issues") or []),
         },
@@ -1991,7 +2457,11 @@ def score_snapshot_payload(
     if follow_target_rows is None and follow_rows:
         follow_target_rows = []
         for follow_row in follow_rows:
-            snapshot_path = follow_row.get("snapshot_path") if isinstance(follow_row, Mapping) else None
+            snapshot_path = (
+                follow_row.get("snapshot_path")
+                if isinstance(follow_row, Mapping)
+                else None
+            )
             if not isinstance(snapshot_path, str):
                 continue
             follow_payload = _load_json(Path(snapshot_path))
@@ -2033,7 +2503,9 @@ def score_snapshot_payload(
             max_follow_links_per_page=max_follow_links_per_page,
         )
         row["issues"].append("snapshot_missing_wikitext")
-        warnings = [str(item) for item in (payload.get("warnings") or []) if str(item).strip()]
+        warnings = [
+            str(item) for item in (payload.get("warnings") or []) if str(item).strip()
+        ]
         if warnings:
             row["snapshot_warnings"] = warnings
         return row
@@ -2044,7 +2516,9 @@ def score_snapshot_payload(
         max_events=max_events,
         no_spacy=no_spacy,
     )
-    timeline_row = score_timeline_payload(payload, max_events=max_events, no_spacy=no_spacy)
+    timeline_row = score_timeline_payload(
+        payload, max_events=max_events, no_spacy=no_spacy
+    )
     reducer_row = score_reducer_payload(payload)
     return _page_row_from_outputs(
         payload,
@@ -2125,7 +2599,9 @@ def build_article_ingest_report(
     specificity_reason_counts: Counter[str] = Counter()
     specificity_reason_examples: dict[str, list[dict[str, Any]]] = defaultdict(list)
     information_gain_reason_counts: Counter[str] = Counter()
-    information_gain_reason_examples: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    information_gain_reason_examples: dict[str, list[dict[str, Any]]] = defaultdict(
+        list
+    )
     calibration_score_sums: dict[str, float] = defaultdict(float)
     calibration_score_counts: dict[str, int] = defaultdict(int)
     density_metric_sums = {
@@ -2145,7 +2621,9 @@ def build_article_ingest_report(
     }
     timeline_honesty_page_count = 0
     page_family_counts: Counter[str] = Counter()
-    page_family_score_sums: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    page_family_score_sums: dict[str, dict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
     page_family_page_counts: Counter[str] = Counter()
     page_family_timeline_counts: Counter[str] = Counter()
     page_family_honesty_issue_counts: dict[str, Counter[str]] = defaultdict(Counter)
@@ -2162,7 +2640,11 @@ def build_article_ingest_report(
             raise ValueError("sample row missing snapshot_path")
         payload = _load_json(Path(snapshot_path))
         child_results = []
-        raw_children = [row for row in (sample_row.get("followed_samples") or []) if isinstance(row, Mapping)]
+        raw_children = [
+            row
+            for row in (sample_row.get("followed_samples") or [])
+            if isinstance(row, Mapping)
+        ]
         for child_row in raw_children:
             child_results.append(_score_sample_tree(child_row, depth=depth + 1))
         page_row = score_snapshot_payload(
@@ -2195,10 +2677,16 @@ def build_article_ingest_report(
                 "edge_scores": edge_scores,
             }
         )
-        page_row["follow_target_quality_details"] = [edge["detail"] for edge in edge_scores[:5]]
-        page_row["follow_yield_metrics"]["follow_target_quality_count"] = len(edge_scores)
+        page_row["follow_target_quality_details"] = [
+            edge["detail"] for edge in edge_scores[:5]
+        ]
+        page_row["follow_yield_metrics"]["follow_target_quality_count"] = len(
+            edge_scores
+        )
         if edge_scores:
-            page_row["follow_yield_metrics"]["follow_target_quality_preview"] = [edge["detail"] for edge in edge_scores[:3]]
+            page_row["follow_yield_metrics"]["follow_target_quality_preview"] = [
+                edge["detail"] for edge in edge_scores[:3]
+            ]
         page_row["two_hop_metrics"] = graph_metrics["two_hop_metrics"]
         page_row["best_path_metrics"] = graph_metrics["best_path_metrics"]
         return {
@@ -2232,13 +2720,17 @@ def build_article_ingest_report(
                 child_page_row = child.get("page_row") or {}
                 examples.append(
                     {
-                        "root_title": str((node.get("page_row") or {}).get("title") or ""),
+                        "root_title": str(
+                            (node.get("page_row") or {}).get("title") or ""
+                        ),
                         "follow_title": str(child_page_row.get("title") or ""),
                         "score": round(edge_score, 6),
                         "quality_flags": list(detail.get("quality_flags") or []),
                     }
                 )
-            specificity_reason = str(detail.get("primary_specificity_reason") or "").strip()
+            specificity_reason = str(
+                detail.get("primary_specificity_reason") or ""
+            ).strip()
             if specificity_reason:
                 specificity_reason_counts[specificity_reason] += 1
                 reason_examples = specificity_reason_examples[specificity_reason]
@@ -2247,22 +2739,30 @@ def build_article_ingest_report(
                     child_page_row = child.get("page_row") or {}
                     reason_examples.append(
                         {
-                            "root_title": str((node.get("page_row") or {}).get("title") or ""),
+                            "root_title": str(
+                                (node.get("page_row") or {}).get("title") or ""
+                            ),
                             "follow_title": str(child_page_row.get("title") or ""),
                             "score": round(edge_score, 6),
                             "bucket": bucket,
                         }
                     )
-            information_gain_reason = str(detail.get("primary_information_gain_reason") or "").strip()
+            information_gain_reason = str(
+                detail.get("primary_information_gain_reason") or ""
+            ).strip()
             if information_gain_reason:
                 information_gain_reason_counts[information_gain_reason] += 1
-                gain_examples = information_gain_reason_examples[information_gain_reason]
+                gain_examples = information_gain_reason_examples[
+                    information_gain_reason
+                ]
                 if len(gain_examples) < 5:
                     child = edge.get("child") or {}
                     child_page_row = child.get("page_row") or {}
                     gain_examples.append(
                         {
-                            "root_title": str((node.get("page_row") or {}).get("title") or ""),
+                            "root_title": str(
+                                (node.get("page_row") or {}).get("title") or ""
+                            ),
                             "follow_title": str(child_page_row.get("title") or ""),
                             "score": round(edge_score, 6),
                             "bucket": bucket,
@@ -2305,7 +2805,9 @@ def build_article_ingest_report(
         for key in honesty_score_sums:
             honesty_score_sums[key] += float(page_row["honesty_scores"][key])
         for key in regime_honesty_score_sums:
-            regime_honesty_score_sums[key] += float(page_row["regime_adjusted_scores"][key])
+            regime_honesty_score_sums[key] += float(
+                page_row["regime_adjusted_scores"][key]
+            )
         for key, value in page_row["regime_calibration_scores"].items():
             if value is None:
                 continue
@@ -2333,7 +2835,9 @@ def build_article_ingest_report(
                 timeline_honesty_sums[key] += float(timeline_honesty_row[key])
         page_family_counts[family] += 1
         page_family_page_counts[family] += 1
-        page_family_score_sums[family]["article_ingest_score"] += float(page_row["scores"]["article_ingest_score"])
+        page_family_score_sums[family]["article_ingest_score"] += float(
+            page_row["scores"]["article_ingest_score"]
+        )
         page_family_score_sums[family]["article_ingest_honest_score"] += float(
             page_row["honesty_scores"]["article_ingest_honest_score"]
         )
@@ -2342,14 +2846,18 @@ def build_article_ingest_report(
         )
         if timeline_honesty_row["timeline_honesty_score"] is not None:
             page_family_timeline_counts[family] += 1
-            page_family_score_sums[family]["timeline_honesty_score"] += float(timeline_honesty_row["timeline_honesty_score"])
+            page_family_score_sums[family]["timeline_honesty_score"] += float(
+                timeline_honesty_row["timeline_honesty_score"]
+            )
         _collect_follow_metrics(root_node)
         best_path_metrics = page_row.get("best_path_metrics") or {}
         if best_path_metrics.get("best_path_score") is not None:
             best_path_score_sum += float(best_path_metrics["best_path_score"])
             best_path_score_count += 1
         if best_path_metrics.get("avg_candidate_path_score") is not None:
-            best_path_avg_candidate_score_sum += float(best_path_metrics["avg_candidate_path_score"])
+            best_path_avg_candidate_score_sum += float(
+                best_path_metrics["avg_candidate_path_score"]
+            )
             best_path_avg_candidate_score_count += 1
         if best_path_metrics.get("best_path_vs_avg_gap") is not None:
             best_path_gap_sum += float(best_path_metrics["best_path_vs_avg_gap"])
@@ -2362,43 +2870,73 @@ def build_article_ingest_report(
         "honesty_issue_counts": dict(sorted(honesty_issue_counts.items())),
         "calibration_issue_counts": dict(sorted(calibration_issue_counts.items())),
         "total_counts": dict(sorted(total_counts.items())),
-        "pages_with_article_sentences": sum(1 for row in page_rows if row["article_sentence_count"] > 0),
-        "pages_with_article_aao_events": sum(1 for row in page_rows if row["article_aao_event_count"] > 0),
-        "pages_with_actor_surface": sum(1 for row in page_rows if row["actor_event_count"] > 0),
-        "pages_with_action_surface": sum(1 for row in page_rows if row["action_event_count"] > 0),
-        "pages_with_followed_snapshots": sum(1 for row in page_rows if row["followed_snapshot_count"] > 0),
-        "average_scores": {key: round((value / page_count), 6) if page_count else 0.0 for key, value in score_sums.items()},
+        "pages_with_article_sentences": sum(
+            1 for row in page_rows if row["article_sentence_count"] > 0
+        ),
+        "pages_with_article_aao_events": sum(
+            1 for row in page_rows if row["article_aao_event_count"] > 0
+        ),
+        "pages_with_actor_surface": sum(
+            1 for row in page_rows if row["actor_event_count"] > 0
+        ),
+        "pages_with_action_surface": sum(
+            1 for row in page_rows if row["action_event_count"] > 0
+        ),
+        "pages_with_followed_snapshots": sum(
+            1 for row in page_rows if row["followed_snapshot_count"] > 0
+        ),
+        "average_scores": {
+            key: round((value / page_count), 6) if page_count else 0.0
+            for key, value in score_sums.items()
+        },
         "average_honesty_scores": {
-            key: round((value / page_count), 6) if page_count else 0.0 for key, value in honesty_score_sums.items()
+            key: round((value / page_count), 6) if page_count else 0.0
+            for key, value in honesty_score_sums.items()
         },
         "average_regime": {
-            key: round((value / page_count), 6) if page_count else 0.0 for key, value in regime_score_sums.items()
+            key: round((value / page_count), 6) if page_count else 0.0
+            for key, value in regime_score_sums.items()
         },
         "dominant_regime_counts": dict(sorted(dominant_regime_counts.items())),
         "average_regime_honesty_scores": {
-            key: round((value / page_count), 6) if page_count else 0.0 for key, value in regime_honesty_score_sums.items()
+            key: round((value / page_count), 6) if page_count else 0.0
+            for key, value in regime_honesty_score_sums.items()
         },
         "average_follow_yield_metrics": {
-            key: round((follow_yield_metric_sums[key] / follow_yield_metric_counts[key]), 6)
+            key: round(
+                (follow_yield_metric_sums[key] / follow_yield_metric_counts[key]), 6
+            )
             if follow_yield_metric_counts[key]
             else None
-            for key in sorted(follow_yield_metric_sums.keys() | follow_yield_metric_counts.keys())
+            for key in sorted(
+                follow_yield_metric_sums.keys() | follow_yield_metric_counts.keys()
+            )
         },
         "average_follow_target_quality": {
-            "overall": round((follow_target_quality_sum / follow_target_quality_count), 6)
+            "overall": round(
+                (follow_target_quality_sum / follow_target_quality_count), 6
+            )
             if follow_target_quality_count
             else None,
             "by_depth": {
                 str(depth): round(
-                    (follow_target_quality_by_depth_sum[depth] / follow_target_quality_by_depth_count[depth]),
+                    (
+                        follow_target_quality_by_depth_sum[depth]
+                        / follow_target_quality_by_depth_count[depth]
+                    ),
                     6,
                 )
                 if follow_target_quality_by_depth_count[depth]
                 else None
-                for depth in sorted(follow_target_quality_by_depth_sum.keys() | follow_target_quality_by_depth_count.keys())
+                for depth in sorted(
+                    follow_target_quality_by_depth_sum.keys()
+                    | follow_target_quality_by_depth_count.keys()
+                )
             },
         },
-        "follow_failure_bucket_counts": dict(sorted(follow_failure_bucket_counts.items())),
+        "follow_failure_bucket_counts": dict(
+            sorted(follow_failure_bucket_counts.items())
+        ),
         "follow_failure_bucket_examples": {
             bucket: examples
             for bucket, examples in sorted(follow_failure_bucket_examples.items())
@@ -2408,58 +2946,96 @@ def build_article_ingest_report(
             reason: examples
             for reason, examples in sorted(specificity_reason_examples.items())
         },
-        "information_gain_reason_counts": dict(sorted(information_gain_reason_counts.items())),
+        "information_gain_reason_counts": dict(
+            sorted(information_gain_reason_counts.items())
+        ),
         "information_gain_reason_examples": {
             reason: examples
             for reason, examples in sorted(information_gain_reason_examples.items())
         },
         "average_two_hop_metrics": {
             "hop1_quality": round(
-                (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1]), 6
+                (
+                    follow_target_quality_by_depth_sum[1]
+                    / follow_target_quality_by_depth_count[1]
+                ),
+                6,
             )
             if follow_target_quality_by_depth_count[1]
             else None,
             "hop2_quality": round(
-                (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2]), 6
+                (
+                    follow_target_quality_by_depth_sum[2]
+                    / follow_target_quality_by_depth_count[2]
+                ),
+                6,
             )
             if follow_target_quality_by_depth_count[2]
             else None,
             "hop_quality_decay": round(
                 (
-                    (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1])
-                    - (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2])
+                    (
+                        follow_target_quality_by_depth_sum[1]
+                        / follow_target_quality_by_depth_count[1]
+                    )
+                    - (
+                        follow_target_quality_by_depth_sum[2]
+                        / follow_target_quality_by_depth_count[2]
+                    )
                 ),
                 6,
             )
-            if follow_target_quality_by_depth_count[1] and follow_target_quality_by_depth_count[2]
+            if follow_target_quality_by_depth_count[1]
+            and follow_target_quality_by_depth_count[2]
             else None,
             "hop1_count": follow_target_quality_by_depth_count[1],
             "hop2_count": follow_target_quality_by_depth_count[2],
             "hop1_follow_target_quality": round(
-                (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1]), 6
+                (
+                    follow_target_quality_by_depth_sum[1]
+                    / follow_target_quality_by_depth_count[1]
+                ),
+                6,
             )
             if follow_target_quality_by_depth_count[1]
             else None,
             "hop2_follow_target_quality": round(
-                (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2]), 6
+                (
+                    follow_target_quality_by_depth_sum[2]
+                    / follow_target_quality_by_depth_count[2]
+                ),
+                6,
             )
             if follow_target_quality_by_depth_count[2]
             else None,
             "quality_decay": round(
                 (
-                    (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1])
-                    - (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2])
+                    (
+                        follow_target_quality_by_depth_sum[1]
+                        / follow_target_quality_by_depth_count[1]
+                    )
+                    - (
+                        follow_target_quality_by_depth_sum[2]
+                        / follow_target_quality_by_depth_count[2]
+                    )
                 ),
                 6,
             )
-            if follow_target_quality_by_depth_count[1] and follow_target_quality_by_depth_count[2]
+            if follow_target_quality_by_depth_count[1]
+            and follow_target_quality_by_depth_count[2]
             else None,
         },
         "average_best_path_metrics": {
             "best_path_score": round((best_path_score_sum / best_path_score_count), 6)
             if best_path_score_count
             else None,
-            "avg_candidate_path_score": round((best_path_avg_candidate_score_sum / best_path_avg_candidate_score_count), 6)
+            "avg_candidate_path_score": round(
+                (
+                    best_path_avg_candidate_score_sum
+                    / best_path_avg_candidate_score_count
+                ),
+                6,
+            )
             if best_path_avg_candidate_score_count
             else None,
             "best_path_vs_avg_gap": round((best_path_gap_sum / best_path_gap_count), 6)
@@ -2469,23 +3045,38 @@ def build_article_ingest_report(
         },
         "two_hop_metrics": {
             "hop1_follow_target_quality": round(
-                (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1]), 6
+                (
+                    follow_target_quality_by_depth_sum[1]
+                    / follow_target_quality_by_depth_count[1]
+                ),
+                6,
             )
             if follow_target_quality_by_depth_count[1]
             else None,
             "hop2_follow_target_quality": round(
-                (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2]), 6
+                (
+                    follow_target_quality_by_depth_sum[2]
+                    / follow_target_quality_by_depth_count[2]
+                ),
+                6,
             )
             if follow_target_quality_by_depth_count[2]
             else None,
             "quality_decay": round(
                 (
-                    (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1])
-                    - (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2])
+                    (
+                        follow_target_quality_by_depth_sum[1]
+                        / follow_target_quality_by_depth_count[1]
+                    )
+                    - (
+                        follow_target_quality_by_depth_sum[2]
+                        / follow_target_quality_by_depth_count[2]
+                    )
                 ),
                 6,
             )
-            if follow_target_quality_by_depth_count[1] and follow_target_quality_by_depth_count[2]
+            if follow_target_quality_by_depth_count[1]
+            and follow_target_quality_by_depth_count[2]
             else None,
             "hop1_count": follow_target_quality_by_depth_count[1],
             "hop2_count": follow_target_quality_by_depth_count[2],
@@ -2500,22 +3091,38 @@ def build_article_ingest_report(
             key: round((calibration_score_sums[key] / calibration_score_counts[key]), 6)
             if calibration_score_counts[key]
             else None
-            for key in sorted(calibration_score_sums.keys() | calibration_score_counts.keys())
+            for key in sorted(
+                calibration_score_sums.keys() | calibration_score_counts.keys()
+            )
         },
         "average_regime_calibration_scores": {
-            key: round((regime_calibration_score_sums[key] / regime_calibration_score_counts[key]), 6)
+            key: round(
+                (
+                    regime_calibration_score_sums[key]
+                    / regime_calibration_score_counts[key]
+                ),
+                6,
+            )
             if regime_calibration_score_counts[key]
             else None
-            for key in sorted(regime_calibration_score_sums.keys() | regime_calibration_score_counts.keys())
+            for key in sorted(
+                regime_calibration_score_sums.keys()
+                | regime_calibration_score_counts.keys()
+            )
         },
         "pages_with_calibration_metric": dict(sorted(calibration_score_counts.items())),
-        "pages_with_regime_calibration_metric": dict(sorted(regime_calibration_score_counts.items())),
+        "pages_with_regime_calibration_metric": dict(
+            sorted(regime_calibration_score_counts.items())
+        ),
         "average_density_metrics": {
-            key: round((value / page_count), 6) if page_count else 0.0 for key, value in density_metric_sums.items()
+            key: round((value / page_count), 6) if page_count else 0.0
+            for key, value in density_metric_sums.items()
         },
         "pages_with_timeline_honesty": timeline_honesty_page_count,
         "average_timeline_honesty": {
-            key: round((value / timeline_honesty_page_count), 6) if timeline_honesty_page_count else 0.0
+            key: round((value / timeline_honesty_page_count), 6)
+            if timeline_honesty_page_count
+            else 0.0
             for key, value in timeline_honesty_sums.items()
         },
         "page_family_counts": dict(sorted(page_family_counts.items())),
@@ -2524,19 +3131,23 @@ def build_article_ingest_report(
                 "page_count": page_family_page_counts[family],
                 "pages_with_timeline_honesty": page_family_timeline_counts[family],
                 "article_ingest_score": round(
-                    page_family_score_sums[family]["article_ingest_score"] / page_family_page_counts[family],
+                    page_family_score_sums[family]["article_ingest_score"]
+                    / page_family_page_counts[family],
                     6,
                 ),
                 "article_ingest_honest_score": round(
-                    page_family_score_sums[family]["article_ingest_honest_score"] / page_family_page_counts[family],
+                    page_family_score_sums[family]["article_ingest_honest_score"]
+                    / page_family_page_counts[family],
                     6,
                 ),
                 "article_ingest_calibrated_score": round(
-                    page_family_score_sums[family]["article_ingest_calibrated_score"] / page_family_page_counts[family],
+                    page_family_score_sums[family]["article_ingest_calibrated_score"]
+                    / page_family_page_counts[family],
                     6,
                 ),
                 "timeline_honesty_score": round(
-                    page_family_score_sums[family]["timeline_honesty_score"] / page_family_timeline_counts[family],
+                    page_family_score_sums[family]["timeline_honesty_score"]
+                    / page_family_timeline_counts[family],
                     6,
                 )
                 if page_family_timeline_counts[family]

@@ -1,4 +1,5 @@
 """Shared affidavit lexical heuristic helpers."""
+
 from __future__ import annotations
 
 import re
@@ -46,7 +47,9 @@ LEXICAL_HEURISTIC_HINT_RULES: dict[str, tuple[dict[str, Any], ...]] = {
 
 
 @lru_cache(maxsize=32768)
-def apply_lexical_heuristic_group(text: str, group: str) -> dict[str, list[dict[str, Any]]]:
+def apply_lexical_heuristic_group(
+    text: str, group: str
+) -> dict[str, list[dict[str, Any]]]:
     matches: dict[str, list[dict[str, Any]]] = {}
     for rule in LEXICAL_HEURISTIC_HINT_RULES.get(group, ()):
         label = str(rule.get("label") or "").strip()

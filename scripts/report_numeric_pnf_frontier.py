@@ -97,10 +97,7 @@ def _stage_rows(
         """,
         (run_ref, document_ref),
     )
-    return tuple(
-        (str(row[0]), int(row[1]), float(row[2]))
-        for row in cursor.fetchall()
-    )
+    return tuple((str(row[0]), int(row[1]), float(row[2])) for row in cursor.fetchall())
 
 
 def _root_counts(
@@ -148,9 +145,7 @@ def _format_table(headers: tuple[str, ...], rows: Iterable[tuple[str, ...]]) -> 
     )
     divider = "  ".join("-" * width for width in widths)
     body = [
-        "  ".join(
-            value.ljust(widths[index]) for index, value in enumerate(row)
-        )
+        "  ".join(value.ljust(widths[index]) for index, value in enumerate(row))
         for row in materialized
     ]
     return "\n".join((header_line, divider, *body))

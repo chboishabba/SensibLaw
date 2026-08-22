@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Report exact demand-occurrence provenance before H9 external planning."""
+"""Report exact demand-occurrence provenance before H9 external planning.
+
+Migration 135/171 producer-authored occurrence provenance is the live H9 authority.
+The older migration-122 support carrier is now cold audit/compatibility state; pass
+``--refresh-legacy-support`` when a current snapshot of that carrier is required.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -15,11 +21,58 @@ def main() -> int:
     parser.add_argument("--query-ref", required=True)
     parser.add_argument("--policy-ref", default="")
     parser.add_argument("--sample-limit", type=int, default=20)
+    parser.add_argument(
+        "--refresh-legacy-support",
+        action="store_true",
+        help=(
+            "rebuild migration-122 occurrence support for the scoped documents "
+            "before reporting; current H9 authority does not require this"
+        ),
+    )
     args = parser.parse_args()
 
     connection = connect(args.database_url)
+    refreshed_documents = 0
     try:
         with connection.cursor() as cursor:
+            if args.refresh_legacy_support:
+                cursor.execute(
+                    """
+                    WITH scoped AS (
+                        SELECT DISTINCT work.demand_id
+                          FROM execution.semantic_pnf_consumer_horizon_work_queue work
+                          JOIN execution.semantic_pnf_h9_external_admission_v1 admission
+                            ON admission.demand_id=work.demand_id
+                           AND admission.consumer_ref=work.consumer_ref
+                           AND admission.query_ref=work.query_ref
+                           AND admission.policy_ref=work.policy_ref
+                         WHERE work.horizon=9 AND work.work_state=1
+                           AND work.consumer_ref=%s AND work.query_ref=%s
+                           AND work.policy_ref=%s
+                           AND admission.contract_id IS NOT NULL
+                    )
+                    SELECT DISTINCT region.run_id,region.document_id
+                      FROM scoped
+                      JOIN execution.semantic_pnf_demand demand USING(demand_id)
+                      JOIN execution.semantic_pnf_region region
+                        ON region.region_id=demand.source_region_id
+                     ORDER BY region.run_id,region.document_id
+                    """,
+                    (args.consumer_ref, args.query_ref, args.policy_ref),
+                )
+                documents = [
+                    (int(run_id), int(document_id))
+                    for run_id, document_id in cursor.fetchall()
+                ]
+                for run_id, document_id in documents:
+                    cursor.execute(
+                        "SELECT execution.refresh_numeric_pnf_demand_occurrence_support_scope(%s,%s)",
+                        (run_id, document_id),
+                    )
+                    cursor.fetchone()
+                connection.commit()
+                refreshed_documents = len(documents)
+
             cursor.execute(
                 """
                 WITH scoped AS (
@@ -70,6 +123,8 @@ def main() -> int:
                 "ambiguous_strong_object_demands": int(row[6]),
                 "legacy_only_support_demands": int(row[7]),
                 "no_occurrence_support_demands": int(row[8]),
+                "legacy_support_refreshed": bool(args.refresh_legacy_support),
+                "legacy_support_refreshed_documents": refreshed_documents,
             }
 
             cursor.execute(

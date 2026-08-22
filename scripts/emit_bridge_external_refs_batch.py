@@ -13,10 +13,17 @@ if str(SENSIBLAW_ROOT) not in sys.path:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Emit ontology external-ref batches from deterministic bridge hits.")
+    ap = argparse.ArgumentParser(
+        description="Emit ontology external-ref batches from deterministic bridge hits."
+    )
     ap.add_argument("--text", help="Inline text to tokenize")
     ap.add_argument("--text-file", type=Path, help="Path to text file")
-    ap.add_argument("--anchor-map", type=Path, required=True, help="JSON map of canonical_ref -> {actor_id|concept_code}")
+    ap.add_argument(
+        "--anchor-map",
+        type=Path,
+        required=True,
+        help="JSON map of canonical_ref -> {actor_id|concept_code}",
+    )
     ap.add_argument("--output", type=Path, help="Optional path to write batch JSON")
     ap.add_argument(
         "--record-receipts",
@@ -27,7 +34,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.text and not args.text_file:
         raise SystemExit("provide --text or --text-file")
-    text = args.text if args.text is not None else args.text_file.read_text(encoding="utf-8")
+    text = (
+        args.text
+        if args.text is not None
+        else args.text_file.read_text(encoding="utf-8")
+    )
     anchor_map = json.loads(args.anchor_map.read_text(encoding="utf-8"))
 
     from src.ontology.entity_bridge import build_external_refs_batch_from_text

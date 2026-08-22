@@ -18,10 +18,14 @@ on:
       - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
       - "database/postgres_migrations/074_identity_admission_integrity.sql"
       - "database/postgres_migrations/075_reference_mode_outcomes.sql"
+      - "database/postgres_migrations/177_setwise_region_recurrence_projection.sql"
+      - "database/postgres_migrations/178_indexed_sparse_frontier_candidate_exposure.sql"
+      - "database/postgres_migrations/179_indexed_sparse_frontier_actor_retention.sql"
       - "src/storage/postgres/epistemic_factor_report.py"
       - "scripts/report_numeric_pnf_frontier.py"
       - "scripts/generate_entity_factor_report.py"
       - "scripts/generate_reagan_factor_report.py"
+      - "scripts/check_indexed_sparse_frontier_candidate_parity.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
       - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
       - "tests/storage/test_sparse_frontier_constraint_migrations.py"
@@ -34,6 +38,10 @@ on:
       - "tests/storage/test_proof_relevant_identity_acceptance.py"
       - "tests/storage/test_reference_mode_outcomes.py"
       - "tests/storage/test_epistemic_factor_report.py"
+      - "tests/storage/test_setwise_region_recurrence_projection_contract.py"
+      - "tests/storage/test_indexed_sparse_frontier_candidate_exposure_contract.py"
+      - "tests/storage/test_indexed_sparse_frontier_candidate_parity_probe_contract.py"
+      - "tests/storage/test_indexed_sparse_frontier_actor_retention_contract.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
       - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
       - "docs/architecture/PROOF_RELEVANT_IDENTITY_AND_DERIVATIONS.md"
@@ -57,10 +65,14 @@ on:
       - "database/postgres_migrations/073_external_identity_ref_and_retraction.sql"
       - "database/postgres_migrations/074_identity_admission_integrity.sql"
       - "database/postgres_migrations/075_reference_mode_outcomes.sql"
+      - "database/postgres_migrations/177_setwise_region_recurrence_projection.sql"
+      - "database/postgres_migrations/178_indexed_sparse_frontier_candidate_exposure.sql"
+      - "database/postgres_migrations/179_indexed_sparse_frontier_actor_retention.sql"
       - "src/storage/postgres/epistemic_factor_report.py"
       - "scripts/report_numeric_pnf_frontier.py"
       - "scripts/generate_entity_factor_report.py"
       - "scripts/generate_reagan_factor_report.py"
+      - "scripts/check_indexed_sparse_frontier_candidate_parity.py"
       - "tests/storage/test_sparse_fibred_frontier_migration.py"
       - "tests/storage/test_sparse_actor_profile_integrity_migration.py"
       - "tests/storage/test_sparse_frontier_constraint_migrations.py"
@@ -73,6 +85,10 @@ on:
       - "tests/storage/test_proof_relevant_identity_acceptance.py"
       - "tests/storage/test_reference_mode_outcomes.py"
       - "tests/storage/test_epistemic_factor_report.py"
+      - "tests/storage/test_setwise_region_recurrence_projection_contract.py"
+      - "tests/storage/test_indexed_sparse_frontier_candidate_exposure_contract.py"
+      - "tests/storage/test_indexed_sparse_frontier_candidate_parity_probe_contract.py"
+      - "tests/storage/test_indexed_sparse_frontier_actor_retention_contract.py"
       - "docs/architecture/SPARSE_FIBRED_PNF_FRONTIERS.md"
       - "docs/architecture/SPARSE_FRONTIER_BATCH_OPTIMISATIONS.md"
       - "docs/architecture/PROOF_RELEVANT_IDENTITY_AND_DERIVATIONS.md"
@@ -110,7 +126,7 @@ jobs:
           enable-cache: true
 
       - name: Install
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev --extra test
 
       - name: Compile
         run: |
@@ -119,6 +135,7 @@ jobs:
             scripts/report_numeric_pnf_frontier.py \
             scripts/generate_entity_factor_report.py \
             scripts/generate_reagan_factor_report.py \
+            scripts/check_indexed_sparse_frontier_candidate_parity.py \
             tests/storage/test_sparse_fibred_frontier_migration.py \
             tests/storage/test_sparse_actor_profile_integrity_migration.py \
             tests/storage/test_sparse_frontier_constraint_migrations.py \
@@ -130,7 +147,11 @@ jobs:
             tests/storage/test_proof_relevant_identity_postgres.py \
             tests/storage/test_proof_relevant_identity_acceptance.py \
             tests/storage/test_reference_mode_outcomes.py \
-            tests/storage/test_epistemic_factor_report.py
+            tests/storage/test_epistemic_factor_report.py \
+            tests/storage/test_setwise_region_recurrence_projection_contract.py \
+            tests/storage/test_indexed_sparse_frontier_candidate_exposure_contract.py \
+            tests/storage/test_indexed_sparse_frontier_candidate_parity_probe_contract.py \
+            tests/storage/test_indexed_sparse_frontier_actor_retention_contract.py
 
       - name: Ruff
         run: |
@@ -139,6 +160,7 @@ jobs:
             scripts/report_numeric_pnf_frontier.py \
             scripts/generate_entity_factor_report.py \
             scripts/generate_reagan_factor_report.py \
+            scripts/check_indexed_sparse_frontier_candidate_parity.py \
             tests/storage/test_sparse_fibred_frontier_migration.py \
             tests/storage/test_sparse_actor_profile_integrity_migration.py \
             tests/storage/test_sparse_frontier_constraint_migrations.py \
@@ -150,7 +172,11 @@ jobs:
             tests/storage/test_proof_relevant_identity_postgres.py \
             tests/storage/test_proof_relevant_identity_acceptance.py \
             tests/storage/test_reference_mode_outcomes.py \
-            tests/storage/test_epistemic_factor_report.py
+            tests/storage/test_epistemic_factor_report.py \
+            tests/storage/test_setwise_region_recurrence_projection_contract.py \
+            tests/storage/test_indexed_sparse_frontier_candidate_exposure_contract.py \
+            tests/storage/test_indexed_sparse_frontier_candidate_parity_probe_contract.py \
+            tests/storage/test_indexed_sparse_frontier_actor_retention_contract.py
 
       - name: Static frontier tests
         run: |
@@ -161,7 +187,11 @@ jobs:
             tests/storage/test_sparse_frontier_batch_migration.py \
             tests/storage/test_proof_relevant_identity_derivations.py \
             tests/storage/test_reference_mode_outcomes.py \
-            tests/storage/test_epistemic_factor_report.py
+            tests/storage/test_epistemic_factor_report.py \
+            tests/storage/test_setwise_region_recurrence_projection_contract.py \
+            tests/storage/test_indexed_sparse_frontier_candidate_exposure_contract.py \
+            tests/storage/test_indexed_sparse_frontier_candidate_parity_probe_contract.py \
+            tests/storage/test_indexed_sparse_frontier_actor_retention_contract.py
 
       - name: Apply migrations
         run: bash scripts/apply_pg_migrations.sh

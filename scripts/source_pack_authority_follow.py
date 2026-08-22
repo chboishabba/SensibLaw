@@ -44,7 +44,9 @@ AUTHORITY_HOST_SUFFIXES = (
 
 
 class _RequestPacer:
-    def __init__(self, *, legal_rps: float, wiki_rps: float, default_rps: float) -> None:
+    def __init__(
+        self, *, legal_rps: float, wiki_rps: float, default_rps: float
+    ) -> None:
         self._legal_interval = 1.0 / max(0.01, float(legal_rps))
         self._wiki_interval = 1.0 / max(0.01, float(wiki_rps))
         self._default_interval = 1.0 / max(0.01, float(default_rps))
@@ -90,7 +92,9 @@ def _sha256_bytes(data: bytes) -> str:
 
 
 def _slug(text: str) -> str:
-    out = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in (text or "").strip())
+    out = "".join(
+        ch if ch.isalnum() or ch in "._-" else "_" for ch in (text or "").strip()
+    )
     while "__" in out:
         out = out.replace("__", "_")
     return out.strip("._") or "artifact"
@@ -152,7 +156,9 @@ class _LinkAndTitleParser(HTMLParser):
         return _collapse_ws("".join(self._title_buf))
 
 
-def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPacer] = None) -> Dict[str, object]:
+def _fetch(
+    url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPacer] = None
+) -> Dict[str, object]:
     if pacer is not None:
         pacer.wait_for(url)
     req = urllib.request.Request(url, headers={"User-Agent": user_agent}, method="GET")
@@ -191,7 +197,9 @@ def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPace
     }
 
 
-def _parse_html_links(content: bytes, base_url: str, max_links: int) -> Tuple[str, List[Dict[str, str]], List[Dict[str, str]]]:
+def _parse_html_links(
+    content: bytes, base_url: str, max_links: int
+) -> Tuple[str, List[Dict[str, str]], List[Dict[str, str]]]:
     text = content.decode("utf-8", errors="replace")
     parser = _LinkAndTitleParser()
     parser.feed(text)
@@ -230,30 +238,50 @@ def _iso_to_anchor(ts: str) -> Dict[str, object]:
 
 
 def _timeline_graph(events: List[Dict[str, object]], pack_id: str) -> Dict[str, object]:
-    nodes: List[Dict[str, object]] = [{"id": f"pack:{pack_id}", "type": "pack", "label": pack_id}]
+    nodes: List[Dict[str, object]] = [
+        {"id": f"pack:{pack_id}", "type": "pack", "label": pack_id}
+    ]
     edges: List[Dict[str, object]] = []
     time_seen: Set[str] = set()
     depth_seen: Set[int] = set()
     for ev in events:
         eid = str(ev.get("event_id") or "")
-        day = str(((ev.get("anchor") or {}) if isinstance(ev.get("anchor"), dict) else {}).get("text") or "")
+        day = str(
+            (
+                (ev.get("anchor") or {}) if isinstance(ev.get("anchor"), dict) else {}
+            ).get("text")
+            or ""
+        )
         depth = int(ev.get("depth") or 0)
         if day and day not in time_seen:
             time_seen.add(day)
             nodes.append({"id": f"time:{day}", "type": "time_day", "label": day})
         if depth not in depth_seen:
             depth_seen.add(depth)
-            nodes.append({"id": f"depth:{depth}", "type": "depth", "label": f"depth {depth}"})
-        nodes.append({"id": f"ev:{eid}", "type": "event", "label": str(ev.get("text") or "")})
+            nodes.append(
+                {"id": f"depth:{depth}", "type": "depth", "label": f"depth {depth}"}
+            )
+        nodes.append(
+            {"id": f"ev:{eid}", "type": "event", "label": str(ev.get("text") or "")}
+        )
         if day:
             edges.append({"from": f"time:{day}", "to": f"ev:{eid}", "type": "TIME_BIN"})
         edges.append({"from": f"depth:{depth}", "to": f"ev:{eid}", "type": "DEPTH_BIN"})
-        edges.append({"from": f"pack:{pack_id}", "to": f"ev:{eid}", "type": "HAS_EVENT"})
+        edges.append(
+            {"from": f"pack:{pack_id}", "to": f"ev:{eid}", "type": "HAS_EVENT"}
+        )
     for i in range(len(events) - 1):
         a = str(events[i].get("event_id") or "")
         b = str(events[i + 1].get("event_id") or "")
         if a and b:
-            edges.append({"from": f"ev:{a}", "to": f"ev:{b}", "type": "NEXT_CHRONO", "order": i + 1})
+            edges.append(
+                {
+                    "from": f"ev:{a}",
+                    "to": f"ev:{b}",
+                    "type": "NEXT_CHRONO",
+                    "order": i + 1,
+                }
+            )
     return {
         "graph_id": f"source_pack_follow_timeline_{pack_id}",
         "pack_id": pack_id,
@@ -263,7 +291,9 @@ def _timeline_graph(events: List[Dict[str, object]], pack_id: str) -> Dict[str, 
     }
 
 
-def _wiki_timeline_payload(events: List[Dict[str, object]], pack_id: str) -> Dict[str, object]:
+def _wiki_timeline_payload(
+    events: List[Dict[str, object]], pack_id: str
+) -> Dict[str, object]:
     out_events = []
     for ev in events:
         out_events.append(
@@ -310,7 +340,9 @@ def run(
     pack_id = str(manifest.get("pack_id") or "source_pack")
     user_agent = f"ITIR-suite/source-pack-authority-follow ({pack_id})"
     generated_at = _utc_now_iso()
-    pacer = _RequestPacer(legal_rps=legal_rps, wiki_rps=wiki_rps, default_rps=default_rps)
+    pacer = _RequestPacer(
+        legal_rps=legal_rps, wiki_rps=wiki_rps, default_rps=default_rps
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_dir = out_dir / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -350,7 +382,7 @@ def run(
             continue
         visited.add(url)
 
-        doc_id = f"fdoc:{len(followed_docs)+1:04d}"
+        doc_id = f"fdoc:{len(followed_docs) + 1:04d}"
         fetched_at = _utc_now_iso()
         row: Dict[str, object] = {
             "doc_id": doc_id,
@@ -377,8 +409,14 @@ def run(
             content_type = str(fetched["content_type"] or "")
             status_code = int(fetched["status_code"])
             digest = _sha256_bytes(content)
-            suffix = ".html" if "html" in content_type.lower() else ".pdf" if "pdf" in content_type.lower() else ".bin"
-            raw_name = f"{len(followed_docs)+1:04d}_{_slug(final_url)}{suffix}"
+            suffix = (
+                ".html"
+                if "html" in content_type.lower()
+                else ".pdf"
+                if "pdf" in content_type.lower()
+                else ".bin"
+            )
+            raw_name = f"{len(followed_docs) + 1:04d}_{_slug(final_url)}{suffix}"
             raw_path = raw_dir / raw_name
             raw_path.write_bytes(content)
 
@@ -386,7 +424,9 @@ def run(
             outbound_links: List[Dict[str, str]] = []
             authority_links: List[Dict[str, str]] = []
             if "html" in content_type.lower() or suffix == ".html":
-                title, outbound_links, authority_links = _parse_html_links(content, final_url, max_links=max_links_per_doc)
+                title, outbound_links, authority_links = _parse_html_links(
+                    content, final_url, max_links=max_links_per_doc
+                )
             if len(authority_links) > max_authority_links_per_doc:
                 authority_links = authority_links[:max_authority_links_per_doc]
 
@@ -419,7 +459,10 @@ def run(
 
         followed_docs.append(row)
 
-    followed_docs = sorted(followed_docs, key=lambda r: (str(r.get("fetched_at") or ""), str(r.get("doc_id") or "")))
+    followed_docs = sorted(
+        followed_docs,
+        key=lambda r: (str(r.get("fetched_at") or ""), str(r.get("doc_id") or "")),
+    )
 
     events: List[Dict[str, object]] = []
     for i, d in enumerate(followed_docs, start=1):
@@ -429,7 +472,9 @@ def run(
         authority_labels = []
         for link in d.get("authority_links") or []:
             if isinstance(link, dict):
-                label = _collapse_ws(str(link.get("text") or "")) or str(link.get("url") or "")
+                label = _collapse_ws(str(link.get("text") or "")) or str(
+                    link.get("url") or ""
+                )
                 authority_labels.append(label)
         event_id = f"ev:{i:04d}"
         events.append(
@@ -467,10 +512,16 @@ def run(
             "documents_total": len(followed_docs),
             "documents_ok": sum(1 for d in followed_docs if d.get("status") == "ok"),
             "documents_error": sum(1 for d in followed_docs if d.get("status") != "ok"),
-            "max_depth_observed": max((int(d.get("depth") or 0) for d in followed_docs), default=0),
+            "max_depth_observed": max(
+                (int(d.get("depth") or 0) for d in followed_docs), default=0
+            ),
         },
     }
-    timeline_payload = {"pack_id": pack_id, "generated_at": generated_at, "events": events}
+    timeline_payload = {
+        "pack_id": pack_id,
+        "generated_at": generated_at,
+        "events": events,
+    }
     graph_payload = _timeline_graph(events, pack_id=f"{pack_id}_follow")
     wiki_timeline = _wiki_timeline_payload(events, pack_id=f"{pack_id}_follow")
 
@@ -479,10 +530,22 @@ def run(
     graph_out = out_dir / "follow_timeline_graph.json"
     wiki_timeline_out = out_dir / f"wiki_timeline_{pack_id}_follow.json"
 
-    manifest_out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
-    timeline_out.write_text(json.dumps(timeline_payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
-    graph_out.write_text(json.dumps(graph_payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
-    wiki_timeline_out.write_text(json.dumps(wiki_timeline, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_out.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    timeline_out.write_text(
+        json.dumps(timeline_payload, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    graph_out.write_text(
+        json.dumps(graph_payload, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    wiki_timeline_out.write_text(
+        json.dumps(wiki_timeline, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
 
     return {
         "ok": True,
@@ -496,12 +559,18 @@ def run(
     }
 
 
-DEFAULT_AUTHORITY_MANIFEST_PATH = resolve_sensiblaw_relative("demo", "ingest", "legal_principles_au_v1", "manifest.json")
-DEFAULT_AUTHORITY_OUT_DIR = resolve_sensiblaw_relative("demo", "ingest", "legal_principles_au_v1", "follow")
+DEFAULT_AUTHORITY_MANIFEST_PATH = resolve_sensiblaw_relative(
+    "demo", "ingest", "legal_principles_au_v1", "manifest.json"
+)
+DEFAULT_AUTHORITY_OUT_DIR = resolve_sensiblaw_relative(
+    "demo", "ingest", "legal_principles_au_v1", "follow"
+)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Bounded authority-link follow pass from source-pack manifest.")
+    ap = argparse.ArgumentParser(
+        description="Bounded authority-link follow pass from source-pack manifest."
+    )
     ap.add_argument(
         "--manifest",
         type=Path,
@@ -514,10 +583,30 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=DEFAULT_AUTHORITY_OUT_DIR,
         help="Output directory (default: %(default)s)",
     )
-    ap.add_argument("--timeout", type=int, default=20, help="Per-request timeout seconds (default: %(default)s)")
-    ap.add_argument("--max-depth", type=int, default=2, help="Max follow depth (default: %(default)s)")
-    ap.add_argument("--max-new-docs", type=int, default=40, help="Max followed documents (default: %(default)s)")
-    ap.add_argument("--max-links-per-doc", type=int, default=140, help="Max outbound links retained per doc (default: %(default)s)")
+    ap.add_argument(
+        "--timeout",
+        type=int,
+        default=20,
+        help="Per-request timeout seconds (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--max-depth",
+        type=int,
+        default=2,
+        help="Max follow depth (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--max-new-docs",
+        type=int,
+        default=40,
+        help="Max followed documents (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--max-links-per-doc",
+        type=int,
+        default=140,
+        help="Max outbound links retained per doc (default: %(default)s)",
+    )
     ap.add_argument(
         "--max-authority-links-per-doc",
         type=int,

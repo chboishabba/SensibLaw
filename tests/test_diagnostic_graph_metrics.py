@@ -21,8 +21,18 @@ def test_build_graph_diagnostics_is_deterministic_and_isolated() -> None:
             {"id": "lonely:x", "kind": "source_family", "label": "Family X"},
         ],
         "edges": [
-            {"source": "seed:a", "target": "source:r1", "kind": "supports_source_row", "metadata": {}},
-            {"source": "source:r1", "target": "followed:u1", "kind": "follows_source", "metadata": {}},
+            {
+                "source": "seed:a",
+                "target": "source:r1",
+                "kind": "supports_source_row",
+                "metadata": {},
+            },
+            {
+                "source": "source:r1",
+                "target": "followed:u1",
+                "kind": "follows_source",
+                "metadata": {},
+            },
         ],
     }
 
@@ -102,9 +112,24 @@ def test_build_graph_cone_diagnostics_tracks_disallowed_boundary_edges() -> None
             {"id": "link:k1", "kind": "linkage_kind", "label": "Linkage"},
         ],
         "edges": [
-            {"source": "seed:a", "target": "source:r1", "kind": "supports_source_row", "metadata": {}},
-            {"source": "seed:a", "target": "link:k1", "kind": "uses_linkage_kind", "metadata": {}},
-            {"source": "source:r1", "target": "followed:u1", "kind": "follows_source", "metadata": {}},
+            {
+                "source": "seed:a",
+                "target": "source:r1",
+                "kind": "supports_source_row",
+                "metadata": {},
+            },
+            {
+                "source": "seed:a",
+                "target": "link:k1",
+                "kind": "uses_linkage_kind",
+                "metadata": {},
+            },
+            {
+                "source": "source:r1",
+                "target": "followed:u1",
+                "kind": "follows_source",
+                "metadata": {},
+            },
         ],
     }
 
@@ -182,7 +207,10 @@ def test_build_graph_revision_stability_is_deterministic_and_bounded() -> None:
     assert left["schema_version"] == GRAPH_REVISION_STABILITY_SCHEMA_VERSION
     assert left["admissibility"]["admissible"] is True
     assert left["admissibility"]["seed_set_changed"] is False
-    assert left["comparison_scope"]["comparison_basis"] == "explicit_graph_diagnostics_pair"
+    assert (
+        left["comparison_scope"]["comparison_basis"]
+        == "explicit_graph_diagnostics_pair"
+    )
     assert left["deltas"] == {
         "node_count_delta": 1,
         "edge_count_delta": 1,
@@ -236,7 +264,9 @@ def test_build_graph_revision_stability_fails_closed_on_scope_mismatch() -> None
     assert stability["deltas"] == {}
 
 
-def test_build_suite_graph_diagnostics_omits_revision_stability_without_explicit_pair() -> None:
+def test_build_suite_graph_diagnostics_omits_revision_stability_without_explicit_pair() -> (
+    None
+):
     diagnostics = build_suite_graph_diagnostics(
         graph_payload={
             "version": "fixture.graph.v1",
@@ -257,7 +287,9 @@ def test_build_suite_graph_diagnostics_omits_revision_stability_without_explicit
     assert "revision_stability" not in diagnostics
 
 
-def test_build_suite_graph_diagnostics_attaches_rejected_revision_stability_for_explicit_bad_pair() -> None:
+def test_build_suite_graph_diagnostics_attaches_rejected_revision_stability_for_explicit_bad_pair() -> (
+    None
+):
     baseline = build_graph_diagnostics(
         graph_payload={
             "version": "fixture.graph.v1",
@@ -292,7 +324,11 @@ def test_build_suite_graph_diagnostics_attaches_rejected_revision_stability_for_
     )
 
     revision_stability = diagnostics["revision_stability"]
-    assert revision_stability["schema_version"] == GRAPH_REVISION_STABILITY_SCHEMA_VERSION
+    assert (
+        revision_stability["schema_version"] == GRAPH_REVISION_STABILITY_SCHEMA_VERSION
+    )
     assert revision_stability["admissibility"]["admissible"] is False
-    assert revision_stability["admissibility"]["rejection_reasons"] == ["source_lane_mismatch"]
+    assert revision_stability["admissibility"]["rejection_reasons"] == [
+        "source_lane_mismatch"
+    ]
     assert revision_stability["deltas"] == {}

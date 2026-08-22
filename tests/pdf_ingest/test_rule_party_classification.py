@@ -90,7 +90,9 @@ def test_unknown_actor_triggers_lint_atom():
         ("Members of the public", "public", "public", "the public"),
     ],
 )
-def test_actor_taxonomy_matches_expected_roles(actor, expected_party, expected_role, expected_who_text):
+def test_actor_taxonomy_matches_expected_roles(
+    actor, expected_party, expected_role, expected_who_text
+):
     party, role, who_text = derive_party_metadata(actor)
 
     assert party == expected_party

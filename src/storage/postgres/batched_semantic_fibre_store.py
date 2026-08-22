@@ -159,16 +159,22 @@ def persist_semantic_fibre_artifacts_batched(
             """,
             [
                 (
-                    row["coordinate_ref"], row["document_ref"], row["scope_ref"],
-                    _json(row["source_span_refs"]), row["statement_role"],
-                    row["factor_family"], row["coordinate_kind"],
+                    row["coordinate_ref"],
+                    row["document_ref"],
+                    row["scope_ref"],
+                    _json(row["source_span_refs"]),
+                    row["statement_role"],
+                    row["factor_family"],
+                    row["coordinate_kind"],
                     _json(row["source_coordinate_refs"]),
                     _json(row["target_coordinate_refs"]),
                 )
                 for row in coordinate_payloads
             ],
         )
-    element_payloads = [row.to_dict() for row in sorted(elements, key=lambda item: item.element_ref)]
+    element_payloads = [
+        row.to_dict() for row in sorted(elements, key=lambda item: item.element_ref)
+    ]
     if element_payloads:
         cursor.executemany(
             """
@@ -187,14 +193,26 @@ def persist_semantic_fibre_artifacts_batched(
             """,
             [
                 (
-                    row["element_ref"], row["document_ref"], row["coordinate_ref"],
-                    row["fibre_kind"], row["content_ref"], row["derivation_role"],
-                    row["producer_contract"], row["operation_contract"],
-                    _json(row["source_refs"]), _json(row["dependency_refs"]),
-                    _json(row["transport_refs"]), _json(row["ontology_axis_refs"]),
-                    _json(row["assumptions"]), _json(row["coverage_requirements"]),
-                    row["support_state"], row["confidence"], _json(row["payload"]),
-                    row["external"], _json(row["execution_metadata"]), row["authority"],
+                    row["element_ref"],
+                    row["document_ref"],
+                    row["coordinate_ref"],
+                    row["fibre_kind"],
+                    row["content_ref"],
+                    row["derivation_role"],
+                    row["producer_contract"],
+                    row["operation_contract"],
+                    _json(row["source_refs"]),
+                    _json(row["dependency_refs"]),
+                    _json(row["transport_refs"]),
+                    _json(row["ontology_axis_refs"]),
+                    _json(row["assumptions"]),
+                    _json(row["coverage_requirements"]),
+                    row["support_state"],
+                    row["confidence"],
+                    _json(row["payload"]),
+                    row["external"],
+                    _json(row["execution_metadata"]),
+                    row["authority"],
                 )
                 for row in element_payloads
             ],
@@ -214,11 +232,18 @@ def persist_semantic_fibre_artifacts_batched(
             """,
             [
                 (
-                    row["derivation_ref"], row["document_ref"], row["operation_kind"],
-                    row["declaration_ref"], row["producer_contract"],
-                    _json(row["input_element_refs"]), _json(row["output_element_refs"]),
-                    row["sub_executor_ref"], row["rule_set_revision"], row["receipt_ref"],
-                    _json(row["assumptions"]), _json(row["metrics"]),
+                    row["derivation_ref"],
+                    row["document_ref"],
+                    row["operation_kind"],
+                    row["declaration_ref"],
+                    row["producer_contract"],
+                    _json(row["input_element_refs"]),
+                    _json(row["output_element_refs"]),
+                    row["sub_executor_ref"],
+                    row["rule_set_revision"],
+                    row["receipt_ref"],
+                    _json(row["assumptions"]),
+                    _json(row["metrics"]),
                 )
                 for row in derivation_payloads
             ],
@@ -237,11 +262,16 @@ def persist_semantic_fibre_artifacts_batched(
             """,
             [
                 (
-                    payload["transport_ref"], payload["document_ref"],
-                    payload["source_coordinate_ref"], payload["target_coordinate_ref"],
-                    payload["transport_type"], payload["strength"],
-                    _json(payload["evidence_refs"]), _json(payload["ontology_axis_refs"]),
-                    _json(payload["allowed_operations"]), _json(payload["residual_refs"]),
+                    payload["transport_ref"],
+                    payload["document_ref"],
+                    payload["source_coordinate_ref"],
+                    payload["target_coordinate_ref"],
+                    payload["transport_type"],
+                    payload["strength"],
+                    _json(payload["evidence_refs"]),
+                    _json(payload["ontology_axis_refs"]),
+                    _json(payload["allowed_operations"]),
+                    _json(payload["residual_refs"]),
                 )
                 for payload in (row.to_dict() for row in transport_rows)
             ],
@@ -255,8 +285,14 @@ def persist_semantic_fibre_artifacts_batched(
             ON CONFLICT (axis_ref) DO NOTHING
             """,
             [
-                (row.axis_ref, row.label, row.authority_ref, _json(row.relation_refs),
-                 _json(row.root_refs), row.open_world)
+                (
+                    row.axis_ref,
+                    row.label,
+                    row.authority_ref,
+                    _json(row.relation_refs),
+                    _json(row.root_refs),
+                    row.open_world,
+                )
                 for row in axis_rows
             ],
         )
@@ -272,10 +308,14 @@ def persist_semantic_fibre_artifacts_batched(
             """,
             [
                 (
-                    payload["obligation_ref"], payload["document_ref"],
-                    payload["coordinate_ref"], payload["axis_ref"],
-                    payload["obligation_type"], _json(payload["trigger_refs"]),
-                    _json(payload["frontier_refs"]), payload["state"],
+                    payload["obligation_ref"],
+                    payload["document_ref"],
+                    payload["coordinate_ref"],
+                    payload["axis_ref"],
+                    payload["obligation_type"],
+                    _json(payload["trigger_refs"]),
+                    _json(payload["frontier_refs"]),
+                    payload["state"],
                     payload["resource_limit_reached"],
                 )
                 for payload in (row.to_dict() for row in obligation_rows)
@@ -293,11 +333,16 @@ def persist_semantic_fibre_artifacts_batched(
             """,
             [
                 (
-                    payload["boundary_ref"], payload["document_ref"],
-                    payload["coordinate_ref"], payload["scope_ref"],
-                    payload["boundary_kind"], _json(payload["evidence_refs"]),
-                    _json(payload["frontier_refs"]), _json(payload["required_axis_refs"]),
-                    payload["state"], payload["message"],
+                    payload["boundary_ref"],
+                    payload["document_ref"],
+                    payload["coordinate_ref"],
+                    payload["scope_ref"],
+                    payload["boundary_kind"],
+                    _json(payload["evidence_refs"]),
+                    _json(payload["frontier_refs"]),
+                    _json(payload["required_axis_refs"]),
+                    payload["state"],
+                    payload["message"],
                 )
                 for payload in (row.to_dict() for row in boundary_rows)
             ],
@@ -306,9 +351,13 @@ def persist_semantic_fibre_artifacts_batched(
     graph_ref = str(materialized_reduction.get("graph_ref") or "")
     summary_rows = [
         (
-            factor["factor_ref"], graph_ref, document_ref,
-            factor.get("semantic_coordinate_ref"), factor.get("fibre_kind") or "hypothesis",
-            factor["factor_type_ref"], factor.get("structural_signature") or "",
+            factor["factor_ref"],
+            graph_ref,
+            document_ref,
+            factor.get("semantic_coordinate_ref"),
+            factor.get("fibre_kind") or "hypothesis",
+            factor["factor_type_ref"],
+            factor.get("structural_signature") or "",
             _json(factor.get("proposal_refs") or ()),
             _json(factor.get("derivation_roles") or ()),
             _json(factor.get("ontology_axis_refs") or ()),
@@ -340,8 +389,12 @@ def persist_semantic_fibre_artifacts_batched(
         transports=tuple(sorted(transport_rows, key=lambda row: row.transport_ref)),
         derivations=derivations,
         ontology_axes=tuple(sorted(axis_rows, key=lambda row: row.axis_ref)),
-        axis_obligations=tuple(sorted(obligation_rows, key=lambda row: row.obligation_ref)),
-        boundary_obligations=tuple(sorted(boundary_rows, key=lambda row: row.boundary_ref)),
+        axis_obligations=tuple(
+            sorted(obligation_rows, key=lambda row: row.obligation_ref)
+        ),
+        boundary_obligations=tuple(
+            sorted(boundary_rows, key=lambda row: row.boundary_ref)
+        ),
     )
     producer_receipt = IntegratedProducerReceipt(
         document_ref=document_ref,
@@ -383,9 +436,13 @@ def persist_semantic_fibre_artifacts_batched(
         ON CONFLICT (receipt_ref) DO NOTHING
         """,
         (
-            payload["receipt_ref"], payload["document_ref"], payload["contract_ref"],
-            _json(payload["proposal_refs"]), _json(payload["sub_executor_receipt_refs"]),
-            payload["fibre_ledger_ref"], _json(payload["residual_refs"]),
+            payload["receipt_ref"],
+            payload["document_ref"],
+            payload["contract_ref"],
+            _json(payload["proposal_refs"]),
+            _json(payload["sub_executor_receipt_refs"]),
+            payload["fibre_ledger_ref"],
+            _json(payload["residual_refs"]),
             _json(payload["external_proposal_refs"]),
         ),
     )

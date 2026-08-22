@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 
 LEGAL_EDGE_ADMISSIBILITY_VERSION = "sl.legal_edge_admissibility.v1"
@@ -53,9 +52,7 @@ def _mapping(value: Any) -> dict[str, Any]:
             return dict(candidate)
     if hasattr(value, "__dict__"):
         public = {
-            key: item
-            for key, item in vars(value).items()
-            if not key.startswith("_")
+            key: item for key, item in vars(value).items() if not key.startswith("_")
         }
         if public:
             return public
@@ -76,7 +73,14 @@ def _text_list(value: Any) -> list[str]:
 def _ref_list(value: Any) -> list[str]:
     if isinstance(value, Mapping):
         refs: list[str] = []
-        for key in ("support_phi_ids", "content_refs", "span_refs", "refs", "id", "value"):
+        for key in (
+            "support_phi_ids",
+            "content_refs",
+            "span_refs",
+            "refs",
+            "id",
+            "value",
+        ):
             refs.extend(_text_list(value.get(key)))
             scalar = _text(value.get(key))
             if scalar:
@@ -131,17 +135,35 @@ def _endpoint_payload(value: Any) -> dict[str, Any]:
         or admissibility.get("wrapper")
     )
     return {
-        "decision": _text(admissibility.get("decision") or admissibility.get("status") or admissibility.get("result")).casefold(),
+        "decision": _text(
+            admissibility.get("decision")
+            or admissibility.get("status")
+            or admissibility.get("result")
+        ).casefold(),
         "status_states": _status_states(node.get("status"))
         | _status_states(admissibility.get("status"))
         | _status_states(admissibility.get("result")),
-        "wrapper_kind": _text(wrapper.get("kind") or wrapper.get("wrapper_kind") or wrapper.get("authority_kind")),
-        "wrapper_status": _text(wrapper.get("status") or wrapper.get("decision") or wrapper.get("validity")).casefold(),
+        "wrapper_kind": _text(
+            wrapper.get("kind")
+            or wrapper.get("wrapper_kind")
+            or wrapper.get("authority_kind")
+        ),
+        "wrapper_status": _text(
+            wrapper.get("status") or wrapper.get("decision") or wrapper.get("validity")
+        ).casefold(),
         "section": _text(node.get("section") or admissibility.get("section")),
         "genre": _text(node.get("genre") or admissibility.get("genre")),
-        "content_refs": set(_ref_list(node.get("content_refs") or admissibility.get("content_refs"))),
-        "support_phi_ids": set(_text_list(node.get("support_phi_ids") or admissibility.get("support_phi_ids"))),
-        "span_refs": set(_ref_list(node.get("span_refs") or admissibility.get("span_refs"))),
+        "content_refs": set(
+            _ref_list(node.get("content_refs") or admissibility.get("content_refs"))
+        ),
+        "support_phi_ids": set(
+            _text_list(
+                node.get("support_phi_ids") or admissibility.get("support_phi_ids")
+            )
+        ),
+        "span_refs": set(
+            _ref_list(node.get("span_refs") or admissibility.get("span_refs"))
+        ),
         "record": record,
     }
 
@@ -165,18 +187,28 @@ def _shared_linkage_refs(value: Any) -> set[str]:
 
 
 def _status_conflict(left_states: set[str], right_states: set[str]) -> bool:
-    return bool(left_states & _DENIAL_STATES and right_states & _ASSERTIVE_STATES) or bool(
-        right_states & _DENIAL_STATES and left_states & _ASSERTIVE_STATES
+    return bool(
+        left_states & _DENIAL_STATES and right_states & _ASSERTIVE_STATES
+    ) or bool(right_states & _DENIAL_STATES and left_states & _ASSERTIVE_STATES)
+
+
+def _section_genre_compatibility(
+    record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]
+) -> tuple[str, list[str]]:
+    witness = _mapping(record.get("section_genre_compatibility"))
+    edge_section = _text(
+        record.get("section")
+        or witness.get("section")
+        or witness.get("allowed_section")
+    )
+    edge_genre = _text(
+        record.get("genre") or witness.get("genre") or witness.get("allowed_genre")
     )
 
-
-def _section_genre_compatibility(record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]) -> tuple[str, list[str]]:
-    witness = _mapping(record.get("section_genre_compatibility"))
-    edge_section = _text(record.get("section") or witness.get("section") or witness.get("allowed_section"))
-    edge_genre = _text(record.get("genre") or witness.get("genre") or witness.get("allowed_genre"))
-
     if witness:
-        witness_status = _text(witness.get("status") or witness.get("decision") or witness.get("result")).casefold()
+        witness_status = _text(
+            witness.get("status") or witness.get("decision") or witness.get("result")
+        ).casefold()
         if witness_status == "incompatible":
             return "abstain", ["section_genre_incompatible"]
         if witness_status and witness_status not in _VALID_SECTION_GENRE_STATUSES:
@@ -193,17 +225,27 @@ def _section_genre_compatibility(record: Mapping[str, Any], source: Mapping[str,
             return "promote", []
         return "audit", ["missing_section_genre_witness"]
 
-    if not source["section"] or not target["section"] or not source["genre"] or not target["genre"]:
+    if (
+        not source["section"]
+        or not target["section"]
+        or not source["genre"]
+        or not target["genre"]
+    ):
         return "audit", ["missing_section_genre_witness"]
     if source["section"] != target["section"] or source["genre"] != target["genre"]:
         return "abstain", ["section_genre_incompatible"]
     return "promote", []
 
 
-def _wrapper_compatibility(record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]) -> tuple[str, list[str]]:
+def _wrapper_compatibility(
+    record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]
+) -> tuple[str, list[str]]:
     if not source["wrapper_kind"] or not target["wrapper_kind"]:
         return "audit", ["missing_wrapper_witness"]
-    if source["wrapper_status"] not in _VALID_WRAPPER_STATUSES or target["wrapper_status"] not in _VALID_WRAPPER_STATUSES:
+    if (
+        source["wrapper_status"] not in _VALID_WRAPPER_STATUSES
+        or target["wrapper_status"] not in _VALID_WRAPPER_STATUSES
+    ):
         return "abstain", ["wrapper_status_incompatible"]
     if source["wrapper_kind"] == target["wrapper_kind"]:
         if record.get("relation_kind") in _RELATIONS_REQUIRING_WRAPPER_KIND_MATCH:
@@ -214,7 +256,9 @@ def _wrapper_compatibility(record: Mapping[str, Any], source: Mapping[str, Any],
     return "promote", []
 
 
-def _shared_support_linkage(record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]) -> tuple[str, list[str]]:
+def _shared_support_linkage(
+    record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]
+) -> tuple[str, list[str]]:
     relation_kind = _text(record.get("relation_kind") or record.get("kind")).casefold()
     linkage_refs = _shared_linkage_refs(
         record.get("shared_support_linkage")
@@ -226,13 +270,22 @@ def _shared_support_linkage(record: Mapping[str, Any], source: Mapping[str, Any]
     if not linkage_refs:
         return "audit", ["missing_shared_support_linkage"]
 
-    endpoint_refs = source["content_refs"] | source["support_phi_ids"] | source["span_refs"] | target["content_refs"] | target["support_phi_ids"] | target["span_refs"]
+    endpoint_refs = (
+        source["content_refs"]
+        | source["support_phi_ids"]
+        | source["span_refs"]
+        | target["content_refs"]
+        | target["support_phi_ids"]
+        | target["span_refs"]
+    )
     if linkage_refs & endpoint_refs:
         return "promote", []
     return "abstain", ["shared_support_linkage_incompatible"]
 
 
-def _relation_compatibility(record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]) -> tuple[str, list[str]]:
+def _relation_compatibility(
+    record: Mapping[str, Any], source: Mapping[str, Any], target: Mapping[str, Any]
+) -> tuple[str, list[str]]:
     relation_kind = _text(record.get("relation_kind") or record.get("kind")).casefold()
     if not relation_kind:
         return "abstain", ["missing_relation_kind"]
@@ -264,12 +317,22 @@ def _relation_compatibility(record: Mapping[str, Any], source: Mapping[str, Any]
 
 def evaluate_legal_edge_admissibility(edge: Any) -> dict[str, Any]:
     record = _record_from_payload(edge)
-    source = _endpoint_payload(record.get("source_node_admissibility") or record.get("source_node") or record.get("source"))
-    target = _endpoint_payload(record.get("target_node_admissibility") or record.get("target_node") or record.get("target"))
+    source = _endpoint_payload(
+        record.get("source_node_admissibility")
+        or record.get("source_node")
+        or record.get("source")
+    )
+    target = _endpoint_payload(
+        record.get("target_node_admissibility")
+        or record.get("target_node")
+        or record.get("target")
+    )
 
     relation_status, relation_reasons = _relation_compatibility(record, source, target)
     wrapper_status, wrapper_reasons = _wrapper_compatibility(record, source, target)
-    section_status, section_reasons = _section_genre_compatibility(record, source, target)
+    section_status, section_reasons = _section_genre_compatibility(
+        record, source, target
+    )
     linkage_status, linkage_reasons = _shared_support_linkage(record, source, target)
 
     hard_reasons: list[str] = []
@@ -326,15 +389,21 @@ def evaluate_legal_edge_admissibility(edge: Any) -> dict[str, Any]:
         "reasons": hard_reasons or audit_reasons,
         "checks": checks,
         "edge": {
-            "relation_kind": _text(record.get("relation_kind") or record.get("kind")).casefold(),
+            "relation_kind": _text(
+                record.get("relation_kind") or record.get("kind")
+            ).casefold(),
             "source_node_admissibility": source,
             "target_node_admissibility": target,
-            "shared_support_linkage": sorted(_shared_linkage_refs(
-                record.get("shared_support_linkage")
-                or record.get("support_linkage")
-                or record.get("shared_linkage")
-            )),
-            "section_genre_compatibility": _mapping(record.get("section_genre_compatibility")),
+            "shared_support_linkage": sorted(
+                _shared_linkage_refs(
+                    record.get("shared_support_linkage")
+                    or record.get("support_linkage")
+                    or record.get("shared_linkage")
+                )
+            ),
+            "section_genre_compatibility": _mapping(
+                record.get("section_genre_compatibility")
+            ),
         },
     }
 

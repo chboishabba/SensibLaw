@@ -62,7 +62,9 @@ def normalize_control_profile(profile: Mapping[str, Any] | str) -> dict[str, Any
         base = get_control_profile(profile_id)
         if isinstance(profile.get("control_groups"), list):
             base["control_groups"] = [
-                dict(group) for group in profile["control_groups"] if isinstance(group, Mapping)
+                dict(group)
+                for group in profile["control_groups"]
+                if isinstance(group, Mapping)
             ]
         return base
     raise KeyError("control profile requires profile_id")

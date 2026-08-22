@@ -89,7 +89,10 @@ def build_subject_family_index(
         closure_signature = _closure_signature(closure_qids)
         cache_key = f"{subject_qid}:{closure_signature}"
         cached_entry = cache_lookup.get(cache_key)
-        cache_hit = isinstance(cached_entry, Mapping) and _stringify(cached_entry.get("closure_signature")) == closure_signature
+        cache_hit = (
+            isinstance(cached_entry, Mapping)
+            and _stringify(cached_entry.get("closure_signature")) == closure_signature
+        )
 
         row = {
             "subject_qid": subject_qid,

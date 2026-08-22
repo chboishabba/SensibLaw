@@ -66,4 +66,3 @@ def test_classifier_marks_eventive_from_object_signal() -> None:
     cls = EpistemicClassifier(None).classify_from_doc(doc, 0)
     assert cls.predicate_type == PredicateType.EVENTIVE
     assert cls.features["has_concrete_object"] is True
-

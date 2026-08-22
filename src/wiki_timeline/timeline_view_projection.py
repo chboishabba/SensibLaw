@@ -7,10 +7,17 @@ def _coerce_snapshot(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
     snapshot = snapshot if isinstance(snapshot, Mapping) else {}
     revid = snapshot.get("revid")
     return {
-        "title": snapshot.get("title") if isinstance(snapshot.get("title"), str) else None,
+        "title": snapshot.get("title")
+        if isinstance(snapshot.get("title"), str)
+        else None,
         "wiki": snapshot.get("wiki") if isinstance(snapshot.get("wiki"), str) else None,
-        "revid": int(revid) if isinstance(revid, (int, float)) or (isinstance(revid, str) and revid.strip().isdigit()) else None,
-        "source_url": snapshot.get("source_url") if isinstance(snapshot.get("source_url"), str) else None,
+        "revid": int(revid)
+        if isinstance(revid, (int, float))
+        or (isinstance(revid, str) and revid.strip().isdigit())
+        else None,
+        "source_url": snapshot.get("source_url")
+        if isinstance(snapshot.get("source_url"), str)
+        else None,
     }
 
 
@@ -64,7 +71,9 @@ def _event_sort_key(event: Mapping[str, Any]) -> tuple[int, int, int, str]:
 
 
 def build_timeline_view_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
-    snapshot = _coerce_snapshot(payload.get("snapshot") if isinstance(payload, Mapping) else {})
+    snapshot = _coerce_snapshot(
+        payload.get("snapshot") if isinstance(payload, Mapping) else {}
+    )
     events_raw = payload.get("events") if isinstance(payload, Mapping) else []
     out_events: list[dict[str, Any]] = []
     if isinstance(events_raw, list):
@@ -77,11 +86,19 @@ def build_timeline_view_projection(payload: Mapping[str, Any]) -> dict[str, Any]
                 continue
             section = str(event.get("section") or "").strip() or "(unknown)"
             links_raw = event.get("links")
-            links = [str(item) for item in links_raw if str(item)] if isinstance(links_raw, list) else []
+            links = (
+                [str(item) for item in links_raw if str(item)]
+                if isinstance(links_raw, list)
+                else []
+            )
             out_events.append(
                 {
                     "event_id": event_id,
-                    "anchor": _coerce_anchor(event.get("anchor") if isinstance(event.get("anchor"), Mapping) else {}),
+                    "anchor": _coerce_anchor(
+                        event.get("anchor")
+                        if isinstance(event.get("anchor"), Mapping)
+                        else {}
+                    ),
                     "section": section,
                     "text": text,
                     "links": links,

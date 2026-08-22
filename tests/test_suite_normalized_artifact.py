@@ -34,10 +34,14 @@ def _promotion_gate() -> dict[str, str]:
     }
 
 
-def test_build_gwb_public_review_normalized_artifact_preserves_explicit_text_ref() -> None:
+def test_build_gwb_public_review_normalized_artifact_preserves_explicit_text_ref() -> (
+    None
+):
     artifact = build_gwb_public_review_normalized_artifact(
         artifact_id="fixture",
-        compiler_contract=_compiler_contract(lane="gwb", source_family="gwb_public_review"),
+        compiler_contract=_compiler_contract(
+            lane="gwb", source_family="gwb_public_review"
+        ),
         promotion_gate=_promotion_gate(),
         source_input={
             "path": "tests/fixtures/example.json",
@@ -60,7 +64,9 @@ def test_build_gwb_public_review_normalized_artifact_preserves_explicit_text_ref
 def test_build_gwb_broader_review_normalized_artifact_keeps_segment_ids() -> None:
     artifact = build_gwb_broader_review_normalized_artifact(
         artifact_id="fixture",
-        compiler_contract=_compiler_contract(lane="gwb", source_family="gwb_broader_review"),
+        compiler_contract=_compiler_contract(
+            lane="gwb", source_family="gwb_broader_review"
+        ),
         promotion_gate=_promotion_gate(),
         source_input={
             "path": "tests/fixtures/example.json",
@@ -80,11 +86,15 @@ def test_build_gwb_broader_review_normalized_artifact_keeps_segment_ids() -> Non
     }
 
 
-def test_build_au_fact_review_bundle_normalized_artifact_uses_first_document_text_ref() -> None:
+def test_build_au_fact_review_bundle_normalized_artifact_uses_first_document_text_ref() -> (
+    None
+):
     artifact = build_au_fact_review_bundle_normalized_artifact(
         semantic_run_id="semantic:run:1",
         workflow_kind="au_semantic",
-        compiler_contract=_compiler_contract(lane="au", source_family="au_fact_review_bundle"),
+        compiler_contract=_compiler_contract(
+            lane="au", source_family="au_fact_review_bundle"
+        ),
         promotion_gate=_promotion_gate(),
         source_documents=[
             {
@@ -105,7 +115,9 @@ def test_build_au_fact_review_bundle_normalized_artifact_uses_first_document_tex
     }
 
 
-def test_build_affidavit_coverage_review_normalized_artifact_omits_text_ref_when_absent() -> None:
+def test_build_affidavit_coverage_review_normalized_artifact_omits_text_ref_when_absent() -> (
+    None
+):
     artifact = build_affidavit_coverage_review_normalized_artifact(
         artifact_id="fixture",
         compiler_contract=_compiler_contract(
@@ -120,7 +132,9 @@ def test_build_affidavit_coverage_review_normalized_artifact_omits_text_ref_when
     assert "text_ref" not in artifact
 
 
-def test_build_gwb_public_review_normalized_artifact_uses_normalized_compiler_contract() -> None:
+def test_build_gwb_public_review_normalized_artifact_uses_normalized_compiler_contract() -> (
+    None
+):
     artifact = build_gwb_public_review_normalized_artifact(
         artifact_id="fixture",
         compiler_contract={

@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 
 from scripts.build_gwb_broader_review import build_gwb_broader_review
-from SensibLaw.tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
+from SensibLaw.tests.test_au_fact_review_bundle import (
+    _prepare_au_fact_review_bundle_fixture,
+)
 from SensibLaw.src.ontology.wikidata_nat_cohort_b_operator_packet import (
     build_nat_cohort_b_operator_packet_world_model_report,
 )
@@ -21,7 +23,9 @@ from SensibLaw.src.sources.national_archives.brexit_national_archives_lane impor
     build_report,
     fetch_records,
 )
-from src.ontology.wikidata_nat_automation_graduation import build_nat_claim_convergence_report
+from src.ontology.wikidata_nat_automation_graduation import (
+    build_nat_claim_convergence_report,
+)
 
 
 def _load_nat_verification_runs_fixture() -> dict:
@@ -56,7 +60,9 @@ def test_build_lane_governance_snapshot_maps_promoted_nat_report() -> None:
     assert "legal_follow_pressure" not in snapshot
 
 
-def test_build_lane_governance_snapshot_carries_legal_follow_pressure_when_present() -> None:
+def test_build_lane_governance_snapshot_carries_legal_follow_pressure_when_present() -> (
+    None
+):
     snapshot = build_lane_governance_snapshot(
         {
             "lane_id": "au_fact_review_bundle",
@@ -83,7 +89,9 @@ def test_build_lane_governance_snapshot_carries_legal_follow_pressure_when_prese
     assert snapshot["legal_follow_pressure"]["value"] == "high"
 
 
-def test_build_lane_governance_snapshot_prefers_shared_promotion_gate_when_present() -> None:
+def test_build_lane_governance_snapshot_prefers_shared_promotion_gate_when_present() -> (
+    None
+):
     snapshot = build_lane_governance_snapshot(
         {
             "lane_id": "gwb_broader_review",
@@ -111,7 +119,9 @@ def test_build_lane_governance_snapshot_prefers_shared_promotion_gate_when_prese
     assert snapshot["promotion_gate_decision"] == "audit"
 
 
-def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tmp_path: Path) -> None:
+def test_build_world_model_lane_summary_aggregates_rebound_lanes(
+    monkeypatch, tmp_path: Path
+) -> None:
     def fake_get(_url: str, **_kwargs):
         raise RuntimeError("dialing blocked")
 
@@ -124,11 +134,15 @@ def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tm
         fake_get,
     )
 
-    nat_report = build_nat_claim_convergence_report(_load_nat_verification_runs_fixture())
+    nat_report = build_nat_claim_convergence_report(
+        _load_nat_verification_runs_fixture()
+    )
     bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path)
     au_report = build_au_world_model_report(bundle)
     gwb_result = build_gwb_broader_review(tmp_path / "gwb")
-    gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
+    gwb_payload = json.loads(
+        Path(gwb_result["artifact_path"]).read_text(encoding="utf-8")
+    )
     gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
     brexit_report = build_report(fetch_records(limit=1))
     reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(
@@ -149,6 +163,9 @@ def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tm
     assert summary["summary"]["total_can_recommend_count"] == 0
     assert summary["summary"]["open_follow_conjectures"] > 10
     assert summary["summary"]["lanes_with_legal_follow_pressure"] >= 0
-    assert "business_family_reconciled_low_qualifier_checked_safe_subset" in summary["governance_gate"]["ready_lanes"]
+    assert (
+        "business_family_reconciled_low_qualifier_checked_safe_subset"
+        in summary["governance_gate"]["ready_lanes"]
+    )
     assert isinstance(summary["governance_gate"]["legal_follow_pressure_lanes"], list)
     assert summary["governance_gate"]["decision"] == "hold"

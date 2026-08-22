@@ -9,24 +9,24 @@ def test_binding_migrations_repair_active_document_authority_and_add_reuse() -> 
     migration_008 = (MIGRATIONS / "008_binding_candidate_sets.sql").read_text(
         encoding="utf-8"
     )
-    migration_010 = (
-        MIGRATIONS / "010_binding_active_document_fks.sql"
-    ).read_text(encoding="utf-8")
-    migration_011 = (
-        MIGRATIONS / "011_operational_document_build_reuse.sql"
-    ).read_text(encoding="utf-8")
-    migration_012 = (
-        MIGRATIONS / "012_binding_demand_links.sql"
-    ).read_text(encoding="utf-8")
-    migration_013 = (
-        MIGRATIONS / "013_canonical_text_coordinate_build.sql"
-    ).read_text(encoding="utf-8")
-    migration_014 = (
-        MIGRATIONS / "014_external_pnf_enrichment.sql"
-    ).read_text(encoding="utf-8")
-    migration_015 = (
-        MIGRATIONS / "015_legal_ir_federation.sql"
-    ).read_text(encoding="utf-8")
+    migration_010 = (MIGRATIONS / "010_binding_active_document_fks.sql").read_text(
+        encoding="utf-8"
+    )
+    migration_011 = (MIGRATIONS / "011_operational_document_build_reuse.sql").read_text(
+        encoding="utf-8"
+    )
+    migration_012 = (MIGRATIONS / "012_binding_demand_links.sql").read_text(
+        encoding="utf-8"
+    )
+    migration_013 = (MIGRATIONS / "013_canonical_text_coordinate_build.sql").read_text(
+        encoding="utf-8"
+    )
+    migration_014 = (MIGRATIONS / "014_external_pnf_enrichment.sql").read_text(
+        encoding="utf-8"
+    )
+    migration_015 = (MIGRATIONS / "015_legal_ir_federation.sql").read_text(
+        encoding="utf-8"
+    )
 
     assert "REFERENCES compiler_document(document_ref)" in migration_008
     assert "DROP CONSTRAINT IF EXISTS factor_anchor_document_ref_fkey" in (

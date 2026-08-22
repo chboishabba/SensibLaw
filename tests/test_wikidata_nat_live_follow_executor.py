@@ -35,8 +35,14 @@ def test_execute_nat_live_follow_campaign_fetches_revision_locked_rows() -> None
                     "pages": {
                         "1": {
                             "revisions": [
-                                {"revid": 2474420124, "timestamp": "2026-04-01T12:00:00Z"},
-                                {"revid": 2474419999, "timestamp": "2026-03-31T12:00:00Z"},
+                                {
+                                    "revid": 2474420124,
+                                    "timestamp": "2026-04-01T12:00:00Z",
+                                },
+                                {
+                                    "revid": 2474419999,
+                                    "timestamp": "2026-03-31T12:00:00Z",
+                                },
                             ]
                         }
                     }
@@ -77,7 +83,9 @@ def test_policy_risk_population_preview_preflight_ranks_candidates() -> None:
     assert report["schema_version"] == POLICY_RISK_PREFLIGHT_SCHEMA_VERSION
     assert report["top_n"] == 2
     assert report["candidate_count"] == 2
-    assert report["stop_conditions"] == ["policy-risk hold is better justified or narrowed"]
+    assert report["stop_conditions"] == [
+        "policy-risk hold is better justified or narrowed"
+    ]
     assert report["coverage_counts"]["hold"] == 2
     qids = {candidate["qid"] for candidate in report["candidates"]}
     assert qids == {"Q1000001", "Q1000002"}
@@ -93,7 +101,10 @@ def test_policy_risk_population_preview_preflight_reports_missing_evidence() -> 
             "category_id": "policy_risk_population_preview",
             "uncertainty_kind": "policy_hold_vs_narrower_review_path",
             "targets": [{"qid": "Q999999", "statement_id": "Q999999-1"}],
-            "preferred_source_order": ["named_reference_url", "named_revision_locked_source"],
+            "preferred_source_order": [
+                "named_reference_url",
+                "named_revision_locked_source",
+            ],
             "max_hops": 2,
             "stop_condition": "policy-risk hold still applies",
         }
@@ -104,7 +115,9 @@ def test_policy_risk_population_preview_preflight_reports_missing_evidence() -> 
     assert "missing_policy_risk_evidence" in report["failure_modes"]
 
 
-def test_execute_nat_live_follow_campaign_falls_through_query_link_fetch_error() -> None:
+def test_execute_nat_live_follow_campaign_falls_through_query_link_fetch_error() -> (
+    None
+):
     campaign = _load_campaign_fixture()
 
     def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
@@ -150,7 +163,9 @@ def test_execute_nat_live_follow_campaign_falls_through_query_link_fetch_error()
     assert row["attempts"][0]["source_class"] == "named_query_link"
 
 
-def test_execute_nat_live_follow_campaign_fetches_named_query_link_when_available() -> None:
+def test_execute_nat_live_follow_campaign_fetches_named_query_link_when_available() -> (
+    None
+):
     campaign = _load_campaign_fixture()
 
     def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
@@ -177,11 +192,16 @@ def test_execute_nat_live_follow_campaign_fetches_named_query_link_when_availabl
     assert row["chosen_source_class"] == "named_query_link"
     assert row["attempts"][0]["status"] == "fetched"
     assert row["evidence"]["query_link"]["original_url"] == "https://w.wiki/KR5d"
-    assert row["evidence"]["query_link"]["final_url"] == "https://query.wikidata.org/#bounded"
+    assert (
+        row["evidence"]["query_link"]["final_url"]
+        == "https://query.wikidata.org/#bounded"
+    )
     assert row["evidence"]["query_link"]["title"] == "Bounded query result"
 
 
-def test_execute_nat_live_follow_campaign_falls_back_when_query_link_fetch_fails() -> None:
+def test_execute_nat_live_follow_campaign_falls_back_when_query_link_fetch_fails() -> (
+    None
+):
     campaign = _load_campaign_fixture()
 
     def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
@@ -226,7 +246,9 @@ def test_execute_nat_live_follow_campaign_falls_back_when_query_link_fetch_fails
     assert "query-link fetch failed" in row["attempts"][0]["reason"]
 
 
-def test_execute_nat_live_follow_campaign_fetches_named_reference_url_when_available() -> None:
+def test_execute_nat_live_follow_campaign_fetches_named_reference_url_when_available() -> (
+    None
+):
     campaign = _load_campaign_fixture()
 
     def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
@@ -252,10 +274,15 @@ def test_execute_nat_live_follow_campaign_fetches_named_reference_url_when_avail
     assert row["status"] == "fetched"
     assert row["chosen_source_class"] == "named_reference_url"
     assert row["attempts"][0]["status"] == "fetched"
-    assert row["evidence"]["reference_url"]["original_url"] == "https://www.wikidata.org/wiki/Q1000001"
+    assert (
+        row["evidence"]["reference_url"]["original_url"]
+        == "https://www.wikidata.org/wiki/Q1000001"
+    )
 
 
-def test_execute_nat_live_follow_campaign_fetches_reference_url_from_cohort_b_packet_input() -> None:
+def test_execute_nat_live_follow_campaign_fetches_reference_url_from_cohort_b_packet_input() -> (
+    None
+):
     campaign = _load_campaign_fixture()
 
     def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
@@ -281,10 +308,15 @@ def test_execute_nat_live_follow_campaign_fetches_reference_url_from_cohort_b_pa
     assert row["chosen_source_class"] == "named_reference_url"
     assert row["attempts"][0]["status"] == "fetched"
     assert row["attempts"][0]["source_class"] == "named_reference_url"
-    assert row["evidence"]["reference_url"]["original_url"] == "https://www.wikidata.org/wiki/Q11661"
+    assert (
+        row["evidence"]["reference_url"]["original_url"]
+        == "https://www.wikidata.org/wiki/Q11661"
+    )
 
 
-def test_execute_nat_live_follow_campaign_preserves_fetch_error_over_unsupported_fallbacks() -> None:
+def test_execute_nat_live_follow_campaign_preserves_fetch_error_over_unsupported_fallbacks() -> (
+    None
+):
     campaign = _load_campaign_fixture()
 
     def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
@@ -327,7 +359,10 @@ def test_execute_split_heavy_lane_filters_to_category_and_preserves_order() -> N
     )
 
     assert result["selected_count"] == 2
-    assert all(row["category_id"] == "split_heavy_business_family" for row in result["result_rows"])
+    assert all(
+        row["category_id"] == "split_heavy_business_family"
+        for row in result["result_rows"]
+    )
     for row in result["result_rows"]:
         attempts = row["attempts"]
         assert attempts

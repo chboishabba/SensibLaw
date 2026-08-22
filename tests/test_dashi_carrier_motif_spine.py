@@ -27,10 +27,14 @@ def _atom(*, wrapper_evidence_only: bool = True) -> PredicateAtom:
         structural_signature="carrier_motif:projection_pressure",
         roles={
             "source": TypedArg(value="local-doc:example", entity_type="source_surface"),
-            "phenomenon": TypedArg(value="contraction", entity_type="carrier_observation"),
+            "phenomenon": TypedArg(
+                value="contraction", entity_type="carrier_observation"
+            ),
         },
         qualifiers=QualifierState(polarity="positive"),
-        wrapper=WrapperState(status="carrier_motif_review", evidence_only=wrapper_evidence_only),
+        wrapper=WrapperState(
+            status="carrier_motif_review", evidence_only=wrapper_evidence_only
+        ),
         provenance=("../dashi_agda/FascisticContractionBridge.agda",),
         domain="carrier_motif_review",
     )
@@ -95,7 +99,9 @@ def test_coercion_rejects_authority_creep() -> None:
         )
 
 
-def test_attach_carrier_motif_modifier_preserves_atom_shape_and_forces_evidence_only() -> None:
+def test_attach_carrier_motif_modifier_preserves_atom_shape_and_forces_evidence_only() -> (
+    None
+):
     original = _atom(wrapper_evidence_only=False)
 
     annotated = attach_carrier_motif_modifier(
@@ -148,7 +154,9 @@ def test_carrier_motif_annotation_cannot_suppress_contradiction() -> None:
         structural_signature=query.structural_signature,
         roles={
             "source": TypedArg(value="local-doc:example", entity_type="source_surface"),
-            "phenomenon": TypedArg(value="expansion", entity_type="carrier_observation"),
+            "phenomenon": TypedArg(
+                value="expansion", entity_type="carrier_observation"
+            ),
         },
         qualifiers=query.qualifiers,
         wrapper=query.wrapper,

@@ -34,17 +34,24 @@ def test_build_au_transcript_structural_checkpoint(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = build_checkpoint(tmp_path / "out", transcript_paths=[hearing_txt, hearing_md])
+    result = build_checkpoint(
+        tmp_path / "out", transcript_paths=[hearing_txt, hearing_md]
+    )
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
     assert payload["summary"]["source_file_count"] == 2
     assert payload["summary"]["unit_count"] >= 3
     assert payload["summary"]["selected_excerpt_count"] >= 1
     assert payload["selected_excerpts"]
-    assert any("civil liability act" in " ".join(row["keyword_hits"]) for row in payload["selected_excerpts"])
+    assert any(
+        "civil liability act" in " ".join(row["keyword_hits"])
+        for row in payload["selected_excerpts"]
+    )
 
 
-def test_build_au_transcript_structural_checkpoint_reports_progress(tmp_path: Path) -> None:
+def test_build_au_transcript_structural_checkpoint_reports_progress(
+    tmp_path: Path,
+) -> None:
     hearing_txt = tmp_path / "01_Hearing.txt"
     hearing_txt.write_text(
         "\n".join(

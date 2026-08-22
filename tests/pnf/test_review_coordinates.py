@@ -7,7 +7,9 @@ from src.pnf.review_coordinates import (
 )
 
 
-def test_review_coordinates_link_proposal_factor_relation_and_build_without_promotion() -> None:
+def test_review_coordinates_link_proposal_factor_relation_and_build_without_promotion() -> (
+    None
+):
     coordinate = SemanticReviewCoordinate(
         target_kind="cross_document_relation",
         target_ref="cross-document-relation:amendment",

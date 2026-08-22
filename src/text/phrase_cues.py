@@ -4,6 +4,7 @@ Human-text matching is retained only as a literal boundary compatibility helper.
 Regex cue semantics are intentionally removed: finite semantic cue languages are
 compiled to :class:`NumericCueAutomaton` over SymbolIds.
 """
+
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, Sequence
@@ -49,7 +50,11 @@ def extract_text_cues(text: str, cues: Sequence[str] | Iterable[str]) -> dict[st
             matched.append(normalized_cue)
 
     unique = tuple(dict.fromkeys(matched))
-    return {"has_text_cue": bool(unique), "matched_cues": unique, "matched_count": len(unique)}
+    return {
+        "has_text_cue": bool(unique),
+        "matched_cues": unique,
+        "matched_count": len(unique),
+    }
 
 
 def compile_numeric_cues(

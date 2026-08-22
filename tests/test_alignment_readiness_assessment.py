@@ -188,12 +188,22 @@ def test_review_alignment_emission_requires_promote_verdict() -> None:
         right_profile=_build_au_profile(),
     )
 
-    assert review_alignment_emission_allowed(equivalence_assessment=prototype_only) is False
+    assert (
+        review_alignment_emission_allowed(equivalence_assessment=prototype_only)
+        is False
+    )
     assert review_alignment_emission_allowed(equivalence_assessment=hold) is False
-    assert review_alignment_emission_allowed(equivalence_assessment={**prototype_only, "verdict": "promote"}) is True
+    assert (
+        review_alignment_emission_allowed(
+            equivalence_assessment={**prototype_only, "verdict": "promote"}
+        )
+        is True
+    )
 
 
-def test_synthetic_gwb_multiplicity_drops_to_hold_until_target_semantics_are_instantiated(tmp_path: Path) -> None:
+def test_synthetic_gwb_multiplicity_drops_to_hold_until_target_semantics_are_instantiated(
+    tmp_path: Path,
+) -> None:
     synthetic_slice_path = tmp_path / "gwb_public_multiplicity.slice.json"
     synthetic_slice_path.write_text(
         json.dumps(

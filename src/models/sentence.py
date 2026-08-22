@@ -38,4 +38,3 @@ class Sentence:
 
 
 __all__ = ["Sentence"]
-

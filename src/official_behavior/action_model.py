@@ -45,7 +45,9 @@ class ActionObservation:
             institution_id=str(self.institution_id or "").strip(),
             institution_kind=str(self.institution_kind or "").strip(),
             action_date=str(self.action_date).strip() if self.action_date else None,
-            policy_area_id=str(self.policy_area_id).strip() if self.policy_area_id else None,
+            policy_area_id=str(self.policy_area_id).strip()
+            if self.policy_area_id
+            else None,
             action_type=str(self.action_type).strip() if self.action_type else None,
             subject_key=str(self.subject_key).strip() if self.subject_key else None,
             outcome_label=str(self.outcome_label or "").strip(),
@@ -55,4 +57,3 @@ class ActionObservation:
             party_id=str(self.party_id).strip() if self.party_id else None,
             context_keys=uniq_sorted(self.context_keys),
         )
-

@@ -8,9 +8,14 @@ from pathlib import Path
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
 
-def test_storage_report_new_persist_has_zero_residual_blob_bytes(tmp_path: Path) -> None:
+def test_storage_report_new_persist_has_zero_residual_blob_bytes(
+    tmp_path: Path,
+) -> None:
     timeline_path = tmp_path / "wiki_timeline_gwb.json"
-    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    timeline_path.write_text(
+        json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True),
+        encoding="utf-8",
+    )
     db_path = tmp_path / "itir.sqlite"
 
     payload = {
@@ -19,11 +24,31 @@ def test_storage_report_new_persist_has_zero_residual_blob_bytes(tmp_path: Path)
         "events": [
             {
                 "event_id": "ev:1",
-                "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "mention", "text": "September 11, 2001"},
+                "anchor": {
+                    "year": 2001,
+                    "month": 9,
+                    "day": 11,
+                    "precision": "day",
+                    "kind": "mention",
+                    "text": "September 11, 2001",
+                },
                 "section": "Narrative",
                 "text": "Civil Liability Act 2002 (NSW) s 5B(2)(a) was discussed.",
-                "actors": [{"label": "A", "resolved": "A", "role": "subject", "source": "fixture"}],
-                "objects": [{"title": "B", "source": "wikilink", "resolver_hints": [{"kind": "exact", "title": "B"}]}],
+                "actors": [
+                    {
+                        "label": "A",
+                        "resolved": "A",
+                        "role": "subject",
+                        "source": "fixture",
+                    }
+                ],
+                "objects": [
+                    {
+                        "title": "B",
+                        "source": "wikilink",
+                        "resolver_hints": [{"kind": "exact", "title": "B"}],
+                    }
+                ],
                 "steps": [
                     {
                         "action": "discuss",

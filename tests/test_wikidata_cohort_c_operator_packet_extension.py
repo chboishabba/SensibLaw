@@ -5,7 +5,12 @@ from pathlib import Path
 
 
 def test_operator_packet_extension_fixture_valid() -> None:
-    fixture_path = Path(__file__).resolve().parent / "fixtures" / "wikidata" / "wikidata_nat_cohort_c_operator_packet_extension_20260403.json"
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_c_operator_packet_extension_20260403.json"
+    )
     candidates = json.loads(fixture_path.read_text(encoding="utf-8"))
     assert isinstance(candidates, list)
     for candidate in candidates:

@@ -131,7 +131,9 @@ def main() -> int:
                 relative_path = path.relative_to(root).as_posix()
                 source_row = dict(metadata.get(relative_path) or {})
                 digest = hashlib.sha256(path.read_bytes()).hexdigest()
-                source_row.setdefault("source_revision_ref", f"source-revision:{digest}")
+                source_row.setdefault(
+                    "source_revision_ref", f"source-revision:{digest}"
+                )
                 receipt = admit_source(
                     source_row,
                     profile=OFFLINE_HCA_REGRESSION_PROFILE,
@@ -223,7 +225,9 @@ def main() -> int:
         _write_json(output / "ordinary_compilations.json", ordinary)
         _write_json(output / "legacy_differential.json", legacy_builds)
         _write_json(output / "legal_ir_flow.json", result.to_dict())
-        _write_json(output / "identity_snapshot.json", result.identity_snapshot.to_dict())
+        _write_json(
+            output / "identity_snapshot.json", result.identity_snapshot.to_dict()
+        )
         _write_json(output / "parity_receipt.json", result.parity_receipt.to_dict())
         _write_json(output / "network_absence_receipt.json", network_receipt)
         print(json.dumps(result.parity_receipt.to_dict(), indent=2, sort_keys=True))

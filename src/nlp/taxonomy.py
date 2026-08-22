@@ -133,4 +133,3 @@ _CONNECTOR_POLARITY: Dict[ConditionalConnector, ConditionalPolarity] = {
     ConditionalConnector.DESPITE: ConditionalPolarity.NEGATIVE,
     ConditionalConnector.WHILE: ConditionalPolarity.NEUTRAL,
 }
-

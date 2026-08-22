@@ -1,0 +1,30 @@
+{
+  "schema_version": "sensiblaw.numeric-reuse-fixture.v1",
+  "fixture_id": "numeric_reuse_v1",
+  "source_provenance": {
+    "cold": "First 12,000 Unicode code points of data/pdfs/Native Title (New South Wales) Act 1994 (NSW).json body, pinned as the historical strict-12k baseline.",
+    "domain": "data/corpus/native_title_act_core.json body; a separate Native Title Act 1993 (Cth) corpus record, not a slice of the cold source."
+  },
+  "edit_description": "In the section 2 commencement clause only, append ' published in the Gazette' after 'appointed by proclamation'. This deterministic source amendment asserts no legal interpretation or promotion outcome.",
+  "same_domain_size_caveat": "The same-domain source is substantially smaller than the 12k cold baseline. Compare work only per canonical token; this is empirical same-domain evidence, not a universal claim.",
+  "inputs": {
+    "cold": {
+      "path": "native_title_cold_12k.txt",
+      "sha256": "f3116ba8c18fe30d73a03ec6abb400249445c76557dda5efd1f6454f6da105c3",
+      "bytes": 12083,
+      "token_count": 2404
+    },
+    "edit": {
+      "path": "native_title_small_edit.txt",
+      "sha256": "38132fbad392a46bfc9c9492169357af7fe8ba757f1dc58d0868ab736b3e2041",
+      "bytes": 12108,
+      "token_count": 2408
+    },
+    "domain": {
+      "path": "native_title_same_domain_core.txt",
+      "sha256": "4cd1c708d5970698b75aa9db6e219a47ada4c74f930c2db895374d1f29005765",
+      "bytes": 475,
+      "token_count": 92
+    }
+  }
+}

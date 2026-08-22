@@ -46,7 +46,9 @@ def test_rank_sources_prefers_language_preference() -> None:
         SearchQuery(source_label="legislation", query_text="tax", language="fr"),
         SearchQuery(source_label="legislation", query_text="tax", language="en"),
     ]
-    ranked = rank_sources(queries, authority_order=["legislation"], language_preference=("en", "fr"))
+    ranked = rank_sources(
+        queries, authority_order=["legislation"], language_preference=("en", "fr")
+    )
     assert ranked[0].language == "en"
 
 
@@ -93,9 +95,15 @@ def test_authoritative_order_with_un_adds_placeholder() -> None:
 
 def test_inject_live_un_result_appends_unique_entry() -> None:
     initial = [
-        DummyResult(source_label="uk_legislation", query_text="act", metadata={"priority_score": 1})
+        DummyResult(
+            source_label="uk_legislation",
+            query_text="act",
+            metadata={"priority_score": 1},
+        )
     ]
-    live = DummyResult(source_label="undocs", query_text="resolution", metadata={"priority_score": 2})
+    live = DummyResult(
+        source_label="undocs", query_text="resolution", metadata={"priority_score": 2}
+    )
     combined = inject_live_un_result(initial, live_result=live)
     assert live in combined
     assert combined[0].source_label == "uk_legislation"
@@ -103,18 +111,30 @@ def test_inject_live_un_result_appends_unique_entry() -> None:
 
 def test_inject_worldbank_result_reuses_live_union() -> None:
     initial = [
-        DummyResult(source_label="uk_legislation", query_text="act", metadata={"priority_score": 1})
+        DummyResult(
+            source_label="uk_legislation",
+            query_text="act",
+            metadata={"priority_score": 1},
+        )
     ]
-    live = DummyResult(source_label="worldbank", query_text="report", metadata={"priority_score": 2})
+    live = DummyResult(
+        source_label="worldbank", query_text="report", metadata={"priority_score": 2}
+    )
     combined = inject_worldbank_result(initial, live_result=live)
     assert live in combined
 
 
 def test_inject_icc_case_result_reuses_live_union() -> None:
     initial = [
-        DummyResult(source_label="uk_legislation", query_text="act", metadata={"priority_score": 1})
+        DummyResult(
+            source_label="uk_legislation",
+            query_text="act",
+            metadata={"priority_score": 1},
+        )
     ]
-    live = DummyResult(source_label="icc_case", query_text="judgment", metadata={"priority_score": 2})
+    live = DummyResult(
+        source_label="icc_case", query_text="judgment", metadata={"priority_score": 2}
+    )
     combined = inject_icc_case_result(initial, live_result=live)
     assert live in combined
 

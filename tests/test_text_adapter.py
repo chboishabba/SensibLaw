@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from sensiblaw.interfaces import build_canonical_conversation_text
-from src.reporting.text_unit_builders import build_canonical_conversation_text as build_internal_canonical_conversation_text
+from src.reporting.text_unit_builders import (
+    build_canonical_conversation_text as build_internal_canonical_conversation_text,
+)
 
 
 def test_text_adapter_matches_internal_builder_contract() -> None:

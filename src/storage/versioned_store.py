@@ -26,7 +26,10 @@ from src.models.text_span import TextSpan
 from src.models.promotion import PromotionReceipt
 from src.models.span_role_hypothesis import SpanRoleHypothesis
 from src.models.span_signal_hypothesis import SpanSignalHypothesis
-from src.text.lexeme_index import LexemeOccurrence, collect_lexeme_occurrences_with_profile
+from src.text.lexeme_index import (
+    LexemeOccurrence,
+    collect_lexeme_occurrences_with_profile,
+)
 
 
 class PayloadTooLargeError(ValueError):
@@ -674,7 +677,9 @@ class VersionedStore:
             next_candidate = 1
             for row in siblings:
                 position = row["position"]
-                candidate = position if isinstance(position, int) and position > 0 else None
+                candidate = (
+                    position if isinstance(position, int) and position > 0 else None
+                )
                 if candidate is None:
                     candidate = next_candidate
                 while candidate in used_positions:
@@ -2950,7 +2955,9 @@ class VersionedStore:
                     f"SELECT atom_id, norm_text, norm_kind FROM structural_atoms WHERE (norm_text, norm_kind) IN ({placeholders})",
                     flat,
                 ).fetchall()
-                atom_ids = {(row["norm_text"], row["norm_kind"]): row["atom_id"] for row in rows}
+                atom_ids = {
+                    (row["norm_text"], row["norm_kind"]): row["atom_id"] for row in rows
+                }
                 structural_payload = []
                 for index, occ in enumerate(occurrences, start=1):
                     key = (occ.norm_text, occ.kind)
@@ -3351,7 +3358,9 @@ class VersionedStore:
             pass
 
         provisions: dict[int, Provision] = {}
-        children_map: defaultdict[Optional[int], List[Tuple[int, int]]] = defaultdict(list)
+        children_map: defaultdict[Optional[int], List[Tuple[int, int]]] = defaultdict(
+            list
+        )
 
         for row in provision_rows:
             rule_tokens = json.loads(row["rule_tokens"]) if row["rule_tokens"] else {}
@@ -3401,6 +3410,7 @@ class VersionedStore:
             provisions[row["provision_id"]] = provision
             position_value = row["position"] if row["position"] is not None else 0
             children_map[row["parent_id"]].append((position_value, row["provision_id"]))
+
         def build(parent_id: Optional[int]) -> List[Provision]:
             ordered_children = sorted(
                 children_map.get(parent_id, []), key=lambda item: (item[0], item[1])

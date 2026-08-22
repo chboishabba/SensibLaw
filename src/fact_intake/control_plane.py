@@ -27,8 +27,12 @@ def build_follow_control_plane(
         "receipt_kind": str(receipt_kind),
         "substrate_kind": str(substrate_kind),
         "conjecture_kind": str(conjecture_kind),
-        "route_targets": sorted({str(value) for value in route_targets or [] if str(value).strip()}),
-        "resolution_statuses": sorted({str(value) for value in resolution_statuses or [] if str(value).strip()}),
+        "route_targets": sorted(
+            {str(value) for value in route_targets or [] if str(value).strip()}
+        ),
+        "resolution_statuses": sorted(
+            {str(value) for value in resolution_statuses or [] if str(value).strip()}
+        ),
     }
 
 

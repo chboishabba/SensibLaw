@@ -83,8 +83,12 @@ def export_legal_semantic_build(
     return LegalSemanticArtifactExport(
         sync_identity=identity,
         semantic_build_ref=semantic_build_ref,
-        source_revision_refs=tuple(sorted(set(str(value) for value in source_revision_refs if value))),
-        member_artifact_refs=tuple(sorted(set(str(value) for value in member_artifact_refs if value))),
+        source_revision_refs=tuple(
+            sorted(set(str(value) for value in source_revision_refs if value))
+        ),
+        member_artifact_refs=tuple(
+            sorted(set(str(value) for value in member_artifact_refs if value))
+        ),
         payload_sha256=payload_sha256,
         publication_metadata=dict(publication_metadata or {}),
     )

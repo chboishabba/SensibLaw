@@ -58,4 +58,3 @@ def check_rules(rules: Iterable[Rule]) -> List[str]:
                         f"Delegation breach: {delegate} prohibited from {action}"
                     )
     return issues
-

@@ -6,7 +6,9 @@ from pathlib import Path
 from scripts.wiki_random_page_samples import build_random_sample_manifest, main
 
 
-def test_build_random_sample_manifest_writes_revision_locked_snapshots(tmp_path: Path, monkeypatch) -> None:
+def test_build_random_sample_manifest_writes_revision_locked_snapshots(
+    tmp_path: Path, monkeypatch
+) -> None:
     from scripts import wiki_random_page_samples as mod
 
     monkeypatch.setattr(
@@ -34,7 +36,9 @@ def test_build_random_sample_manifest_writes_revision_locked_snapshots(tmp_path:
             warnings=[],
         )
 
-    monkeypatch.setattr(mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext)
+    monkeypatch.setattr(
+        mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext
+    )
 
     manifest = build_random_sample_manifest(
         wiki="enwiki",
@@ -58,7 +62,9 @@ def test_build_random_sample_manifest_writes_revision_locked_snapshots(tmp_path:
         assert payload["revid"] in {123, 456}
 
 
-def test_build_random_sample_manifest_includes_one_hop_followed_pages(tmp_path: Path, monkeypatch) -> None:
+def test_build_random_sample_manifest_includes_one_hop_followed_pages(
+    tmp_path: Path, monkeypatch
+) -> None:
     from scripts import wiki_random_page_samples as mod
 
     monkeypatch.setattr(mod, "_fetch_random_titles", lambda **_: ["Root Page"])
@@ -82,7 +88,9 @@ def test_build_random_sample_manifest_includes_one_hop_followed_pages(tmp_path: 
             warnings=[],
         )
 
-    monkeypatch.setattr(mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext)
+    monkeypatch.setattr(
+        mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext
+    )
 
     manifest = build_random_sample_manifest(
         wiki="enwiki",
@@ -107,7 +115,9 @@ def test_build_random_sample_manifest_includes_one_hop_followed_pages(tmp_path: 
     assert row["followed_samples"][0]["title"] == "Follow One"
 
 
-def test_build_random_sample_manifest_supports_recursive_follow_hops(tmp_path: Path, monkeypatch) -> None:
+def test_build_random_sample_manifest_supports_recursive_follow_hops(
+    tmp_path: Path, monkeypatch
+) -> None:
     from scripts import wiki_random_page_samples as mod
 
     monkeypatch.setattr(mod, "_fetch_random_titles", lambda **_: ["Root Page"])
@@ -125,7 +135,11 @@ def test_build_random_sample_manifest_supports_recursive_follow_hops(tmp_path: P
             wiki="enwiki",
             title=title,
             pageid=1,
-            revid=111 if title == "Root Page" else 222 if title == "Follow One" else 333,
+            revid=111
+            if title == "Root Page"
+            else 222
+            if title == "Follow One"
+            else 333,
             rev_timestamp="2026-03-15T00:00:00Z",
             source_url=f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}",
             api_url="https://example.test/api",
@@ -136,7 +150,9 @@ def test_build_random_sample_manifest_supports_recursive_follow_hops(tmp_path: P
             warnings=[],
         )
 
-    monkeypatch.setattr(mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext)
+    monkeypatch.setattr(
+        mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext
+    )
 
     manifest = build_random_sample_manifest(
         wiki="enwiki",
@@ -159,7 +175,9 @@ def test_build_random_sample_manifest_supports_recursive_follow_hops(tmp_path: P
     assert row["followed_samples"][0]["followed_samples"][0]["title"] == "Follow Two"
 
 
-def test_random_sample_main_writes_manifest(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_random_sample_main_writes_manifest(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     from scripts import wiki_random_page_samples as mod
 
     monkeypatch.setattr(
@@ -174,7 +192,9 @@ def test_random_sample_main_writes_manifest(tmp_path: Path, monkeypatch, capsys)
             "include_wikitext": True,
             "wiki_rps": 1.0,
             "generated_at": "2026-03-15T00:00:00Z",
-            "samples": [{"title": "Example", "snapshot_path": str(tmp_path / "example.json")}],
+            "samples": [
+                {"title": "Example", "snapshot_path": str(tmp_path / "example.json")}
+            ],
         },
     )
     manifest_path = tmp_path / "manifest.json"

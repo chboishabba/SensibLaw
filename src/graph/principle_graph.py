@@ -9,7 +9,9 @@ def _freeze_value(value: Any) -> Hashable:
     """Convert metadata values into hashable representations."""
 
     if isinstance(value, dict):
-        return tuple((key, _freeze_value(inner)) for key, inner in sorted(value.items()))
+        return tuple(
+            (key, _freeze_value(inner)) for key, inner in sorted(value.items())
+        )
     if isinstance(value, (list, tuple, set)):
         return tuple(_freeze_value(item) for item in value)
     if isinstance(value, (str, int, float, bool)) or value is None:
@@ -17,7 +19,9 @@ def _freeze_value(value: Any) -> Hashable:
     return str(value)
 
 
-def _freeze_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Tuple[Tuple[str, Hashable], ...]]:
+def _freeze_metadata(
+    metadata: Optional[Dict[str, Any]],
+) -> Optional[Tuple[Tuple[str, Hashable], ...]]:
     """Produce a stable, hashable key for edge metadata."""
 
     if not metadata:
@@ -45,7 +49,9 @@ def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str,
     edges: List[Dict[str, Any]] = []
 
     seen_nodes: Dict[str, Dict[str, Any]] = {}
-    seen_edges: Set[Tuple[str, str, Optional[str], Optional[Tuple[Tuple[str, Hashable], ...]]]] = set()
+    seen_edges: Set[
+        Tuple[str, str, Optional[str], Optional[Tuple[Tuple[str, Hashable], ...]]]
+    ] = set()
 
     def _add_node(node: Dict[str, Any]) -> Dict[str, Any]:
         node_id = str(node["id"])
@@ -123,9 +129,7 @@ def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str,
             or f"{provision_id}::principle{index + 1}"
         )
         principle_label = str(
-            principle_payload.get("title")
-            or atom.get("label")
-            or principle_id
+            principle_payload.get("title") or atom.get("label") or principle_id
         )
 
         principle_metadata: Dict[str, Any] = {}
@@ -156,7 +160,9 @@ def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str,
                 "metadata": principle_metadata,
             }
         )
-        _add_edge({"source": provision_id, "target": principle_id, "label": "principle"})
+        _add_edge(
+            {"source": provision_id, "target": principle_id, "label": "principle"}
+        )
 
         for child_index, child in enumerate(atom.get("children") or []):
             child_id = str(
@@ -261,4 +267,3 @@ def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str,
 
 
 __all__ = ["build_principle_graph"]
-

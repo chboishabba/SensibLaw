@@ -31,7 +31,9 @@ TokenStream = List[Token]
 class SpacyAdapter:
     """Adapter around spaCy providing a consistent token stream."""
 
-    def __init__(self, model: str | None = None, *, disable: Sequence[str] | None = None) -> None:
+    def __init__(
+        self, model: str | None = None, *, disable: Sequence[str] | None = None
+    ) -> None:
         self.model = model or "en_core_web_sm"
         self._disable = tuple(disable or ())
         self._nlp: Language | None = None
@@ -83,11 +85,7 @@ class SpacyAdapter:
 
     @staticmethod
     def _fallback_tokens(text: str) -> TokenStream:
-        return [
-            Token(part, part.lower(), "", "", "")
-            for part in text.split()
-            if part
-        ]
+        return [Token(part, part.lower(), "", "", "") for part in text.split() if part]
 
 
 @lru_cache(maxsize=1)

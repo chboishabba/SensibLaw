@@ -8,7 +8,11 @@ from src.policy.claim_surface import (
     build_claim_identity_surface,
     build_claim_relation_surface,
 )
-from src.policy.review_targeting_contract import GWBTargetingCandidate, GWBTargetingResult, build_gwb_targeting_result
+from src.policy.review_targeting_contract import (
+    GWBTargetingCandidate,
+    GWBTargetingResult,
+    build_gwb_targeting_result,
+)
 from src.policy.text_surface import build_text_surface
 
 
@@ -120,7 +124,9 @@ def build_review_candidate_from_composed_candidate_node(
     section = _clean_text(candidate.get("section"))
     genre = _clean_text(candidate.get("genre"))
     support_phi_values = candidate.get("support_phi_ids", [])
-    if not isinstance(support_phi_values, Sequence) or isinstance(support_phi_values, (str, bytes)):
+    if not isinstance(support_phi_values, Sequence) or isinstance(
+        support_phi_values, (str, bytes)
+    ):
         support_phi_values = []
     support_phi_ids = [
         cleaned
@@ -139,7 +145,9 @@ def build_review_candidate_from_composed_candidate_node(
         or not support_phi_ids
         or not content_refs
         or not isinstance(authority_wrapper, Mapping)
-        or not _clean_text(authority_wrapper.get("kind") or authority_wrapper.get("wrapper_kind"))
+        or not _clean_text(
+            authority_wrapper.get("kind") or authority_wrapper.get("wrapper_kind")
+        )
         or not span_refs
         or not provenance_receipts
     ):
@@ -195,7 +203,9 @@ def _build_review_candidate_for_review_row(
 ) -> dict[str, Any]:
     composed_candidate = row.get("composed_candidate_node")
     if isinstance(composed_candidate, Mapping):
-        review_candidate = build_review_candidate_from_composed_candidate_node(composed_candidate)
+        review_candidate = build_review_candidate_from_composed_candidate_node(
+            composed_candidate
+        )
         if review_candidate is not None:
             return review_candidate
     return _build_review_candidate(
@@ -205,7 +215,9 @@ def _build_review_candidate_for_review_row(
         selection_basis={
             "basis_kind": basis_kind,
             "review_status": review_status,
-            "primary_workload_class": str(row.get("primary_workload_class") or "").strip(),
+            "primary_workload_class": str(
+                row.get("primary_workload_class") or ""
+            ).strip(),
             "linkage_kind": str(row.get("linkage_kind") or "").strip(),
         },
         anchor_refs={
@@ -283,7 +295,8 @@ def build_affidavit_proposition_relation(
             target_identity.get("provenance")
             if isinstance(target_identity.get("provenance"), Mapping)
             else {}
-        ).get("anchor_refs", {})
+        )
+        .get("anchor_refs", {})
         .get("best_source_row_id", "")
     ).strip()
     if not best_source_row_id:
@@ -385,7 +398,8 @@ def build_review_queue_proposition_relation(
             target_identity.get("provenance")
             if isinstance(target_identity.get("provenance"), Mapping)
             else {}
-        ).get("anchor_refs", {})
+        )
+        .get("anchor_refs", {})
         .get("event_id", "")
     ).strip()
     if not event_id:
@@ -473,11 +487,19 @@ def attach_review_item_relations_by_seed_id(
     attached_records: list[dict[str, Any]] = []
     for record in review_claim_records:
         copied = dict(record)
-        if copied.get("target_proposition_identity") or copied.get("proposition_relation"):
+        if copied.get("target_proposition_identity") or copied.get(
+            "proposition_relation"
+        ):
             attached_records.append(copied)
             continue
-        targeting_result = targeting_results_by_claim_id.get(str(copied.get("claim_id") or "").strip())
-        proposition_identity = copied.get("proposition_identity") if isinstance(copied.get("proposition_identity"), Mapping) else {}
+        targeting_result = targeting_results_by_claim_id.get(
+            str(copied.get("claim_id") or "").strip()
+        )
+        proposition_identity = (
+            copied.get("proposition_identity")
+            if isinstance(copied.get("proposition_identity"), Mapping)
+            else {}
+        )
         proposition_identity_provenance = (
             proposition_identity.get("provenance")
             if isinstance(proposition_identity.get("provenance"), Mapping)
@@ -488,14 +510,23 @@ def attach_review_item_relations_by_seed_id(
             if isinstance(proposition_identity_provenance.get("anchor_refs"), Mapping)
             else {}
         )
-        seed_id = str(anchor_refs.get("seed_id") or copied.get("provenance", {}).get("seed_id") or "").strip()
-        if targeting_result and targeting_result.selection_mode != "singleton_seed_linkage":
+        seed_id = str(
+            anchor_refs.get("seed_id")
+            or copied.get("provenance", {}).get("seed_id")
+            or ""
+        ).strip()
+        if (
+            targeting_result
+            and targeting_result.selection_mode != "singleton_seed_linkage"
+        ):
             review_candidate = copied.get("review_candidate")
             if isinstance(review_candidate, Mapping):
                 review_candidate_payload = dict(review_candidate)
                 selection_basis = (
                     review_candidate_payload.get("selection_basis")
-                    if isinstance(review_candidate_payload.get("selection_basis"), Mapping)
+                    if isinstance(
+                        review_candidate_payload.get("selection_basis"), Mapping
+                    )
                     else {}
                 )
                 review_candidate_payload["selection_basis"] = {
@@ -513,16 +544,24 @@ def attach_review_item_relations_by_seed_id(
         review_candidate = copied.get("review_candidate")
         if isinstance(review_candidate, Mapping):
             review_candidate_payload = dict(review_candidate)
-            target_proposition_id = str(target_identity.get("proposition_id") or "").strip()
+            target_proposition_id = str(
+                target_identity.get("proposition_id") or ""
+            ).strip()
             if target_proposition_id:
-                review_candidate_payload["target_proposition_id"] = target_proposition_id
+                review_candidate_payload["target_proposition_id"] = (
+                    target_proposition_id
+                )
             copied["review_candidate"] = review_candidate_payload
         copied["proposition_relation"] = build_claim_relation_surface(
             relation_id=(
                 f"{copied.get('lane')}_review_rel:{copied.get('cohort_id')}:"
                 f"{copied.get('claim_id')}:{relation_kind}:{seed_id}"
             ),
-            source_proposition_id=str(proposition_identity.get("proposition_id") or copied.get("claim_id") or ""),
+            source_proposition_id=str(
+                proposition_identity.get("proposition_id")
+                or copied.get("claim_id")
+                or ""
+            ),
             target_proposition_id=str(target_identity.get("proposition_id") or ""),
             relation_kind=relation_kind,
             evidence_status="review_only",
@@ -576,7 +615,11 @@ def build_gwb_targeting_results_from_review_claim_records(
             if isinstance(proposition_identity_provenance.get("anchor_refs"), Mapping)
             else {}
         )
-        seed_id = str(anchor_refs.get("seed_id") or record.get("provenance", {}).get("seed_id") or "").strip()
+        seed_id = str(
+            anchor_refs.get("seed_id")
+            or record.get("provenance", {}).get("seed_id")
+            or ""
+        ).strip()
         review_item_candidates: list[GWBTargetingCandidate] = []
         for review_item in review_items_by_seed.get(seed_id, []):
             target_identity = build_review_item_target_proposition_identity(
@@ -602,7 +645,9 @@ def build_gwb_targeting_results_from_review_claim_records(
                     anchor_refs={
                         "claim_id": str(record.get("claim_id") or ""),
                         "seed_id": seed_id,
-                        "review_item_id": str(review_item.get("review_item_id") or "").strip(),
+                        "review_item_id": str(
+                            review_item.get("review_item_id") or ""
+                        ).strip(),
                     },
                     target_split_kind=(
                         "matched_event"
@@ -723,15 +768,28 @@ def build_review_claim_records_from_review_rows(
                     for value in row.get("ordering_edge_ids", [])
                     if isinstance(value, str) and str(value).strip()
                 ],
-                "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
-                "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                "event_quality_status": str(
+                    row.get("event_quality_status") or ""
+                ).strip()
+                or None,
+                "event_quality_score": row.get("event_quality_score")
+                if row.get("event_quality_score") is not None
+                else None,
                 "event_quality_reasons": [
                     str(value)
                     for value in row.get("event_quality_reasons", [])
                     if isinstance(value, str) and str(value).strip()
-                ] if isinstance(row.get("event_quality_reasons"), list) else None,
-                "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
-                "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
+                ]
+                if isinstance(row.get("event_quality_reasons"), list)
+                else None,
+                "event_time_anchor_status": str(
+                    row.get("event_time_anchor_status") or ""
+                ).strip()
+                or None,
+                "resolved_historical_date": str(
+                    row.get("resolved_historical_date") or ""
+                ).strip()
+                or None,
             },
         )
         records.append(
@@ -794,15 +852,28 @@ def build_review_claim_records_from_review_rows(
                         for value in row.get("ordering_edge_ids", [])
                         if isinstance(value, str) and str(value).strip()
                     ],
-                    "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
-                    "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                    "event_quality_status": str(
+                        row.get("event_quality_status") or ""
+                    ).strip()
+                    or None,
+                    "event_quality_score": row.get("event_quality_score")
+                    if row.get("event_quality_score") is not None
+                    else None,
                     "event_quality_reasons": [
                         str(value)
                         for value in row.get("event_quality_reasons", [])
                         if isinstance(value, str) and str(value).strip()
-                    ] if isinstance(row.get("event_quality_reasons"), list) else None,
-                    "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
-                    "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
+                    ]
+                    if isinstance(row.get("event_quality_reasons"), list)
+                    else None,
+                    "event_time_anchor_status": str(
+                        row.get("event_time_anchor_status") or ""
+                    ).strip()
+                    or None,
+                    "resolved_historical_date": str(
+                        row.get("resolved_historical_date") or ""
+                    ).strip()
+                    or None,
                     "upstream_artifact_ids": [
                         value
                         for value in (root_artifact_id, cohort_id)
@@ -812,7 +883,9 @@ def build_review_claim_records_from_review_rows(
                 decision_basis={
                     "basis_kind": basis_kind,
                     "review_status": review_status,
-                    "primary_workload_class": str(row.get("primary_workload_class") or "").strip(),
+                    "primary_workload_class": str(
+                        row.get("primary_workload_class") or ""
+                    ).strip(),
                     "workload_classes": [
                         str(value)
                         for value in row.get("workload_classes", [])
@@ -833,7 +906,10 @@ def build_review_claim_records_from_review_rows(
                 review_text=_build_review_text(
                     text=row.get("text"),
                     text_role="review_source_text",
-                    source_kind=str(row.get("source_kind") or "source_review_row").strip() or "source_review_row",
+                    source_kind=str(
+                        row.get("source_kind") or "source_review_row"
+                    ).strip()
+                    or "source_review_row",
                     anchor_refs={
                         "source_row_id": claim_id,
                         "seed_id": str(row.get("seed_id") or "").strip(),
@@ -852,15 +928,28 @@ def build_review_claim_records_from_review_rows(
                             for value in row.get("ordering_edge_ids", [])
                             if isinstance(value, str) and str(value).strip()
                         ],
-                        "event_quality_status": str(row.get("event_quality_status") or "").strip() or None,
-                        "event_quality_score": row.get("event_quality_score") if row.get("event_quality_score") is not None else None,
+                        "event_quality_status": str(
+                            row.get("event_quality_status") or ""
+                        ).strip()
+                        or None,
+                        "event_quality_score": row.get("event_quality_score")
+                        if row.get("event_quality_score") is not None
+                        else None,
                         "event_quality_reasons": [
                             str(value)
                             for value in row.get("event_quality_reasons", [])
                             if isinstance(value, str) and str(value).strip()
-                        ] if isinstance(row.get("event_quality_reasons"), list) else None,
-                        "event_time_anchor_status": str(row.get("event_time_anchor_status") or "").strip() or None,
-                        "resolved_historical_date": str(row.get("resolved_historical_date") or "").strip() or None,
+                        ]
+                        if isinstance(row.get("event_quality_reasons"), list)
+                        else None,
+                        "event_time_anchor_status": str(
+                            row.get("event_time_anchor_status") or ""
+                        ).strip()
+                        or None,
+                        "resolved_historical_date": str(
+                            row.get("resolved_historical_date") or ""
+                        ).strip()
+                        or None,
                     },
                     text_ref=_build_text_ref(row),
                 ),
@@ -971,8 +1060,12 @@ def build_review_claim_records_from_queue_rows(
                     source_kind="review_bundle",
                     selection_basis={
                         "basis_kind": basis_kind,
-                        "candidate_status": str(row.get("candidate_status") or "").strip(),
-                        "latest_review_status": str(row.get("latest_review_status") or "").strip(),
+                        "candidate_status": str(
+                            row.get("candidate_status") or ""
+                        ).strip(),
+                        "latest_review_status": str(
+                            row.get("latest_review_status") or ""
+                        ).strip(),
                     },
                     anchor_refs={
                         "fact_id": claim_id,
@@ -988,7 +1081,9 @@ def build_review_claim_records_from_queue_rows(
                         ],
                     },
                     target_proposition_id=(
-                        str(target_proposition_identity.get("proposition_id") or "").strip()
+                        str(
+                            target_proposition_identity.get("proposition_id") or ""
+                        ).strip()
                         if isinstance(target_proposition_identity, Mapping)
                         else None
                     ),
@@ -1052,7 +1147,9 @@ def build_review_claim_records_from_queue_rows(
                         if isinstance(value, str) and str(value).strip()
                     ],
                     "candidate_status": str(row.get("candidate_status") or "").strip(),
-                    "latest_review_status": str(row.get("latest_review_status") or "").strip(),
+                    "latest_review_status": str(
+                        row.get("latest_review_status") or ""
+                    ).strip(),
                 },
                 review_route={
                     "actionability": "must_review",
@@ -1152,17 +1249,27 @@ def build_review_claim_records_from_affidavit_rows(
                     source_kind="affidavit_row",
                     selection_basis={
                         "basis_kind": basis_kind,
-                        "coverage_status": str(row.get("coverage_status") or "").strip(),
-                        "best_match_basis": str(row.get("best_match_basis") or "").strip(),
-                        "best_response_role": str(row.get("best_response_role") or "").strip(),
+                        "coverage_status": str(
+                            row.get("coverage_status") or ""
+                        ).strip(),
+                        "best_match_basis": str(
+                            row.get("best_match_basis") or ""
+                        ).strip(),
+                        "best_response_role": str(
+                            row.get("best_response_role") or ""
+                        ).strip(),
                     },
                     anchor_refs={
                         "proposition_id": claim_id,
                         "paragraph_id": str(row.get("paragraph_id") or "").strip(),
-                        "best_source_row_id": str(row.get("best_source_row_id") or "").strip(),
+                        "best_source_row_id": str(
+                            row.get("best_source_row_id") or ""
+                        ).strip(),
                     },
                     target_proposition_id=(
-                        str(target_proposition_identity.get("proposition_id") or "").strip()
+                        str(
+                            target_proposition_identity.get("proposition_id") or ""
+                        ).strip()
                         if isinstance(target_proposition_identity, Mapping)
                         else None
                     ),
@@ -1176,7 +1283,9 @@ def build_review_claim_records_from_affidavit_rows(
                     anchor_refs={
                         "proposition_id": claim_id,
                         "paragraph_id": str(row.get("paragraph_id") or "").strip(),
-                        "best_source_row_id": str(row.get("best_source_row_id") or "").strip(),
+                        "best_source_row_id": str(
+                            row.get("best_source_row_id") or ""
+                        ).strip(),
                     },
                     text_ref=_build_text_ref(row),
                 ),
@@ -1187,7 +1296,9 @@ def build_review_claim_records_from_affidavit_rows(
                     "paragraph_id": str(row.get("paragraph_id") or "").strip(),
                     "paragraph_order": row.get("paragraph_order"),
                     "sentence_order": row.get("sentence_order"),
-                    "best_source_row_id": str(row.get("best_source_row_id") or "").strip(),
+                    "best_source_row_id": str(
+                        row.get("best_source_row_id") or ""
+                    ).strip(),
                     "upstream_artifact_ids": [
                         value
                         for value in (root_artifact_id, cohort_id)
@@ -1198,7 +1309,9 @@ def build_review_claim_records_from_affidavit_rows(
                     "basis_kind": basis_kind,
                     "coverage_status": str(row.get("coverage_status") or "").strip(),
                     "best_match_basis": str(row.get("best_match_basis") or "").strip(),
-                    "best_response_role": str(row.get("best_response_role") or "").strip(),
+                    "best_response_role": str(
+                        row.get("best_response_role") or ""
+                    ).strip(),
                 },
                 review_route={
                     "actionability": "must_review",

@@ -35,6 +35,7 @@ from src.policy.wikidata_structural_geometry import (
     build_checked_qualifier_drift_row,
 )
 from src.policy.wikidata_structural_io import write_json_markdown_artifact
+
 try:
     from src.policy.wikidata_review_queue import (
         make_bundles as _make_bundles_impl,
@@ -78,7 +79,9 @@ def _make_review_items(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
             "title": "Qualifier-bearing import baseline",
             "review_status": "baseline",
             "workload_class": "baseline_confirmation",
-            "recommended_next_action": _next_action_for_workload("baseline_confirmation"),
+            "recommended_next_action": _next_action_for_workload(
+                "baseline_confirmation"
+            ),
             "source_paths": [baseline["source_path"]],
             "evidence_summary": (
                 f"{baseline['statement_count']} statements across {baseline['window_count']} windows "
@@ -155,7 +158,9 @@ def _make_source_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
                 "source_kind": "qualifier_baseline_property",
                 "workload_class": "baseline_confirmation",
                 "review_status": "baseline",
-                "recommended_next_action": _next_action_for_workload("baseline_confirmation"),
+                "recommended_next_action": _next_action_for_workload(
+                    "baseline_confirmation"
+                ),
                 "source_path": baseline["source_path"],
                 "text": f"Property {pid} preserved across importer baseline windows.",
                 "cue_payload": {
@@ -250,7 +255,9 @@ def _make_clusters(
     for review_item_id, rows in grouped_rows.items():
         item = items_by_id[review_item_id]
         rollup = Counter(row["workload_class"] for row in rows)
-        cue_kind_rollup = Counter(cue["cue_kind"] for cue in grouped_cues[review_item_id])
+        cue_kind_rollup = Counter(
+            cue["cue_kind"] for cue in grouped_cues[review_item_id]
+        )
         clusters.append(
             {
                 "cluster_id": f"cluster:{review_item_id}",
@@ -294,7 +301,9 @@ def build_review_artifact(output_dir: Path) -> dict[str, Any]:
     provisional_review_rows = _make_provisional_rows(
         review_item_rows, source_review_rows, candidate_structural_cues
     )
-    provisional_review_bundles = _make_bundles(provisional_review_rows, source_review_rows)
+    provisional_review_bundles = _make_bundles(
+        provisional_review_rows, source_review_rows
+    )
 
     workload_counts = Counter(row["workload_class"] for row in source_review_rows)
     review_required_source_ids = {
@@ -315,14 +324,20 @@ def build_review_artifact(output_dir: Path) -> dict[str, Any]:
             "review_item_count": len(review_item_rows),
             "source_review_row_count": len(source_review_rows),
             "review_required_item_count": sum(
-                1 for row in review_item_rows if row["review_status"] == "review_required"
+                1
+                for row in review_item_rows
+                if row["review_status"] == "review_required"
             ),
             "related_review_cluster_count": len(related_review_clusters),
             "candidate_structural_cue_count": len(candidate_structural_cues),
             "provisional_review_row_count": len(provisional_review_rows),
             "provisional_review_bundle_count": len(provisional_review_bundles),
-            "baseline_confirmation_count": workload_counts.get("baseline_confirmation", 0),
-            "cluster_promotion_gap_count": workload_counts.get("cluster_promotion_gap", 0),
+            "baseline_confirmation_count": workload_counts.get(
+                "baseline_confirmation", 0
+            ),
+            "cluster_promotion_gap_count": workload_counts.get(
+                "cluster_promotion_gap", 0
+            ),
             "governance_gap_count": workload_counts.get("governance_gap", 0),
             "qualifier_drift_gap_count": workload_counts.get("qualifier_drift_gap", 0),
             "structural_contradiction_count": workload_counts.get(
@@ -381,7 +396,8 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
     lines.extend(["", "## Related Review Clusters", ""])
     for cluster in payload["related_review_clusters"]:
         rollup_text = ", ".join(
-            f"{key} ({value})" for key, value in sorted(cluster["candidate_cue_rollup"].items())
+            f"{key} ({value})"
+            for key, value in sorted(cluster["candidate_cue_rollup"].items())
         )
         lines.extend(
             [
@@ -402,14 +418,22 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the checked Wikidata structural review artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build the checked Wikidata structural review artifact."
+    )
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),
         help="Directory to write the checked review artifact into.",
     )
     args = parser.parse_args()
-    print(json.dumps(build_review_artifact(Path(args.output_dir).resolve()), indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            build_review_artifact(Path(args.output_dir).resolve()),
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

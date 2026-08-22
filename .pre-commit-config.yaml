@@ -1,20 +1,20 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.7
+    rev: v0.15.22
     hooks:
       - id: ruff
         args: ["--fix", "--config=pyproject.toml"]
         files: "^(src|tests|scripts)/"
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 26.5.1
     hooks:
       - id: black
         args: ["--check"]
         files: "^(src|tests|scripts)/"
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+    rev: v2.3.0
     hooks:
       - id: mypy
         files: "^(src|tests)/"
         pass_filenames: false
-        args: ["--config-file", "mypy.ini", "src", "tests"]
+        args: ["--config-file", "pyproject.toml", "--explicit-package-bases", "."]

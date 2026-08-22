@@ -35,7 +35,10 @@ def build_expected_layer_contract(
     normalized_bridges = [
         [_text(pair[0]), _text(pair[1])]
         for pair in required_bridges
-        if isinstance(pair, Sequence) and len(pair) == 2 and _text(pair[0]) and _text(pair[1])
+        if isinstance(pair, Sequence)
+        and len(pair) == 2
+        and _text(pair[0])
+        and _text(pair[1])
     ]
     return {
         "schema_version": EXPECTED_LAYER_CONTRACT_SCHEMA_VERSION,
@@ -46,14 +49,20 @@ def build_expected_layer_contract(
         "required_bridges": normalized_bridges,
         "terminal_anchor": _text(terminal_anchor),
         "minimum_depth": len(normalized_bridges),
-        "required_authority_boundaries": [_text(value) for value in required_authority_boundaries if _text(value)],
-        "required_visibility_fields": [_text(value) for value in required_visibility_fields if _text(value)],
+        "required_authority_boundaries": [
+            _text(value) for value in required_authority_boundaries if _text(value)
+        ],
+        "required_visibility_fields": [
+            _text(value) for value in required_visibility_fields if _text(value)
+        ],
         "linkage_policy": dict(linkage_policy or {}),
         "notes": [_text(note) for note in notes if _text(note)],
     }
 
 
-def normalize_expected_layer_contract(contract: Mapping[str, Any] | None) -> dict[str, Any]:
+def normalize_expected_layer_contract(
+    contract: Mapping[str, Any] | None,
+) -> dict[str, Any]:
     payload = contract if isinstance(contract, Mapping) else {}
     policy_payload = payload.get("linkage_policy")
     if not isinstance(policy_payload, Mapping):
@@ -63,9 +72,7 @@ def normalize_expected_layer_contract(contract: Mapping[str, Any] | None) -> dic
         domain=_text(payload.get("domain")),
         anchor_kind=_text(payload.get("anchor_kind")),
         expected_layers=[
-            _text(layer)
-            for layer in payload.get("expected_layers", [])
-            if _text(layer)
+            _text(layer) for layer in payload.get("expected_layers", []) if _text(layer)
         ],
         required_bridges=[
             [_text(pair[0]), _text(pair[1])]
@@ -109,8 +116,12 @@ def build_linkage_depth_case(
         "lane_id": lane_id,
         "contract_id": _text(contract_id),
         "notes": [_text(note) for note in notes if _text(note)],
-        "expected_anchor_ids": [_text(value) for value in expected_anchor_ids if _text(value)],
-        "expected_terminal_ids": [_text(value) for value in expected_terminal_ids if _text(value)],
+        "expected_anchor_ids": [
+            _text(value) for value in expected_anchor_ids if _text(value)
+        ],
+        "expected_terminal_ids": [
+            _text(value) for value in expected_terminal_ids if _text(value)
+        ],
         "nodes": [deepcopy(dict(row)) for row in nodes if isinstance(row, Mapping)],
         "edges": [deepcopy(dict(row)) for row in edges if isinstance(row, Mapping)],
     }
@@ -126,19 +137,26 @@ def normalize_linkage_depth_case(case: Mapping[str, Any] | None) -> dict[str, An
     return build_linkage_depth_case(
         case_id=_text(payload.get("case_id")),
         case_kind=_text(payload.get("case_kind")),
-        contract_id=_text(payload.get("contract_id")) or _text((payload.get("contract") or {}).get("contract_id")),
+        contract_id=_text(payload.get("contract_id"))
+        or _text((payload.get("contract") or {}).get("contract_id")),
         expected_anchor_ids=[
-            _text(value) for value in payload.get("expected_anchor_ids", []) if _text(value)
+            _text(value)
+            for value in payload.get("expected_anchor_ids", [])
+            if _text(value)
         ],
         expected_terminal_ids=[
-            _text(value) for value in payload.get("expected_terminal_ids", []) if _text(value)
+            _text(value)
+            for value in payload.get("expected_terminal_ids", [])
+            if _text(value)
         ],
         nodes=[row for row in payload.get("nodes", []) if isinstance(row, Mapping)],
         edges=[row for row in payload.get("edges", []) if isinstance(row, Mapping)],
         lane_id=_text(payload.get("lane_id")) or None,
         case_source=_text(payload.get("case_source")) or None,
         notes=[_text(note) for note in payload.get("notes", []) if _text(note)],
-        contract=payload.get("contract") if isinstance(payload.get("contract"), Mapping) else None,
+        contract=payload.get("contract")
+        if isinstance(payload.get("contract"), Mapping)
+        else None,
     )
 
 
@@ -175,14 +193,19 @@ def build_linkage_depth_receipt(
     )
     return {
         "schema_version": LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION,
-        "receipt_id": _text(receipt_id) or f"linkage_depth:{_text(case_payload.get('case_id'))}",
+        "receipt_id": _text(receipt_id)
+        or f"linkage_depth:{_text(case_payload.get('case_id'))}",
         "artifact_type": "linkage_depth_receipt",
         "case_id": _text(case_payload.get("case_id")),
         "lane_id": case_payload.get("lane_id"),
         "contract": deepcopy(final_contract),
-        "source_mode": _text(source_mode) or _text(case_payload.get("case_source")) or "reconstructed_case",
+        "source_mode": _text(source_mode)
+        or _text(case_payload.get("case_source"))
+        or "reconstructed_case",
         "expected_anchor_ids": deepcopy(case_payload.get("expected_anchor_ids", [])),
-        "expected_terminal_ids": deepcopy(case_payload.get("expected_terminal_ids", [])),
+        "expected_terminal_ids": deepcopy(
+            case_payload.get("expected_terminal_ids", [])
+        ),
         "nodes": deepcopy(case_payload.get("nodes", [])),
         "edges": deepcopy(case_payload.get("edges", [])),
         "diagnostics": {
@@ -193,54 +216,117 @@ def build_linkage_depth_receipt(
             "role_erasure_detected": audited["role_erasure_detected"],
             "wd_soft_stitch_present": audited["wd_soft_stitch_present"],
             "wd_promotion_blocked": audited["wd_promotion_blocked"],
-            "anchor_to_tranche_reachability": deepcopy(audited["anchor_to_tranche_reachability"]),
+            "anchor_to_tranche_reachability": deepcopy(
+                audited["anchor_to_tranche_reachability"]
+            ),
             "collapse_points": deepcopy(audited["collapse_points"]),
             "collapse_origin": audited["collapse_origin"],
-            "visibility_requirements": deepcopy(audited.get("visibility_requirements", {})),
-            "authority_boundary_visibility": audited.get("authority_boundary_visibility", "not_applicable"),
-            "instrument_or_jurisdiction_visible": bool(audited.get("instrument_or_jurisdiction_visible")),
-            "candidate_vs_promoted_visibility": bool(audited.get("candidate_vs_promoted_visibility")),
+            "visibility_requirements": deepcopy(
+                audited.get("visibility_requirements", {})
+            ),
+            "authority_boundary_visibility": audited.get(
+                "authority_boundary_visibility", "not_applicable"
+            ),
+            "instrument_or_jurisdiction_visible": bool(
+                audited.get("instrument_or_jurisdiction_visible")
+            ),
+            "candidate_vs_promoted_visibility": bool(
+                audited.get("candidate_vs_promoted_visibility")
+            ),
         },
         "notes": [_text(note) for note in notes if _text(note)],
     }
 
 
-def normalize_linkage_depth_receipt(receipt: Mapping[str, Any] | None) -> dict[str, Any]:
+def normalize_linkage_depth_receipt(
+    receipt: Mapping[str, Any] | None,
+) -> dict[str, Any]:
     payload = receipt if isinstance(receipt, Mapping) else {}
     case_payload = build_linkage_depth_case(
         case_id=_text(payload.get("case_id")),
         case_kind="receipt_projected_case",
         contract_id=_text((payload.get("contract") or {}).get("contract_id")),
         expected_anchor_ids=[
-            _text(value) for value in payload.get("expected_anchor_ids", []) if _text(value)
+            _text(value)
+            for value in payload.get("expected_anchor_ids", [])
+            if _text(value)
         ],
         expected_terminal_ids=[
-            _text(value) for value in payload.get("expected_terminal_ids", []) if _text(value)
+            _text(value)
+            for value in payload.get("expected_terminal_ids", [])
+            if _text(value)
         ],
         nodes=[row for row in payload.get("nodes", []) if isinstance(row, Mapping)],
         edges=[row for row in payload.get("edges", []) if isinstance(row, Mapping)],
         lane_id=_text(payload.get("lane_id")) or None,
         case_source=_text(payload.get("source_mode")) or None,
-        contract=payload.get("contract") if isinstance(payload.get("contract"), Mapping) else None,
+        contract=payload.get("contract")
+        if isinstance(payload.get("contract"), Mapping)
+        else None,
     )
     return build_linkage_depth_receipt(
         case=case_payload,
-        contract=payload.get("contract") if isinstance(payload.get("contract"), Mapping) else None,
-        audited_case={"linkage_depth_status": "", "layer_coverage": {}, "typed_path_depth": 0, "bridge_completeness": [], "role_erasure_detected": False, "wd_soft_stitch_present": False, "wd_promotion_blocked": False, "anchor_to_tranche_reachability": {}, "collapse_points": [], "collapse_origin": "none"} if not isinstance(payload.get("diagnostics"), Mapping) else {
-            "linkage_depth_status": _text(payload.get("diagnostics", {}).get("linkage_depth_status")),
-            "layer_coverage": deepcopy(payload.get("diagnostics", {}).get("layer_coverage", {})),
-            "typed_path_depth": int(payload.get("diagnostics", {}).get("typed_path_depth", 0) or 0),
-            "bridge_completeness": deepcopy(payload.get("diagnostics", {}).get("bridge_completeness", [])),
-            "role_erasure_detected": bool(payload.get("diagnostics", {}).get("role_erasure_detected")),
-            "wd_soft_stitch_present": bool(payload.get("diagnostics", {}).get("wd_soft_stitch_present")),
-            "wd_promotion_blocked": bool(payload.get("diagnostics", {}).get("wd_promotion_blocked")),
-            "anchor_to_tranche_reachability": deepcopy(payload.get("diagnostics", {}).get("anchor_to_tranche_reachability", {})),
-            "collapse_points": deepcopy(payload.get("diagnostics", {}).get("collapse_points", [])),
-            "collapse_origin": _text(payload.get("diagnostics", {}).get("collapse_origin")) or "none",
-            "visibility_requirements": deepcopy(payload.get("diagnostics", {}).get("visibility_requirements", {})),
-            "authority_boundary_visibility": _text(payload.get("diagnostics", {}).get("authority_boundary_visibility")) or "not_applicable",
-            "instrument_or_jurisdiction_visible": bool(payload.get("diagnostics", {}).get("instrument_or_jurisdiction_visible")),
-            "candidate_vs_promoted_visibility": bool(payload.get("diagnostics", {}).get("candidate_vs_promoted_visibility")),
+        contract=payload.get("contract")
+        if isinstance(payload.get("contract"), Mapping)
+        else None,
+        audited_case={
+            "linkage_depth_status": "",
+            "layer_coverage": {},
+            "typed_path_depth": 0,
+            "bridge_completeness": [],
+            "role_erasure_detected": False,
+            "wd_soft_stitch_present": False,
+            "wd_promotion_blocked": False,
+            "anchor_to_tranche_reachability": {},
+            "collapse_points": [],
+            "collapse_origin": "none",
+        }
+        if not isinstance(payload.get("diagnostics"), Mapping)
+        else {
+            "linkage_depth_status": _text(
+                payload.get("diagnostics", {}).get("linkage_depth_status")
+            ),
+            "layer_coverage": deepcopy(
+                payload.get("diagnostics", {}).get("layer_coverage", {})
+            ),
+            "typed_path_depth": int(
+                payload.get("diagnostics", {}).get("typed_path_depth", 0) or 0
+            ),
+            "bridge_completeness": deepcopy(
+                payload.get("diagnostics", {}).get("bridge_completeness", [])
+            ),
+            "role_erasure_detected": bool(
+                payload.get("diagnostics", {}).get("role_erasure_detected")
+            ),
+            "wd_soft_stitch_present": bool(
+                payload.get("diagnostics", {}).get("wd_soft_stitch_present")
+            ),
+            "wd_promotion_blocked": bool(
+                payload.get("diagnostics", {}).get("wd_promotion_blocked")
+            ),
+            "anchor_to_tranche_reachability": deepcopy(
+                payload.get("diagnostics", {}).get("anchor_to_tranche_reachability", {})
+            ),
+            "collapse_points": deepcopy(
+                payload.get("diagnostics", {}).get("collapse_points", [])
+            ),
+            "collapse_origin": _text(
+                payload.get("diagnostics", {}).get("collapse_origin")
+            )
+            or "none",
+            "visibility_requirements": deepcopy(
+                payload.get("diagnostics", {}).get("visibility_requirements", {})
+            ),
+            "authority_boundary_visibility": _text(
+                payload.get("diagnostics", {}).get("authority_boundary_visibility")
+            )
+            or "not_applicable",
+            "instrument_or_jurisdiction_visible": bool(
+                payload.get("diagnostics", {}).get("instrument_or_jurisdiction_visible")
+            ),
+            "candidate_vs_promoted_visibility": bool(
+                payload.get("diagnostics", {}).get("candidate_vs_promoted_visibility")
+            ),
         },
         receipt_id=_text(payload.get("receipt_id")) or None,
         source_mode=_text(payload.get("source_mode")) or None,
@@ -273,11 +359,21 @@ def audit_linkage_depth_case(
         if _text(value)
     ]
     layer_index = {layer: index for index, layer in enumerate(expected_layers)}
-    nodes = [dict(row) for row in case_payload.get("nodes", []) if isinstance(row, Mapping)]
-    edges = [dict(row) for row in case_payload.get("edges", []) if isinstance(row, Mapping)]
-    anchor_ids = [_text(value) for value in case_payload.get("expected_anchor_ids", []) if _text(value)]
+    nodes = [
+        dict(row) for row in case_payload.get("nodes", []) if isinstance(row, Mapping)
+    ]
+    edges = [
+        dict(row) for row in case_payload.get("edges", []) if isinstance(row, Mapping)
+    ]
+    anchor_ids = [
+        _text(value)
+        for value in case_payload.get("expected_anchor_ids", [])
+        if _text(value)
+    ]
     terminal_ids = {
-        _text(value) for value in case_payload.get("expected_terminal_ids", []) if _text(value)
+        _text(value)
+        for value in case_payload.get("expected_terminal_ids", [])
+        if _text(value)
     }
     anchor_layer = _text(expected_layers[0]) if expected_layers else ""
 
@@ -297,10 +393,14 @@ def audit_linkage_depth_case(
 
     for row in nodes:
         layer = _text(row.get("layer"))
-        metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        metadata = (
+            row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+        )
         if layer == "sentence_pnf":
             role_bindings = metadata.get("carrier_roles")
-            if not isinstance(role_bindings, list) or not [_text(value) for value in role_bindings if _text(value)]:
+            if not isinstance(role_bindings, list) or not [
+                _text(value) for value in role_bindings if _text(value)
+            ]:
                 role_erasure_detected = True
 
     for row in edges:
@@ -318,27 +418,38 @@ def audit_linkage_depth_case(
             if isinstance(node_map[target].get("metadata"), Mapping)
             else {}
         )
-        if kind == "wd_soft_stitch" or _text(target_metadata.get("wd_stage")) == "soft_stitch":
+        if (
+            kind == "wd_soft_stitch"
+            or _text(target_metadata.get("wd_stage")) == "soft_stitch"
+        ):
             wd_soft_stitch_present = True
             wd_soft_stitch_nodes.append(target)
             if _text(target_metadata.get("promotion_status")) != "blocked":
                 wd_soft_stitch_blocked = False
 
-    def _collect_visibility_values(metadata: Mapping[str, Any], field: str) -> list[Any]:
+    def _collect_visibility_values(
+        metadata: Mapping[str, Any], field: str
+    ) -> list[Any]:
         values: list[Any] = []
         if field in metadata:
             value = metadata.get(field)
-            if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            if isinstance(value, Sequence) and not isinstance(
+                value, (str, bytes, bytearray)
+            ):
                 values.extend(item for item in value if item not in (None, "", [], {}))
             elif value not in (None, "", [], {}):
                 values.append(value)
         visibility_flags = metadata.get("visibility_flags")
-        if isinstance(visibility_flags, Sequence) and not isinstance(visibility_flags, (str, bytes, bytearray)):
+        if isinstance(visibility_flags, Sequence) and not isinstance(
+            visibility_flags, (str, bytes, bytearray)
+        ):
             values.extend(item for item in visibility_flags if _text(item) == field)
         diagnostic_flags = metadata.get("diagnostic_flags")
         if isinstance(diagnostic_flags, Mapping) and field in diagnostic_flags:
             value = diagnostic_flags.get(field)
-            if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            if isinstance(value, Sequence) and not isinstance(
+                value, (str, bytes, bytearray)
+            ):
                 values.extend(item for item in value if item not in (None, "", [], {}))
             elif value not in (None, "", [], {}):
                 values.append(value)
@@ -350,13 +461,17 @@ def audit_linkage_depth_case(
         node_ids: set[str] = set()
         edge_kinds: set[str] = set()
         for node_id, row in node_map.items():
-            metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+            metadata = (
+                row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+            )
             values = _collect_visibility_values(metadata, field)
             if values:
                 raw_values.extend(values)
                 node_ids.add(node_id)
         for row in edges:
-            metadata = row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+            metadata = (
+                row.get("metadata") if isinstance(row.get("metadata"), Mapping) else {}
+            )
             values = _collect_visibility_values(metadata, field)
             if values:
                 raw_values.extend(values)
@@ -392,7 +507,11 @@ def audit_linkage_depth_case(
         values = requirement.get("values", [])
         if not values:
             return "missing"
-        lowered = {str(value).strip().casefold() for value in values if not isinstance(value, bool)}
+        lowered = {
+            str(value).strip().casefold()
+            for value in values
+            if not isinstance(value, bool)
+        }
         if "missing" in lowered:
             return "missing"
         if "partial" in lowered:
@@ -425,7 +544,13 @@ def audit_linkage_depth_case(
                 "target_layer": target_layer,
                 "present": bool(matching),
                 "edge_count": len(matching),
-                "edge_kinds": sorted({_text(row.get("kind")) for row in matching if _text(row.get("kind"))}),
+                "edge_kinds": sorted(
+                    {
+                        _text(row.get("kind"))
+                        for row in matching
+                        if _text(row.get("kind"))
+                    }
+                ),
             }
         )
 
@@ -439,8 +564,10 @@ def audit_linkage_depth_case(
                 _text(edge.get("target"))
                 for node_id in current_nodes
                 for edge in edges_by_source.get(node_id, [])
-                if _text(node_map[_text(edge.get("target"))].get("layer")) == target_layer
-                and _text(node_map[_text(edge.get("source"))].get("layer")) == source_layer
+                if _text(node_map[_text(edge.get("target"))].get("layer"))
+                == target_layer
+                and _text(node_map[_text(edge.get("source"))].get("layer"))
+                == source_layer
             }
             if not next_nodes:
                 return {
@@ -459,7 +586,9 @@ def audit_linkage_depth_case(
             current_nodes = next_nodes
             typed_hops += 1
             path_layers.append(target_layer)
-            max_layer_position = max(max_layer_position, layer_index.get(target_layer, max_layer_position))
+            max_layer_position = max(
+                max_layer_position, layer_index.get(target_layer, max_layer_position)
+            )
         reachable = bool(current_nodes & terminal_ids) if terminal_ids else True
         if not reachable:
             return {
@@ -484,9 +613,15 @@ def audit_linkage_depth_case(
             "collapse_point": None,
         }
 
-    anchor_walks = [_walk_anchor(anchor_id) for anchor_id in anchor_ids if anchor_id in node_map]
-    reachable_anchor_ids = [row["anchor_id"] for row in anchor_walks if row["reachable"]]
-    collapse_points = [row["collapse_point"] for row in anchor_walks if row.get("collapse_point")]
+    anchor_walks = [
+        _walk_anchor(anchor_id) for anchor_id in anchor_ids if anchor_id in node_map
+    ]
+    reachable_anchor_ids = [
+        row["anchor_id"] for row in anchor_walks if row["reachable"]
+    ]
+    collapse_points = [
+        row["collapse_point"] for row in anchor_walks if row.get("collapse_point")
+    ]
     typed_path_depth = max((int(row["typed_hops"]) for row in anchor_walks), default=0)
 
     if (
@@ -523,18 +658,25 @@ def audit_linkage_depth_case(
         "anchor_to_tranche_reachability": {
             "anchor_count": len(anchor_walks),
             "reachable_anchor_count": len(reachable_anchor_ids),
-            "all_reachable": len(reachable_anchor_ids) == len(anchor_walks) and bool(anchor_walks),
+            "all_reachable": len(reachable_anchor_ids) == len(anchor_walks)
+            and bool(anchor_walks),
             "reachable_anchor_ids": reachable_anchor_ids,
         },
         "collapse_points": collapse_points,
         "collapse_origin": "none" if not collapse_points else "projection",
         "visibility_requirements": visibility_requirements,
-        "authority_boundary_visibility": _visibility_state("authority_boundary_visibility"),
+        "authority_boundary_visibility": _visibility_state(
+            "authority_boundary_visibility"
+        ),
         "instrument_or_jurisdiction_visible": bool(
-            visibility_requirements.get("instrument_or_jurisdiction_visible", {}).get("present")
+            visibility_requirements.get("instrument_or_jurisdiction_visible", {}).get(
+                "present"
+            )
         ),
         "candidate_vs_promoted_visibility": bool(
-            visibility_requirements.get("candidate_vs_promoted_visibility", {}).get("present")
+            visibility_requirements.get("candidate_vs_promoted_visibility", {}).get(
+                "present"
+            )
         ),
         "anchor_walks": anchor_walks,
         "notes": deepcopy(case_payload.get("notes", [])),
@@ -561,19 +703,37 @@ def build_linkage_depth_audit(
         for row in audited_cases:
             contract = row.get("contract")
             contract_id = _text(row.get("contract_id"))
-            if not contract_id or contract_id in seen or not isinstance(contract, Mapping):
+            if (
+                not contract_id
+                or contract_id in seen
+                or not isinstance(contract, Mapping)
+            ):
                 continue
             contract_payloads.append(normalize_expected_layer_contract(contract))
             seen.add(contract_id)
-    contract_ids = sorted({_text(row.get("contract_id")) for row in audited_cases if _text(row.get("contract_id"))})
-    complete_case_ids = [row["case_id"] for row in audited_cases if row["linkage_depth_status"] == "complete"]
-    role_erasure_case_ids = [row["case_id"] for row in audited_cases if row["role_erasure_detected"]]
+    contract_ids = sorted(
+        {
+            _text(row.get("contract_id"))
+            for row in audited_cases
+            if _text(row.get("contract_id"))
+        }
+    )
+    complete_case_ids = [
+        row["case_id"]
+        for row in audited_cases
+        if row["linkage_depth_status"] == "complete"
+    ]
+    role_erasure_case_ids = [
+        row["case_id"] for row in audited_cases if row["role_erasure_detected"]
+    ]
     anchor_failure_case_ids = [
         row["case_id"]
         for row in audited_cases
         if not row["anchor_to_tranche_reachability"]["all_reachable"]
     ]
-    cases_with_wd_soft_stitch = [row["case_id"] for row in audited_cases if row["wd_soft_stitch_present"]]
+    cases_with_wd_soft_stitch = [
+        row["case_id"] for row in audited_cases if row["wd_soft_stitch_present"]
+    ]
     return {
         "schema_version": _text(schema_version) or LINKAGE_DEPTH_AUDIT_SCHEMA_VERSION,
         "audit_scope": _text(audit_scope) or "linkage_depth",
@@ -589,10 +749,13 @@ def build_linkage_depth_audit(
             "wd_soft_stitch_case_count": len(cases_with_wd_soft_stitch),
             "wd_soft_stitch_case_ids": cases_with_wd_soft_stitch,
             "emitted_artifact_case_count": sum(
-                1 for row in audited_cases if row["case_source"] == "emitted_bridge_artifact"
+                1
+                for row in audited_cases
+                if row["case_source"] == "emitted_bridge_artifact"
             ),
             "contract_ids": contract_ids,
-            "primary_owner": _text(primary_owner) or "linkage_depth_projection_diagnostics",
+            "primary_owner": _text(primary_owner)
+            or "linkage_depth_projection_diagnostics",
         },
         "cases": audited_cases,
         "next_actions": [_text(action) for action in next_actions if _text(action)],

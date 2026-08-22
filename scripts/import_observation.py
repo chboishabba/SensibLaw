@@ -59,7 +59,8 @@ def _extract_import_kwargs(lane: Any, args: argparse.Namespace) -> dict[str, obj
 
     signature = inspect.signature(lane.import_data)
     has_var_kwargs = any(
-        param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
+        param.kind == inspect.Parameter.VAR_KEYWORD
+        for param in signature.parameters.values()
     )
     if has_var_kwargs:
         return raw_kwargs
@@ -73,10 +74,26 @@ def _extract_import_kwargs(lane: Any, args: argparse.Namespace) -> dict[str, obj
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Import lane-specific observation source rows into itir.sqlite.")
-    parser.add_argument("--lane", required=True, help="Observation lane key, for example openrecall or worldmonitor")
-    parser.add_argument("--source-path", type=Path, required=True, help="Source DB/file or directory for the lane")
-    parser.add_argument("--itir-db-path", type=Path, default=Path(".cache_local/itir.sqlite"), help="Path to target ITIR SQLite DB")
+    parser = argparse.ArgumentParser(
+        description="Import lane-specific observation source rows into itir.sqlite."
+    )
+    parser.add_argument(
+        "--lane",
+        required=True,
+        help="Observation lane key, for example openrecall or worldmonitor",
+    )
+    parser.add_argument(
+        "--source-path",
+        type=Path,
+        required=True,
+        help="Source DB/file or directory for the lane",
+    )
+    parser.add_argument(
+        "--itir-db-path",
+        type=Path,
+        default=Path(".cache_local/itir.sqlite"),
+        help="Path to target ITIR SQLite DB",
+    )
     parser.add_argument(
         "--storage-path",
         type=Path,
@@ -90,9 +107,20 @@ def main(argv: list[str] | None = None) -> int:
         metavar="KEY=VALUE",
         help="Generic lane-specific import argument (repeatable).",
     )
-    parser.add_argument("--limit", type=int, default=None, help="Optional max source rows/files to import")
-    parser.add_argument("--import-run-id", default=None, help="Optional stable import run id")
-    parser.add_argument("--show-units", action="store_true", help="Include a small preview of imported text units")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Optional max source rows/files to import",
+    )
+    parser.add_argument(
+        "--import-run-id", default=None, help="Optional stable import run id"
+    )
+    parser.add_argument(
+        "--show-units",
+        action="store_true",
+        help="Include a small preview of imported text units",
+    )
     args = parser.parse_args(argv)
 
     lane = get_observation_lane(args.lane)
@@ -135,7 +163,12 @@ def main(argv: list[str] | None = None) -> int:
             payload["sourceRecordCount"] = source_record_count
 
         if args.show_units:
-            units = load_observation_units(args.itir_db_path, lane.key, import_run_id=summary.import_run_id, limit=5)
+            units = load_observation_units(
+                args.itir_db_path,
+                lane.key,
+                import_run_id=summary.import_run_id,
+                limit=5,
+            )
             payload["unitPreview"] = [
                 {
                     "unitId": unit.unit_id,

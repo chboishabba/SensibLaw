@@ -18,7 +18,9 @@ from src.sensiblaw.interfaces import (
 def _collect_chain_payload(
     text: str,
     *,
-    class_relation_witnesses: list[dict[str, object]] | tuple[dict[str, object], ...] | None = None,
+    class_relation_witnesses: list[dict[str, object]]
+    | tuple[dict[str, object], ...]
+    | None = None,
 ) -> dict[str, object]:
     payload = collect_canonical_story_pnf_receipts(
         text,
@@ -36,31 +38,72 @@ def _collect_chain_payload(
         (
             "conversation_text",
             "Alex: I promise to follow the authority.\nBlair: I denied the allegation.",
-            {"context/frame", "sequence/event", "claim/assertion", "commitment/lifecycle"},
+            {
+                "context/frame",
+                "sequence/event",
+                "claim/assertion",
+                "commitment/lifecycle",
+            },
         ),
         (
             "story_event",
-            [{"event_id": "e1", "timestamp": "2026-06-05T09:00:00Z", "actor": "TiRCorder", "action": "captured", "details": "observed filing"}],
+            [
+                {
+                    "event_id": "e1",
+                    "timestamp": "2026-06-05T09:00:00Z",
+                    "actor": "TiRCorder",
+                    "action": "captured",
+                    "details": "observed filing",
+                }
+            ],
             {"context/frame", "sequence/event", "observer/evidence", "claim/assertion"},
         ),
         (
             "observer_capture",
-            [{"timestamp": "2026-06-05T09:01:00Z", "device": "laptop", "session": "s1", "window_title": "Court portal", "ocr_text": "observed order"}],
+            [
+                {
+                    "timestamp": "2026-06-05T09:01:00Z",
+                    "device": "laptop",
+                    "session": "s1",
+                    "window_title": "Court portal",
+                    "ocr_text": "observed order",
+                }
+            ],
             {"context/frame", "sequence/event", "observer/evidence", "claim/assertion"},
         ),
         (
             "execution_envelope",
-            [{"command": "pytest", "status": "done", "log": "tests passed", "task": "suite pnf"}],
+            [
+                {
+                    "command": "pytest",
+                    "status": "done",
+                    "log": "tests passed",
+                    "task": "suite pnf",
+                }
+            ],
             {"context/frame", "sequence/event", "commitment/lifecycle"},
         ),
         (
             "fact_review_item",
-            [{"source": "doc-a", "statement": "The filing was sourced.", "review_status": "candidate"}],
+            [
+                {
+                    "source": "doc-a",
+                    "statement": "The filing was sourced.",
+                    "review_status": "candidate",
+                }
+            ],
             {"context/frame", "epistemic/status", "claim/assertion"},
         ),
         (
             "handoff_entry",
-            [{"recipient": "lawyer", "scope": "professional", "redaction_marker": "protected", "details": "private protected disclosure text"}],
+            [
+                {
+                    "recipient": "lawyer",
+                    "scope": "professional",
+                    "redaction_marker": "protected",
+                    "details": "private protected disclosure text",
+                }
+            ],
             {"context/frame", "scope/boundary", "handoff/export"},
         ),
     ],
@@ -84,14 +127,33 @@ def test_collect_canonical_story_pnf_receipts_profile_matrix(
 
     families = {receipt["predicate_family"] for receipt in payload["emission_receipts"]}
     assert expected_families <= families
-    assert all(receipt["emitted_atom"]["wrapper"]["evidence_only"] is True for receipt in payload["emission_receipts"])
-    assert all(receipt["authority_boundary"] == AUTHORITY_BOUNDARY for receipt in payload["emission_receipts"])
+    assert all(
+        receipt["emitted_atom"]["wrapper"]["evidence_only"] is True
+        for receipt in payload["emission_receipts"]
+    )
+    assert all(
+        receipt["authority_boundary"] == AUTHORITY_BOUNDARY
+        for receipt in payload["emission_receipts"]
+    )
 
 
-def test_story_pnf_residuals_cover_exact_partial_contradiction_and_no_typed_meet() -> None:
+def test_story_pnf_residuals_cover_exact_partial_contradiction_and_no_typed_meet() -> (
+    None
+):
     source = [
-        {"_row_ref": "run-1", "actor": "builder", "action": "executed", "object": "tests", "status": "done"},
-        {"_row_ref": "run-1", "actor": "builder", "action": "executed", "status": "done"},
+        {
+            "_row_ref": "run-1",
+            "actor": "builder",
+            "action": "executed",
+            "object": "tests",
+            "status": "done",
+        },
+        {
+            "_row_ref": "run-1",
+            "actor": "builder",
+            "action": "executed",
+            "status": "done",
+        },
         {"_row_ref": "run-1", "scope": "work"},
         {"_row_ref": "run-1", "scope": "home"},
     ]
@@ -151,8 +213,14 @@ def test_classification_chain_builds_discovery_lattice_without_contradiction() -
     assert isinstance(lattice, dict)
     assert lattice["schema"] == CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA
 
-    classified_as = [edge for edge in lattice["edges"] if edge["type"] == "classified_as"]
-    reclass = [edge for edge in lattice["edges"] if edge["type"] == "discovery_reclassification"]
+    classified_as = [
+        edge for edge in lattice["edges"] if edge["type"] == "classified_as"
+    ]
+    reclass = [
+        edge
+        for edge in lattice["edges"]
+        if edge["type"] == "discovery_reclassification"
+    ]
     assert len(classified_as) == 4
     assert len(reclass) == 3
     assert all(edge["relation_type"] == "same" for edge in classified_as)
@@ -164,15 +232,21 @@ def test_classification_chain_builds_discovery_lattice_without_contradiction() -
         "biological_taxon",
     }
     assert all(item["status"] != "exclusive_contradiction" for item in classified_as)
-    assert all(item["residual_level"] != "contradiction" for item in lattice.get("residual_receipts", []))
+    assert all(
+        item["residual_level"] != "contradiction"
+        for item in lattice.get("residual_receipts", [])
+    )
 
 
-def test_classification_positive_and_negative_same_subject_class_is_core_contradiction() -> None:
+def test_classification_positive_and_negative_same_subject_class_is_core_contradiction() -> (
+    None
+):
     payload = _collect_chain_payload("6 is a dolphin, 6 is not a dolphin.")
     lattice = payload["classification_lattice"]
     assert lattice["residual_receipts"]
     assert any(
-        item["status"] == "exclusive_contradiction" and item["residual_level"] == "contradiction"
+        item["status"] == "exclusive_contradiction"
+        and item["residual_level"] == "contradiction"
         for item in lattice.get("residual_receipts", [])
     )
 
@@ -189,7 +263,9 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
         ],
     )
     lattice = payload["classification_lattice"]
-    statuses = {edge["status"] for edge in lattice["edges"] if edge["type"] == "class_relation"}
+    statuses = {
+        edge["status"] for edge in lattice["edges"] if edge["type"] == "class_relation"
+    }
     assert "refinement_candidate" in statuses
     refinement_edges = [
         edge
@@ -201,10 +277,14 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
     assert refinement_edges[0]["relation_root"] == "supports"
     assert refinement_edges[0]["relation_basis"] == "explicit_witness"
 
-    payload_without_witness = _collect_chain_payload("6 is a j-invariant. 6 is a dolphin.")
+    payload_without_witness = _collect_chain_payload(
+        "6 is a j-invariant. 6 is a dolphin."
+    )
     lattice_without = payload_without_witness["classification_lattice"]
     statuses_without = {
-        edge["status"] for edge in lattice_without["edges"] if edge["type"] == "class_relation"
+        edge["status"]
+        for edge in lattice_without["edges"]
+        if edge["type"] == "class_relation"
     }
     assert "cross_domain_gap" in statuses_without
     gap_edges = [
@@ -229,12 +309,17 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
         ],
     )
     lattice_exclusive = payload_exclusive["classification_lattice"]
-    class_statuses = {edge["status"] for edge in lattice_exclusive["edges"] if edge["type"] == "class_relation"}
+    class_statuses = {
+        edge["status"]
+        for edge in lattice_exclusive["edges"]
+        if edge["type"] == "class_relation"
+    }
     assert "exclusive_contradiction" in class_statuses
     exclusive_edges = [
         edge
         for edge in lattice_exclusive["edges"]
-        if edge["type"] == "class_relation" and edge["status"] == "exclusive_contradiction"
+        if edge["type"] == "class_relation"
+        and edge["status"] == "exclusive_contradiction"
     ]
     assert exclusive_edges
     assert exclusive_edges[0]["relation_type"] == "excluded_by_witness"
@@ -254,7 +339,9 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
     )
     lattice_weak = payload_weak["classification_lattice"]
     class_statuses_weak = {
-        edge["status"] for edge in lattice_weak["edges"] if edge["type"] == "class_relation"
+        edge["status"]
+        for edge in lattice_weak["edges"]
+        if edge["type"] == "class_relation"
     }
     assert "unsupported_out_of_domain_candidate" in class_statuses_weak
 
@@ -271,7 +358,9 @@ def test_alias_witness_collapses_equivalent_class_labels() -> None:
         ],
     )
     lattice = payload["classification_lattice"]
-    class_nodes = [node["value"] for node in lattice["nodes"] if node["kind"] == "class"]
+    class_nodes = [
+        node["value"] for node in lattice["nodes"] if node["kind"] == "class"
+    ]
     assert len(set(class_nodes)) == 1
 
 

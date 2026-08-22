@@ -16,7 +16,7 @@ def _make_document() -> Document:
     )
     body = (
         'In this Act, "Employee" means a person. '
-        'In this Act, “Employer” means a company.'
+        "In this Act, “Employer” means a company."
     )
     return Document(meta, body)
 
@@ -34,10 +34,9 @@ def test_span_role_hypotheses_regenerate(tmp_path) -> None:
 
         first = store.list_span_role_hypotheses(doc_id, rev_id)
         assert first
-        assert (
-            doc.body[first[0].span_start:first[0].span_end]
-            == first[0].metadata.get("term_text")
-        )
+        assert doc.body[first[0].span_start : first[0].span_end] == first[
+            0
+        ].metadata.get("term_text")
 
         snapshot = store.snapshot(doc_id, doc.metadata.date)
         assert snapshot is not None

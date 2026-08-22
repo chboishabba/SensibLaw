@@ -62,7 +62,9 @@ def _nonempty_strings(values: Sequence[Any]) -> list[str]:
     return out
 
 
-def _normalize_ref_items(values: Sequence[Any], *, keys: Sequence[str]) -> list[dict[str, Any]]:
+def _normalize_ref_items(
+    values: Sequence[Any], *, keys: Sequence[str]
+) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for value in values:
         if not isinstance(value, Mapping):
@@ -94,8 +96,12 @@ def build_sb_to_sl_contract_payload(
         else {}
     )
     payload = {
-        "compiled_state_id": _normalize_opt_text(suite_normalized_artifact.get("artifact_id")),
-        "compiled_state_version": _normalize_opt_text(suite_normalized_artifact.get("schema_version")),
+        "compiled_state_id": _normalize_opt_text(
+            suite_normalized_artifact.get("artifact_id")
+        ),
+        "compiled_state_version": _normalize_opt_text(
+            suite_normalized_artifact.get("schema_version")
+        ),
         "follow_obligation": (
             dict(suite_normalized_artifact.get("follow_obligation"))
             if isinstance(suite_normalized_artifact.get("follow_obligation"), Mapping)
@@ -103,7 +109,9 @@ def build_sb_to_sl_contract_payload(
         ),
         "legal_follow_pressure": (
             dict(suite_normalized_artifact.get("legal_follow_pressure"))
-            if isinstance(suite_normalized_artifact.get("legal_follow_pressure"), Mapping)
+            if isinstance(
+                suite_normalized_artifact.get("legal_follow_pressure"), Mapping
+            )
             else None
         ),
         "unresolved_pressure_status": _normalize_opt_text(
@@ -116,7 +124,9 @@ def build_sb_to_sl_contract_payload(
                 provenance_anchor.get("anchor_ref"),
             ]
         ),
-        "source_artifact_refs": _nonempty_strings(lineage.get("upstream_artifact_ids") or []),
+        "source_artifact_refs": _nonempty_strings(
+            lineage.get("upstream_artifact_ids") or []
+        ),
         "observer_overlay_refs": _normalize_ref_items(
             observer_overlay_refs or [],
             keys=("annotation_id", "observer_kind", "state_date", "sb_state_id"),
@@ -134,7 +144,11 @@ def validate_sb_to_sl_contract_payload(payload: Mapping[str, Any]) -> list[str]:
     keys = set(payload)
     forbidden = sorted(keys & SB_TO_SL_FORBIDDEN_FIELDS)
     errors.extend(f"forbidden SB->SL field: {field}" for field in forbidden)
-    unknown = sorted(key for key in keys if key not in SB_TO_SL_ALLOWED_FIELDS and key not in SB_TO_SL_FORBIDDEN_FIELDS)
+    unknown = sorted(
+        key
+        for key in keys
+        if key not in SB_TO_SL_ALLOWED_FIELDS and key not in SB_TO_SL_FORBIDDEN_FIELDS
+    )
     errors.extend(f"unsupported SB->SL field: {field}" for field in unknown)
 
     if not _normalize_opt_text(payload.get("compiled_state_id")):
@@ -157,11 +171,17 @@ def validate_sb_to_sl_contract_payload(payload: Mapping[str, Any]) -> list[str]:
             pressure_version = _normalize_opt_text(legal_follow_pressure.get("version"))
             pressure_value = _normalize_opt_text(legal_follow_pressure.get("value"))
             if pressure_kind is None:
-                errors.append("legal_follow_pressure.kind required when legal_follow_pressure is present")
+                errors.append(
+                    "legal_follow_pressure.kind required when legal_follow_pressure is present"
+                )
             if pressure_version is None:
-                errors.append("legal_follow_pressure.version required when legal_follow_pressure is present")
+                errors.append(
+                    "legal_follow_pressure.version required when legal_follow_pressure is present"
+                )
             if pressure_value is None:
-                errors.append("legal_follow_pressure.value required when legal_follow_pressure is present")
+                errors.append(
+                    "legal_follow_pressure.value required when legal_follow_pressure is present"
+                )
 
     for index, ref in enumerate(payload.get("casey_observer_refs") or []):
         if not isinstance(ref, Mapping):
@@ -169,11 +189,18 @@ def validate_sb_to_sl_contract_payload(payload: Mapping[str, Any]) -> list[str]:
             continue
         for field in ref:
             if field not in _CASEY_ALLOWED_REF_FIELDS:
-                errors.append(f"casey_observer_refs[{index}] unsupported field: {field}")
+                errors.append(
+                    f"casey_observer_refs[{index}] unsupported field: {field}"
+                )
         receipt_hash = _normalize_opt_text(ref.get("receipt_hash"))
         if receipt_hash is not None and not _HEX64.fullmatch(receipt_hash):
-            errors.append(f"casey_observer_refs[{index}].receipt_hash must be 64 hex chars")
-        if not any(_normalize_opt_text(ref.get(field)) for field in ("workspace_id", "operation_id", "build_id")):
+            errors.append(
+                f"casey_observer_refs[{index}].receipt_hash must be 64 hex chars"
+            )
+        if not any(
+            _normalize_opt_text(ref.get(field))
+            for field in ("workspace_id", "operation_id", "build_id")
+        ):
             errors.append(
                 f"casey_observer_refs[{index}] requires workspace_id, operation_id, or build_id"
             )
@@ -188,7 +215,9 @@ def build_compliance_evidence_bundle(
     semantic_evidence_refs: Sequence[str] | None = None,
     native_artifact_refs: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    payload = dict(sb_contract_payload) if isinstance(sb_contract_payload, Mapping) else {}
+    payload = (
+        dict(sb_contract_payload) if isinstance(sb_contract_payload, Mapping) else {}
+    )
     errors = validate_sb_to_sl_contract_payload(payload) if payload else []
     if errors:
         raise ValueError("; ".join(errors))
@@ -204,8 +233,12 @@ def build_compliance_evidence_bundle(
                 [
                     f"legal_follow_pressure:{value}"
                     for value in (
-                        _normalize_opt_text((payload.get("legal_follow_pressure") or {}).get("value")),
-                        _normalize_opt_text((payload.get("legal_follow_pressure") or {}).get("version")),
+                        _normalize_opt_text(
+                            (payload.get("legal_follow_pressure") or {}).get("value")
+                        ),
+                        _normalize_opt_text(
+                            (payload.get("legal_follow_pressure") or {}).get("version")
+                        ),
                     )
                     if value
                 ]
@@ -218,7 +251,9 @@ def build_compliance_evidence_bundle(
                 if isinstance(ref, Mapping)
             ],
             *[
-                ref.get("operation_id") or ref.get("build_id") or ref.get("workspace_id")
+                ref.get("operation_id")
+                or ref.get("build_id")
+                or ref.get("workspace_id")
                 for ref in payload.get("casey_observer_refs", [])
                 if isinstance(ref, Mapping)
             ],

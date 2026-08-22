@@ -11,7 +11,9 @@ from src.ontology.wikidata_lane_status import (
 )
 
 
-def test_wikidata_lane_status_runs_real_lane_builders_and_classifies_dependencies() -> None:
+def test_wikidata_lane_status_runs_real_lane_builders_and_classifies_dependencies() -> (
+    None
+):
     report = build_wikidata_lane_status()
 
     assert report["schema_version"] == WIKIDATA_LANE_STATUS_SCHEMA_VERSION
@@ -49,8 +51,14 @@ def test_wikidata_lane_status_runs_real_lane_builders_and_classifies_dependencie
     assert by_id["disjointness_report"]["dependency_class"] == "direct_zelph"
     assert by_id["nat_live_follow_preflight"]["dependency_class"] == "adjacent_live"
     assert by_id["hotspot_eval"]["dependency_class"] == "review_geometry"
-    assert by_id["disjointness_report"]["normalized_bundle_summary"]["promotion_status"] == "candidate_only"
-    assert by_id["disjointness_report"]["latent_slice_graph_summary"]["flatness_posture"] == "projection_flat"
+    assert (
+        by_id["disjointness_report"]["normalized_bundle_summary"]["promotion_status"]
+        == "candidate_only"
+    )
+    assert (
+        by_id["disjointness_report"]["latent_slice_graph_summary"]["flatness_posture"]
+        == "projection_flat"
+    )
     assert by_id["disjointness_report"]["zelph_lane_proof_summary"] == {
         "schema_version": "sl.wikidata_zelph_lane_proof.v0_1",
         "proof_scope": "bounded_local_direct_zelph",
@@ -75,7 +83,10 @@ def test_wikidata_lane_status_runs_real_lane_builders_and_classifies_dependencie
         "hosted_wd_dependency_status": "not_blocking",
         "query_pressure_count": 2,
     }
-    assert by_id["hotspot_eval"]["latent_slice_graph_summary"]["flatness_posture"] == "projection_flat"
+    assert (
+        by_id["hotspot_eval"]["latent_slice_graph_summary"]["flatness_posture"]
+        == "projection_flat"
+    )
 
 
 def test_wikidata_lane_bundle_emits_shared_review_contract() -> None:
@@ -121,7 +132,9 @@ def test_wikidata_lane_graph_emits_latent_slice_graph_and_flatness_indicators() 
     }
 
 
-def test_wikidata_lane_flatness_audit_flags_projection_loss_before_renderer_work() -> None:
+def test_wikidata_lane_flatness_audit_flags_projection_loss_before_renderer_work() -> (
+    None
+):
     audit = build_wikidata_lane_flatness_audit()
 
     assert audit["schema_version"] == "sl.wikidata_lane_flatness_audit.v0_1"
@@ -145,7 +158,9 @@ def test_wikidata_lane_flatness_audit_flags_projection_loss_before_renderer_work
         "primary_owner": "data_projection_diagnostics",
     }
     by_id = {row["lane_id"]: row for row in audit["lanes"]}
-    assert by_id["hotspot_eval"]["non_visual_diagnosis"] == "projection_identity_collapse"
+    assert (
+        by_id["hotspot_eval"]["non_visual_diagnosis"] == "projection_identity_collapse"
+    )
     assert by_id["hotspot_eval"]["emission_diagnostics"] == {
         "emitted_node_count": 20,
         "emitted_edge_count": 19,
@@ -156,8 +171,14 @@ def test_wikidata_lane_flatness_audit_flags_projection_loss_before_renderer_work
             "property:entity_kind_collapse:hotspot_family": 8,
         },
     }
-    assert by_id["hotspot_eval"]["renderer_followup_status"] == "defer_to_itir_svelte_priority_list"
-    assert by_id["disjointness_report"]["non_visual_diagnosis"] == "star_projection_shallow"
+    assert (
+        by_id["hotspot_eval"]["renderer_followup_status"]
+        == "defer_to_itir_svelte_priority_list"
+    )
+    assert (
+        by_id["disjointness_report"]["non_visual_diagnosis"]
+        == "star_projection_shallow"
+    )
 
 
 def test_wikidata_lane_proof_emits_bounded_direct_zelph_surface() -> None:
@@ -188,14 +209,24 @@ def test_wikidata_lane_proof_emits_bounded_direct_zelph_surface() -> None:
         "culprit_class_count": 1,
         "culprit_item_count": 0,
     }
-    assert proof["transport_artifact"]["summary"]["manifest_version"] == "zelph-hf-layout/v2"
+    assert (
+        proof["transport_artifact"]["summary"]["manifest_version"]
+        == "zelph-hf-layout/v2"
+    )
     assert proof["transport_artifact"]["summary"]["selected_shard_count"] == 5
-    assert proof["transport_artifact"]["review_packet_projection"]["transport_capabilities"] == {
+    assert proof["transport_artifact"]["review_packet_projection"][
+        "transport_capabilities"
+    ] == {
         "manifest_version": "zelph-hf-layout/v2",
         "transport_primary": "hf-object-fetch",
         "node_route_index": True,
         "selected_chunk_read": True,
-        "supported_operations": ["header-probe", "selected-chunk-read", "node-route", "sparql-subset"],
+        "supported_operations": [
+            "header-probe",
+            "selected-chunk-read",
+            "node-route",
+            "sparql-subset",
+        ],
         "supported_sections": ["left", "right", "nameOfNode", "nodeOfName"],
         "backend_capabilities": {
             "predicate_index_persistence": True,

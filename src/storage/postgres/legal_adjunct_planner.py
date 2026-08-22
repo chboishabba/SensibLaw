@@ -81,7 +81,9 @@ def load_normative_interaction_demands(
                 "demand_ref": str(demand_ref),
                 "factor_ref": str(factor_ref),
                 "factor_revision_ref": str(factor_revision_ref),
-                "structural_signature_ref": signature_values[0] if signature_values else "",
+                "structural_signature_ref": signature_values[0]
+                if signature_values
+                else "",
                 "requested_facets": normalized_facets,
                 "provenance_refs": (
                     str(factor_revision_ref),

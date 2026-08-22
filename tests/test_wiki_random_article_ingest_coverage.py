@@ -18,13 +18,15 @@ from scripts.report_wiki_random_article_ingest_coverage import (
     compute_regime_similarity_score,
     compute_richness_score,
     build_article_ingest_report,
-    build_article_sentence_surface,
     main,
     score_snapshot_payload,
 )
+from src.wiki_timeline.article_state import build_article_sentence_surface
 
 
-def _write_snapshot(tmp_path: Path, *, name: str, title: str, text: str, links: list[str] | None = None) -> Path:
+def _write_snapshot(
+    tmp_path: Path, *, name: str, title: str, text: str, links: list[str] | None = None
+) -> Path:
     path = tmp_path / name
     path.write_text(
         json.dumps(
@@ -98,7 +100,11 @@ def test_follow_target_quality_and_path_scoring_match_requested_formula() -> Non
     assert math.isclose(details["non_list_score"], 1.0, abs_tol=1e-6)
     assert math.isclose(details["regime_similarity_score"], 0.59, abs_tol=1e-6)
     assert math.isclose(details["information_gain_score"], 0.916667, abs_tol=1e-6)
-    assert math.isclose(details["follow_target_quality_score"], expected_follow_target_quality, abs_tol=1e-6)
+    assert math.isclose(
+        details["follow_target_quality_score"],
+        expected_follow_target_quality,
+        abs_tol=1e-6,
+    )
 
     hop2 = {
         "regime": {"narrative": 0.3, "descriptive": 0.6, "formal": 0.1},
@@ -170,15 +176,29 @@ def test_follow_target_quality_marks_admin_place_adjacency_as_list_like() -> Non
 
     details = compute_follow_target_quality(root, follow)
     assert "shared_tail_locality_sibling" in details["specificity_title_markers"]
-    assert details["primary_failure_bucket"] in {"thin_follow", "low_information_gain_follow"}
+    assert details["primary_failure_bucket"] in {
+        "thin_follow",
+        "low_information_gain_follow",
+    }
     assert details["non_list_score"] <= 0.25
-    assert details["list_follow_subtype"] == "generic_continuation_routing_to_low_information"
+    assert (
+        details["list_follow_subtype"]
+        == "generic_continuation_routing_to_low_information"
+    )
 
 
 def test_follow_target_quality_marks_year_umbrella_pages_as_list_like() -> None:
     root = {
         "title": "2007 World Table Tennis Championships – Women's doubles",
-        "key_terms": ["2007", "world", "table", "tennis", "championships", "women", "doubles"],
+        "key_terms": [
+            "2007",
+            "world",
+            "table",
+            "tennis",
+            "championships",
+            "women",
+            "doubles",
+        ],
         "regime": {"narrative": 0.35, "descriptive": 0.6, "formal": 0.05},
     }
     follow = {
@@ -194,11 +214,19 @@ def test_follow_target_quality_marks_year_umbrella_pages_as_list_like() -> None:
     details = compute_follow_target_quality(root, follow)
     assert "umbrella_title" in details["specificity_title_markers"]
     assert "same_neighborhood_low_lift" in details["specificity_no_lift_markers"]
-    assert details["primary_failure_bucket"] in {"thin_follow", "low_information_gain_follow"}
-    assert details["list_follow_subtype"] == "generic_continuation_routing_to_low_information"
+    assert details["primary_failure_bucket"] in {
+        "thin_follow",
+        "low_information_gain_follow",
+    }
+    assert (
+        details["list_follow_subtype"]
+        == "generic_continuation_routing_to_low_information"
+    )
 
 
-def test_follow_target_quality_prefers_low_information_for_substantial_generic_continuation() -> None:
+def test_follow_target_quality_prefers_low_information_for_substantial_generic_continuation() -> (
+    None
+):
     root = {
         "title": "Fernandes",
         "key_terms": ["fernandes"],
@@ -237,7 +265,10 @@ def test_follow_target_quality_marks_parent_child_generalization_as_list_like() 
     details = compute_follow_target_quality(root, follow)
     assert "parent_child_generalization" in details["specificity_title_markers"]
     assert details["primary_failure_bucket"] == "list_like_follow"
-    assert details["list_like_penalty_reason"] == "parent_child_generalization_with_weak_lift"
+    assert (
+        details["list_like_penalty_reason"]
+        == "parent_child_generalization_with_weak_lift"
+    )
     assert details["list_follow_subtype"] == "parent_child_aggregation"
     assert "parent_child_generalization" in details["information_gain_reason_markers"]
     assert "parent_child_generalization" in details["information_gain_penalty_markers"]
@@ -266,7 +297,15 @@ def test_follow_target_quality_keeps_true_stub_as_thin_follow() -> None:
 def test_information_gain_penalizes_year_umbrella_generalization() -> None:
     root = {
         "title": "2007 World Table Tennis Championships – Women's doubles",
-        "key_terms": ["2007", "world", "table", "tennis", "championships", "women", "doubles"],
+        "key_terms": [
+            "2007",
+            "world",
+            "table",
+            "tennis",
+            "championships",
+            "women",
+            "doubles",
+        ],
     }
     follow = {
         "title": "1928 World Table Tennis Championships",
@@ -283,7 +322,13 @@ def test_information_gain_penalizes_year_umbrella_generalization() -> None:
 def test_information_gain_penalizes_broad_competition_parent() -> None:
     root = {
         "title": "Gösta Magnusson",
-        "key_terms": ["gosta", "magnusson", "weightlifting", "european", "championships"],
+        "key_terms": [
+            "gosta",
+            "magnusson",
+            "weightlifting",
+            "european",
+            "championships",
+        ],
     }
     follow = {
         "title": "European Weightlifting Championships",
@@ -377,14 +422,19 @@ def test_information_gain_penalizes_generic_disconnected_follow_pages() -> None:
     }
 
     profile = compute_information_gain_profile(root, follow)
-    expected_score = max(0.0, profile["base_information_gain_score"] - profile["information_gain_penalty"])
+    expected_score = max(
+        0.0,
+        profile["base_information_gain_score"] - profile["information_gain_penalty"],
+    )
     assert math.isclose(profile["information_gain_score"], expected_score, abs_tol=1e-9)
     assert "weak_root_term_overlap" in profile["information_gain_reason_markers"]
     assert "weak_root_term_overlap" in profile["information_gain_penalty_markers"]
     assert profile["information_gain_penalty"] > 0.0
 
 
-def test_information_gain_keeps_umbrella_title_as_reason_without_low_lift_penalty() -> None:
+def test_information_gain_keeps_umbrella_title_as_reason_without_low_lift_penalty() -> (
+    None
+):
     root = {
         "title": "Gösta Magnusson",
         "key_terms": ["gosta", "magnusson", "sweden", "athlete"],
@@ -407,14 +457,23 @@ def test_information_gain_keeps_umbrella_title_as_reason_without_low_lift_penalt
     assert profile["information_gain_score"] > profile["base_information_gain_score"]
 
 
-def test_information_gain_can_receive_content_lift_bonus_without_title_penalty() -> None:
+def test_information_gain_can_receive_content_lift_bonus_without_title_penalty() -> (
+    None
+):
     root = {
         "title": "Agrega",
         "key_terms": ["agrega", "project", "repository", "schools"],
     }
     follow = {
         "title": "Educational metadata standards",
-        "key_terms": ["educational", "metadata", "standards", "repositories", "interoperability", "schools"],
+        "key_terms": [
+            "educational",
+            "metadata",
+            "standards",
+            "repositories",
+            "interoperability",
+            "schools",
+        ],
         "article_aao_event_count": 6,
         "action_event_count": 6,
         "object_event_count": 4,
@@ -430,10 +489,20 @@ def test_information_gain_can_receive_content_lift_bonus_without_title_penalty()
 
 
 def test_content_lift_profile_reports_relation_and_novel_term_support() -> None:
-    root = {"title": "Agrega", "key_terms": ["agrega", "project", "repository", "schools"]}
+    root = {
+        "title": "Agrega",
+        "key_terms": ["agrega", "project", "repository", "schools"],
+    }
     follow = {
         "title": "Educational metadata standards",
-        "key_terms": ["educational", "metadata", "standards", "repositories", "interoperability", "schools"],
+        "key_terms": [
+            "educational",
+            "metadata",
+            "standards",
+            "repositories",
+            "interoperability",
+            "schools",
+        ],
         "article_aao_event_count": 6,
         "action_event_count": 6,
         "object_event_count": 4,
@@ -466,13 +535,20 @@ def test_follow_target_quality_marks_broad_generic_parent_as_list_like() -> None
 
     details = compute_follow_target_quality(root, follow)
     assert "short_broad_generalization" in details["specificity_lexical_markers"]
-    assert details["primary_failure_bucket"] in {"thin_follow", "low_information_gain_follow"}
+    assert details["primary_failure_bucket"] in {
+        "thin_follow",
+        "low_information_gain_follow",
+    }
     assert details["primary_specificity_reason"] == "short_broad_generalization"
     assert "short_broad_generalization" in details["information_gain_reason_markers"]
-    assert "short_broad_generalization" not in details["information_gain_penalty_markers"]
+    assert (
+        "short_broad_generalization" not in details["information_gain_penalty_markers"]
+    )
 
 
-def test_score_snapshot_payload_reports_canonical_state_and_follow_usage(tmp_path: Path) -> None:
+def test_score_snapshot_payload_reports_canonical_state_and_follow_usage(
+    tmp_path: Path,
+) -> None:
     follow_snapshot_path = _write_snapshot(
         tmp_path,
         name="cat.json",
@@ -517,10 +593,17 @@ def test_score_snapshot_payload_reports_canonical_state_and_follow_usage(tmp_pat
     assert row["scores"]["observation_density_score"] > 0.0
     assert row["density_metrics"]["observations_per_sentence"] > 0.0
     assert row["timeline_projection"]["event_count"] == row["article_aao_event_count"]
-    assert "none" in row["timeline_projection"]["anchor_status_counts"] or "explicit" in row["timeline_projection"]["anchor_status_counts"]
+    assert (
+        "none" in row["timeline_projection"]["anchor_status_counts"]
+        or "explicit" in row["timeline_projection"]["anchor_status_counts"]
+    )
     assert row["timeline_readiness"]["scores"]["overall_readiness_score"] > 0.0
     assert row["timeline_honesty"]["timeline_honesty_score"] is not None
-    assert row["page_profile"]["family"] in {"general", "project_institution", "facility"}
+    assert row["page_profile"]["family"] in {
+        "general",
+        "project_institution",
+        "facility",
+    }
 
 
 def test_score_snapshot_payload_handles_missing_wikitext_snapshot() -> None:
@@ -618,14 +701,22 @@ def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
         "follow_hops": 1,
         "max_follow_links_per_page": 2,
         "samples": [
-            {"snapshot_path": str(strong_path), "followed_samples": [{"title": "Cat", "snapshot_path": str(cat_path)}]},
+            {
+                "snapshot_path": str(strong_path),
+                "followed_samples": [{"title": "Cat", "snapshot_path": str(cat_path)}],
+            },
             {"snapshot_path": str(weak_path), "followed_samples": []},
         ],
     }
 
     report = build_article_ingest_report(manifest, emit_page_rows=True, no_spacy=True)
-    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_11"
-    assert report["supported_surface"]["canonical_state_surface"] == "wiki_article_state_v0_1"
+    assert (
+        report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_11"
+    )
+    assert (
+        report["supported_surface"]["canonical_state_surface"]
+        == "wiki_article_state_v0_1"
+    )
     assert report["summary"]["page_count"] == 2
     assert report["summary"]["pages_with_article_sentences"] == 2
     assert report["summary"]["pages_with_article_aao_events"] >= 1
@@ -688,7 +779,9 @@ def test_article_ingest_main_writes_report(tmp_path: Path, capsys) -> None:
                 "samples": [
                     {
                         "snapshot_path": str(snapshot_path),
-                        "followed_samples": [{"title": "Cat", "snapshot_path": str(cat_path)}],
+                        "followed_samples": [
+                            {"title": "Cat", "snapshot_path": str(cat_path)}
+                        ],
                     }
                 ],
             }
@@ -711,7 +804,9 @@ def test_article_ingest_main_writes_report(tmp_path: Path, capsys) -> None:
     assert report_path.exists()
     assert payload["summary"]["page_count"] == 1
     assert payload["pages"][0]["title"] == "Article example"
-    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_11"
+    assert (
+        payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_11"
+    )
 
 
 def test_event_has_action_and_object_detection() -> None:
@@ -742,7 +837,9 @@ def test_page_row_from_outputs_flags_missing_surfaces() -> None:
                 "anchor_status": "none",
             }
         ],
-        "timeline_projection": [{"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}],
+        "timeline_projection": [
+            {"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}
+        ],
     }
 
     row = _page_row_from_outputs(
@@ -764,7 +861,12 @@ def test_page_row_from_outputs_flags_missing_surfaces() -> None:
     test_payload_no_sentences = {"title": "Test 2"}
     row_no_sentences = _page_row_from_outputs(
         test_payload_no_sentences,
-        {"sentence_units": [], "observations": [], "event_candidates": [], "timeline_projection": []},
+        {
+            "sentence_units": [],
+            "observations": [],
+            "event_candidates": [],
+            "timeline_projection": [],
+        },
         {},
         {},
         follow_rows=[],
@@ -774,7 +876,12 @@ def test_page_row_from_outputs_flags_missing_surfaces() -> None:
 
     row_no_aao = _page_row_from_outputs(
         test_payload_no_sentences,
-        {"sentence_units": article_state["sentence_units"], "observations": [], "event_candidates": [], "timeline_projection": []},
+        {
+            "sentence_units": article_state["sentence_units"],
+            "observations": [],
+            "event_candidates": [],
+            "timeline_projection": [],
+        },
         {},
         {},
         follow_rows=[],
@@ -787,8 +894,12 @@ def test_page_row_from_outputs_flags_missing_surfaces() -> None:
         {
             "sentence_units": article_state["sentence_units"],
             "observations": [],
-            "event_candidates": [{"event_id": "art:0001", "action": "happened", "anchor_status": "none"}],
-            "timeline_projection": [{"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}],
+            "event_candidates": [
+                {"event_id": "art:0001", "action": "happened", "anchor_status": "none"}
+            ],
+            "timeline_projection": [
+                {"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}
+            ],
         },
         {},
         {},
@@ -802,7 +913,11 @@ def test_page_row_from_outputs_penalizes_explosion_hygiene_and_weak_binding() ->
     payload = {"title": "Noisy Test", "links": []}
     article_state = {
         "sentence_units": [
-            {"event_id": "art:0001", "text": "Alpha.Beta [12]", "anchor_status": "none"},
+            {
+                "event_id": "art:0001",
+                "text": "Alpha.Beta [12]",
+                "anchor_status": "none",
+            },
         ],
         "observations": [{"observation_id": f"obs:{index:04d}"} for index in range(20)],
         "event_candidates": [
@@ -816,7 +931,9 @@ def test_page_row_from_outputs_penalizes_explosion_hygiene_and_weak_binding() ->
                 "anchor_status": "none",
             }
         ],
-        "timeline_projection": [{"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}],
+        "timeline_projection": [
+            {"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}
+        ],
     }
 
     row = _page_row_from_outputs(
@@ -835,7 +952,10 @@ def test_page_row_from_outputs_penalizes_explosion_hygiene_and_weak_binding() ->
     assert row["honesty_scores"]["article_ingest_honest_score"] == 0.0
     assert row["density_metrics"]["observations_per_sentence"] == 20.0
     assert row["density_metrics"]["observations_per_event"] == 20.0
-    assert row["text_hygiene_warnings"][0]["reason"] in {"citation_tail_residue", "smashed_sentence_join"}
+    assert row["text_hygiene_warnings"][0]["reason"] in {
+        "citation_tail_residue",
+        "smashed_sentence_join",
+    }
     assert "observation_explosion_high" in row["honesty_issues"]
     assert "weak_actor_action_binding" in row["honesty_issues"]
     assert "weak_object_binding" in row["honesty_issues"]
@@ -878,7 +998,9 @@ def test_page_row_from_outputs_reports_calibration_metrics_and_page_family() -> 
                 "actors": [{"text": "Bob"}],
                 "action": "deny",
                 "objects": ["claim"],
-                "attributions": [{"attribution_type": "according_to", "attributed_actor_id": "Alice"}],
+                "attributions": [
+                    {"attribution_type": "according_to", "attributed_actor_id": "Alice"}
+                ],
                 "claim_bearing": True,
                 "anchor_status": "none",
             },
@@ -908,12 +1030,20 @@ def test_page_row_from_outputs_reports_calibration_metrics_and_page_family() -> 
     assert row["claim_attribution_metrics"]["claim_attribution_grounding_score"] == 1.0
     assert row["calibration_scores"]["calibration_multiplier"] == 0.888889
     assert row["calibration_scores"]["article_ingest_calibrated_score"] > 0.0
-    assert row["regime_adjusted_scores"]["article_ingest_honest_score"] >= row["honesty_scores"]["article_ingest_honest_score"]
-    assert row["regime_calibration_scores"]["article_ingest_calibrated_score"] >= row["calibration_scores"]["article_ingest_calibrated_score"]
+    assert (
+        row["regime_adjusted_scores"]["article_ingest_honest_score"]
+        >= row["honesty_scores"]["article_ingest_honest_score"]
+    )
+    assert (
+        row["regime_calibration_scores"]["article_ingest_calibrated_score"]
+        >= row["calibration_scores"]["article_ingest_calibrated_score"]
+    )
     assert row["calibration_issues"] == []
 
 
-def test_page_row_from_outputs_penalizes_forced_structural_extraction_and_low_link_relevance() -> None:
+def test_page_row_from_outputs_penalizes_forced_structural_extraction_and_low_link_relevance() -> (
+    None
+):
     payload = {
         "title": "Example Moth",
         "categories": ["Category:Moths described in 1900"],
@@ -939,7 +1069,9 @@ def test_page_row_from_outputs_penalizes_forced_structural_extraction_and_low_li
                 "anchor_status": "none",
             }
         ],
-        "timeline_projection": [{"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}],
+        "timeline_projection": [
+            {"event_id": "art:0001", "order_index": 1, "anchor_status": "none"}
+        ],
     }
 
     row = _page_row_from_outputs(
@@ -1016,7 +1148,10 @@ def test_page_row_from_outputs_detects_formal_regime_bias() -> None:
 
     assert row["regime"]["formal"] > row["regime"]["narrative"]
     assert row["regime"]["formal"] > row["regime"]["descriptive"]
-    assert row["regime_adjusted_scores"]["article_ingest_honest_score"] >= row["honesty_scores"]["article_ingest_honest_score"]
+    assert (
+        row["regime_adjusted_scores"]["article_ingest_honest_score"]
+        >= row["honesty_scores"]["article_ingest_honest_score"]
+    )
 
 
 def test_page_row_from_outputs_classifies_biography_family() -> None:
@@ -1044,7 +1179,9 @@ def test_page_row_from_outputs_classifies_biography_family() -> None:
                 "anchor_status": "weak",
             }
         ],
-        "timeline_projection": [{"event_id": "art:0001", "order_index": 1, "anchor_status": "weak"}],
+        "timeline_projection": [
+            {"event_id": "art:0001", "order_index": 1, "anchor_status": "weak"}
+        ],
     }
 
     row = _page_row_from_outputs(
@@ -1064,11 +1201,27 @@ def test_page_row_from_outputs_reports_mixed_timeline_anchor_honesty() -> None:
     payload = {"title": "Anchor Mix", "links": []}
     article_state = {
         "sentence_units": [
-            {"event_id": "art:0001", "text": "On May 5, 2021, Jane arrived.", "anchor_status": "explicit"},
-            {"event_id": "art:0002", "text": "In 2021, she worked there.", "anchor_status": "weak"},
-            {"event_id": "art:0003", "text": "She later retired.", "anchor_status": "none"},
+            {
+                "event_id": "art:0001",
+                "text": "On May 5, 2021, Jane arrived.",
+                "anchor_status": "explicit",
+            },
+            {
+                "event_id": "art:0002",
+                "text": "In 2021, she worked there.",
+                "anchor_status": "weak",
+            },
+            {
+                "event_id": "art:0003",
+                "text": "She later retired.",
+                "anchor_status": "none",
+            },
         ],
-        "observations": [{"observation_id": "obs1"}, {"observation_id": "obs2"}, {"observation_id": "obs3"}],
+        "observations": [
+            {"observation_id": "obs1"},
+            {"observation_id": "obs2"},
+            {"observation_id": "obs3"},
+        ],
         "event_candidates": [
             {
                 "event_id": "art:0001",
@@ -1123,9 +1276,21 @@ def test_page_row_from_outputs_abstains_when_no_timeline_projection_exists() -> 
     row = _page_row_from_outputs(
         {"title": "No timeline"},
         {
-            "sentence_units": [{"event_id": "art:0001", "text": "Jane patted the cat.", "anchor_status": "none"}],
+            "sentence_units": [
+                {
+                    "event_id": "art:0001",
+                    "text": "Jane patted the cat.",
+                    "anchor_status": "none",
+                }
+            ],
             "observations": [{"observation_id": "obs1"}],
-            "event_candidates": [{"event_id": "art:0001", "text": "Jane patted the cat.", "action": "pat"}],
+            "event_candidates": [
+                {
+                    "event_id": "art:0001",
+                    "text": "Jane patted the cat.",
+                    "action": "pat",
+                }
+            ],
             "timeline_projection": [],
         },
         {},
@@ -1138,7 +1303,9 @@ def test_page_row_from_outputs_abstains_when_no_timeline_projection_exists() -> 
     assert row["timeline_honesty"]["timeline_honesty_score"] is None
 
 
-def test_build_article_ingest_report_tracks_dominant_regimes_and_follow_yield(tmp_path: Path) -> None:
+def test_build_article_ingest_report_tracks_dominant_regimes_and_follow_yield(
+    tmp_path: Path,
+) -> None:
     first_path = _write_snapshot(
         tmp_path,
         name="first.json",
@@ -1156,8 +1323,7 @@ def test_build_article_ingest_report_tracks_dominant_regimes_and_follow_yield(tm
         title="Second example",
         links=["Compact space"],
         text=(
-            "Theorem. Let X be a compact space.\n"
-            "There exists a continuous function f."
+            "Theorem. Let X be a compact space.\nThere exists a continuous function f."
         ),
     )
     root_link_path = _write_snapshot(
@@ -1201,10 +1367,19 @@ def test_build_article_ingest_report_tracks_dominant_regimes_and_follow_yield(tm
 
     assert report["summary"]["dominant_regime_counts"]["narrative"] >= 1
     assert report["summary"]["dominant_regime_counts"]["formal"] >= 1
-    assert report["summary"]["average_follow_yield_metrics"]["follow_yield_score"] is not None
+    assert (
+        report["summary"]["average_follow_yield_metrics"]["follow_yield_score"]
+        is not None
+    )
     assert report["summary"]["average_follow_target_quality"]["overall"] is not None
-    assert report["summary"]["average_two_hop_metrics"]["hop1_follow_target_quality"] is not None
+    assert (
+        report["summary"]["average_two_hop_metrics"]["hop1_follow_target_quality"]
+        is not None
+    )
     assert report["summary"]["average_best_path_metrics"]["best_path_score"] is not None
     assert report["summary"]["best_path_metrics"]["best_path_score"] is not None
     assert report["pages"][0]["follow_yield_metrics"]["follow_yield_score"] is not None
-    assert report["pages"][0]["follow_yield_metrics"]["follow_target_quality_score"] is not None
+    assert (
+        report["pages"][0]["follow_yield_metrics"]["follow_target_quality_score"]
+        is not None
+    )

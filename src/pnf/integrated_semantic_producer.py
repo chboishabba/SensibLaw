@@ -29,13 +29,9 @@ from src.pnf.semantic_fibres import (
 from src.policy.carriers.canonical import canonical_sha256
 
 
-INTEGRATED_PRODUCER_RECEIPT_SCHEMA_VERSION = (
-    "sl.pnf.integrated_producer_receipt.v0_1"
-)
+INTEGRATED_PRODUCER_RECEIPT_SCHEMA_VERSION = "sl.pnf.integrated_producer_receipt.v0_1"
 SUB_EXECUTOR_RECEIPT_SCHEMA_VERSION = "sl.pnf.sub_executor_receipt.v0_1"
-INTEGRATED_PRODUCER_CONTRACT_SCHEMA_VERSION = (
-    "sl.pnf.integrated_producer_contract.v0_1"
-)
+INTEGRATED_PRODUCER_CONTRACT_SCHEMA_VERSION = "sl.pnf.integrated_producer_contract.v0_1"
 
 _OPERATION_KINDS = {
     "observation",
@@ -197,9 +193,7 @@ class IntegratedProducerReceipt:
             "document_ref": self.document_ref,
             "contract_ref": self.contract_ref,
             "proposal_refs": list(_refs(self.proposal_refs)),
-            "sub_executor_receipt_refs": list(
-                _refs(self.sub_executor_receipt_refs)
-            ),
+            "sub_executor_receipt_refs": list(_refs(self.sub_executor_receipt_refs)),
             "fibre_ledger_ref": self.fibre_ledger_ref,
             "residual_refs": list(_refs(self.residual_refs)),
             "external_proposal_refs": list(_refs(self.external_proposal_refs)),
@@ -319,13 +313,9 @@ class IntegratedSemanticProducer:
                     "proposal coordinate disagrees with canonical coordinate"
                 )
             coordinates[coordinate.coordinate_ref] = coordinate
-            elements.append(
-                fibre_element_from_proposal_row(proposal.to_dict())
-            )
+            elements.append(fibre_element_from_proposal_row(proposal.to_dict()))
 
-        element_ref_by_proposal = {
-            row.content_ref: row.element_ref for row in elements
-        }
+        element_ref_by_proposal = {row.content_ref: row.element_ref for row in elements}
         derivations: list[FibreDerivation] = []
         for receipt in sub_executor_receipts:
             output_refs = tuple(
@@ -350,26 +340,14 @@ class IntegratedSemanticProducer:
             )
             for proposal_ref in receipt.proposal_refs:
                 if proposal_ref not in proposal_by_ref:
-                    raise ValueError(
-                        "sub-executor receipt refers to unknown proposal"
-                    )
+                    raise ValueError("sub-executor receipt refers to unknown proposal")
 
         return SemanticFibreLedger(
-            coordinates=tuple(
-                coordinates[key] for key in sorted(coordinates)
-            ),
-            elements=tuple(
-                sorted(elements, key=lambda row: row.element_ref)
-            ),
-            transports=tuple(
-                sorted(transports, key=lambda row: row.transport_ref)
-            ),
-            derivations=tuple(
-                sorted(derivations, key=lambda row: row.derivation_ref)
-            ),
-            ontology_axes=tuple(
-                sorted(ontology_axes, key=lambda row: row.axis_ref)
-            ),
+            coordinates=tuple(coordinates[key] for key in sorted(coordinates)),
+            elements=tuple(sorted(elements, key=lambda row: row.element_ref)),
+            transports=tuple(sorted(transports, key=lambda row: row.transport_ref)),
+            derivations=tuple(sorted(derivations, key=lambda row: row.derivation_ref)),
+            ontology_axes=tuple(sorted(ontology_axes, key=lambda row: row.axis_ref)),
             axis_obligations=tuple(
                 sorted(
                     axis_obligations,

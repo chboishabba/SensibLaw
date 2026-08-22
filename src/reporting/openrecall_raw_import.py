@@ -10,7 +10,10 @@ from typing import Any
 
 from src.reporting.openrecall_import import load_openrecall_source_rows
 from src.reporting.source_identity import format_local_iso_and_date_from_timestamp
-from src.reporting.source_loaders import find_timestamped_artifact_path, resolve_loader_path
+from src.reporting.source_loaders import (
+    find_timestamped_artifact_path,
+    resolve_loader_path,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,7 +136,9 @@ def import_openrecall_raw_rows(
     imported_count = 0
     for row in rows:
         ts = int(row["timestamp"])
-        captured_at, fallback_captured_date = format_local_iso_and_date_from_timestamp(ts)
+        captured_at, fallback_captured_date = format_local_iso_and_date_from_timestamp(
+            ts
+        )
         captured_date = (
             str(row["captured_date"] or fallback_captured_date)
             if "captured_date" in row.keys()
@@ -176,9 +181,15 @@ def import_openrecall_raw_rows(
                 str(row["app"] or ""),
                 str(row["title"] or ""),
                 str(row["text"] or ""),
-                str(row["normalized_text"] or "") if "normalized_text" in row.keys() else None,
-                str(row["normalization_version"] or "") if "normalization_version" in row.keys() else None,
-                str(row["normalization_issues_json"] or "") if "normalization_issues_json" in row.keys() else None,
+                str(row["normalized_text"] or "")
+                if "normalized_text" in row.keys()
+                else None,
+                str(row["normalization_version"] or "")
+                if "normalization_version" in row.keys()
+                else None,
+                str(row["normalization_issues_json"] or "")
+                if "normalization_issues_json" in row.keys()
+                else None,
                 str(screenshot_path) if screenshot_path is not None else None,
                 screenshot_hash,
                 1 if row["embedding"] is not None else 0,
@@ -200,7 +211,9 @@ def import_openrecall_raw_rows(
         source_db_path=str(resolved_source),
         source_entry_count=len(rows),
         imported_row_count=imported_count,
-        latest_source_timestamp=max((int(row["timestamp"]) for row in rows), default=None),
+        latest_source_timestamp=max(
+            (int(row["timestamp"]) for row in rows), default=None
+        ),
     )
 
 

@@ -139,7 +139,9 @@ def _upsert_rows(
 ) -> tuple[str, str]:
     run_id = data["run_id"]
     started_at = datetime.fromisoformat(data["run_time_utc"])
-    ended_at = started_at + timedelta(seconds=max(1, int(data["trace_vector"].get("steps", 1))))
+    ended_at = started_at + timedelta(
+        seconds=max(1, int(data["trace_vector"].get("steps", 1)))
+    )
     utterance_text = _build_utterance_text(data["trace_vector"])
     utterance_hash = hashlib.sha256(utterance_text.encode("utf-8")).hexdigest()
 
@@ -180,11 +182,15 @@ def _upsert_rows(
             ended_at.isoformat(timespec="seconds"),
             "qg_unification_bridge",
             hashlib.sha256(run_id.encode("utf-8")).hexdigest(),
-            hashlib.sha1(json.dumps(data["trace_vector"], sort_keys=True).encode("utf-8")).hexdigest(),
+            hashlib.sha1(
+                json.dumps(data["trace_vector"], sort_keys=True).encode("utf-8")
+            ).hexdigest(),
         ),
     )
     utterance_id = f"{session_id}:utt-1"
-    conn.execute("DELETE FROM qg_tirc_capture_utterances WHERE session_id = ?", (session_id,))
+    conn.execute(
+        "DELETE FROM qg_tirc_capture_utterances WHERE session_id = ?", (session_id,)
+    )
     conn.execute(
         """
         INSERT INTO qg_tirc_capture_utterances(
@@ -217,7 +223,9 @@ def _upsert_rows(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Persist a QG run into a TiRC/transcript capture-style sink.")
+    parser = argparse.ArgumentParser(
+        description="Persist a QG run into a TiRC/transcript capture-style sink."
+    )
     parser.add_argument("--run-id", required=True, help="Run identifier in bridge DB")
     parser.add_argument(
         "--bridge-db",
@@ -225,18 +233,46 @@ def main(argv: list[str] | None = None) -> int:
         help="SQLite DB written by qg_unification_stage2_bridge.py",
     )
     parser.add_argument("--itir-db", required=True, help="Destination SQLite DB")
-    parser.add_argument("--session-id", default="", help="Optional deterministic session identifier override")
-    parser.add_argument("--dry-run", action="store_true", help="Resolve and validate run, but do not write ITIR DB")
+    parser.add_argument(
+        "--session-id",
+        default="",
+        help="Optional deterministic session identifier override",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve and validate run, but do not write ITIR DB",
+    )
 
     args = parser.parse_args(argv)
     bridge_db = Path(args.bridge_db).expanduser().resolve()
     itir_db = Path(args.itir_db).expanduser().resolve()
 
     if not bridge_db.exists():
-        print(json.dumps({"error": "bridge_db_not_found", "bridge_db": str(bridge_db), "run_id": args.run_id}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {
+                    "error": "bridge_db_not_found",
+                    "bridge_db": str(bridge_db),
+                    "run_id": args.run_id,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 2
     if not itir_db.exists():
-        print(json.dumps({"error": "itir_db_not_found", "itir_db": str(itir_db), "run_id": args.run_id}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {
+                    "error": "itir_db_not_found",
+                    "itir_db": str(itir_db),
+                    "run_id": args.run_id,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 2
 
     try:
@@ -244,10 +280,18 @@ def main(argv: list[str] | None = None) -> int:
             row = _read_bridge_row(bridge_conn, args.run_id)
         payload = _coerce_payload(row)
     except Exception as exc:
-        print(json.dumps({"error": str(exc), "run_id": args.run_id, "bridge_db": str(bridge_db)}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {"error": str(exc), "run_id": args.run_id, "bridge_db": str(bridge_db)},
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 2
 
-    session_id = args.session_id.strip() or f"qg-unification:{payload['run_id']}:capture-session"
+    session_id = (
+        args.session_id.strip() or f"qg-unification:{payload['run_id']}:capture-session"
+    )
     if args.dry_run:
         print(
             json.dumps(

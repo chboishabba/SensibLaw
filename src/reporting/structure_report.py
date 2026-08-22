@@ -3,15 +3,19 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 import itertools
-import json
 from pathlib import Path
 import re
 import sqlite3
 from typing import Iterable
 
 from src.text.message_transcript import parse_message_header, parse_time_range_header
-from src.sensiblaw.interfaces.shared_reducer import collect_canonical_structure_occurrences
-from src.reporting.text_unit_builders import build_indexed_text_unit, build_timestamped_speaker_text
+from src.sensiblaw.interfaces.shared_reducer import (
+    collect_canonical_structure_occurrences,
+)
+from src.reporting.text_unit_builders import (
+    build_indexed_text_unit,
+    build_timestamped_speaker_text,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,7 +29,9 @@ class TextUnit:
 _TIMESTAMP_BULLET_RE = re.compile(
     r"^\s*[-*]\s+\[(?P<start>\d{2}:\d{2}:\d{2}[.,]\d{3})\s+-->\s+(?P<end>\d{2}:\d{2}:\d{2}[.,]\d{3})\]\s*(?P<text>.+?)\s*$"
 )
-_COURT_SPEAKER_RE = re.compile(r"^(?P<label>[A-Z][A-Z .,'’‑-]{1,96}|Q|A):\s*(?P<body>.*)$")
+_COURT_SPEAKER_RE = re.compile(
+    r"^(?P<label>[A-Z][A-Z .,'’‑-]{1,96}|Q|A):\s*(?P<body>.*)$"
+)
 _WRAPPED_SPEAKER_SUFFIX_RE = re.compile(r"^(?:SC|KC|CJ|DCJ|AC|JA|J|QC)\s*:\s*.*$")
 
 
@@ -36,7 +42,9 @@ def _trim_snippet(text: str, start: int, end: int, radius: int = 48) -> str:
     return snippet[:160]
 
 
-def _split_markdown_units(text: str, source_id: str, source_type: str) -> list[TextUnit]:
+def _split_markdown_units(
+    text: str, source_id: str, source_type: str
+) -> list[TextUnit]:
     units: list[TextUnit] = []
     lines = text.splitlines()
     buffer: list[str] = []
@@ -47,22 +55,43 @@ def _split_markdown_units(text: str, source_id: str, source_type: str) -> list[T
         if line.startswith("#"):
             if buffer:
                 count += 1
-                units.append(TextUnit(f"{source_id}#{count}", source_id, source_type, "\n".join(buffer).strip()))
+                units.append(
+                    TextUnit(
+                        f"{source_id}#{count}",
+                        source_id,
+                        source_type,
+                        "\n".join(buffer).strip(),
+                    )
+                )
                 buffer = []
-            current_label = stripped.lstrip("#").strip() or f"heading_{count+1}"
+            current_label = stripped.lstrip("#").strip() or f"heading_{count + 1}"
             buffer.append(line)
             continue
         if not stripped and buffer:
             count += 1
-            units.append(TextUnit(f"{source_id}#{count}", source_id, source_type, "\n".join(buffer).strip()))
+            units.append(
+                TextUnit(
+                    f"{source_id}#{count}",
+                    source_id,
+                    source_type,
+                    "\n".join(buffer).strip(),
+                )
+            )
             buffer = []
-            current_label = f"block_{count+1}"
+            current_label = f"block_{count + 1}"
             continue
         if stripped:
             buffer.append(line)
     if buffer:
         count += 1
-        units.append(TextUnit(f"{source_id}#{count}", source_id, source_type, "\n".join(buffer).strip()))
+        units.append(
+            TextUnit(
+                f"{source_id}#{count}",
+                source_id,
+                source_type,
+                "\n".join(buffer).strip(),
+            )
+        )
     if not units and text.strip():
         units.append(TextUnit(f"{source_id}#1", source_id, source_type, text.strip()))
     return units
@@ -86,7 +115,9 @@ def _split_transcript_units(text: str, source_id: str) -> list[TextUnit]:
         payload = "\n".join(current).strip()
         if payload:
             count += 1
-            structured_units.append(TextUnit(f"{source_id}#{count}", source_id, "transcript_file", payload))
+            structured_units.append(
+                TextUnit(f"{source_id}#{count}", source_id, "transcript_file", payload)
+            )
         current = []
 
     idx = 0
@@ -104,7 +135,10 @@ def _split_transcript_units(text: str, source_id: str) -> list[TextUnit]:
             while idx < len(lines):
                 nxt = lines[idx]
                 nxt_stripped = nxt.strip()
-                if parse_message_header(nxt_stripped) is not None or parse_time_range_header(nxt_stripped) is not None:
+                if (
+                    parse_message_header(nxt_stripped) is not None
+                    or parse_time_range_header(nxt_stripped) is not None
+                ):
                     break
                 current.append(nxt)
                 idx += 1
@@ -117,7 +151,10 @@ def _split_transcript_units(text: str, source_id: str) -> list[TextUnit]:
             while idx < len(lines):
                 nxt = lines[idx]
                 nxt_stripped = nxt.strip()
-                if parse_message_header(nxt_stripped) is not None or parse_time_range_header(nxt_stripped) is not None:
+                if (
+                    parse_message_header(nxt_stripped) is not None
+                    or parse_time_range_header(nxt_stripped) is not None
+                ):
                     break
                 current.append(nxt)
                 idx += 1
@@ -132,13 +169,24 @@ def _split_transcript_units(text: str, source_id: str) -> list[TextUnit]:
 
     blocks = [block.strip() for block in text.split("\n\n") if block.strip()]
     if not blocks:
-        return [TextUnit(f"{source_id}#1", source_id, "transcript_file", text.strip())] if text.strip() else []
-    return [TextUnit(f"{source_id}#{index}", source_id, "transcript_file", block) for index, block in enumerate(blocks, start=1)]
+        return (
+            [TextUnit(f"{source_id}#1", source_id, "transcript_file", text.strip())]
+            if text.strip()
+            else []
+        )
+    return [
+        TextUnit(f"{source_id}#{index}", source_id, "transcript_file", block)
+        for index, block in enumerate(blocks, start=1)
+    ]
 
 
-def _split_timestamp_bullet_transcript_units(text: str, source_id: str) -> list[TextUnit]:
+def _split_timestamp_bullet_transcript_units(
+    text: str, source_id: str
+) -> list[TextUnit]:
     lines = text.splitlines()
-    matches = [match for match in (_TIMESTAMP_BULLET_RE.match(line) for line in lines) if match]
+    matches = [
+        match for match in (_TIMESTAMP_BULLET_RE.match(line) for line in lines) if match
+    ]
     if len(matches) < 5:
         return []
 
@@ -153,8 +201,17 @@ def _split_timestamp_bullet_transcript_units(text: str, source_id: str) -> list[
         payload = " ".join(parts).strip()
         if payload:
             count += 1
-            label = f"[{chunk_start} -> {chunk_end}] " if chunk_start and chunk_end else ""
-            units.append(TextUnit(f"{source_id}#{count}", source_id, "transcript_file", f"{label}{payload}".strip()))
+            label = (
+                f"[{chunk_start} -> {chunk_end}] " if chunk_start and chunk_end else ""
+            )
+            units.append(
+                TextUnit(
+                    f"{source_id}#{count}",
+                    source_id,
+                    "transcript_file",
+                    f"{label}{payload}".strip(),
+                )
+            )
         parts = []
         chunk_start = None
         chunk_end = None
@@ -168,8 +225,7 @@ def _split_timestamp_bullet_transcript_units(text: str, source_id: str) -> list[
         chunk_end = str(match.group("end"))
         parts.append(segment_text)
         if (
-            segment_text.endswith((".", "?", "!"))
-            and len(" ".join(parts)) >= 180
+            segment_text.endswith((".", "?", "!")) and len(" ".join(parts)) >= 180
         ) or len(" ".join(parts)) >= 420:
             flush()
 
@@ -185,7 +241,11 @@ def _split_court_transcript_units(text: str, source_id: str) -> list[TextUnit]:
         stripped = raw_lines[idx].strip()
         if idx + 1 < len(raw_lines):
             next_stripped = raw_lines[idx + 1].strip()
-            if stripped and ":" not in stripped and _WRAPPED_SPEAKER_SUFFIX_RE.match(next_stripped):
+            if (
+                stripped
+                and ":" not in stripped
+                and _WRAPPED_SPEAKER_SUFFIX_RE.match(next_stripped)
+            ):
                 candidate = f"{stripped} {next_stripped}"
                 if _COURT_SPEAKER_RE.match(candidate):
                     lines.append(candidate)
@@ -194,15 +254,26 @@ def _split_court_transcript_units(text: str, source_id: str) -> list[TextUnit]:
         lines.append(raw_lines[idx])
         idx += 1
 
-    speaker_indexes = [index for index, line in enumerate(lines) if _COURT_SPEAKER_RE.match(line.strip())]
+    speaker_indexes = [
+        index
+        for index, line in enumerate(lines)
+        if _COURT_SPEAKER_RE.match(line.strip())
+    ]
     if not speaker_indexes:
         return []
 
     start_index = speaker_indexes[0]
-    transcript_marker_indexes = [index for index, line in enumerate(lines) if line.strip().upper() == "TRANSCRIPT OF PROCEEDINGS"]
+    transcript_marker_indexes = [
+        index
+        for index, line in enumerate(lines)
+        if line.strip().upper() == "TRANSCRIPT OF PROCEEDINGS"
+    ]
     if transcript_marker_indexes:
         marker_index = transcript_marker_indexes[0]
-        start_index = next((index for index in speaker_indexes if index > marker_index), speaker_indexes[0])
+        start_index = next(
+            (index for index in speaker_indexes if index > marker_index),
+            speaker_indexes[0],
+        )
 
     units: list[TextUnit] = []
     current: list[str] = []
@@ -214,7 +285,9 @@ def _split_court_transcript_units(text: str, source_id: str) -> list[TextUnit]:
         payload = "\n".join(current).strip()
         if payload:
             count += 1
-            units.append(TextUnit(f"{source_id}#{count}", source_id, "transcript_file", payload))
+            units.append(
+                TextUnit(f"{source_id}#{count}", source_id, "transcript_file", payload)
+            )
         current = []
 
     for line in lines[start_index:]:
@@ -247,12 +320,26 @@ def _split_shell_units(text: str, source_id: str) -> list[TextUnit]:
         if line.startswith(("$ ", "% ", "❯ ", "# ")):
             if buffer:
                 count += 1
-                units.append(TextUnit(f"{source_id}#{count}", source_id, "shell_log", "\n".join(buffer).strip()))
+                units.append(
+                    TextUnit(
+                        f"{source_id}#{count}",
+                        source_id,
+                        "shell_log",
+                        "\n".join(buffer).strip(),
+                    )
+                )
                 buffer = []
         buffer.append(line)
     if buffer:
         count += 1
-        units.append(TextUnit(f"{source_id}#{count}", source_id, "shell_log", "\n".join(buffer).strip()))
+        units.append(
+            TextUnit(
+                f"{source_id}#{count}",
+                source_id,
+                "shell_log",
+                "\n".join(buffer).strip(),
+            )
+        )
     return [unit for unit in units if unit.text.strip()]
 
 
@@ -288,7 +375,9 @@ def load_chat_units(db_path: str | Path, run_id: str | None = None) -> list[Text
         ]
 
 
-def load_messenger_units(db_path: str | Path, run_id: str | None = None) -> list[TextUnit]:
+def load_messenger_units(
+    db_path: str | Path, run_id: str | None = None
+) -> list[TextUnit]:
     resolved = Path(db_path).expanduser().resolve()
     with sqlite3.connect(str(resolved)) as conn:
         conn.row_factory = sqlite3.Row
@@ -331,7 +420,9 @@ def load_openrecall_units(
     date: str | None = None,
     limit: int | None = None,
 ) -> list[TextUnit]:
-    from src.reporting.openrecall_import import load_openrecall_units as _load_openrecall_units  # noqa: PLC0415
+    from src.reporting.openrecall_import import (
+        load_openrecall_units as _load_openrecall_units,
+    )  # noqa: PLC0415
 
     return _load_openrecall_units(
         db_path,
@@ -348,7 +439,9 @@ def load_worldmonitor_units(
     date: str | None = None,
     limit: int | None = None,
 ) -> list[TextUnit]:
-    from src.reporting.worldmonitor_import import load_worldmonitor_units as _load_worldmonitor_units  # noqa: PLC0415
+    from src.reporting.worldmonitor_import import (
+        load_worldmonitor_units as _load_worldmonitor_units,
+    )  # noqa: PLC0415
 
     return _load_worldmonitor_units(
         db_path,
@@ -366,7 +459,9 @@ def load_notebooklm_units(
     notebook_id_hash: str | None = None,
     limit: int | None = None,
 ) -> list[TextUnit]:
-    from src.reporting.notebooklm_observer import load_notebooklm_units as _load_notebooklm_units  # noqa: PLC0415
+    from src.reporting.notebooklm_observer import (
+        load_notebooklm_units as _load_notebooklm_units,
+    )  # noqa: PLC0415
 
     return _load_notebooklm_units(
         runs_root,
@@ -422,8 +517,12 @@ def load_file_units(path: str | Path, source_type: str | None = None) -> list[Te
     return _split_markdown_units(text, source_id, inferred)
 
 
-def _utility_score(kind: str, count: int, unit_count: int, neighbor_count: int, cross_kind_count: int) -> int:
-    score = (count * 2) + (unit_count * 3) + (neighbor_count * 4) + (cross_kind_count * 2)
+def _utility_score(
+    kind: str, count: int, unit_count: int, neighbor_count: int, cross_kind_count: int
+) -> int:
+    score = (
+        (count * 2) + (unit_count * 3) + (neighbor_count * 4) + (cross_kind_count * 2)
+    )
     if kind in {"message_boundary_ref", "quote_block_ref", "code_block_ref"}:
         score -= 3
     if count == 1 and unit_count == 1:
@@ -450,7 +549,9 @@ def build_structure_report(
     pair_counter: Counter[tuple[tuple[str, str], tuple[str, str]]] = Counter()
     unit_kind_counter: Counter[str] = Counter()
     for unit in unit_list:
-        occs = collect_canonical_structure_occurrences(unit.text, canonical_mode=canonical_mode)
+        occs = collect_canonical_structure_occurrences(
+            unit.text, canonical_mode=canonical_mode
+        )
         all_occs.extend(occs)
         per_unit_counts.append(len(occs))
         for occ in occs:
@@ -465,10 +566,14 @@ def build_structure_report(
                     atom_examples[atom_key].append(
                         {
                             "unit_id": unit.unit_id,
-                            "snippet": _trim_snippet(unit.text, occ.start_char, occ.end_char),
+                            "snippet": _trim_snippet(
+                                unit.text, occ.start_char, occ.end_char
+                            ),
                         }
                     )
-        unit_atoms = sorted({(occ.norm_text, occ.kind) for occ in occs if occ.kind.endswith("_ref")})
+        unit_atoms = sorted(
+            {(occ.norm_text, occ.kind) for occ in occs if occ.kind.endswith("_ref")}
+        )
         for _, kind in unit_atoms:
             unit_kind_counter[kind] += 1
         for left, right in itertools.combinations(unit_atoms, 2):
@@ -494,13 +599,33 @@ def build_structure_report(
                 "reuse_ratio": 1.0 - (1.0 / count) if count else 0.0,
                 "neighbor_count": neighbor_count,
                 "cross_kind_neighbor_count": cross_kind_count,
-                "utility_score": _utility_score(kind, count, unit_count, neighbor_count, cross_kind_count),
+                "utility_score": _utility_score(
+                    kind, count, unit_count, neighbor_count, cross_kind_count
+                ),
                 "examples": atom_examples[atom_key],
             }
         )
-    atom_rows.sort(key=lambda row: (-row["count"], -row["unit_count"], row["kind"], row["norm_text"]))
-    useful_rows = sorted(atom_rows, key=lambda row: (-row["utility_score"], -row["count"], row["norm_text"]))
-    interlinked_rows = sorted(atom_rows, key=lambda row: (-row["neighbor_count"], -row["unit_count"], -row["count"], row["norm_text"]))
+    atom_rows.sort(
+        key=lambda row: (
+            -row["count"],
+            -row["unit_count"],
+            row["kind"],
+            row["norm_text"],
+        )
+    )
+    useful_rows = sorted(
+        atom_rows,
+        key=lambda row: (-row["utility_score"], -row["count"], row["norm_text"]),
+    )
+    interlinked_rows = sorted(
+        atom_rows,
+        key=lambda row: (
+            -row["neighbor_count"],
+            -row["unit_count"],
+            -row["count"],
+            row["norm_text"],
+        ),
+    )
     kind_buckets: dict[str, list[dict]] = defaultdict(list)
     for row in atom_rows:
         kind_buckets[row["kind"]].append(row)
@@ -516,7 +641,9 @@ def build_structure_report(
         for (left, right), count in pair_counter.most_common(top_n)
     ]
     top_useful_rows = [row for row in useful_rows if row["utility_score"] > 0][:top_n]
-    suspect_rows = [row for row in atom_rows if row["count"] == 1 and row["unit_count"] == 1][:top_n]
+    suspect_rows = [
+        row for row in atom_rows if row["count"] == 1 and row["unit_count"] == 1
+    ][:top_n]
     source_counter = Counter(unit.source_type for unit in unit_list)
     return {
         "source_type_counts": dict(sorted(source_counter.items())),
@@ -524,7 +651,9 @@ def build_structure_report(
         "raw_characters": raw_chars,
         "token_count": len(all_occs),
         "avg_chars_per_token": (raw_chars / len(all_occs)) if all_occs else 0.0,
-        "avg_tokens_per_unit": (sum(per_unit_counts) / len(per_unit_counts)) if per_unit_counts else 0.0,
+        "avg_tokens_per_unit": (sum(per_unit_counts) / len(per_unit_counts))
+        if per_unit_counts
+        else 0.0,
         "unique_norm_kind_pairs": unique_pairs,
         "reuse_ratio": 1.0 - (unique_pairs / len(all_occs)) if all_occs else 0.0,
         "kind_counts": dict(sorted(kind_counter.items())),
@@ -553,7 +682,9 @@ def build_source_comparison_report(
         grouped[unit.source_id].append(unit)
     per_source = []
     for source_id, source_units in sorted(grouped.items()):
-        report = build_structure_report(source_units, canonical_mode=canonical_mode, top_n=top_n)
+        report = build_structure_report(
+            source_units, canonical_mode=canonical_mode, top_n=top_n
+        )
         per_source.append(
             {
                 "source_id": source_id,
@@ -562,21 +693,33 @@ def build_source_comparison_report(
             }
         )
     return {
-        "overall": build_structure_report(unit_list, canonical_mode=canonical_mode, top_n=top_n),
+        "overall": build_structure_report(
+            unit_list, canonical_mode=canonical_mode, top_n=top_n
+        ),
         "per_source": per_source,
     }
 
 
 def emit_comparison_summary(payload: dict, *, top_n: int = 5) -> str:
-    lines = ["source comparison:", "source | type | units | tokens | structural | top-kinds | top-atoms"]
+    lines = [
+        "source comparison:",
+        "source | type | units | tokens | structural | top-kinds | top-atoms",
+    ]
     for row in payload["per_source"]:
-        top_kinds = ", ".join(
-            f"{kind}={count}" for kind, count in sorted(
-                row["structural_kind_counts"].items(),
-                key=lambda item: (-item[1], item[0]),
-            )[:top_n]
-        ) or "-"
-        top_atoms = ", ".join(atom["norm_text"] for atom in row["top_structural_atoms"][:top_n]) or "-"
+        top_kinds = (
+            ", ".join(
+                f"{kind}={count}"
+                for kind, count in sorted(
+                    row["structural_kind_counts"].items(),
+                    key=lambda item: (-item[1], item[0]),
+                )[:top_n]
+            )
+            or "-"
+        )
+        top_atoms = (
+            ", ".join(atom["norm_text"] for atom in row["top_structural_atoms"][:top_n])
+            or "-"
+        )
         lines.append(
             f"{row['source_id']} | {row['source_type']} | {row['unit_count']} | {row['token_count']} | "
             f"{row['structural_token_count']} | {top_kinds} | {top_atoms}"
@@ -591,7 +734,9 @@ def emit_human_summary(report: dict, *, top_n: int = 10) -> str:
         "top reused atoms:",
     ]
     for row in report["top_structural_atoms"][:top_n]:
-        lines.append(f"- {row['norm_text']} [{row['kind']}] x{row['count']} units={row['unit_count']}")
+        lines.append(
+            f"- {row['norm_text']} [{row['kind']}] x{row['count']} units={row['unit_count']}"
+        )
     lines.append("top useful atoms:")
     for row in report["top_useful_atoms"][:top_n]:
         lines.append(
@@ -599,5 +744,7 @@ def emit_human_summary(report: dict, *, top_n: int = 10) -> str:
         )
     lines.append("top interlinked atoms:")
     for row in report["top_interlinked_atoms"][:top_n]:
-        lines.append(f"- {row['norm_text']} [{row['kind']}] neighbors={row['neighbor_count']} units={row['unit_count']}")
+        lines.append(
+            f"- {row['norm_text']} [{row['kind']}] neighbors={row['neighbor_count']} units={row['unit_count']}"
+        )
     return "\n".join(lines)

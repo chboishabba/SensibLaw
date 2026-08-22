@@ -14,7 +14,9 @@ from src.policy.world_context import (
     ContextPolarity,
     evaluate_context_fit,
 )
-from src.storage.postgres.numeric_incremental_runtime_store import NumericIncrementalRuntimeStore
+from src.storage.postgres.numeric_incremental_runtime_store import (
+    NumericIncrementalRuntimeStore,
+)
 
 
 def test_context_requirements_require_positive_witness_not_missing_evidence() -> None:

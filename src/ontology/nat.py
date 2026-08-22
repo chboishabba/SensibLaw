@@ -47,11 +47,22 @@ def load_fixture(profile: str, *, with_receipt: bool = False) -> dict[str, Any]:
 
     if profile == "q43229_superclass_pressure":
         kwargs = {
-            "review_bucket": _read_json(fixture_root / "wikidata_nat_cohort_b_review_bucket_20260402.json"),
-            "operator_packet": _read_json(fixture_root / "wikidata_nat_cohort_b_operator_packet_20260402.json"),
-            "operator_queue": _read_json(fixture_root / "wikidata_nat_cohort_b_operator_queue_20260402.json"),
-            "operator_report": _read_json(fixture_root / "wikidata_nat_cohort_b_operator_report_20260402.json"),
-            "batch_report": _read_json(fixture_root / "wikidata_nat_cohort_b_operator_batch_report_20260402.json"),
+            "review_bucket": _read_json(
+                fixture_root / "wikidata_nat_cohort_b_review_bucket_20260402.json"
+            ),
+            "operator_packet": _read_json(
+                fixture_root / "wikidata_nat_cohort_b_operator_packet_20260402.json"
+            ),
+            "operator_queue": _read_json(
+                fixture_root / "wikidata_nat_cohort_b_operator_queue_20260402.json"
+            ),
+            "operator_report": _read_json(
+                fixture_root / "wikidata_nat_cohort_b_operator_report_20260402.json"
+            ),
+            "batch_report": _read_json(
+                fixture_root
+                / "wikidata_nat_cohort_b_operator_batch_report_20260402.json"
+            ),
         }
     else:
         kwargs = {}

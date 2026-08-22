@@ -11,7 +11,6 @@ from src.citations.normalize import normalize_mnc
 from src.ingestion.citation_follow import extract_citations
 from src.gwb_us_law.linkage import _pick_best_run_for_timeline_suffix
 from src.gwb_us_law.semantic import (
-    PIPELINE_VERSION,
     EntitySeed,
     _ensure_predicates,
     _ensure_promotion_policies,
@@ -19,7 +18,6 @@ from src.gwb_us_law.semantic import (
     _insert_cluster_and_resolution,
     _insert_event_role,
     _insert_relation_candidate,
-    _normalize_phrase,
     _policy_adjusted_confidence,
     _text_contains_phrase,
     _upsert_seed_entity,
@@ -95,7 +93,10 @@ _AU_ENTITY_SEEDS: tuple[EntitySeed, ...] = (
         canonical_label="Native Title (New South Wales) Act 1994",
         ref_kind="act_ref",
         source_title="Native Title (New South Wales) Act 1994",
-        aliases=("Native Title (New South Wales) Act 1994", "Native Title (NSW) Act 1994"),
+        aliases=(
+            "Native Title (New South Wales) Act 1994",
+            "Native Title (NSW) Act 1994",
+        ),
     ),
     EntitySeed(
         entity_kind="legal_ref",
@@ -163,8 +164,12 @@ _OFFICE_SURFACES = {
     "Attorney-General": "office:attorney_general",
     "Registrar": "office:registrar",
 }
-_TITLE_TOKEN_NORMALIZED = tuple(prefix.strip().replace(".", "").casefold() for prefix in _TITLE_PREFIXES)
-_LEGAL_REP_SUFFIX_NORMALIZED = tuple(suffix.strip().replace(".", "").casefold() for suffix in _LEGAL_REP_SUFFIXES)
+_TITLE_TOKEN_NORMALIZED = tuple(
+    prefix.strip().replace(".", "").casefold() for prefix in _TITLE_PREFIXES
+)
+_LEGAL_REP_SUFFIX_NORMALIZED = tuple(
+    suffix.strip().replace(".", "").casefold() for suffix in _LEGAL_REP_SUFFIXES
+)
 _CLAUSE_BREAK_TOKENS = {"and", "but", "while"}
 _AUTHORITY_TERM_STOPWORDS = {
     "and",
@@ -181,14 +186,29 @@ _AUTHORITY_TERM_STOPWORDS = {
 
 
 def _au_legal_representation_catalog_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "semantic" / "au_legal_representation_cues_v1.json"
+    return (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "semantic"
+        / "au_legal_representation_cues_v1.json"
+    )
 
 
 @lru_cache(maxsize=1)
 def _load_au_legal_representation_cues() -> tuple[dict[str, str], ...]:
-    payload = json.loads(_au_legal_representation_catalog_path().read_text(encoding="utf-8"))
-    party_roles = payload.get("party_roles") if isinstance(payload.get("party_roles"), list) else []
-    cue_templates = payload.get("cue_templates") if isinstance(payload.get("cue_templates"), list) else []
+    payload = json.loads(
+        _au_legal_representation_catalog_path().read_text(encoding="utf-8")
+    )
+    party_roles = (
+        payload.get("party_roles")
+        if isinstance(payload.get("party_roles"), list)
+        else []
+    )
+    cue_templates = (
+        payload.get("cue_templates")
+        if isinstance(payload.get("cue_templates"), list)
+        else []
+    )
     expanded: list[dict[str, str]] = []
     for role in party_roles:
         if not isinstance(role, Mapping):
@@ -209,7 +229,9 @@ def _load_au_legal_representation_cues() -> tuple[dict[str, str], ...]:
                     "surface": surface_template.format(party_role=role_key),
                     "cue_template": surface_template,
                     "party_role": role_key,
-                    "role_label": role_label_template.format(party_role_title=role_title),
+                    "role_label": role_label_template.format(
+                        party_role_title=role_title
+                    ),
                 }
             )
     return tuple(expanded)
@@ -221,7 +243,9 @@ def _normalize_authority_text(text: str | None) -> str:
 
 def _au_doc_actor_key(run_id: str, surface: str) -> str:
     slug = "_".join(surface.casefold().replace("/", " ").replace("-", " ").split())
-    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in slug).strip("_")
+    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in slug).strip(
+        "_"
+    )
     return f"actor:doc:{run_id}:{cleaned}"
 
 
@@ -241,19 +265,35 @@ def _surface_tokens(text: str) -> list[dict[str, Any]]:
         if ch.isspace():
             if start is not None:
                 raw = text[start:index]
-                tokens.append({"raw": raw, "norm": _normalized_surface_token(raw), "start": start, "end": index})
+                tokens.append(
+                    {
+                        "raw": raw,
+                        "norm": _normalized_surface_token(raw),
+                        "start": start,
+                        "end": index,
+                    }
+                )
                 start = None
             continue
         if start is None:
             start = index
     if start is not None:
         raw = text[start:]
-        tokens.append({"raw": raw, "norm": _normalized_surface_token(raw), "start": start, "end": len(text)})
+        tokens.append(
+            {
+                "raw": raw,
+                "norm": _normalized_surface_token(raw),
+                "start": start,
+                "end": len(text),
+            }
+        )
     return [token for token in tokens if token["norm"]]
 
 
 def _join_token_surface(tokens: list[dict[str, Any]], start: int, end: int) -> str:
-    return " ".join(str(token["raw"]).strip(" ,;:()[]") for token in tokens[start:end]).strip()
+    return " ".join(
+        str(token["raw"]).strip(" ,;:()[]") for token in tokens[start:end]
+    ).strip()
 
 
 def _clause_ranges(tokens: list[dict[str, Any]]) -> list[tuple[int, int]]:
@@ -261,7 +301,9 @@ def _clause_ranges(tokens: list[dict[str, Any]]) -> list[tuple[int, int]]:
     start = 0
     for index, token in enumerate(tokens):
         raw = str(token["raw"])
-        split_here = token["norm"] in _CLAUSE_BREAK_TOKENS or any(mark in raw for mark in ";:.")
+        split_here = token["norm"] in _CLAUSE_BREAK_TOKENS or any(
+            mark in raw for mark in ";:."
+        )
         if not split_here:
             continue
         if start < index:
@@ -272,13 +314,21 @@ def _clause_ranges(tokens: list[dict[str, Any]]) -> list[tuple[int, int]]:
     return ranges
 
 
-def _find_phrase_matches(tokens: list[dict[str, Any]], phrase: str) -> list[tuple[int, int]]:
-    phrase_parts = [_normalized_surface_token(part) for part in phrase.split() if _normalized_surface_token(part)]
+def _find_phrase_matches(
+    tokens: list[dict[str, Any]], phrase: str
+) -> list[tuple[int, int]]:
+    phrase_parts = [
+        _normalized_surface_token(part)
+        for part in phrase.split()
+        if _normalized_surface_token(part)
+    ]
     if not phrase_parts or len(phrase_parts) > len(tokens):
         return []
     matches: list[tuple[int, int]] = []
     for start in range(0, len(tokens) - len(phrase_parts) + 1):
-        if [tokens[start + offset]["norm"] for offset in range(len(phrase_parts))] == phrase_parts:
+        if [
+            tokens[start + offset]["norm"] for offset in range(len(phrase_parts))
+        ] == phrase_parts:
             matches.append((start, start + len(phrase_parts)))
     return matches
 
@@ -313,7 +363,15 @@ def _insert_event_role_once(
     if key in seen:
         return
     seen.add(key)
-    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id, cluster_id=cluster_id, note=note)
+    _insert_event_role(
+        conn,
+        run_id=run_id,
+        event_id=event_id,
+        role_kind=role_kind,
+        entity_id=entity_id,
+        cluster_id=cluster_id,
+        note=note,
+    )
 
 
 def _ensure_au_predicates(conn) -> dict[str, int]:
@@ -335,12 +393,16 @@ def _ensure_au_predicates(conn) -> dict[str, int]:
             (key, label, family, 1, None, f"au_{key}_v1"),
         )
     _ensure_promotion_policies(conn)
-    rows = conn.execute("SELECT predicate_id, predicate_key FROM semantic_predicate_vocab").fetchall()
+    rows = conn.execute(
+        "SELECT predicate_id, predicate_key FROM semantic_predicate_vocab"
+    ).fetchall()
     return {str(row["predicate_key"]): int(row["predicate_id"]) for row in rows}
 
 
 def _seed_au_entities(conn) -> dict[str, int]:
-    return {seed.canonical_key: _upsert_seed_entity(conn, seed) for seed in _AU_ENTITY_SEEDS}
+    return {
+        seed.canonical_key: _upsert_seed_entity(conn, seed) for seed in _AU_ENTITY_SEEDS
+    }
 
 
 def _ensure_doc_actor(
@@ -373,7 +435,14 @@ def _ensure_doc_actor(
     )
 
 
-def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Mapping[str, Any], entity_ids: dict[str, int]) -> dict[str, list[int]]:
+def _detect_au_mentions_for_event(
+    conn,
+    *,
+    run_id: str,
+    event_id: str,
+    event: Mapping[str, Any],
+    entity_ids: dict[str, int],
+) -> dict[str, list[int]]:
     text = str(event.get("text") or "")
     found: dict[str, list[int]] = defaultdict(list)
     role_insertions: set[tuple[str, str, int | None, int | None, str | None]] = set()
@@ -390,7 +459,10 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                 resolved_entity_id=None,
                 resolution_status="abstained",
                 resolution_rule="title_requires_stronger_context_v1",
-                receipts=[("surface", surface), ("reason", "ambiguous_forum_or_office")],
+                receipts=[
+                    ("surface", surface),
+                    ("reason", "ambiguous_forum_or_office"),
+                ],
             )
             found["abstained"].append(cluster_id)
     for seed in _AU_ENTITY_SEEDS:
@@ -400,7 +472,9 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                     conn,
                     run_id=run_id,
                     event_id=event_id,
-                    mention_kind="actor" if seed.entity_kind == "actor" else seed.entity_kind,
+                    mention_kind="actor"
+                    if seed.entity_kind == "actor"
+                    else seed.entity_kind,
                     canonical_key_hint=seed.canonical_key,
                     surface_text=alias,
                     source_rule="au_seed_alias_v1",
@@ -438,9 +512,13 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
             )
     text_lines = [part.strip(" .,;:()") for part in text.split()]
     for surface, role_kind in _ROLE_SURFACES.items():
-        if _text_contains_phrase(text, f"the {surface}") or _text_contains_phrase(text, surface):
+        if _text_contains_phrase(text, f"the {surface}") or _text_contains_phrase(
+            text, surface
+        ):
             label = surface.title()
-            entity_id = _ensure_doc_actor(conn, run_id=run_id, label=label, source_rule="au_case_role_v1")
+            entity_id = _ensure_doc_actor(
+                conn, run_id=run_id, label=label, source_rule="au_case_role_v1"
+            )
             cluster_id, _ = _insert_cluster_and_resolution(
                 conn,
                 run_id=run_id,
@@ -554,7 +632,10 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                 end_index=token_index + 3,
                 source_rule="au_named_legal_representative_v1",
                 resolution_rule="document_local_named_legal_representative_v1",
-                receipts=[("title_suffix_pattern", candidate_three), ("scope", "document_local_actor")],
+                receipts=[
+                    ("title_suffix_pattern", candidate_three),
+                    ("scope", "document_local_actor"),
+                ],
                 classification_tag="legal_representative",
                 insert_role=True,
             )
@@ -565,21 +646,39 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                 end_index=token_index + 2,
                 source_rule="au_titled_person_v1",
                 resolution_rule="document_local_titled_person_v1",
-                receipts=[("title_pattern", candidate), ("scope", "document_local_actor")],
+                receipts=[
+                    ("title_pattern", candidate),
+                    ("scope", "document_local_actor"),
+                ],
             )
-        if _is_legal_rep_suffix_token(second) and _looks_like_named_token(first) and not (token_index > 0 and _is_title_token(str(tokens[token_index - 1]["raw"]))):
+        if (
+            _is_legal_rep_suffix_token(second)
+            and _looks_like_named_token(first)
+            and not (
+                token_index > 0 and _is_title_token(str(tokens[token_index - 1]["raw"]))
+            )
+        ):
             register_representative(
                 label=candidate,
                 start_index=token_index,
                 end_index=token_index + 2,
                 source_rule="au_suffix_legal_representative_v1",
                 resolution_rule="document_local_suffix_legal_representative_v1",
-                receipts=[("suffix_pattern", candidate), ("scope", "document_local_actor")],
+                receipts=[
+                    ("suffix_pattern", candidate),
+                    ("scope", "document_local_actor"),
+                ],
                 classification_tag="legal_representative",
                 insert_role=True,
             )
         if any(candidate.endswith(suffix.strip()) for suffix in _JUDGE_SUFFIXES):
-            entity_id = _ensure_doc_actor(conn, run_id=run_id, label=candidate, source_rule="au_judge_surface_v1", classification_tag="judge")
+            entity_id = _ensure_doc_actor(
+                conn,
+                run_id=run_id,
+                label=candidate,
+                source_rule="au_judge_surface_v1",
+                classification_tag="judge",
+            )
             conn.execute(
                 "UPDATE semantic_entity_actors SET classification_tag = ? WHERE entity_id = ?",
                 ("judge", entity_id),
@@ -603,20 +702,35 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
         clause_reps = [
             mention
             for mention in representative_mentions
-            if mention["start_index"] >= clause_start and mention["end_index"] <= clause_end
+            if mention["start_index"] >= clause_start
+            and mention["end_index"] <= clause_end
         ]
         for cue in _load_au_legal_representation_cues():
-            for start_offset, end_offset in _find_phrase_matches(clause_tokens, cue["surface"]):
+            for start_offset, end_offset in _find_phrase_matches(
+                clause_tokens, cue["surface"]
+            ):
                 start_index = clause_start + start_offset
                 end_index = clause_start + end_offset
                 matched_surface = _join_token_surface(tokens, start_index, end_index)
                 bound_rep = None
-                preceding = [mention for mention in clause_reps if mention["end_index"] <= start_index]
-                following = [mention for mention in clause_reps if mention["start_index"] >= end_index]
+                preceding = [
+                    mention
+                    for mention in clause_reps
+                    if mention["end_index"] <= start_index
+                ]
+                following = [
+                    mention
+                    for mention in clause_reps
+                    if mention["start_index"] >= end_index
+                ]
                 if preceding:
-                    bound_rep = max(preceding, key=lambda mention: int(mention["end_index"]))
+                    bound_rep = max(
+                        preceding, key=lambda mention: int(mention["end_index"])
+                    )
                 elif following:
-                    bound_rep = min(following, key=lambda mention: int(mention["start_index"]))
+                    bound_rep = min(
+                        following, key=lambda mention: int(mention["start_index"])
+                    )
                 if bound_rep is None:
                     cluster_id, _ = _insert_cluster_and_resolution(
                         conn,
@@ -671,18 +785,63 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
     return found
 
 
-def _predicate_confidence(conn, predicate_key: str, receipts: list[tuple[str, str]]) -> str:
+def _predicate_confidence(
+    conn, predicate_key: str, receipts: list[tuple[str, str]]
+) -> str:
     kinds = {kind for kind, _ in receipts}
-    if predicate_key in {"appealed", "challenged"} and {"subject", "verb", "object"} <= kinds:
-        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="high")
-    if predicate_key in {"heard_by", "decided_by", "applied", "followed", "distinguished", "held_that"} and {"subject", "verb", "object"} <= kinds:
-        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="medium")
+    if (
+        predicate_key in {"appealed", "challenged"}
+        and {"subject", "verb", "object"} <= kinds
+    ):
+        return _policy_adjusted_confidence(
+            conn,
+            predicate_key=predicate_key,
+            receipts=receipts,
+            legacy_confidence="high",
+        )
+    if (
+        predicate_key
+        in {
+            "heard_by",
+            "decided_by",
+            "applied",
+            "followed",
+            "distinguished",
+            "held_that",
+        }
+        and {"subject", "verb", "object"} <= kinds
+    ):
+        return _policy_adjusted_confidence(
+            conn,
+            predicate_key=predicate_key,
+            receipts=receipts,
+            legacy_confidence="medium",
+        )
     if {"subject", "verb"} <= kinds:
-        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="low")
-    return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="abstain")
+        return _policy_adjusted_confidence(
+            conn,
+            predicate_key=predicate_key,
+            receipts=receipts,
+            legacy_confidence="low",
+        )
+    return _policy_adjusted_confidence(
+        conn,
+        predicate_key=predicate_key,
+        receipts=receipts,
+        legacy_confidence="abstain",
+    )
 
 
-def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[str, Any], mention_clusters: Mapping[str, list[int]], entity_ids: dict[str, int], predicate_ids: Mapping[str, int]) -> None:
+def _extract_au_relations(
+    conn,
+    *,
+    run_id: str,
+    event_id: str,
+    event: Mapping[str, Any],
+    mention_clusters: Mapping[str, list[int]],
+    entity_ids: dict[str, int],
+    predicate_ids: Mapping[str, int],
+) -> None:
     text = str(event.get("text") or "")
     text_fold = text.casefold()
     court_id = entity_ids.get("actor:high_court_of_australia")
@@ -693,15 +852,37 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
     for role_surface in _ROLE_SURFACES:
         doc_key = f"doc_role:{role_surface}"
         if mention_clusters.get(doc_key):
-            subject_entity_ids.append(_ensure_doc_actor(conn, run_id=run_id, label=role_surface.title(), source_rule="au_case_role_v1"))
+            subject_entity_ids.append(
+                _ensure_doc_actor(
+                    conn,
+                    run_id=run_id,
+                    label=role_surface.title(),
+                    source_rule="au_case_role_v1",
+                )
+            )
     if not subject_entity_ids and case_keys:
-        subject_entity_ids.extend(entity_ids.get(key) or _entity_for_key(conn, key) for key in case_keys if (entity_ids.get(key) or _entity_for_key(conn, key)))
+        subject_entity_ids.extend(
+            entity_ids.get(key) or _entity_for_key(conn, key)
+            for key in case_keys
+            if (entity_ids.get(key) or _entity_for_key(conn, key))
+        )
     if "appeal" in text_fold:
         for subject_id in subject_entity_ids:
             if court_id is None:
                 continue
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=court_id, note="au_appeal_v1")
-            receipts = [("subject", str(subject_id)), ("verb", "appeal"), ("object", "actor:high_court_of_australia")]
+            _insert_event_role(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="forum",
+                entity_id=court_id,
+                note="au_appeal_v1",
+            )
+            receipts = [
+                ("subject", str(subject_id)),
+                ("verb", "appeal"),
+                ("object", "actor:high_court_of_australia"),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -716,10 +897,18 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
         objects = []
         if court_id is not None:
             objects.append(court_id)
-        objects.extend(entity_ids.get(key) or _entity_for_key(conn, key) for key in act_keys if (entity_ids.get(key) or _entity_for_key(conn, key)))
+        objects.extend(
+            entity_ids.get(key) or _entity_for_key(conn, key)
+            for key in act_keys
+            if (entity_ids.get(key) or _entity_for_key(conn, key))
+        )
         for subject_id in subject_entity_ids:
             for object_id in objects:
-                receipts = [("subject", str(subject_id)), ("verb", "challenged"), ("object", str(object_id))]
+                receipts = [
+                    ("subject", str(subject_id)),
+                    ("verb", "challenged"),
+                    ("object", str(object_id)),
+                ]
                 _insert_relation_candidate(
                     conn,
                     run_id=run_id,
@@ -745,9 +934,17 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
         seen_subjects.add(sid)
         normalized_subjects.append((sid, skey))
 
-    if court_id is not None and ("heard by" in text_fold or "heard in" in text_fold or "before the high court" in text_fold):
+    if court_id is not None and (
+        "heard by" in text_fold
+        or "heard in" in text_fold
+        or "before the high court" in text_fold
+    ):
         for subject_id, subject_key in normalized_subjects:
-            receipts = [("subject", subject_key), ("verb", "heard_by"), ("object", "actor:high_court_of_australia")]
+            receipts = [
+                ("subject", subject_key),
+                ("verb", "heard_by"),
+                ("object", "actor:high_court_of_australia"),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -758,10 +955,16 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                 confidence_tier=_predicate_confidence(conn, "heard_by", receipts),
                 receipts=receipts,
             )
-    if court_id is not None and ("held that" in text_fold or "held" in text_fold or "decided" in text_fold):
+    if court_id is not None and (
+        "held that" in text_fold or "held" in text_fold or "decided" in text_fold
+    ):
         for subject_id, subject_key in normalized_subjects:
             predicate = "held_that" if "held" in text_fold else "decided_by"
-            receipts = [("subject", subject_key), ("verb", predicate), ("object", "actor:high_court_of_australia")]
+            receipts = [
+                ("subject", subject_key),
+                ("verb", predicate),
+                ("object", "actor:high_court_of_australia"),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -781,17 +984,30 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                     predicate_id=predicate_ids["decided_by"],
                     object_entity_id=court_id,
                     confidence_tier="low",
-                    receipts=[("subject", subject_key), ("verb", "decided_by"), ("object", "actor:high_court_of_australia"), ("support", "held_surface_proxy")],
+                    receipts=[
+                        ("subject", subject_key),
+                        ("verb", "decided_by"),
+                        ("object", "actor:high_court_of_australia"),
+                        ("support", "held_surface_proxy"),
+                    ],
                 )
     if normalized_subjects:
         for subject_id, subject_key in normalized_subjects:
             if "applied" in text_fold:
-                applied_targets = [key for key in legal_ref_keys if key != subject_key] + (["actor:high_court_of_australia"] if court_id is not None else [])
+                applied_targets = [
+                    key for key in legal_ref_keys if key != subject_key
+                ] + (["actor:high_court_of_australia"] if court_id is not None else [])
                 for target_key in applied_targets:
-                    target_id = entity_ids.get(target_key) or _entity_for_key(conn, target_key)
+                    target_id = entity_ids.get(target_key) or _entity_for_key(
+                        conn, target_key
+                    )
                     if target_id is None:
                         continue
-                    receipts = [("subject", subject_key), ("verb", "applied"), ("object", target_key)]
+                    receipts = [
+                        ("subject", subject_key),
+                        ("verb", "applied"),
+                        ("object", target_key),
+                    ]
                     _insert_relation_candidate(
                         conn,
                         run_id=run_id,
@@ -799,18 +1015,29 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["applied"],
                         object_entity_id=target_id,
-                        confidence_tier=_predicate_confidence(conn, "applied", receipts),
+                        confidence_tier=_predicate_confidence(
+                            conn, "applied", receipts
+                        ),
                         receipts=receipts,
                     )
-            for predicate, cue in (("followed", "followed"), ("distinguished", "distinguished")):
+            for predicate, cue in (
+                ("followed", "followed"),
+                ("distinguished", "distinguished"),
+            ):
                 if cue not in text_fold:
                     continue
                 target_case_keys = [key for key in case_keys if key != subject_key]
                 for target_key in target_case_keys:
-                    target_id = entity_ids.get(target_key) or _entity_for_key(conn, target_key)
+                    target_id = entity_ids.get(target_key) or _entity_for_key(
+                        conn, target_key
+                    )
                     if target_id is None:
                         continue
-                    receipts = [("subject", subject_key), ("verb", predicate), ("object", target_key)]
+                    receipts = [
+                        ("subject", subject_key),
+                        ("verb", predicate),
+                        ("object", target_key),
+                    ]
                     _insert_relation_candidate(
                         conn,
                         run_id=run_id,
@@ -818,12 +1045,19 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids[predicate],
                         object_entity_id=target_id,
-                        confidence_tier=_predicate_confidence(conn, predicate, receipts),
+                        confidence_tier=_predicate_confidence(
+                            conn, predicate, receipts
+                        ),
                         receipts=receipts,
                     )
 
 
-def run_au_semantic_pipeline(conn, *, timeline_suffix: str = "wiki_timeline_hca_s942025_aoo.json", run_id: str | None = None) -> dict[str, Any]:
+def run_au_semantic_pipeline(
+    conn,
+    *,
+    timeline_suffix: str = "wiki_timeline_hca_s942025_aoo.json",
+    run_id: str | None = None,
+) -> dict[str, Any]:
     ensure_gwb_semantic_schema(conn)
     active_run_id = run_id or _pick_best_run_for_timeline_suffix(conn, timeline_suffix)
     if not active_run_id:
@@ -831,7 +1065,9 @@ def run_au_semantic_pipeline(conn, *, timeline_suffix: str = "wiki_timeline_hca_
     run_au_semantic_linkage(conn, timeline_suffix=timeline_suffix, run_id=active_run_id)
     payload = load_run_payload_from_normalized(conn, active_run_id)
     if not payload:
-        raise ValueError(f"unable to load normalized payload for run_id={active_run_id}")
+        raise ValueError(
+            f"unable to load normalized payload for run_id={active_run_id}"
+        )
     _delete_run_rows(conn, active_run_id)
     entity_ids = _seed_au_entities(conn)
     predicate_ids = _ensure_au_predicates(conn)
@@ -856,8 +1092,15 @@ def run_au_semantic_pipeline(conn, *, timeline_suffix: str = "wiki_timeline_hca_
             entity_ids=entity_ids,
             predicate_ids=predicate_ids,
         )
-    entity_count = int(conn.execute("SELECT COUNT(*) FROM semantic_entities").fetchone()[0])
-    candidate_count = int(conn.execute("SELECT COUNT(*) FROM semantic_relation_candidates WHERE run_id = ?", (active_run_id,)).fetchone()[0])
+    entity_count = int(
+        conn.execute("SELECT COUNT(*) FROM semantic_entities").fetchone()[0]
+    )
+    candidate_count = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM semantic_relation_candidates WHERE run_id = ?",
+            (active_run_id,),
+        ).fetchone()[0]
+    )
     promoted_count = int(
         conn.execute(
             """
@@ -888,7 +1131,9 @@ def run_au_semantic_pipeline(conn, *, timeline_suffix: str = "wiki_timeline_hca_
     }
 
 
-def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, Any]]) -> dict[str, Any]:
+def _event_authority_hints(
+    event: Mapping[str, Any], matches: list[Mapping[str, Any]]
+) -> dict[str, Any]:
     authority_titles: set[str] = set()
     legal_refs: set[str] = set()
     legal_ref_details: list[dict[str, Any]] = []
@@ -936,9 +1181,13 @@ def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, 
     }
 
 
-def _authority_term_tokens(authority_titles: Iterable[str], legal_refs: Iterable[str]) -> list[str]:
+def _authority_term_tokens(
+    authority_titles: Iterable[str], legal_refs: Iterable[str]
+) -> list[str]:
     tokens: set[str] = set()
-    for raw in list(authority_titles) + [ref.split(":", 1)[-1].replace("_", " ") for ref in legal_refs]:
+    for raw in list(authority_titles) + [
+        ref.split(":", 1)[-1].replace("_", " ") for ref in legal_refs
+    ]:
         for token in str(raw or "").replace("/", " ").replace("-", " ").split():
             normalized = "".join(ch for ch in token.casefold() if ch.isalnum())
             if len(normalized) < 4 or normalized in _AUTHORITY_TERM_STOPWORDS:
@@ -949,15 +1198,33 @@ def _authority_term_tokens(authority_titles: Iterable[str], legal_refs: Iterable
 
 def _classify_legal_ref(ref_kind: str, canonical_ref: str) -> str:
     kind_norm = _normalize_authority_text(ref_kind)
-    ref_norm = _normalize_authority_text(canonical_ref.split(":", 1)[-1].replace("_", " "))
-    if normalize_mnc(canonical_ref) is not None or "case" in kind_norm or "citation" in kind_norm:
+    ref_norm = _normalize_authority_text(
+        canonical_ref.split(":", 1)[-1].replace("_", " ")
+    )
+    if (
+        normalize_mnc(canonical_ref) is not None
+        or "case" in kind_norm
+        or "citation" in kind_norm
+    ):
         return "case"
-    if any(token in kind_norm for token in ("act", "statute", "legislation", "law")) or any(
+    if any(
+        token in kind_norm for token in ("act", "statute", "legislation", "law")
+    ) or any(
         token in ref_norm for token in (" act ", " statute ", " legislation ", " law ")
     ):
         return "supporting_legislation"
-    if any(token in kind_norm for token in ("instrument", "regulation", "rule", "ordinance", "order")) or any(
-        token in ref_norm for token in (" instrument ", " regulation ", " rule ", " ordinance ", " order ")
+    if any(
+        token in kind_norm
+        for token in ("instrument", "regulation", "rule", "ordinance", "order")
+    ) or any(
+        token in ref_norm
+        for token in (
+            " instrument ",
+            " regulation ",
+            " rule ",
+            " ordinance ",
+            " order ",
+        )
     ):
         return "supporting_instrument"
     if kind_norm in {"court_ref"}:
@@ -975,7 +1242,11 @@ def _citation_detail(raw_text: str) -> dict[str, Any]:
         "reference_class": "case" if key is not None else "unknown",
     }
     if key is not None:
-        detail["citation_key"] = {"year": key.year, "court": key.court, "number": key.number}
+        detail["citation_key"] = {
+            "year": key.year,
+            "court": key.court,
+            "number": key.number,
+        }
     return detail
 
 
@@ -991,7 +1262,10 @@ def _extract_reference_jurisdiction_hint(value: str) -> str | None:
     normalized = _normalize_authority_text(value)
     if not normalized:
         return None
-    if any(token in normalized for token in ("commonwealth", " australia ", " aust ", " cth ")):
+    if any(
+        token in normalized
+        for token in ("commonwealth", " australia ", " aust ", " cth ")
+    ):
         return "CTH"
     for token in ("NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT", "HCA"):
         if f" {token.lower()} " in f" {normalized} ":
@@ -1041,11 +1315,20 @@ def _legal_ref_detail(ref_kind: str, canonical_ref: str) -> dict[str, Any]:
     if detail["reference_class"] == "case":
         key = normalize_mnc(detail["surface_text"])
         if key is not None:
-            detail["citation_key"] = {"year": key.year, "court": key.court, "number": key.number}
+            detail["citation_key"] = {
+                "year": key.year,
+                "court": key.court,
+                "number": key.number,
+            }
     return detail
 
 
-def _conjecture_route_target(*, authority_titles: list[str], legal_refs: list[str], candidate_citations: list[str]) -> str:
+def _conjecture_route_target(
+    *,
+    authority_titles: list[str],
+    legal_refs: list[str],
+    candidate_citations: list[str],
+) -> str:
     if candidate_citations and authority_titles:
         return "known_authority_fetch"
     if authority_titles:
@@ -1061,11 +1344,16 @@ def build_au_authority_receipt_context(
     run_id: str,
     limit: int = 20,
 ) -> dict[str, Any]:
-    from src.fact_intake.read_model import build_authority_ingest_summary, list_authority_ingest_runs
+    from src.fact_intake.read_model import (
+        build_authority_ingest_summary,
+        list_authority_ingest_runs,
+    )
 
     payload = load_run_payload_from_normalized(conn, run_id) or {}
     events = payload.get("events") if isinstance(payload.get("events"), list) else []
-    linkage_report = __import__("src.au_semantic.linkage", fromlist=["build_au_semantic_linkage_report"]).build_au_semantic_linkage_report(conn, run_id=run_id)
+    linkage_report = __import__(
+        "src.au_semantic.linkage", fromlist=["build_au_semantic_linkage_report"]
+    ).build_au_semantic_linkage_report(conn, run_id=run_id)
     per_event_matches = {
         str(event.get("event_id") or ""): list(event.get("matches") or [])
         for event in linkage_report.get("per_event", [])
@@ -1085,7 +1373,9 @@ def build_au_authority_receipt_context(
         hint_text = str(hints.get("text") or "")
         candidate_citations = [ref.raw_text for ref in extract_citations(hint_text)]
         hints["candidate_citations"] = candidate_citations
-        hints["candidate_citation_details"] = [_citation_detail(ref_text) for ref_text in candidate_citations]
+        hints["candidate_citation_details"] = [
+            _citation_detail(ref_text) for ref_text in candidate_citations
+        ]
         hints["authority_term_tokens"] = _authority_term_tokens(
             hints.get("authority_titles", []),
             hints.get("legal_refs", []),
@@ -1096,9 +1386,17 @@ def build_au_authority_receipt_context(
     linked_event_ids_seen: set[str] = set()
     authority_kind_counts: Counter[str] = Counter()
     for run in authority_runs:
-        summary = build_authority_ingest_summary(conn, ingest_run_id=str(run["ingest_run_id"]))
-        run_payload = summary.get("run") if isinstance(summary.get("run"), Mapping) else {}
-        segments = [segment for segment in summary.get("segments", []) if isinstance(segment, Mapping)]
+        summary = build_authority_ingest_summary(
+            conn, ingest_run_id=str(run["ingest_run_id"])
+        )
+        run_payload = (
+            summary.get("run") if isinstance(summary.get("run"), Mapping) else {}
+        )
+        segments = [
+            segment
+            for segment in summary.get("segments", [])
+            if isinstance(segment, Mapping)
+        ]
         searchable_parts = [
             str(run_payload.get("citation") or ""),
             str(run_payload.get("query_text") or ""),
@@ -1108,8 +1406,17 @@ def build_au_authority_receipt_context(
         ]
         for segment in segments:
             searchable_parts.append(str(segment.get("segment_text") or ""))
-        searchable_text = _normalize_authority_text("\n".join(part for part in searchable_parts if part))
-        detected_citations = sorted({ref.raw_text for ref in extract_citations("\n".join(part for part in searchable_parts if part))})
+        searchable_text = _normalize_authority_text(
+            "\n".join(part for part in searchable_parts if part)
+        )
+        detected_citations = sorted(
+            {
+                ref.raw_text
+                for ref in extract_citations(
+                    "\n".join(part for part in searchable_parts if part)
+                )
+            }
+        )
 
         linked_event_ids: list[str] = []
         matched_titles: set[str] = set()
@@ -1122,22 +1429,35 @@ def build_au_authority_receipt_context(
             refs = [str(ref) for ref in hints.get("legal_refs", [])]
             ref_details = list(hints.get("legal_ref_details") or [])
             title_hit = any(
-                _normalize_authority_text(title) and _normalize_authority_text(title) in searchable_text
+                _normalize_authority_text(title)
+                and _normalize_authority_text(title) in searchable_text
                 for title in titles
             )
             ref_hit = any(
-                (_normalize_authority_text(ref.split(":", 1)[-1].replace("_", " "))) in searchable_text
+                (_normalize_authority_text(ref.split(":", 1)[-1].replace("_", " ")))
+                in searchable_text
                 for ref in refs
                 if _normalize_authority_text(ref.split(":", 1)[-1].replace("_", " "))
             )
-            citation_hit = bool(run_payload.get("citation")) and _normalize_authority_text(str(run_payload.get("citation"))) in event_text
+            citation_hit = (
+                bool(run_payload.get("citation"))
+                and _normalize_authority_text(str(run_payload.get("citation")))
+                in event_text
+            )
             if title_hit or ref_hit or citation_hit:
                 linked_event_ids.append(event_id)
-                matched_titles.update(title for title in titles if _normalize_authority_text(title) in searchable_text)
+                matched_titles.update(
+                    title
+                    for title in titles
+                    if _normalize_authority_text(title) in searchable_text
+                )
                 matched_refs.update(
                     ref
                     for ref in refs
-                    if _normalize_authority_text(ref.split(":", 1)[-1].replace("_", " ")) in searchable_text
+                    if _normalize_authority_text(
+                        ref.split(":", 1)[-1].replace("_", " ")
+                    )
+                    in searchable_text
                 )
                 for detail in ref_details:
                     if not isinstance(detail, Mapping):
@@ -1185,10 +1505,15 @@ def build_au_authority_receipt_context(
         route_targets = sorted(
             {
                 _conjecture_route_target(
-                    authority_titles=list(event_hints[event_id].get("authority_titles") or []),
+                    authority_titles=list(
+                        event_hints[event_id].get("authority_titles") or []
+                    ),
                     legal_refs=list(event_hints[event_id].get("legal_refs") or []),
                     candidate_citations=sorted(
-                        set(list(event_hints[event_id].get("candidate_citations") or []) + list(detected_citations))
+                        set(
+                            list(event_hints[event_id].get("candidate_citations") or [])
+                            + list(detected_citations)
+                        )
                     ),
                 )
                 for event_id in linked_event_ids
@@ -1229,13 +1554,17 @@ def build_au_authority_receipt_context(
             "detected_neutral_citation_details": [
                 _citation_detail(ref_text) for ref_text in detected_citations
             ],
-            "authority_term_tokens": _authority_term_tokens(sorted(matched_titles), sorted(matched_refs)),
+            "authority_term_tokens": _authority_term_tokens(
+                sorted(matched_titles), sorted(matched_refs)
+            ),
             "route_targets": route_targets,
             "body_preview_text": run_payload.get("body_preview_text"),
         }
         items.append(
             {
-                "ingest_run_id": str(run_payload.get("ingest_run_id") or run["ingest_run_id"]),
+                "ingest_run_id": str(
+                    run_payload.get("ingest_run_id") or run["ingest_run_id"]
+                ),
                 "authority_kind": authority_kind,
                 "ingest_mode": str(run_payload.get("ingest_mode") or ""),
                 "citation": run_payload.get("citation"),
@@ -1270,11 +1599,14 @@ def build_au_authority_receipt_context(
             "legal_refs": list(hints.get("legal_refs") or []),
             "legal_ref_details": list(hints.get("legal_ref_details") or []),
             "candidate_citations": list(hints.get("candidate_citations") or []),
-            "candidate_citation_details": list(hints.get("candidate_citation_details") or []),
+            "candidate_citation_details": list(
+                hints.get("candidate_citation_details") or []
+            ),
             "authority_term_tokens": list(hints.get("authority_term_tokens") or []),
         }
         for event_id, hints in event_hints.items()
-        if (hints.get("authority_titles") or hints.get("legal_refs")) and event_id not in linked_event_ids_seen
+        if (hints.get("authority_titles") or hints.get("legal_refs"))
+        and event_id not in linked_event_ids_seen
     ]
     follow_needed_conjectures: list[dict[str, Any]] = []
     for row in follow_needed_events:
@@ -1324,7 +1656,9 @@ def build_au_authority_receipt_context(
     return {
         "summary": {
             "authority_receipt_count": len(items),
-            "linked_receipt_count": sum(1 for item in items if item["linked_event_ids"]),
+            "linked_receipt_count": sum(
+                1 for item in items if item["linked_event_ids"]
+            ),
             "follow_needed_event_count": len(follow_needed_events),
             "conjecture_count": len(follow_needed_conjectures),
             "authority_kind_counts": dict(authority_kind_counts),
@@ -1367,7 +1701,9 @@ def build_au_semantic_report(
     authority_receipt_limit: int = 20,
 ) -> dict[str, Any]:
     report = build_gwb_semantic_report(conn, run_id=run_id)
-    report["au_linkage"] = __import__("src.au_semantic.linkage", fromlist=["build_au_semantic_linkage_report"]).build_au_semantic_linkage_report(conn, run_id=run_id)
+    report["au_linkage"] = __import__(
+        "src.au_semantic.linkage", fromlist=["build_au_semantic_linkage_report"]
+    ).build_au_semantic_linkage_report(conn, run_id=run_id)
     if include_authority_receipts:
         report["authority_receipts"] = build_au_authority_receipt_context(
             conn,
