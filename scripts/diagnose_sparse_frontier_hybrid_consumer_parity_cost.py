@@ -256,6 +256,13 @@ def main() -> int:
             cursor.execute(
                 "CREATE UNIQUE INDEX wildcard_parity_decision_pk ON wildcard_parity_decision (demand_id)"
             )
+            cursor.execute(
+                """
+                CREATE INDEX wildcard_parity_decision_certified_position_idx
+                    ON wildcard_parity_decision (demand_position)
+                    WHERE certified
+                """
+            )
             cursor.execute("ANALYZE wildcard_parity_decision")
             decision_ms = _elapsed_ms(decision_started)
 
