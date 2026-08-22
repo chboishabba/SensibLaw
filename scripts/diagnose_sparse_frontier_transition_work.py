@@ -6,9 +6,14 @@ from pathlib import Path
 
 from diagnose_sparse_frontier_actor_retention_work import actor_retention_work_receipt
 from diagnose_sparse_frontier_candidate_work import candidate_work_receipt
+from diagnose_sparse_frontier_rewrite_work import rewrite_work_receipt
 
 
-CONTRACT_REF = "sensiblaw.sparse-frontier-transition-work-diagnostic.v0_2"
+CONTRACT_REF = "sensiblaw.sparse-frontier-transition-work-diagnostic.v0_3"
+
+
+def _ratio(numerator: int, denominator: int) -> float | None:
+    return None if denominator == 0 else numerator / denominator
 
 
 def transition_work_receipt(
@@ -18,12 +23,12 @@ def transition_work_receipt(
     plan_mode: str = "analyze",
     statement_timeout_ms: int = 0,
 ) -> dict[str, object]:
-    """Measure both M179 retention and M178 candidate/rank/rewrite work.
+    """Measure M179 retention, M178 candidate/ranking, and rewrite amplification.
 
     This is deliberately a read-only diagnostic surface.  It does not install a
     migration and does not claim that the finite-mask counterfactual is already
-    a production implementation.  The two child receipts expose enough detail
-    to choose the next optimisation from measured fanout, ranking and rewrite
+    a production implementation.  The child receipts expose enough detail to
+    choose the next optimisation from measured fanout, ranking and rewrite
     costs rather than final relation cardinality alone.
     """
 
@@ -39,9 +44,22 @@ def transition_work_receipt(
         plan_mode=plan_mode,
         statement_timeout_ms=statement_timeout_ms,
     )
+    rewrite = rewrite_work_receipt(database_url, interface_id)
 
     candidate_decision = dict(candidate["decision_surface"])
     retention_decision = dict(retention["decision_surface"])
+
+    candidate_rewrite_rows = int(candidate["rewrite"]["candidate_rows_rewritten_by_canonical"])
+    candidate_delta_rows = int(candidate["rewrite"]["candidate_semantic_delta_rows"])
+    other_rewrite_rows = int(
+        rewrite["totals_without_candidate_table"]["canonical_rewrite_rows"]
+    )
+    other_delta_rows = int(
+        rewrite["totals_without_candidate_table"]["semantic_delta_rows"]
+    )
+    total_rewrite_rows = candidate_rewrite_rows + other_rewrite_rows
+    total_semantic_delta_rows = candidate_delta_rows + other_delta_rows
+
     next_targets: list[str] = []
     if retention_decision.get("composite_signature_candidate"):
         next_targets.append("actor_retention_conjunctive_exposure")
@@ -49,8 +67,8 @@ def transition_work_receipt(
         next_targets.append("object_candidate_conjunctive_exposure")
     if candidate_decision.get("top_k_candidate"):
         next_targets.append("bounded_top_k_ranking")
-    if candidate_decision.get("incremental_candidate_lifecycle_candidate"):
-        next_targets.append("incremental_candidate_lifecycle")
+    if total_rewrite_rows > total_semantic_delta_rows:
+        next_targets.append("incremental_candidate_and_resolution_lifecycle")
     if candidate_decision.get("wildcard_dominant") or retention_decision.get(
         "wildcard_dominant"
     ):
@@ -62,6 +80,17 @@ def transition_work_receipt(
         "plan_mode": plan_mode,
         "candidate": candidate,
         "actor_retention": retention,
+        "rewrite": rewrite,
+        "combined_rewrite": {
+            "canonical_rows_rewritten": total_rewrite_rows,
+            "semantic_delta_rows": total_semantic_delta_rows,
+            "beta_write_rows_per_semantic_delta": _ratio(
+                total_rewrite_rows, total_semantic_delta_rows
+            ),
+            "beta_write_is_unbounded_for_zero_delta": (
+                total_semantic_delta_rows == 0 and total_rewrite_rows > 0
+            ),
+        },
         "next_round_decision_surface": {
             "ranked_targets": next_targets,
             "candidate_direct_helper_cardinality_parity": candidate["exposure"][
@@ -73,8 +102,8 @@ def transition_work_receipt(
             "requires_sql_change_this_round": False,
         },
         "semantics": (
-            "combined read-only receipt for extensional parity versus physical exposure; "
-            "use actual EXPLAIN ANALYZE temp/buffer metrics plus multiplicity ratios to choose the next SQL optimisation"
+            "combined read-only receipt for extensional parity versus physical exposure/materialization/rewrite; "
+            "use actual EXPLAIN ANALYZE temp/buffer metrics plus multiplicity and semantic-delta ratios to choose the next SQL optimisation"
         ),
     }
 
