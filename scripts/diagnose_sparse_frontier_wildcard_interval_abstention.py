@@ -102,7 +102,14 @@ def main() -> int:
                 """
                 CREATE INDEX wildcard_object_nearest_interval_idx
                     ON wildcard_object_nearest_interval
-                       (last_end_char DESC, score_max DESC, score_min DESC, object_id)
+                       (last_end_char DESC, score_max DESC, object_id)
+                """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX wildcard_object_nearest_interval_min_idx
+                    ON wildcard_object_nearest_interval
+                       (last_end_char DESC, score_min DESC, object_id)
                 """
             )
             cursor.execute("ANALYZE wildcard_object_nearest_interval")
@@ -129,52 +136,62 @@ def main() -> int:
                               AND e.target_id = execution.semantic_pnf_demand.demand_id
                        )
                 ),
-                candidate AS (
-                    SELECT d.demand_id,
-                           d.max_candidates,
-                           p.object_id,
-                           d.demand_position - p.last_end_char AS distance,
-                           p.score_min,
-                           p.score_max
-                      FROM demand d
-                      JOIN wildcard_object_nearest_interval p
-                        ON p.last_end_char <= d.demand_position
-                ),
                 optimistic AS (
-                    SELECT c.*,
+                    SELECT d.demand_id, p.object_id,
                            row_number() OVER (
-                               PARTITION BY c.demand_id
-                               ORDER BY c.distance, c.score_max DESC, c.object_id
+                               PARTITION BY d.demand_id
+                               ORDER BY p.last_end_char DESC, p.score_max DESC, p.object_id
                            ) AS optimistic_rank
-                      FROM candidate c
+                      FROM demand d
+                      CROSS JOIN LATERAL (
+                          SELECT object_id, last_end_char, score_max
+                            FROM wildcard_object_nearest_interval
+                           WHERE last_end_char <= d.demand_position
+                           ORDER BY last_end_char DESC, score_max DESC, object_id
+                           LIMIT d.max_candidates
+                      ) AS p
                 ),
                 pessimistic AS (
-                    SELECT c.*,
+                    SELECT d.demand_id, p.object_id,
                            row_number() OVER (
-                               PARTITION BY c.demand_id
-                               ORDER BY c.distance, c.score_min DESC, c.object_id
+                               PARTITION BY d.demand_id
+                               ORDER BY p.last_end_char DESC, p.score_min DESC, p.object_id
                            ) AS pessimistic_rank
-                      FROM candidate c
+                      FROM demand d
+                      CROSS JOIN LATERAL (
+                          SELECT object_id, last_end_char, score_min
+                            FROM wildcard_object_nearest_interval
+                           WHERE last_end_char <= d.demand_position
+                           ORDER BY last_end_char DESC, score_min DESC, object_id
+                           LIMIT d.max_candidates
+                      ) AS p
+                ),
+                optimistic_set AS (
+                    SELECT DISTINCT demand_id, object_id FROM optimistic
+                ),
+                pessimistic_set AS (
+                    SELECT DISTINCT demand_id, object_id FROM pessimistic
+                ),
+                selected AS (
+                    SELECT demand_id, object_id FROM optimistic_set
+                    UNION
+                    SELECT demand_id, object_id FROM pessimistic_set
                 ),
                 classified AS (
                     SELECT d.demand_id,
                            d.max_candidates,
+                           count(o.object_id)::BIGINT AS optimistic_members,
+                           count(p.object_id)::BIGINT AS pessimistic_members,
                            count(*) FILTER (
-                               WHERE o.optimistic_rank <= d.max_candidates
-                           )::BIGINT AS optimistic_members,
-                           count(*) FILTER (
-                               WHERE p.pessimistic_rank <= d.max_candidates
-                           )::BIGINT AS pessimistic_members,
-                           count(*) FILTER (
-                               WHERE (o.optimistic_rank <= d.max_candidates)
-                                  IS DISTINCT FROM
-                                     (p.pessimistic_rank <= d.max_candidates)
+                               WHERE o.object_id IS NULL OR p.object_id IS NULL
                            )::BIGINT AS unstable_members
                       FROM demand d
-                      LEFT JOIN optimistic o USING(demand_id)
-                      LEFT JOIN pessimistic p
-                        ON p.demand_id=o.demand_id AND p.object_id=o.object_id
-                     GROUP BY d.demand_id, d.max_candidates
+                      LEFT JOIN selected s USING (demand_id)
+                      LEFT JOIN optimistic_set o
+                        ON o.demand_id=s.demand_id AND o.object_id=s.object_id
+                      LEFT JOIN pessimistic_set p
+                        ON p.demand_id=s.demand_id AND p.object_id=s.object_id
+                      GROUP BY d.demand_id, d.max_candidates
                 )
                 SELECT count(*)::BIGINT AS demands,
                        count(*) FILTER (WHERE unstable_members = 0)::BIGINT

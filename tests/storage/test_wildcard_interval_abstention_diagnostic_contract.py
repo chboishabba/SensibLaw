@@ -33,10 +33,11 @@ def test_no_score_preferred_representative_is_selected() -> None:
 
 
 def test_top_k_membership_is_checked_optimistically_and_pessimistically() -> None:
-    assert "ORDER BY c.distance, c.score_max DESC, c.object_id" in SCRIPT
-    assert "ORDER BY c.distance, c.score_min DESC, c.object_id" in SCRIPT
-    assert "optimistic_rank <= d.max_candidates" in SCRIPT
-    assert "pessimistic_rank <= d.max_candidates" in SCRIPT
+    assert "ORDER BY p.last_end_char DESC, p.score_max DESC, p.object_id" in SCRIPT
+    assert "ORDER BY p.last_end_char DESC, p.score_min DESC, p.object_id" in SCRIPT
+    assert "LIMIT d.max_candidates" in SCRIPT
+    assert "optimistic_members" in SCRIPT
+    assert "pessimistic_members" in SCRIPT
     assert "unstable_members" in SCRIPT
 
 
