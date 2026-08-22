@@ -1,4 +1,4 @@
-"""Read-only ambiguity-preserving bounded wildcard diagnostic.
+"""Read-only proof-directed hybrid wildcard routing diagnostic.
 
 The wildcard workload is semantically unconstrained and some equally-near
 actor-profile representatives for one semantic object disagree in score and
@@ -23,6 +23,17 @@ tie break.  Independent score intervals make these bounds jointly realizable.
 Thus MUST = MAY is an all-realizations certificate, unlike merely comparing the
 all-minimum and all-maximum endpoint rankings.
 
+Cross-pollinated decision contract:
+
+* MUST = MAY is a routing certificate, not a fine-score reconstruction theorem;
+* certified demands route to the bounded execution policy;
+* MAY \\ MUST demands retain an explicit residual and route to the unchanged
+  legacy wildcard policy;
+* fallback is not failure/refutation;
+* the declared semantic consumer observation is membership/count/unique-target/
+  outcome plus membership provenance.  Floating candidate_score remains planner
+  execution metadata, matching migration 086's reopenable-runtime boundary.
+
 The implementation is diagnostic only, writes TEMP state only, and never mutates
 execution authority.
 """
@@ -37,7 +48,12 @@ from typing import Any
 from src.storage.postgres.spacy_parser_model import connect
 
 
-CONTRACT_REF = "sensiblaw.sparse-frontier-wildcard-interval-abstention.v0_2"
+CONTRACT_REF = "sensiblaw.sparse-frontier-wildcard-hybrid-routing.v0_3"
+CERTIFIED_ROUTE = "certified_bounded"
+FALLBACK_ROUTE = "legacy_residual_fallback"
+CONSUMER_OBSERVATION = (
+    "membership_candidate_count_unique_target_outcome_membership_provenance"
+)
 
 
 def _write(stream: Any, payload: dict[str, object]) -> None:
@@ -52,7 +68,10 @@ def main() -> int:
     parser.add_argument("--interface-id", required=True, type=int)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--timeout-ms", type=int, default=60000)
+    parser.add_argument("--fallback-sample-limit", type=int, default=25)
     args = parser.parse_args()
+    if args.fallback_sample_limit < 0:
+        raise ValueError("fallback-sample-limit must be non-negative")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     connection = connect(args.database_url)
@@ -129,11 +148,14 @@ def main() -> int:
             )
             cursor.execute("ANALYZE wildcard_object_nearest_interval")
 
-            # Exact MUST/MAY envelope.  Only the kth distance fibre needs score
-            # interval reasoning; all nearer/farther membership is fixed by the
-            # primary structural-distance coordinate.
+            # Build a proof-relevant routing surface, not a new authority table.
+            # Each row states whether this demand has the MUST=MAY certificate
+            # required for bounded execution or must preserve its ambiguity
+            # residual and use the unchanged legacy wildcard path.
+            cursor.execute("DROP TABLE IF EXISTS wildcard_hybrid_decision")
             cursor.execute(
-                """
+                f"""
+                CREATE TEMP TABLE wildcard_hybrid_decision ON COMMIT PRESERVE ROWS AS
                 WITH demand AS MATERIALIZED (
                     SELECT demand_id,
                            source_start_char AS demand_position,
@@ -272,31 +294,80 @@ def main() -> int:
                               b.nearer_count,
                               b.remaining_slots
                 )
-                SELECT count(*)::BIGINT AS demands,
-                       count(*) FILTER (WHERE unstable_members = 0)::BIGINT
-                           AS invariant_demands,
-                       count(*) FILTER (WHERE unstable_members > 0)::BIGINT
-                           AS abstaining_demands,
-                       COALESCE(sum(unstable_members), 0)::BIGINT
-                           AS unstable_memberships,
-                       COALESCE(max(unstable_members), 0)::BIGINT
-                           AS max_unstable_memberships,
-                       COALESCE(sum(must_members), 0)::BIGINT
-                           AS must_memberships,
-                       COALESCE(sum(may_members), 0)::BIGINT
-                           AS may_memberships
+                SELECT classified.*,
+                       (unstable_members = 0) AS certified,
+                       CASE
+                           WHEN unstable_members = 0 THEN '{CERTIFIED_ROUTE}'
+                           ELSE '{FALLBACK_ROUTE}'
+                       END::TEXT AS execution_route,
+                       CASE
+                           WHEN unstable_members = 0 THEN 'must_equals_may'
+                           ELSE 'may_minus_must_nonempty'
+                       END::TEXT AS certificate_state,
+                       unstable_members AS residual_memberships
                   FROM classified
                 """,
                 (args.interface_id,),
             )
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX wildcard_hybrid_decision_demand_idx
+                    ON wildcard_hybrid_decision (demand_id)
+                """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX wildcard_hybrid_decision_route_idx
+                    ON wildcard_hybrid_decision
+                       (execution_route, demand_id)
+                """
+            )
+            cursor.execute("ANALYZE wildcard_hybrid_decision")
+
+            cursor.execute(
+                """
+                SELECT count(*)::BIGINT AS demands,
+                       count(*) FILTER (WHERE certified)::BIGINT
+                           AS certified_demands,
+                       count(*) FILTER (WHERE NOT certified)::BIGINT
+                           AS fallback_demands,
+                       COALESCE(sum(residual_memberships), 0)::BIGINT
+                           AS unstable_memberships,
+                       COALESCE(max(residual_memberships), 0)::BIGINT
+                           AS max_unstable_memberships,
+                       COALESCE(sum(must_members), 0)::BIGINT
+                           AS must_memberships,
+                       COALESCE(sum(may_members), 0)::BIGINT
+                           AS may_memberships,
+                       COALESCE(sum(residual_memberships)
+                           FILTER (WHERE NOT certified), 0)::BIGINT
+                           AS fallback_residual_memberships,
+                       count(*) FILTER (
+                           WHERE certified
+                             AND execution_route = 'certified_bounded'
+                             AND certificate_state = 'must_equals_may'
+                             AND residual_memberships = 0
+                       )::BIGINT AS certified_route_consistent,
+                       count(*) FILTER (
+                           WHERE NOT certified
+                             AND execution_route = 'legacy_residual_fallback'
+                             AND certificate_state = 'may_minus_must_nonempty'
+                             AND residual_memberships > 0
+                       )::BIGINT AS fallback_route_consistent
+                  FROM wildcard_hybrid_decision
+                """
+            )
             (
                 demands,
-                invariant,
-                abstaining,
+                certified_demands,
+                fallback_demands,
                 unstable,
                 max_unstable,
                 must_memberships,
                 may_memberships,
+                fallback_residual_memberships,
+                certified_route_consistent,
+                fallback_route_consistent,
             ) = cursor.fetchone()
 
             cursor.execute(
@@ -310,15 +381,64 @@ def main() -> int:
             )
             objects, tied_objects, interval_objects, max_rows = cursor.fetchone()
 
+            fallback_samples: list[dict[str, int]] = []
+            if args.fallback_sample_limit:
+                cursor.execute(
+                    """
+                    SELECT demand_id,
+                           max_candidates,
+                           eligible_count,
+                           nearer_count,
+                           remaining_slots,
+                           must_members,
+                           may_members,
+                           residual_memberships
+                      FROM wildcard_hybrid_decision
+                     WHERE execution_route = 'legacy_residual_fallback'
+                     ORDER BY residual_memberships DESC, demand_id
+                     LIMIT %s
+                    """,
+                    (args.fallback_sample_limit,),
+                )
+                fallback_samples = [
+                    {
+                        "demand_id": int(row[0]),
+                        "max_candidates": int(row[1]),
+                        "eligible_count": int(row[2]),
+                        "nearer_count": int(row[3]),
+                        "remaining_slots": int(row[4]),
+                        "must_members": int(row[5]),
+                        "may_members": int(row[6]),
+                        "residual_memberships": int(row[7]),
+                    }
+                    for row in cursor.fetchall()
+                ]
+
+            demands_i = int(demands)
+            certified_i = int(certified_demands)
+            fallback_i = int(fallback_demands)
+            partition_exact = (
+                certified_i + fallback_i == demands_i
+                and int(certified_route_consistent) == certified_i
+                and int(fallback_route_consistent) == fallback_i
+            )
+
             receipt = {
                 "contract_ref": CONTRACT_REF,
                 "interface_id": args.interface_id,
                 "semantic_mutation_performed": False,
                 "temp_state_only": True,
-                "wildcard_demands": int(demands),
-                "invariant_demands": int(invariant),
-                "abstaining_demands": int(abstaining),
+                "wildcard_demands": demands_i,
+                "certified_bounded_demands": certified_i,
+                "legacy_residual_fallback_demands": fallback_i,
+                "certified_fraction": (
+                    certified_i / demands_i if demands_i else 1.0
+                ),
+                "fallback_fraction": (
+                    fallback_i / demands_i if demands_i else 0.0
+                ),
                 "unstable_memberships": int(unstable),
+                "fallback_residual_memberships": int(fallback_residual_memberships),
                 "max_unstable_memberships_per_demand": int(max_unstable),
                 "must_memberships": int(must_memberships),
                 "may_memberships": int(may_memberships),
@@ -327,10 +447,20 @@ def main() -> int:
                 "score_interval_objects": int(interval_objects),
                 "max_nearest_representative_rows": int(max_rows),
                 "membership_envelope": "must_subset_realized_subset_may",
-                "authoritative_claim": "all_realizations_only_when_must_equals_may",
+                "decision_observer": "must_equals_may_certificate",
+                "certified_route": CERTIFIED_ROUTE,
+                "uncertified_route": FALLBACK_ROUTE,
+                "hybrid_partition_exact": partition_exact,
+                "consumer_observation": CONSUMER_OBSERVATION,
+                "candidate_score_authority": "execution_metadata_not_semantic_evidence",
+                "fallback_semantics": "residual_preserved_not_failure_or_refutation",
+                "authoritative_claim": (
+                    "whole_dispatcher_consumer_exact_when_certified_bounded_else_legacy"
+                ),
+                "fallback_samples": fallback_samples,
             }
             _write(stream, receipt)
-            return 0
+            return 0 if partition_exact else 2
     finally:
         connection.close()
 
