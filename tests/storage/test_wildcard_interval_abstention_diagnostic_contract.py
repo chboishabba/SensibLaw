@@ -32,19 +32,42 @@ def test_no_score_preferred_representative_is_selected() -> None:
     assert "score_max" in nearest_section
 
 
-def test_top_k_membership_is_checked_optimistically_and_pessimistically() -> None:
-    assert "ORDER BY p.last_end_char DESC, p.score_max DESC, p.object_id" in SCRIPT
-    assert "ORDER BY p.last_end_char DESC, p.score_min DESC, p.object_id" in SCRIPT
-    assert "LIMIT d.max_candidates" in SCRIPT
-    assert "optimistic_members" in SCRIPT
-    assert "pessimistic_members" in SCRIPT
-    assert "unstable_members" in SCRIPT
+def test_exact_envelope_is_computed_at_the_kth_distance_fibre() -> None:
+    assert "AS cutoff_end" in SCRIPT
+    assert "remaining_slots" in SCRIPT
+    assert "cutoff_candidates" in SCRIPT
+    assert "p.last_end_char > b.cutoff_end" in SCRIPT
+    assert "b.eligible_count > b.max_candidates" in SCRIPT
+
+
+def test_must_membership_uses_all_possible_outrankers() -> None:
+    assert "possible_outrankers < remaining_slots AS must_in" in SCRIPT
+    assert "x.score_max > c.score_min" in SCRIPT
+    assert "x.score_max = c.score_min" in SCRIPT
+    assert "x.object_id < c.object_id" in SCRIPT
+
+
+def test_may_membership_uses_only_certain_outrankers() -> None:
+    assert "certain_outrankers < remaining_slots AS may_in" in SCRIPT
+    assert "x.score_min > c.score_max" in SCRIPT
+    assert "x.score_min = c.score_max" in SCRIPT
+    assert "x.object_id < c.object_id" in SCRIPT
 
 
 def test_ambiguity_causes_abstention_not_semantic_choice() -> None:
     assert "abstaining_demands" in SCRIPT
-    assert '"authoritative_claim": "only_invariant_top_k_membership"' in SCRIPT
-    assert "unstable_memberships" in SCRIPT
+    assert "c.may_in AND NOT c.must_in" in SCRIPT
+    assert '"membership_envelope": "must_subset_realized_subset_may"' in SCRIPT
+    assert (
+        '"authoritative_claim": "all_realizations_only_when_must_equals_may"'
+        in SCRIPT
+    )
+
+
+def test_endpoint_only_observer_is_not_used_as_authority() -> None:
+    assert "optimistic AS" not in SCRIPT
+    assert "pessimistic AS" not in SCRIPT
+    assert "all-minimum and all-maximum endpoint rankings" in SCRIPT
 
 
 def test_probe_is_scoped_to_observed_wildcard_recency_class() -> None:
