@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 COMBINED = ROOT / "scripts/diagnose_sparse_frontier_transition_work.py"
 CANDIDATE = ROOT / "scripts/diagnose_sparse_frontier_candidate_work.py"
 RETENTION = ROOT / "scripts/diagnose_sparse_frontier_actor_retention_work.py"
+REWRITE = ROOT / "scripts/diagnose_sparse_frontier_rewrite_work.py"
 
 
 def _source(path: Path) -> str:
@@ -13,19 +14,21 @@ def _source(path: Path) -> str:
 
 
 def test_diagnostic_scripts_are_python_syntax_valid() -> None:
-    for path in (COMBINED, CANDIDATE, RETENTION):
+    for path in (COMBINED, CANDIDATE, RETENTION, REWRITE):
         ast.parse(_source(path), filename=str(path))
 
 
-def test_combined_receipt_requires_both_candidate_and_retention_measurements() -> None:
+def test_combined_receipt_requires_candidate_retention_and_rewrite_measurements() -> None:
     source = _source(COMBINED)
 
     assert "candidate_work_receipt" in source
     assert "actor_retention_work_receipt" in source
+    assert "rewrite_work_receipt" in source
     assert '"object_candidate_conjunctive_exposure"' in source
     assert '"actor_retention_conjunctive_exposure"' in source
     assert '"bounded_top_k_ranking"' in source
-    assert '"incremental_candidate_lifecycle"' in source
+    assert '"incremental_candidate_and_resolution_lifecycle"' in source
+    assert '"beta_write_rows_per_semantic_delta"' in source
     assert '"requires_sql_change_this_round": False' in source
 
 
@@ -93,11 +96,26 @@ def test_actor_retention_probe_preserves_three_axis_semantics_and_measures_fanou
     assert "wildcard_rows" in source
 
 
+def test_rewrite_probe_measures_no_change_update_and_resolution_amplification() -> None:
+    source = _source(REWRITE)
+
+    assert "candidate_count_update_rows" in source
+    assert "candidate_count_semantic_delta_rows" in source
+    assert "unique_resolution_update_rows" in source
+    assert "unique_resolution_semantic_delta_rows" in source
+    assert "canonical_delete_insert_rows" in source
+    assert "resolution_semantic_delta_rows" in source
+    assert "EXCEPT ALL" in source
+    assert "beta_rewrite_rows_per_semantic_delta" in source
+    assert "created_at is excluded" in source
+
+
 def test_diagnostics_are_read_only_and_do_not_install_an_optimization() -> None:
     candidate = _source(CANDIDATE).upper()
     retention = _source(RETENTION).upper()
+    rewrite = _source(REWRITE).upper()
 
-    for source in (candidate, retention):
+    for source in (candidate, retention, rewrite):
         assert "SET TRANSACTION READ ONLY" in source
         assert "CREATE OR REPLACE FUNCTION" not in source
         assert "CREATE INDEX" not in source
