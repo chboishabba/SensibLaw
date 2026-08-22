@@ -2,7 +2,7 @@
 
 The M178/M179 replay falsified the assumption that extensional candidate parity plus unary-key indexing is sufficient to make sparse-frontier transition work physically sparse.
 
-The current diagnostic round therefore makes no production SQL change.  It measures the physical work funnel needed to choose the next optimization from evidence.
+The current diagnostic round therefore makes no production SQL change. It measures the physical work funnel needed to choose the next optimization from evidence.
 
 ## Formal contract
 
@@ -21,7 +21,7 @@ For an observation with final admitted rows `A`, wildcard residual `R`, and inte
 E <= c * A + R
 ```
 
-The wildcard residual is explicit.  Missing constraints are not negative evidence and may not be pruned merely to make an execution bound look better.
+The wildcard residual is explicit. Missing constraints are not negative evidence and may not be pruned merely to make an execution bound look better.
 
 Object-candidate matching has four nullable axes and therefore sixteen masks:
 
@@ -49,11 +49,11 @@ python scripts/diagnose_sparse_frontier_transition_work.py \
   --output .tmp/sparse-frontier-transition-work.json
 ```
 
-`--plan-mode analyze` is the decision-grade mode.  It records actual rows, shared-buffer traffic and temp spill for the expensive stages through `EXPLAIN (ANALYZE, BUFFERS, WAL, FORMAT JSON)`.  `estimate` is available for a cheap planner-only preview and `none` records only cardinalities.
+`--plan-mode analyze` is the decision-grade mode. It records actual rows, shared-buffer traffic and temp spill for the expensive stages through `EXPLAIN (ANALYZE, BUFFERS, WAL, FORMAT JSON)`. `estimate` is available for a cheap planner-only preview and `none` records only cardinalities.
 
-The transaction is read-only.  The probe does not install indexes, functions, migrations, or mutate frontier authority.
+All child probes run in read-only transactions. They do not install indexes, functions, migrations, or mutate frontier authority.
 
-## Candidate exposure / ranking / rewrite receipt
+## Candidate exposure / ranking receipt
 
 `scripts/diagnose_sparse_frontier_candidate_work.py` records:
 
@@ -72,27 +72,26 @@ The transaction is read-only.  The probe does not install indexes, functions, mi
 - deduplicated/ranked rows;
 - `maxCandidates` survivors;
 - current persistent candidate rows;
-- rows the canonical delete-all/reinsert path would rewrite;
+- rows the canonical delete-all/reinsert candidate path would rewrite;
 - exact candidate-row semantic symmetric difference via `EXCEPT ALL`;
-- current resolution rewrite population;
 - candidate constraint-mask distribution;
 - required-key-count, recency and `maxCandidates` histograms;
 - unary fanout by key kind;
 - the broadest profile postings and demand postings;
 - actual planner/buffer/temp metrics for the exposure and ranking stages.
 
-It emits the decision ratios:
+It emits:
 
 ```text
 beta_unary = unary partial-key matches / final object candidates
 beta_partial = partially matched demand/profile rows / final object candidates
 beta_rank = raw candidates / maxCandidates survivors
-beta_write = canonical candidate rows rewritten / semantic candidate-row delta
+beta_write_candidate = canonical candidate rows rewritten / semantic candidate-row delta
 ```
 
-If the semantic delta is zero while the canonical reducer would still rewrite rows, `beta_write_is_unbounded_for_zero_delta` is reported explicitly instead of fabricating a finite ratio.
+If the semantic delta is zero while the canonical reducer would still rewrite rows, the receipt reports that the rewrite ratio is unbounded instead of fabricating a finite value.
 
-The literal direct-conjunction SQL exists only to determine exact relation cardinality and to cross-check M178 helper semantics.  Its execution plan is not treated as the proposed composite-signature implementation.
+The literal direct-conjunction SQL exists only to determine exact relation cardinality and cross-check M178 helper semantics. Its execution plan is not treated as the proposed composite-signature implementation.
 
 ## Actor-retention receipt
 
@@ -116,7 +115,42 @@ It records:
 - broadest profile postings;
 - actual planner/buffer/temp metrics for both unary and finite-mask forms.
 
-The lexical axis is intentionally absent from this probe because the historical migration-062 actor-retention predicate did not use lexical identity.
+The lexical axis is intentionally absent because the historical migration-062 actor-retention predicate did not use lexical identity.
+
+## Rewrite-amplification receipt
+
+`scripts/diagnose_sparse_frontier_rewrite_work.py` measures mutation work that candidate exposure alone cannot explain.
+
+The canonical reducer currently has three separate rewrite surfaces:
+
+```text
+candidate DELETE + INSERT
+semantic_pnf_demand UPDATE from candidate counts
+frontier_resolution DELETE + INSERT
+```
+
+The rewrite probe measures the latter two independently of the candidate receipt. In particular it records:
+
+- every unresolved demand targeted by the broad candidate-count `UPDATE`;
+- the subset whose candidate count or state would actually change;
+- every demand targeted by unique-candidate resolution;
+- the subset whose resolved target/state would actually change;
+- current and desired `semantic_pnf_frontier_resolution` rows;
+- exact resolution semantic symmetric difference with `EXCEPT ALL`;
+- delete/reinsert rows versus semantic delta rows.
+
+`created_at` is deliberately excluded from resolution equality: changing a timestamp because a row was rewritten is physical churn, not a semantic resolution change.
+
+The combined receipt then computes:
+
+```text
+beta_write =
+  (candidate rewrites + demand-update targets + resolution rewrites)
+  /
+  (candidate semantic delta + demand semantic delta + resolution semantic delta)
+```
+
+and reports the zero-delta case explicitly as unbounded rewrite amplification.
 
 ## Next-round decision rule
 
@@ -135,14 +169,14 @@ large raw/survivor ratio
     -> bounded top-k / ranking work
 
 large rewrite/semantic-delta ratio
-    -> incremental candidate lifecycle
+    -> incremental candidate + resolution lifecycle
 
 wildcard work dominates
     -> inspect upstream constraint quality;
        if genuinely unconstrained, retain the broad cost as semantic residual
 ```
 
-Multiple targets may be true simultaneously.  The next implementation round should attack the measured dominant term(s), then rerun the same receipt before promotion.
+Multiple targets may be true simultaneously. The next implementation round should attack the measured dominant term or terms, then rerun the same receipt before promotion.
 
 ## Interpretation boundary
 
@@ -154,4 +188,4 @@ transition-relation exactness
 physical transition-work sparsity
 ```
 
-M178/M179 already demonstrate that the first two do not imply the third.  This receipt exists to measure the missing physical obligation directly.
+M178/M179 already demonstrate that the first two do not imply the third. This receipt measures the missing physical obligation directly.
