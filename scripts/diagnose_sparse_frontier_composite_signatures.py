@@ -4,11 +4,13 @@ L = canonical legacy direct conjunction.
 U = migration-178 unary-key helper.
 C = counterfactual composite masked-signature exposure.
 
-The composite path is deliberately diagnostic only.  It consumes producer-native
-canonical demand columns, emits the finite 16-mask profile posting family, and
-preserves the historical lexical ``head OR predicate`` disjunction.  Promotion
-into the canonical reducer requires exact multiset parity plus measured physical
-improvement on the same interface/workload.
+The composite path is diagnostic only. It consumes producer-native canonical
+demand columns, emits the finite 16-mask profile posting family, and preserves
+the historical lexical ``head OR predicate`` disjunction. Masked-off coordinates
+remain NULL and are compared with PostgreSQL's null-safe equality, so every
+BIGINT value (including zero) remains available to the semantic ID domain.
+Promotion into the canonical reducer requires exact multiset parity plus measured
+physical improvement on the same interface/workload.
 """
 
 from __future__ import annotations
@@ -31,30 +33,8 @@ from diagnose_sparse_frontier_candidate_work import (
 from src.storage.postgres.spacy_parser_model import connect
 
 
-CONTRACT_REF = "sensiblaw.sparse-frontier-composite-signature-diagnostic.v0_1"
-
-# Symbol ids are sequence-backed in the current authority schema, so zero is a
-# convenient physical sentinel for masked-off signature coordinates.  The
-# diagnostic does not assume that silently: it fails closed if zero is present
-# in any coordinate it would encode.
-_ZERO_SYMBOL_GUARD = f"""
-SELECT EXISTS (
-    SELECT 1
-      FROM ({_OBJECT_DEMAND}) AS demand
-     WHERE demand.expected_factor_type_symbol_id = 0
-        OR demand.expected_object_kind_symbol_id = 0
-        OR demand.role_symbol_id = 0
-        OR demand.lexical_symbol_id = 0
-    UNION ALL
-    SELECT 1
-      FROM ({_PROFILE_BASE}) AS profile
-     WHERE profile.factor_type_symbol_id = 0
-        OR profile.object_kind_symbol_id = 0
-        OR profile.role_symbol_id = 0
-        OR profile.predicate_symbol_id = 0
-        OR profile.head_symbol_id = 0
-)
-"""
+CONTRACT_REF = "sensiblaw.sparse-frontier-composite-signature-diagnostic.v0_2"
+SIGNATURE_ENCODING = "nullable-mask-coordinates"
 
 _DEMAND_SIGNATURE = f"""
 WITH object_demand AS MATERIALIZED ({_OBJECT_DEMAND})
@@ -63,10 +43,10 @@ SELECT demand.demand_id,
         + (CASE WHEN demand.expected_object_kind_symbol_id IS NOT NULL THEN 4 ELSE 0 END)
         + (CASE WHEN demand.role_symbol_id IS NOT NULL THEN 2 ELSE 0 END)
         + (CASE WHEN demand.lexical_symbol_id IS NOT NULL THEN 1 ELSE 0 END))::INTEGER AS mask,
-       COALESCE(demand.expected_factor_type_symbol_id, 0)::BIGINT AS factor_key,
-       COALESCE(demand.expected_object_kind_symbol_id, 0)::BIGINT AS object_kind_key,
-       COALESCE(demand.role_symbol_id, 0)::BIGINT AS role_key,
-       COALESCE(demand.lexical_symbol_id, 0)::BIGINT AS lexical_key,
+       demand.expected_factor_type_symbol_id::BIGINT AS factor_key,
+       demand.expected_object_kind_symbol_id::BIGINT AS object_kind_key,
+       demand.role_symbol_id::BIGINT AS role_key,
+       demand.lexical_symbol_id::BIGINT AS lexical_key,
        demand.recency_class,
        demand.max_candidates,
        demand.demand_position,
@@ -75,20 +55,20 @@ SELECT demand.demand_id,
   FROM object_demand AS demand
 """
 
-# One actor-profile row exposes at most sixteen mask families.  For lexical
-# masks it exposes the head and predicate signatures independently, with UNION
-# removing the duplicate when head == predicate.  Missing coordinates simply do
-# not emit postings for masks which require them.
+# One actor-profile row exposes at most sixteen mask families. For lexical masks
+# it exposes head and predicate signatures independently, with UNION suppressing
+# the duplicate when head == predicate. Masked-off coordinates remain NULL;
+# required coordinates only emit a posting when their source value is present.
 _PROFILE_SIGNATURE = f"""
 WITH profile_base AS MATERIALIZED ({_PROFILE_BASE})
 SELECT profile.object_id,
        mask.mask::INTEGER AS mask,
        CASE WHEN (mask.mask & 8) <> 0
-            THEN profile.factor_type_symbol_id ELSE 0 END::BIGINT AS factor_key,
+            THEN profile.factor_type_symbol_id ELSE NULL END::BIGINT AS factor_key,
        CASE WHEN (mask.mask & 4) <> 0
-            THEN profile.object_kind_symbol_id ELSE 0 END::BIGINT AS object_kind_key,
+            THEN profile.object_kind_symbol_id ELSE NULL END::BIGINT AS object_kind_key,
        CASE WHEN (mask.mask & 2) <> 0
-            THEN profile.role_symbol_id ELSE 0 END::BIGINT AS role_key,
+            THEN profile.role_symbol_id ELSE NULL END::BIGINT AS role_key,
        lexical.lexical_key,
        profile.occurrence_count,
        profile.first_start_char,
@@ -97,7 +77,7 @@ SELECT profile.object_id,
   FROM profile_base AS profile
  CROSS JOIN generate_series(0, 15) AS mask(mask)
  CROSS JOIN LATERAL (
-       SELECT 0::BIGINT AS lexical_key
+       SELECT NULL::BIGINT AS lexical_key
         WHERE (mask.mask & 1) = 0
        UNION
        SELECT profile.head_symbol_id::BIGINT
@@ -130,10 +110,10 @@ SELECT demand.demand_id,
   FROM demand_signature AS demand
   JOIN profile_signature AS profile
     ON profile.mask = demand.mask
-   AND profile.factor_key = demand.factor_key
-   AND profile.object_kind_key = demand.object_kind_key
-   AND profile.role_key = demand.role_key
-   AND profile.lexical_key = demand.lexical_key
+   AND profile.factor_key IS NOT DISTINCT FROM demand.factor_key
+   AND profile.object_kind_key IS NOT DISTINCT FROM demand.object_kind_key
+   AND profile.role_key IS NOT DISTINCT FROM demand.role_key
+   AND profile.lexical_key IS NOT DISTINCT FROM demand.lexical_key
 """
 
 _COMPOSITE_OBJECT_CANDIDATE = f"""
@@ -201,7 +181,7 @@ def _plan_receipt(envelope: dict[str, Any], *, analyze: bool) -> dict[str, objec
                 "actual_rows": root.get("Actual Rows"),
                 "actual_loops": root.get("Actual Loops"),
                 # Root cumulative counters are the authoritative whole-plan
-                # values.  Child sums would double-count inclusive metrics.
+                # values. Child sums would double-count inclusive metrics.
                 "shared_hit_blocks": root.get("Shared Hit Blocks", 0),
                 "shared_read_blocks": root.get("Shared Read Blocks", 0),
                 "temp_read_blocks": root.get("Temp Read Blocks", 0),
@@ -213,10 +193,7 @@ def _plan_receipt(envelope: dict[str, Any], *, analyze: bool) -> dict[str, objec
                     default=0,
                 ),
                 "max_rows_removed_by_filter": max(
-                    (
-                        int(node.get("Rows Removed by Filter", 0) or 0)
-                        for node in nodes
-                    ),
+                    (int(node.get("Rows Removed by Filter", 0) or 0) for node in nodes),
                     default=0,
                 ),
             }
@@ -245,17 +222,6 @@ def _count(cursor: Any, sql: str, interface_id: int) -> int:
         f"SELECT count(*) FROM ({sql}) AS measured", _params(sql, interface_id)
     )
     return int(cursor.fetchone()[0])
-
-
-def _zero_symbol_guard(cursor: Any, interface_id: int) -> None:
-    cursor.execute(
-        _ZERO_SYMBOL_GUARD,
-        _params(_ZERO_SYMBOL_GUARD, interface_id),
-    )
-    if bool(cursor.fetchone()[0]):
-        raise RuntimeError(
-            "composite signature diagnostic refuses zero-valued semantic symbol ids"
-        )
 
 
 def _multiset_difference_count(
@@ -295,10 +261,7 @@ def _stage(
                         "SELECT set_config('statement_timeout', %s, true)",
                         (str(timeout_ms),),
                     )
-                    _zero_symbol_guard(cursor, interface_id)
-                    plan = _explain(
-                        cursor, sql, interface_id, analyze=analyze
-                    )
+                    plan = _explain(cursor, sql, interface_id, analyze=analyze)
         return {
             "stage": name,
             "status": "complete",
@@ -338,7 +301,6 @@ def _parity_receipt(
                         "SELECT set_config('statement_timeout', %s, true)",
                         (str(timeout_ms),),
                     )
-                    _zero_symbol_guard(cursor, interface_id)
                     legacy_rows = _count(cursor, _DIRECT_OBJECT_CANDIDATE, interface_id)
                     composite_rows = _count(
                         cursor, _COMPOSITE_OBJECT_CANDIDATE, interface_id
@@ -417,6 +379,7 @@ def main() -> int:
         for name, sql in stages:
             receipt = {
                 "contract_ref": CONTRACT_REF,
+                "signature_encoding": SIGNATURE_ENCODING,
                 "interface_id": args.interface_id,
                 "mode": args.mode,
                 **_stage(
@@ -434,13 +397,10 @@ def main() -> int:
 
         parity = {
             "contract_ref": CONTRACT_REF,
+            "signature_encoding": SIGNATURE_ENCODING,
             "interface_id": args.interface_id,
             "mode": args.mode,
-            **_parity_receipt(
-                args.database_url,
-                args.interface_id,
-                args.timeout_ms,
-            ),
+            **_parity_receipt(args.database_url, args.interface_id, args.timeout_ms),
         }
         stream.write(json.dumps(parity, sort_keys=True) + "\n")
         stream.flush()
