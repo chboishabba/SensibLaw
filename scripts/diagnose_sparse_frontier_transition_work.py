@@ -49,7 +49,9 @@ def transition_work_receipt(
     candidate_decision = dict(candidate["decision_surface"])
     retention_decision = dict(retention["decision_surface"])
 
-    candidate_rewrite_rows = int(candidate["rewrite"]["candidate_rows_rewritten_by_canonical"])
+    candidate_rewrite_rows = int(
+        candidate["rewrite"]["candidate_rows_rewritten_by_canonical"]
+    )
     candidate_delta_rows = int(candidate["rewrite"]["candidate_semantic_delta_rows"])
     other_rewrite_rows = int(
         rewrite["totals_without_candidate_table"]["canonical_rewrite_rows"]

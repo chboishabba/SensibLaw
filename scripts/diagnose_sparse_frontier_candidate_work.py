@@ -313,7 +313,9 @@ def _json_plan(value: Any) -> dict[str, Any]:
     return dict(value)
 
 
-def _plan(cursor: Any, sql: str, params: tuple[object, ...], *, analyze: bool) -> dict[str, object]:
+def _plan(
+    cursor: Any, sql: str, params: tuple[object, ...], *, analyze: bool
+) -> dict[str, object]:
     options = "ANALYZE, BUFFERS, WAL, FORMAT JSON" if analyze else "FORMAT JSON"
     cursor.execute(f"EXPLAIN ({options}) {sql}", params)
     envelope = _json_plan(cursor.fetchone()[0])
@@ -385,20 +387,36 @@ def candidate_work_receipt(
                 actor_profiles = _count(cursor, _PROFILE_BASE, (interface_id,))
                 required_key_rows = _count(cursor, _REQUIRED_KEY, (interface_id,))
                 profile_key_rows = _count(cursor, _PROFILE_KEY, (interface_id,))
-                unary_match_rows = _count(cursor, _UNARY_MATCH, (interface_id, interface_id))
-                partial_profile_rows = _count(cursor, _PARTIAL_PROFILE, (interface_id, interface_id))
+                unary_match_rows = _count(
+                    cursor, _UNARY_MATCH, (interface_id, interface_id)
+                )
+                partial_profile_rows = _count(
+                    cursor, _PARTIAL_PROFILE, (interface_id, interface_id)
+                )
                 unary_conjunctive_rows = _count(
                     cursor,
                     _UNARY_CONJUNCTIVE,
                     (interface_id, interface_id, interface_id),
                 )
-                direct_static_rows = _count(cursor, _DIRECT_STATIC_MATCH, (interface_id, interface_id))
-                direct_object_rows = _count(cursor, _DIRECT_OBJECT_CANDIDATE, (interface_id, interface_id))
-                indexed_object_rows = _count(cursor, _INDEXED_OBJECT_CANDIDATE, (interface_id,))
-                factor_rows = _count(cursor, _FACTOR_CANDIDATE, (interface_id, interface_id))
+                direct_static_rows = _count(
+                    cursor, _DIRECT_STATIC_MATCH, (interface_id, interface_id)
+                )
+                direct_object_rows = _count(
+                    cursor, _DIRECT_OBJECT_CANDIDATE, (interface_id, interface_id)
+                )
+                indexed_object_rows = _count(
+                    cursor, _INDEXED_OBJECT_CANDIDATE, (interface_id,)
+                )
+                factor_rows = _count(
+                    cursor, _FACTOR_CANDIDATE, (interface_id, interface_id)
+                )
                 raw_rows = indexed_object_rows + factor_rows
-                ranked_rows = _count(cursor, _RANKED, (interface_id, interface_id, interface_id))
-                survivors = _count(cursor, _SURVIVORS, (interface_id, interface_id, interface_id))
+                ranked_rows = _count(
+                    cursor, _RANKED, (interface_id, interface_id, interface_id)
+                )
+                survivors = _count(
+                    cursor, _SURVIVORS, (interface_id, interface_id, interface_id)
+                )
 
                 mask_histogram = _histogram(
                     cursor,
@@ -463,7 +481,11 @@ def candidate_work_receipt(
                     (interface_id,),
                 )
                 broadest_profile_postings = [
-                    {"key_kind": int(kind), "key_a": int(key), "profile_rows": int(rows)}
+                    {
+                        "key_kind": int(kind),
+                        "key_a": int(key),
+                        "profile_rows": int(rows),
+                    }
                     for kind, key, rows in cursor.fetchall()
                 ]
 
@@ -534,8 +556,12 @@ def candidate_work_receipt(
                     """,
                     (
                         interface_id,
-                        interface_id, interface_id, interface_id,
-                        interface_id, interface_id, interface_id,
+                        interface_id,
+                        interface_id,
+                        interface_id,
+                        interface_id,
+                        interface_id,
+                        interface_id,
                         interface_id,
                     ),
                 )
@@ -560,8 +586,14 @@ def candidate_work_receipt(
                 if plan_mode != "none":
                     analyze = plan_mode == "analyze"
                     specs = {
-                        "candidate_unary_match": (_UNARY_MATCH, (interface_id, interface_id)),
-                        "candidate_partial_profile": (_PARTIAL_PROFILE, (interface_id, interface_id)),
+                        "candidate_unary_match": (
+                            _UNARY_MATCH,
+                            (interface_id, interface_id),
+                        ),
+                        "candidate_partial_profile": (
+                            _PARTIAL_PROFILE,
+                            (interface_id, interface_id),
+                        ),
                         "candidate_unary_conjunctive": (
                             _UNARY_CONJUNCTIVE,
                             (interface_id, interface_id, interface_id),
@@ -570,10 +602,22 @@ def candidate_work_receipt(
                             _DIRECT_STATIC_MATCH,
                             (interface_id, interface_id),
                         ),
-                        "candidate_current_helper": (_INDEXED_OBJECT_CANDIDATE, (interface_id,)),
-                        "factor_candidate": (_FACTOR_CANDIDATE, (interface_id, interface_id)),
-                        "candidate_ranked": (_RANKED, (interface_id, interface_id, interface_id)),
-                        "candidate_survivors": (_SURVIVORS, (interface_id, interface_id, interface_id)),
+                        "candidate_current_helper": (
+                            _INDEXED_OBJECT_CANDIDATE,
+                            (interface_id,),
+                        ),
+                        "factor_candidate": (
+                            _FACTOR_CANDIDATE,
+                            (interface_id, interface_id),
+                        ),
+                        "candidate_ranked": (
+                            _RANKED,
+                            (interface_id, interface_id, interface_id),
+                        ),
+                        "candidate_survivors": (
+                            _SURVIVORS,
+                            (interface_id, interface_id, interface_id),
+                        ),
                     }
                     for name, (sql, params) in specs.items():
                         plans[name] = _plan(cursor, sql, params, analyze=analyze)
@@ -609,7 +653,8 @@ def candidate_work_receipt(
                 "factor_candidate_rows": factor_rows,
                 "broadest_profile_postings": broadest_profile_postings,
                 "broadest_demand_postings": broadest_demand_postings,
-                "direct_helper_cardinality_parity": direct_object_rows == indexed_object_rows,
+                "direct_helper_cardinality_parity": direct_object_rows
+                == indexed_object_rows,
             },
             "ranking": {
                 "raw_candidate_rows": raw_rows,
@@ -624,23 +669,33 @@ def candidate_work_receipt(
                 "candidate_semantic_delta_rows": semantic_delta_rows,
                 "existing_resolution_rows": existing_resolution_rows,
                 "exported_demand_rows": exported_demand_rows,
-                "resolution_rows_rewritten_by_canonical": existing_resolution_rows + exported_demand_rows,
+                "resolution_rows_rewritten_by_canonical": existing_resolution_rows
+                + exported_demand_rows,
                 "resolution_semantic_delta_rows": None,
                 "resolution_delta_reason": "requires a pre-rebuild snapshot because demand state transitions are canonical resolution semantics",
             },
             "ratios": {
-                "beta_unary_partial_key_rows_per_final_object_candidate": _ratio(unary_match_rows, indexed_object_rows),
-                "beta_partial_profiles_per_final_object_candidate": _ratio(partial_profile_rows, indexed_object_rows),
+                "beta_unary_partial_key_rows_per_final_object_candidate": _ratio(
+                    unary_match_rows, indexed_object_rows
+                ),
+                "beta_partial_profiles_per_final_object_candidate": _ratio(
+                    partial_profile_rows, indexed_object_rows
+                ),
                 "beta_rank_raw_rows_per_survivor": _ratio(raw_rows, survivors),
-                "beta_write_candidate_rows_per_semantic_delta": _ratio(canonical_candidate_rewrites, semantic_delta_rows),
-                "beta_write_is_unbounded_for_zero_delta": semantic_delta_rows == 0 and canonical_candidate_rewrites > 0,
+                "beta_write_candidate_rows_per_semantic_delta": _ratio(
+                    canonical_candidate_rewrites, semantic_delta_rows
+                ),
+                "beta_write_is_unbounded_for_zero_delta": semantic_delta_rows == 0
+                and canonical_candidate_rewrites > 0,
             },
             "plans": plans,
             "decision_surface": {
                 "conjunctive_exposure_candidate": unary_match_rows > direct_static_rows,
                 "top_k_candidate": raw_rows > survivors,
-                "incremental_candidate_lifecycle_candidate": canonical_candidate_rewrites > semantic_delta_rows,
-                "wildcard_dominant": direct_static_rows > 0 and wildcard_rows >= direct_static_rows,
+                "incremental_candidate_lifecycle_candidate": canonical_candidate_rewrites
+                > semantic_delta_rows,
+                "wildcard_dominant": direct_static_rows > 0
+                and wildcard_rows >= direct_static_rows,
             },
             "plan_mode": plan_mode,
             "semantics": (
@@ -656,7 +711,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--database-url", required=True)
     parser.add_argument("--interface-id", required=True, type=int)
-    parser.add_argument("--plan-mode", choices=("none", "estimate", "analyze"), default="analyze")
+    parser.add_argument(
+        "--plan-mode", choices=("none", "estimate", "analyze"), default="analyze"
+    )
     parser.add_argument("--statement-timeout-ms", type=int, default=0)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()

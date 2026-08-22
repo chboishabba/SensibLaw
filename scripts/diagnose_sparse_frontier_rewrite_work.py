@@ -193,7 +193,9 @@ def rewrite_work_receipt(database_url: str, interface_id: int) -> dict[str, obje
                     right_params=existing_params,
                 )
                 resolution_semantic_delta_rows = existing_only + desired_only
-                resolution_rewrite_rows = existing_resolution_rows + desired_resolution_rows
+                resolution_rewrite_rows = (
+                    existing_resolution_rows + desired_resolution_rows
+                )
 
         demand_update_rewrite_rows = candidate_count_update_rows + unique_update_rows
         demand_update_semantic_delta_rows = (

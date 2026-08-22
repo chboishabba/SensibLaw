@@ -18,7 +18,9 @@ def test_diagnostic_scripts_are_python_syntax_valid() -> None:
         ast.parse(_source(path), filename=str(path))
 
 
-def test_combined_receipt_requires_candidate_retention_and_rewrite_measurements() -> None:
+def test_combined_receipt_requires_candidate_retention_and_rewrite_measurements() -> (
+    None
+):
     source = _source(COMBINED)
 
     assert "candidate_work_receipt" in source
@@ -32,7 +34,9 @@ def test_combined_receipt_requires_candidate_retention_and_rewrite_measurements(
     assert '"requires_sql_change_this_round": False' in source
 
 
-def test_candidate_probe_measures_complete_exposure_ranking_and_rewrite_funnel() -> None:
+def test_candidate_probe_measures_complete_exposure_ranking_and_rewrite_funnel() -> (
+    None
+):
     source = _source(CANDIDATE)
 
     for token in (
@@ -79,7 +83,9 @@ def test_candidate_probe_surfaces_selectivity_wildcards_and_plan_spill() -> None
     assert "shared_hit_blocks" in source
 
 
-def test_actor_retention_probe_preserves_three_axis_semantics_and_measures_fanout() -> None:
+def test_actor_retention_probe_preserves_three_axis_semantics_and_measures_fanout() -> (
+    None
+):
     source = _source(RETENTION)
 
     assert "2^3 = 8 masks" in source
