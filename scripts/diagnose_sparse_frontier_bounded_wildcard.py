@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import time
 from pathlib import Path
 from typing import Any
@@ -245,11 +244,10 @@ def main() -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     complete = True
-    connection = connect(args.database_url, autocommit=True)
+    connection = connect(args.database_url)
+    connection.autocommit = True
     try:
         with connection.cursor() as cursor, args.output.open("a", encoding="utf-8") as stream:
-            cursor.execute("SET default_transaction_read_only = on")
-            cursor.execute("SET default_transaction_read_only = off")
             # TEMP construction is session-local and intentionally the only write.
             cursor.execute("DROP TABLE IF EXISTS wildcard_profile_ordered")
             cursor.execute(
