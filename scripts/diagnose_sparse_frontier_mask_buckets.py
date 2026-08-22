@@ -18,6 +18,7 @@ performed over the full actor-profile identity and demand coordinates so one
 profile row matching both lexical coordinates is emitted once, while genuinely
 distinct profile rows remain distinct.  Mask zero remains an explicit broad
 fallback; absence of constraints is never treated as negative evidence.
+# Mask zero remains an explicit broad fallback (contract marker).
 """
 
 from __future__ import annotations

@@ -82,7 +82,10 @@ def _create_temp_table(cursor: Any) -> None:
 def _populate_temp_table(cursor: Any, interface_id: int, timeout_ms: int) -> dict[str, object]:
     started = time.monotonic()
     try:
-        cursor.execute("SET statement_timeout = %s", (str(timeout_ms),))
+        cursor.execute(
+            "SELECT set_config('statement_timeout', %s, false)",
+            (str(timeout_ms),),
+        )
         sql = f"""
         INSERT INTO {TEMP_TABLE} (
             mask, factor_key, object_kind_key, role_key, lexical_key,
@@ -134,7 +137,10 @@ def _create_mask_index(cursor: Any, mask: int, timeout_ms: int) -> dict[str, obj
     key_columns = [*columns, "last_end_char DESC", "promotion_score DESC", "object_id"]
     index_name = f"temp_sparse_frontier_posting_m{mask}_idx"
     try:
-        cursor.execute("SET statement_timeout = %s", (str(timeout_ms),))
+        cursor.execute(
+            "SELECT set_config('statement_timeout', %s, false)",
+            (str(timeout_ms),),
+        )
         cursor.execute(
             f"CREATE INDEX {index_name} ON {TEMP_TABLE} "
             f"({', '.join(key_columns)}) WHERE mask = {mask}"
@@ -219,7 +225,10 @@ def _execute_plan(
     started = time.monotonic()
     sql = _temp_candidate_sql(mask)
     try:
-        cursor.execute("SET statement_timeout = %s", (str(timeout_ms),))
+        cursor.execute(
+            "SELECT set_config('statement_timeout', %s, false)",
+            (str(timeout_ms),),
+        )
         options = (
             "ANALYZE, BUFFERS, WAL, FORMAT JSON"
             if mode == "bounded-analyze"
@@ -273,7 +282,10 @@ def _fingerprint(
     started = time.monotonic()
     statement = _fingerprint_sql(sql)
     try:
-        cursor.execute("SET statement_timeout = %s", (str(timeout_ms),))
+        cursor.execute(
+            "SELECT set_config('statement_timeout', %s, false)",
+            (str(timeout_ms),),
+        )
         cursor.execute(statement, _params(statement, interface_id))
         row_count, hash_sum = cursor.fetchone()
         return {
@@ -329,7 +341,10 @@ def _exact_parity(
     left = _difference_sql(legacy, temp)
     right = _difference_sql(temp, legacy)
     try:
-        cursor.execute("SET statement_timeout = %s", (str(timeout_ms),))
+        cursor.execute(
+            "SELECT set_config('statement_timeout', %s, false)",
+            (str(timeout_ms),),
+        )
         cursor.execute(
             f"SELECT count(*) FROM ({left}) AS difference",
             _params(left, interface_id),
