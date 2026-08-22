@@ -1,19 +1,30 @@
 """Read-only ambiguity-preserving bounded wildcard diagnostic.
 
-The wildcard workload is semantically unconstrained and some nearest actor-profile
-representatives for the same object disagree in score and producer coordinates.
-This probe therefore does not choose a preferred representative.  It collapses
-each object's equally-near representatives into a score interval [min,max] and
-asks whether the final top-k survivor set is invariant under every admissible
-representative choice.
+The wildcard workload is semantically unconstrained and some equally-near
+actor-profile representatives for one semantic object disagree in score and
+producer coordinates.  This probe therefore never chooses a preferred row.
+It collapses equally-near representatives to [score_min, score_max] and computes
+an exact MUST/MAY top-k membership envelope over every independently admissible
+score realization.
 
-For each demand, objects are first ordered by structural distance.  Distance is
-authoritative for recency-class-3 wildcard demands.  At the cutoff distance the
-probe compares score intervals.  A candidate is *certainly above* another only
-when its minimum score exceeds the other's maximum score at the same distance.
-If the kth boundary is not invariant, the demand is marked abstain and no
-semantic claim is made.  The implementation is diagnostic only and writes TEMP
-state, never execution authority.
+Distance is the primary ranking coordinate for the observed recency-class-3
+workload, so ambiguity can affect membership only in the kth structural-distance
+fibre.  Objects strictly nearer than that cutoff are MUST members; objects
+strictly farther are excluded.  Inside the cutoff fibre, candidate c is:
+
+* MUST-in when fewer than r competitors can possibly outrank c, where r is the
+  number of slots remaining after all strictly-nearer objects are admitted;
+* MAY-in when fewer than r competitors certainly outrank c.
+
+For descending score with object-id tie break, competitor x certainly outranks c
+iff x.score_min > c.score_max, or equality holds and x.object_id < c.object_id.
+It can possibly outrank c iff x.score_max > c.score_min, with the same deterministic
+tie break.  Independent score intervals make these bounds jointly realizable.
+Thus MUST = MAY is an all-realizations certificate, unlike merely comparing the
+all-minimum and all-maximum endpoint rankings.
+
+The implementation is diagnostic only, writes TEMP state only, and never mutates
+execution authority.
 """
 
 from __future__ import annotations
@@ -26,7 +37,7 @@ from typing import Any
 from src.storage.postgres.spacy_parser_model import connect
 
 
-CONTRACT_REF = "sensiblaw.sparse-frontier-wildcard-interval-abstention.v0_1"
+CONTRACT_REF = "sensiblaw.sparse-frontier-wildcard-interval-abstention.v0_2"
 
 
 def _write(stream: Any, payload: dict[str, object]) -> None:
@@ -75,9 +86,6 @@ def main() -> int:
             )
             cursor.execute("ANALYZE wildcard_interval_profile")
 
-            # Collapse only equally-near representatives for the same object.
-            # Different distances are not merged because structural distance is
-            # already part of the legacy total ranking key.
             cursor.execute("DROP TABLE IF EXISTS wildcard_object_nearest_interval")
             cursor.execute(
                 """
@@ -100,7 +108,14 @@ def main() -> int:
             )
             cursor.execute(
                 """
-                CREATE INDEX wildcard_object_nearest_interval_idx
+                CREATE INDEX wildcard_object_nearest_interval_cutoff_idx
+                    ON wildcard_object_nearest_interval
+                       (last_end_char DESC, object_id)
+                """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX wildcard_object_nearest_interval_max_idx
                     ON wildcard_object_nearest_interval
                        (last_end_char DESC, score_max DESC, object_id)
                 """
@@ -114,10 +129,14 @@ def main() -> int:
             )
             cursor.execute("ANALYZE wildcard_object_nearest_interval")
 
+            # Exact MUST/MAY envelope.  Only the kth distance fibre needs score
+            # interval reasoning; all nearer/farther membership is fixed by the
+            # primary structural-distance coordinate.
             cursor.execute(
                 """
-                WITH demand AS (
-                    SELECT demand_id, source_start_char AS demand_position,
+                WITH demand AS MATERIALIZED (
+                    SELECT demand_id,
+                           source_start_char AS demand_position,
                            max_candidates
                       FROM execution.semantic_pnf_demand
                      WHERE source_interface_id IS NOT NULL
@@ -128,6 +147,7 @@ def main() -> int:
                        AND lexical_symbol_id IS NULL
                        AND recency_class = 3
                        AND state IN (1, 3)
+                       AND max_candidates > 0
                        AND EXISTS (
                            SELECT 1
                              FROM execution.semantic_pnf_interface_export e
@@ -136,62 +156,121 @@ def main() -> int:
                               AND e.target_id = execution.semantic_pnf_demand.demand_id
                        )
                 ),
-                optimistic AS (
-                    SELECT d.demand_id, p.object_id,
-                           row_number() OVER (
-                               PARTITION BY d.demand_id
-                               ORDER BY p.last_end_char DESC, p.score_max DESC, p.object_id
-                           ) AS optimistic_rank
-                      FROM demand d
+                boundary AS MATERIALIZED (
+                    SELECT d.demand_id,
+                           d.demand_position,
+                           d.max_candidates,
+                           kth.last_end_char AS cutoff_end
+                      FROM demand AS d
+                      LEFT JOIN LATERAL (
+                          SELECT p.last_end_char
+                            FROM wildcard_object_nearest_interval AS p
+                           WHERE p.last_end_char <= d.demand_position
+                           ORDER BY p.last_end_char DESC, p.object_id
+                           OFFSET (d.max_candidates - 1)
+                           LIMIT 1
+                      ) AS kth ON TRUE
+                ),
+                boundary_counts AS MATERIALIZED (
+                    SELECT b.*,
+                           counts.eligible_count,
+                           counts.nearer_count,
+                           CASE
+                               WHEN b.cutoff_end IS NULL THEN 0
+                               ELSE b.max_candidates - counts.nearer_count
+                           END AS remaining_slots
+                      FROM boundary AS b
                       CROSS JOIN LATERAL (
-                          SELECT object_id, last_end_char, score_max
-                            FROM wildcard_object_nearest_interval
-                           WHERE last_end_char <= d.demand_position
-                           ORDER BY last_end_char DESC, score_max DESC, object_id
-                           LIMIT d.max_candidates
-                      ) AS p
+                          SELECT count(*)::BIGINT AS eligible_count,
+                                 count(*) FILTER (
+                                     WHERE b.cutoff_end IS NOT NULL
+                                       AND p.last_end_char > b.cutoff_end
+                                 )::BIGINT AS nearer_count
+                            FROM wildcard_object_nearest_interval AS p
+                           WHERE p.last_end_char <= b.demand_position
+                      ) AS counts
                 ),
-                pessimistic AS (
-                    SELECT d.demand_id, p.object_id,
-                           row_number() OVER (
-                               PARTITION BY d.demand_id
-                               ORDER BY p.last_end_char DESC, p.score_min DESC, p.object_id
-                           ) AS pessimistic_rank
-                      FROM demand d
-                      CROSS JOIN LATERAL (
-                          SELECT object_id, last_end_char, score_min
-                            FROM wildcard_object_nearest_interval
-                           WHERE last_end_char <= d.demand_position
-                           ORDER BY last_end_char DESC, score_min DESC, object_id
-                           LIMIT d.max_candidates
-                      ) AS p
+                cutoff_candidates AS MATERIALIZED (
+                    SELECT b.demand_id,
+                           b.remaining_slots,
+                           p.object_id,
+                           p.score_min,
+                           p.score_max
+                      FROM boundary_counts AS b
+                      JOIN wildcard_object_nearest_interval AS p
+                        ON p.last_end_char = b.cutoff_end
+                     WHERE b.eligible_count > b.max_candidates
                 ),
-                optimistic_set AS (
-                    SELECT DISTINCT demand_id, object_id FROM optimistic
+                cutoff_envelope AS MATERIALIZED (
+                    SELECT c.demand_id,
+                           c.object_id,
+                           c.remaining_slots,
+                           count(x.object_id) FILTER (
+                               WHERE x.object_id <> c.object_id
+                                 AND (
+                                     x.score_min > c.score_max
+                                     OR (
+                                         x.score_min = c.score_max
+                                         AND x.object_id < c.object_id
+                                     )
+                                 )
+                           )::BIGINT AS certain_outrankers,
+                           count(x.object_id) FILTER (
+                               WHERE x.object_id <> c.object_id
+                                 AND (
+                                     x.score_max > c.score_min
+                                     OR (
+                                         x.score_max = c.score_min
+                                         AND x.object_id < c.object_id
+                                     )
+                                 )
+                           )::BIGINT AS possible_outrankers
+                      FROM cutoff_candidates AS c
+                      JOIN cutoff_candidates AS x
+                        ON x.demand_id = c.demand_id
+                     GROUP BY c.demand_id,
+                              c.object_id,
+                              c.remaining_slots
                 ),
-                pessimistic_set AS (
-                    SELECT DISTINCT demand_id, object_id FROM pessimistic
-                ),
-                selected AS (
-                    SELECT demand_id, object_id FROM optimistic_set
-                    UNION
-                    SELECT demand_id, object_id FROM pessimistic_set
+                cutoff_classification AS MATERIALIZED (
+                    SELECT demand_id,
+                           object_id,
+                           possible_outrankers < remaining_slots AS must_in,
+                           certain_outrankers < remaining_slots AS may_in
+                      FROM cutoff_envelope
                 ),
                 classified AS (
-                    SELECT d.demand_id,
-                           d.max_candidates,
-                           count(o.object_id)::BIGINT AS optimistic_members,
-                           count(p.object_id)::BIGINT AS pessimistic_members,
-                           count(*) FILTER (
-                               WHERE o.object_id IS NULL OR p.object_id IS NULL
-                           )::BIGINT AS unstable_members
-                      FROM demand d
-                      LEFT JOIN selected s USING (demand_id)
-                      LEFT JOIN optimistic_set o
-                        ON o.demand_id=s.demand_id AND o.object_id=s.object_id
-                      LEFT JOIN pessimistic_set p
-                        ON p.demand_id=s.demand_id AND p.object_id=s.object_id
-                      GROUP BY d.demand_id, d.max_candidates
+                    SELECT b.demand_id,
+                           b.max_candidates,
+                           b.eligible_count,
+                           b.nearer_count,
+                           b.remaining_slots,
+                           CASE
+                               WHEN b.eligible_count <= b.max_candidates
+                                   THEN b.eligible_count
+                               ELSE b.nearer_count
+                                   + count(*) FILTER (WHERE c.must_in)
+                           END::BIGINT AS must_members,
+                           CASE
+                               WHEN b.eligible_count <= b.max_candidates
+                                   THEN b.eligible_count
+                               ELSE b.nearer_count
+                                   + count(*) FILTER (WHERE c.may_in)
+                           END::BIGINT AS may_members,
+                           CASE
+                               WHEN b.eligible_count <= b.max_candidates THEN 0
+                               ELSE count(*) FILTER (
+                                   WHERE c.may_in AND NOT c.must_in
+                               )
+                           END::BIGINT AS unstable_members
+                      FROM boundary_counts AS b
+                      LEFT JOIN cutoff_classification AS c
+                        ON c.demand_id = b.demand_id
+                     GROUP BY b.demand_id,
+                              b.max_candidates,
+                              b.eligible_count,
+                              b.nearer_count,
+                              b.remaining_slots
                 )
                 SELECT count(*)::BIGINT AS demands,
                        count(*) FILTER (WHERE unstable_members = 0)::BIGINT
@@ -201,12 +280,24 @@ def main() -> int:
                        COALESCE(sum(unstable_members), 0)::BIGINT
                            AS unstable_memberships,
                        COALESCE(max(unstable_members), 0)::BIGINT
-                           AS max_unstable_memberships
+                           AS max_unstable_memberships,
+                       COALESCE(sum(must_members), 0)::BIGINT
+                           AS must_memberships,
+                       COALESCE(sum(may_members), 0)::BIGINT
+                           AS may_memberships
                   FROM classified
                 """,
                 (args.interface_id,),
             )
-            demands, invariant, abstaining, unstable, max_unstable = cursor.fetchone()
+            (
+                demands,
+                invariant,
+                abstaining,
+                unstable,
+                max_unstable,
+                must_memberships,
+                may_memberships,
+            ) = cursor.fetchone()
 
             cursor.execute(
                 """
@@ -229,11 +320,14 @@ def main() -> int:
                 "abstaining_demands": int(abstaining),
                 "unstable_memberships": int(unstable),
                 "max_unstable_memberships_per_demand": int(max_unstable),
+                "must_memberships": int(must_memberships),
+                "may_memberships": int(may_memberships),
                 "nearest_objects": int(objects),
                 "nearest_tied_objects": int(tied_objects),
                 "score_interval_objects": int(interval_objects),
                 "max_nearest_representative_rows": int(max_rows),
-                "authoritative_claim": "only_invariant_top_k_membership",
+                "membership_envelope": "must_subset_realized_subset_may",
+                "authoritative_claim": "all_realizations_only_when_must_equals_may",
             }
             _write(stream, receipt)
             return 0
