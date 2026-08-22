@@ -12,6 +12,7 @@ def test_contract_is_read_only_and_temp_only() -> None:
     assert "temp_state_only\": True" in SCRIPT
     assert "CREATE TEMP TABLE wildcard_interval_profile" in SCRIPT
     assert "CREATE TEMP TABLE wildcard_object_nearest_interval" in SCRIPT
+    assert "CREATE TEMP TABLE wildcard_hybrid_decision" in SCRIPT
     lowered = SCRIPT.lower()
     assert "insert into execution." not in lowered
     assert "update execution." not in lowered
@@ -54,12 +55,12 @@ def test_may_membership_uses_only_certain_outrankers() -> None:
     assert "x.object_id < c.object_id" in SCRIPT
 
 
-def test_ambiguity_causes_abstention_not_semantic_choice() -> None:
-    assert "abstaining_demands" in SCRIPT
+def test_ambiguity_causes_residual_fallback_not_semantic_choice() -> None:
+    assert "legacy_residual_fallback" in SCRIPT
     assert "c.may_in AND NOT c.must_in" in SCRIPT
     assert '"membership_envelope": "must_subset_realized_subset_may"' in SCRIPT
     assert (
-        '"authoritative_claim": "all_realizations_only_when_must_equals_may"'
+        '"fallback_semantics": "residual_preserved_not_failure_or_refutation"'
         in SCRIPT
     )
 
@@ -77,3 +78,35 @@ def test_probe_is_scoped_to_observed_wildcard_recency_class() -> None:
     assert "role_symbol_id IS NULL" in SCRIPT
     assert "lexical_symbol_id IS NULL" in SCRIPT
     assert "recency_class = 3" in SCRIPT
+
+
+def test_certificate_routes_each_demand_to_bounded_or_legacy_policy() -> None:
+    assert "(unstable_members = 0) AS certified" in SCRIPT
+    assert "'certified_bounded'" in SCRIPT
+    assert "'legacy_residual_fallback'" in SCRIPT
+    assert "'must_equals_may'" in SCRIPT
+    assert "'may_minus_must_nonempty'" in SCRIPT
+    assert '"decision_observer": "must_equals_may_certificate"' in SCRIPT
+
+
+def test_hybrid_partition_is_checked_for_every_demand() -> None:
+    assert "certified_i + fallback_i == demands_i" in SCRIPT
+    assert "certified_route_consistent" in SCRIPT
+    assert "fallback_route_consistent" in SCRIPT
+    assert '"hybrid_partition_exact": partition_exact' in SCRIPT
+    assert "return 0 if partition_exact else 2" in SCRIPT
+
+
+def test_resolution_consumer_boundary_does_not_promote_score_to_semantics() -> None:
+    assert (
+        "membership_candidate_count_unique_target_outcome_membership_provenance"
+        in SCRIPT
+    )
+    assert (
+        '"candidate_score_authority": "execution_metadata_not_semantic_evidence"'
+        in SCRIPT
+    )
+    assert (
+        "whole_dispatcher_consumer_exact_when_certified_bounded_else_legacy"
+        in SCRIPT
+    )
