@@ -286,6 +286,72 @@ def main() -> int:
             )
             hybrid_minus_persisted, persisted_minus_hybrid = map(int,cur.fetchone())
 
+            # Keep the mismatch attributable to the proof-directed route.  A
+            # whole-workload count alone cannot distinguish a certified-route
+            # error from a residual fallback implementation error.
+            cur.execute(
+                """
+                WITH persisted AS (
+                    SELECT c.demand_id,c.target_kind,c.target_id,c.source_interface_id
+                      FROM execution.semantic_pnf_demand_candidate c
+                      JOIN wildcard_bench_demand d USING(demand_id)
+                ), hmp AS (
+                    SELECT h.* FROM wildcard_bench_hybrid h
+                    EXCEPT ALL SELECT * FROM persisted
+                ), pmh AS (
+                    SELECT p.* FROM persisted p
+                    EXCEPT ALL SELECT * FROM wildcard_bench_hybrid
+                ), diffs AS (
+                    SELECT 'hybrid_minus_persisted'::TEXT AS direction,h.demand_id
+                      FROM hmp h
+                    UNION ALL
+                    SELECT 'persisted_minus_hybrid'::TEXT,p.demand_id
+                      FROM pmh p
+                )
+                SELECT
+                    count(*) FILTER (WHERE d.certified AND direction='hybrid_minus_persisted'),
+                    count(*) FILTER (WHERE d.certified AND direction='persisted_minus_hybrid'),
+                    count(*) FILTER (WHERE NOT d.certified AND direction='hybrid_minus_persisted'),
+                    count(*) FILTER (WHERE NOT d.certified AND direction='persisted_minus_hybrid')
+                  FROM diffs JOIN wildcard_bench_decision d USING(demand_id)
+                """
+            )
+            certified_hybrid_minus_persisted, certified_persisted_minus_hybrid, fallback_hybrid_minus_persisted, fallback_persisted_minus_hybrid = map(int, cur.fetchone())
+            cur.execute(
+                """
+                WITH persisted AS (
+                    SELECT c.demand_id,c.target_kind,c.target_id,c.source_interface_id
+                      FROM execution.semantic_pnf_demand_candidate c
+                      JOIN wildcard_bench_demand d USING(demand_id)
+                ), hmp AS (
+                    SELECT h.* FROM wildcard_bench_hybrid h
+                    EXCEPT ALL SELECT * FROM persisted
+                ), pmh AS (
+                    SELECT p.* FROM persisted p
+                    EXCEPT ALL SELECT * FROM wildcard_bench_hybrid
+                )
+                SELECT 'hybrid_minus_persisted'::TEXT,demand_id,target_kind,target_id,source_interface_id
+                  FROM hmp JOIN wildcard_bench_decision d USING(demand_id)
+                 WHERE NOT d.certified
+                UNION ALL
+                SELECT 'persisted_minus_hybrid'::TEXT,demand_id,target_kind,target_id,source_interface_id
+                  FROM pmh JOIN wildcard_bench_decision d USING(demand_id)
+                 WHERE NOT d.certified
+                 ORDER BY 2,1,4
+                 LIMIT 20
+                """
+            )
+            fallback_mismatch_samples = [
+                {
+                    "direction": row[0],
+                    "demand_id": int(row[1]),
+                    "target_kind": int(row[2]),
+                    "target_id": int(row[3]),
+                    "source_interface_id": int(row[4]),
+                }
+                for row in cur.fetchall()
+            ]
+
             cur.execute(
                 """
                 WITH hybrid_tuple AS (
@@ -397,6 +463,11 @@ def main() -> int:
                 "hybrid_rows": hybrid_rows,
                 "hybrid_minus_persisted_memberships": hybrid_minus_persisted,
                 "persisted_minus_hybrid_memberships": persisted_minus_hybrid,
+                "certified_hybrid_minus_persisted_memberships": certified_hybrid_minus_persisted,
+                "certified_persisted_minus_hybrid_memberships": certified_persisted_minus_hybrid,
+                "fallback_hybrid_minus_persisted_memberships": fallback_hybrid_minus_persisted,
+                "fallback_persisted_minus_hybrid_memberships": fallback_persisted_minus_hybrid,
+                "fallback_mismatch_samples": fallback_mismatch_samples,
                 "hybrid_minus_persisted_consumer_tuples": hybrid_tuple_minus_persisted,
                 "persisted_minus_hybrid_consumer_tuples": persisted_tuple_minus_hybrid,
                 "semantic_parity": semantic_parity,
