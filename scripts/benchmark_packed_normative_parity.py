@@ -15,8 +15,14 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
+import sys
 from time import monotonic_ns
 from typing import Any
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from scripts.benchmark_fibre_local_numeric_layout import _load_sentences
 from src.pnf.fibre_local_numeric import pack_sentence_fibre
