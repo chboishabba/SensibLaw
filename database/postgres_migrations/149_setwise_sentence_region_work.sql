@@ -1,7 +1,7 @@
 BEGIN;
 
 -- 149: parser partitions already COPY their sentence rows in one statement.
--- The original migration-040 FOR EACH ROW trigger immediately decomposed that
+-- The original migration-040 row-level trigger immediately decomposed that
 -- batch into one parent lookup plus region/link/edge/work writes per sentence.
 -- Preserve the exact same sentence-region/work identities as one transition-
 -- table projection over the inserted parser-sentence fibre.

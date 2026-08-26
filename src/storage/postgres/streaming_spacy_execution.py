@@ -23,6 +23,7 @@ from src.storage.postgres.numeric_hyperfabric_store import (
     hyperfabric_counts,
     register_authored_hierarchy,
 )
+from src.storage.postgres.hierarchy_diagnostic import assert_hierarchy_integrity
 from src.storage.postgres.numeric_parser_summary import numeric_execution_summary
 from src.storage.postgres.spacy_numeric_projection import commit_numeric_doc
 from src.storage.postgres.spacy_parser_carrier import PostgresSentenceCarrier
@@ -470,6 +471,11 @@ def run_streaming_spacy_execution(
         parser_contract_ref=parser_contract_ref,
     )
     summary_work_ns = monotonic_ns() - stage_started
+    hierarchy_integrity = assert_hierarchy_integrity(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+    )
 
     coordinator_post_finished = monotonic_ns()
     coordinator_post_parser_ns = coordinator_post_finished - coordinator_post_started
@@ -532,6 +538,7 @@ def run_streaming_spacy_execution(
             "occupancy is measured, not inferred by subtraction of aggregate CPU work"
         ),
         "pnf_diagnostic_counts_measured": False,
+        "hierarchy_integrity": hierarchy_integrity,
         "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
     }
     if numeric_authority_counts_enabled():
