@@ -12,8 +12,12 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import json
+from pathlib import Path
+import sys
 from time import monotonic_ns
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.pnf.fibre_local_numeric import (
     decode_packed_fibre,
@@ -22,6 +26,9 @@ from src.pnf.fibre_local_numeric import (
     pack_sentence_fibre,
     unpack_sentence_fibre,
 )
+from src.pnf.numeric_hyperfabric import SymbolKind
+from src.pnf.numeric_operator_composition import build_operator_lexicon
+from src.pnf.packed_operator_kernel import benchmark_operator_masks
 from src.pnf.fibre_local_relational_bridge import (
     RelationalSentenceRows,
     RelationalTokenRow,
@@ -31,6 +38,29 @@ from src.pnf.fibre_local_relational_bridge import (
 from src.storage.postgres.spacy_parser_model import connect
 
 CONTRACT = "sensiblaw.fibre-local-numeric-layout.v0_1"
+
+
+def _load_operator_lexicon(database_url: str):
+    connection = connect(database_url)
+    try:
+        with connection.transaction():
+            with connection.cursor() as cursor:
+                cursor.execute("SET TRANSACTION READ ONLY")
+                cursor.execute(
+                    """
+                    SELECT symbol_kind, symbol_text, symbol_id
+                      FROM execution.semantic_symbol
+                     WHERE symbol_kind IN (2, 3, 5, 10, 11, 12, 13, 14)
+                    """
+                )
+                rows = cursor.fetchall()
+    finally:
+        connection.close()
+    symbols = {
+        (SymbolKind(int(kind)), str(text)): int(symbol_id)
+        for kind, text, symbol_id in rows
+    }
+    return build_operator_lexicon(symbols)
 
 
 def _load_sentences(
@@ -50,9 +80,9 @@ def _load_sentences(
                     WITH selected AS (
                         SELECT sentence_ref
                           FROM execution.semantic_parser_sentence
-                         WHERE run_ref = %s
+                       WHERE run_ref = %s
                            AND representation_version = 2
-                           AND (%s IS NULL OR document_ref = %s)
+                           AND (%s::text IS NULL OR document_ref = %s)
                          ORDER BY document_ref, start_char, end_char, sentence_ref
                          LIMIT %s
                     )
@@ -186,6 +216,7 @@ def benchmark_layout(
     head_delta_distribution: Counter[int] = Counter()
     column_width_fibres: dict[str, Counter[int]] = defaultdict(Counter)
     column_width_tokens: dict[str, Counter[int]] = defaultdict(Counter)
+    packed_fibres = []
 
     packing_started = monotonic_ns()
     roundtrip_failures = 0
@@ -202,6 +233,7 @@ def benchmark_layout(
             continue
 
         measurement = measure_fibre_layout(packed)
+        packed_fibres.append(packed)
         token_count += measurement.token_count
         packed_numeric_bytes += measurement.packed_numeric_payload_bytes
         canonical_codec_bytes += measurement.canonical_codec_bytes
@@ -216,6 +248,30 @@ def benchmark_layout(
             column_width_fibres[name][width] += 1
             column_width_tokens[name][width] += measurement.token_count
     packing_ns = monotonic_ns() - packing_started
+
+    operator_tournament = None
+    operator_error = None
+    try:
+        operator_lexicon = _load_operator_lexicon(database_url)
+        timing = benchmark_operator_masks(packed_fibres, operator_lexicon, repeats=3)
+        operator_tournament = {
+            "fibre_count": len(packed_fibres),
+            "repeats": timing.repeats,
+            "authority_equal": timing.authority_equal,
+            "scalar_wall_ns": timing.scalar_wall_ns,
+            "scalar_cpu_ns": timing.scalar_cpu_ns,
+            "swar_wall_ns": timing.swar_wall_ns,
+            "swar_cpu_ns": timing.swar_cpu_ns,
+            "swar_wall_improvement": timing.swar_wall_improvement,
+            "continuation_threshold": 0.10,
+            "continues": bool(
+                timing.authority_equal
+                and timing.swar_wall_improvement is not None
+                and timing.swar_wall_improvement >= 0.10
+            ),
+        }
+    except Exception as exc:  # diagnostic receipt must explain unavailable data
+        operator_error = f"{type(exc).__name__}: {exc}"
 
     def ratio(numerator: int, denominator: int) -> float | None:
         return numerator / denominator if denominator else None
@@ -247,7 +303,8 @@ def benchmark_layout(
             "max_abs_head_delta": max_abs_head_delta,
         },
         "token_count_distribution": {
-            str(value): count for value, count in sorted(token_count_distribution.items())
+            str(value): count
+            for value, count in sorted(token_count_distribution.items())
         },
         "head_delta_distribution": {
             str(value): count
@@ -265,6 +322,8 @@ def benchmark_layout(
             "postgres_read": load_ns,
             "localize_pack_roundtrip_measure": packing_ns,
         },
+        "operator_tournament": operator_tournament,
+        "operator_tournament_error": operator_error,
         "authority": {
             "source": "existing strict-v2 PostgreSQL numeric parser rows",
             "database_mutations_performed": False,
