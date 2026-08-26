@@ -2,14 +2,14 @@
 """Read-only B1 corpus receipt for sentence->paragraph delta transport.
 
 The benchmark uses the existing strict-v2 PostgreSQL sentence authority and the
-already-authored sentence->paragraph region relation.  It runs the fused A2
+already-authored sentence->paragraph region relation. It runs the fused A2
 operator-family solver once per sentence, projects only the emitted semantic
 delta, transports that delta into paragraph-local coordinates, and fuses child
 deltas without reopening sentence token state.
 
 This tranche deliberately does *not* compare the result with the whole current
 paragraph frontier: that frontier may contain later reconciliation, actor-profile,
-scope, and promotion products.  Instead it validates B1's transport algebra
+scope, and promotion products. Instead it validates B1's transport algebra
 against an independent direct canonical union of the transported child deltas.
 No database mutation or provider I/O is performed.
 """
@@ -57,8 +57,8 @@ def _load_paragraph_membership(
 ) -> dict[str, tuple[int, int]]:
     """Return sentence_ref -> (paragraph_region_id, child_ordinal).
 
-    The relation is read from the existing authored PNF hierarchy.  B1 does not
-    infer paragraphs from text or spans.  Missing/non-paragraph parents fail
+    The relation is read from the existing authored PNF hierarchy. B1 does not
+    infer paragraphs from text or spans. Missing/non-paragraph parents fail
     closed in the caller.
     """
 
@@ -229,15 +229,19 @@ def benchmark_sentence_paragraph_delta_transport(
     fusion_ns = monotonic_ns() - fusion_started
 
     reference_started = monotonic_ns()
+    fusion_mismatch_count = 0
+    interface_projection_mismatch_count = 0
     mismatch_paragraph_ids: list[int] = []
     interface_key_mismatch_paragraph_ids: list[int] = []
     for paragraph_id, children in paragraph_children.items():
         direct = _direct_union(children)
         fused = fused_by_paragraph[paragraph_id]
         if fused != direct:
+            fusion_mismatch_count += 1
             if len(mismatch_paragraph_ids) < 20:
                 mismatch_paragraph_ids.append(paragraph_id)
         if paragraph_interface_keys(fused) != paragraph_interface_keys(direct):
+            interface_projection_mismatch_count += 1
             if len(interface_key_mismatch_paragraph_ids) < 20:
                 interface_key_mismatch_paragraph_ids.append(paragraph_id)
     reference_ns = monotonic_ns() - reference_started
@@ -258,11 +262,14 @@ def benchmark_sentence_paragraph_delta_transport(
         "token_count": token_count,
         "paragraph_count": paragraph_count,
         "sentences_with_emitted_delta": admitted_sentence_count,
-        "transport_fusion_equal_direct_union": not mismatch_paragraph_ids,
-        "transport_fusion_mismatch_count": len(mismatch_paragraph_ids),
+        "paragraph_membership_complete": len(membership) == sentence_count,
+        "transport_fusion_equal_direct_union": fusion_mismatch_count == 0,
+        "transport_fusion_mismatch_count": fusion_mismatch_count,
         "first_transport_fusion_mismatch_paragraph_ids": mismatch_paragraph_ids,
-        "interface_projection_equal_direct_union": not interface_key_mismatch_paragraph_ids,
-        "interface_projection_mismatch_count": len(interface_key_mismatch_paragraph_ids),
+        "interface_projection_equal_direct_union": (
+            interface_projection_mismatch_count == 0
+        ),
+        "interface_projection_mismatch_count": interface_projection_mismatch_count,
         "first_interface_projection_mismatch_paragraph_ids": (
             interface_key_mismatch_paragraph_ids
         ),
@@ -323,7 +330,8 @@ def main() -> int:
         args.output.write_text(rendered, encoding="utf-8")
     print(rendered, end="")
     gates_green = bool(
-        receipt["transport_fusion_equal_direct_union"]
+        receipt["paragraph_membership_complete"]
+        and receipt["transport_fusion_equal_direct_union"]
         and receipt["interface_projection_equal_direct_union"]
         and receipt["work"]["zero_source_token_rescan"]
     )
