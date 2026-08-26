@@ -48,9 +48,9 @@ def _load_operator_lexicon(database_url: str):
                 cursor.execute("SET TRANSACTION READ ONLY")
                 cursor.execute(
                     """
-                    SELECT symbol_kind, symbol_text, symbol_id
+                    SELECT kind_id, symbol_text, symbol_id
                       FROM execution.semantic_symbol
-                     WHERE symbol_kind IN (2, 3, 5, 10, 11, 12, 13, 14)
+                     WHERE kind_id IN (2, 3, 5, 10, 11, 12, 13, 14)
                     """
                 )
                 rows = cursor.fetchall()
