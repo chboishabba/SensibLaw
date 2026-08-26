@@ -9,8 +9,6 @@ same sentence, then it is re-addressed by that token's local ordinal.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence
-
 from src.pnf.fibre_local_numeric import (
     FibreLayoutError,
     SentenceFibreObservation,
@@ -44,6 +42,9 @@ class RelationalSentenceRows:
     start_char: int
     end_char: int
     tokens: tuple[RelationalTokenRow, ...]
+    # Retained for exact authority joins by read-only adapters.  It is not
+    # consumed by the packed local solver.
+    sentence_ref: str = ""
 
 
 def localize_relational_sentence(

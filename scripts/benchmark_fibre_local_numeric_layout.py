@@ -180,6 +180,7 @@ def _load_sentences(
                 start_char=int(first[4]),
                 end_char=int(first[5]),
                 tokens=tuple(tokens),
+                sentence_ref=sentence_ref,
             )
         )
     return tuple(result)
