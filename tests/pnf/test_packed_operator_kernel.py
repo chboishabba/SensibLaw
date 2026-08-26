@@ -58,7 +58,6 @@ def _lexicon() -> OperatorLexicon:
             name: 700 + index for index, name in enumerate(dependency_names)
         },
         pos_ids={name: 1000 + index for index, name in enumerate(pos_names)},
-        tag_ids={} if False else {},
         factor_type_ids={},
         predicate_ids={},
         role_ids={},
