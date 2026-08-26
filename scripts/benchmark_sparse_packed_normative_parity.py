@@ -2,9 +2,9 @@
 """Read-only parity/work benchmark for sparse packed normative admission.
 
 This benchmark measures the N-wide cheap admission pass separately from the
-E-wide admitted topology/factor solve.  It compares the materialized result
-against the current reference normative projection and reports structural work
-counts as well as wall time.
+E-wide admitted topology/factor solve. It compares the sparse local delta with
+the already-parity-tested eager packed delta, then compares durable materialized
+output with the current reference normative projection.
 """
 
 from __future__ import annotations
@@ -28,14 +28,17 @@ from scripts.benchmark_packed_normative_parity import (
 )
 from src.pnf.fibre_local_numeric import pack_sentence_fibre
 from src.pnf.fibre_local_relational_bridge import localize_relational_sentence
+from src.pnf.numeric_operator_composition import compose_numeric_sentence
 from src.pnf.packed_normative_admission import (
     build_normative_admission_plan,
     compose_sparse_packed_normative_delta,
 )
-from src.pnf.packed_numeric_composition import materialize_normative_delta
-from src.pnf.numeric_operator_composition import compose_numeric_sentence
+from src.pnf.packed_numeric_composition import (
+    compose_packed_normative_delta,
+    materialize_normative_delta,
+)
 
-CONTRACT = "sensiblaw.sparse-packed-normative-parity.v0_1"
+CONTRACT = "sensiblaw.sparse-packed-normative-parity.v0_2"
 
 
 def benchmark_sparse_packed_normative_parity(
@@ -60,15 +63,18 @@ def benchmark_sparse_packed_normative_parity(
     load_ns = monotonic_ns() - load_started
 
     sparse_solve_ns = 0
+    eager_solve_ns = 0
     materialize_ns = 0
     reference_ns = 0
-    mismatch_count = 0
+    local_delta_mismatch_count = 0
+    authority_mismatch_count = 0
     admitted_fibre_count = 0
     topology_build_count = 0
     factor_build_count = 0
     normative_sentence_count = 0
     normative_factor_count = 0
-    first_mismatches: list[int] = []
+    first_local_mismatches: list[int] = []
+    first_authority_mismatches: list[int] = []
     normative_factor_type_id = int(
         lexicon.factor_type_ids["semantic.normative_relation"]
     )
@@ -95,6 +101,14 @@ def benchmark_sparse_packed_normative_parity(
         factor_build_count += sparse.work.factor_builds
 
         started = monotonic_ns()
+        eager_delta = compose_packed_normative_delta(packed, lexicon)
+        eager_solve_ns += monotonic_ns() - started
+        if sparse.delta != eager_delta:
+            local_delta_mismatch_count += 1
+            if len(first_local_mismatches) < 20:
+                first_local_mismatches.append(sentence_index)
+
+        started = monotonic_ns()
         materialized = materialize_normative_delta(
             sparse.delta,
             region_id=synthetic_region_id,
@@ -118,12 +132,19 @@ def benchmark_sparse_packed_normative_parity(
         if materialized.factors:
             normative_sentence_count += 1
         if materialized != projected:
-            mismatch_count += 1
-            if len(first_mismatches) < 20:
-                first_mismatches.append(sentence_index)
+            authority_mismatch_count += 1
+            if len(first_authority_mismatches) < 20:
+                first_authority_mismatches.append(sentence_index)
 
     sentence_count = len(sentences)
     token_count = sum(len(sentence.tokens) for sentence in sentences)
+    local_delta_equal = local_delta_mismatch_count == 0
+    authority_equal = authority_mismatch_count == 0
+    sparse_improvement = (
+        (eager_solve_ns - sparse_solve_ns) / eager_solve_ns
+        if eager_solve_ns > 0
+        else None
+    )
     return {
         "contract": CONTRACT,
         "run_ref": run_ref,
@@ -133,9 +154,12 @@ def benchmark_sparse_packed_normative_parity(
         "token_count": token_count,
         "normative_sentence_count": normative_sentence_count,
         "normative_factor_count": normative_factor_count,
-        "authority_equal": mismatch_count == 0,
-        "mismatch_count": mismatch_count,
-        "first_mismatch_sentence_indices": first_mismatches,
+        "local_delta_equal": local_delta_equal,
+        "local_delta_mismatch_count": local_delta_mismatch_count,
+        "first_local_delta_mismatch_sentence_indices": first_local_mismatches,
+        "authority_equal": authority_equal,
+        "mismatch_count": authority_mismatch_count,
+        "first_mismatch_sentence_indices": first_authority_mismatches,
         "work": {
             "admission_check_count": sentence_count,
             "admitted_fibre_count": admitted_fibre_count,
@@ -151,6 +175,8 @@ def benchmark_sparse_packed_normative_parity(
         "timing_ns": {
             "postgres_and_lexicon_read": load_ns,
             "sparse_packed_normative_solve": sparse_solve_ns,
+            "eager_packed_normative_solve": eager_solve_ns,
+            "sparse_wall_improvement_vs_eager": sparse_improvement,
             "authority_id_materialization": materialize_ns,
             "reference_full_sentence_composition": reference_ns,
         },
@@ -186,7 +212,7 @@ def main() -> int:
             handle.write(rendered)
             handle.write("\n")
     print(rendered)
-    return 0 if receipt["authority_equal"] else 2
+    return 0 if receipt["authority_equal"] and receipt["local_delta_equal"] else 2
 
 
 if __name__ == "__main__":
