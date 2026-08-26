@@ -8,7 +8,6 @@ from src.pnf.fibre_local_numeric import (
     TokenObservation,
     pack_sentence_fibre,
 )
-from src.pnf.numeric_hyperfabric import SymbolKind
 from src.pnf.numeric_operator_composition import (
     NumericToken,
     OperatorLexicon,
