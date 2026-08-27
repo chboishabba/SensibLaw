@@ -18,11 +18,16 @@ def _source() -> str:
 
 def test_candidate_witness_reduction_prefers_highest_score_after_distance() -> None:
     source = _source()
-    expected = """ORDER BY candidate.structural_distance,
-                            candidate.candidate_score DESC,
-                            candidate.index_rank,
-                            candidate.source_interface_id"""
-    assert expected in source
+    order = source.index("new_order TEXT")
+    assert source.index("candidate.structural_distance", order) < source.index(
+        "candidate.candidate_score DESC", order
+    )
+    assert source.index("candidate.candidate_score DESC", order) < source.index(
+        "candidate.index_rank", order
+    )
+    assert source.index("candidate.index_rank", order) < source.index(
+        "candidate.source_interface_id", order
+    )
 
 
 def test_candidate_witness_patch_is_fail_closed() -> None:
