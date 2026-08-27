@@ -99,7 +99,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_candidate_observe_insert
     ON execution.semantic_pnf_demand_candidate;
-CREATE TRIGGER semantic_pnf_candidate_observe_insert
+DROP TRIGGER IF EXISTS semantic_pnf_candidate_observe_insert_batch
+    ON execution.semantic_pnf_demand_candidate;
+CREATE TRIGGER semantic_pnf_candidate_observe_insert_batch
 AFTER INSERT ON execution.semantic_pnf_demand_candidate
 REFERENCING NEW TABLE AS inserted_candidate
 FOR EACH STATEMENT
@@ -107,7 +109,9 @@ EXECUTE FUNCTION execution.observe_numeric_pnf_candidate_insert_batch();
 
 DROP TRIGGER IF EXISTS semantic_pnf_candidate_observe_delete
     ON execution.semantic_pnf_demand_candidate;
-CREATE TRIGGER semantic_pnf_candidate_observe_delete
+DROP TRIGGER IF EXISTS semantic_pnf_candidate_observe_delete_batch
+    ON execution.semantic_pnf_demand_candidate;
+CREATE TRIGGER semantic_pnf_candidate_observe_delete_batch
 AFTER DELETE ON execution.semantic_pnf_demand_candidate
 REFERENCING OLD TABLE AS deleted_candidate
 FOR EACH STATEMENT
@@ -152,7 +156,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_project_current_execution
     ON execution.semantic_pnf_candidate_execution_event;
-CREATE TRIGGER semantic_pnf_project_current_execution
+DROP TRIGGER IF EXISTS semantic_pnf_project_current_execution_batch
+    ON execution.semantic_pnf_candidate_execution_event;
+CREATE TRIGGER semantic_pnf_project_current_execution_batch
 AFTER INSERT ON execution.semantic_pnf_candidate_execution_event
 REFERENCING NEW TABLE AS inserted_event
 FOR EACH STATEMENT
@@ -192,7 +198,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_project_current_admissibility
     ON execution.semantic_pnf_candidate_admissibility_event;
-CREATE TRIGGER semantic_pnf_project_current_admissibility
+DROP TRIGGER IF EXISTS semantic_pnf_project_current_admissibility_batch
+    ON execution.semantic_pnf_candidate_admissibility_event;
+CREATE TRIGGER semantic_pnf_project_current_admissibility_batch
 AFTER INSERT ON execution.semantic_pnf_candidate_admissibility_event
 REFERENCING NEW TABLE AS inserted_admissibility
 FOR EACH STATEMENT
@@ -241,7 +249,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_project_current_preference
     ON execution.semantic_pnf_candidate_preference;
-CREATE TRIGGER semantic_pnf_project_current_preference
+DROP TRIGGER IF EXISTS semantic_pnf_project_current_preference_batch
+    ON execution.semantic_pnf_candidate_preference;
+CREATE TRIGGER semantic_pnf_project_current_preference_batch
 AFTER INSERT ON execution.semantic_pnf_candidate_preference
 REFERENCING NEW TABLE AS inserted_preference
 FOR EACH STATEMENT
@@ -299,7 +309,9 @@ $$;
 
 DROP TRIGGER IF EXISTS semantic_pnf_candidate_evidence_reverse_dependency
     ON execution.semantic_pnf_candidate_evidence;
-CREATE TRIGGER semantic_pnf_candidate_evidence_reverse_dependency
+DROP TRIGGER IF EXISTS semantic_pnf_candidate_evidence_reverse_dependency_batch
+    ON execution.semantic_pnf_candidate_evidence;
+CREATE TRIGGER semantic_pnf_candidate_evidence_reverse_dependency_batch
 AFTER INSERT ON execution.semantic_pnf_candidate_evidence
 REFERENCING NEW TABLE AS inserted_evidence
 FOR EACH STATEMENT
