@@ -32,7 +32,7 @@ def test_document_frontier_uses_receipts_as_dirty_key_witnesses() -> None:
 
     for required in (
         "semantic_pnf_frontier_reduction_receipt",
-        "receipt.reduced_at IS NULL",
+        "candidate.reduced_at IS NULL",
         "receipt_graph_revision IS DISTINCT FROM",
         "child_region.closed_at > candidate.reduced_at",
         "child_receipt.reduced_at > candidate.reduced_at",
