@@ -18,6 +18,10 @@ compared only after applying the same promotion predicate used by sentence
 interface admission; unpromoted local objects are not falsely required to
 appear at the parent boundary. Later parent-local promotion, actor summaries,
 demand resolution, and root lookup are outside this B1.1 projection.
+
+A bounded sentence sample is admitted only when it contains every sentence
+child of each selected paragraph.  Partial paragraphs fail closed rather than
+making valid authority rows appear as false-positive extras.
 """
 
 from __future__ import annotations
@@ -55,7 +59,7 @@ from src.pnf.sentence_paragraph_delta_transport import (
 from src.storage.postgres import numeric_hyperfabric_store as store
 from src.storage.postgres.spacy_parser_model import connect
 
-CONTRACT = "sensiblaw.b1-1-a2-paragraph-authority-parity.v0_1"
+CONTRACT = "sensiblaw.b1-1-a2-paragraph-authority-parity.v0_2"
 A2_FACTOR_TYPE_NAMES = (
     "semantic.normative_relation",
     "semantic.legal_condition",
@@ -73,6 +77,67 @@ def _load_profile(database_url: str) -> Any:
                 return store._load_profile(cursor)
     finally:
         connection.close()
+
+
+def _assert_complete_paragraph_selection(
+    database_url: str,
+    *,
+    paragraph_ids: Iterable[int],
+    sentence_refs: Iterable[str],
+) -> dict[str, int]:
+    parents = tuple(sorted({int(value) for value in paragraph_ids}))
+    refs = tuple(sorted({str(value) for value in sentence_refs}))
+    if not parents:
+        return {"paragraph_count": 0, "sentence_child_count": 0}
+    connection = connect(database_url)
+    try:
+        with connection.transaction():
+            with connection.cursor() as cursor:
+                cursor.execute("SET TRANSACTION READ ONLY")
+                cursor.execute(
+                    """
+                    SELECT parent.region_id,
+                           count(DISTINCT child.region_id) AS total_children,
+                           count(DISTINCT child.region_id) FILTER (
+                               WHERE sentence.sentence_ref = ANY(%s)
+                           ) AS selected_children
+                      FROM execution.semantic_pnf_region AS parent
+                      JOIN execution.semantic_pnf_region AS child
+                        ON child.parent_region_id = parent.region_id
+                       AND child.region_kind = 1
+                      LEFT JOIN execution.semantic_pnf_sentence_region AS mapping
+                        ON mapping.region_id = child.region_id
+                      LEFT JOIN execution.semantic_parser_sentence AS sentence
+                        ON sentence.sentence_id = mapping.sentence_id
+                     WHERE parent.region_id = ANY(%s)
+                     GROUP BY parent.region_id
+                     ORDER BY parent.region_id
+                    """,
+                    (list(refs), list(parents)),
+                )
+                rows = tuple(
+                    (int(parent_id), int(total), int(selected))
+                    for parent_id, total, selected in cursor.fetchall()
+                )
+    finally:
+        connection.close()
+
+    by_parent = {parent_id: (total, selected) for parent_id, total, selected in rows}
+    missing_parent_rows = [parent_id for parent_id in parents if parent_id not in by_parent]
+    partial = [
+        (parent_id, total, selected)
+        for parent_id, (total, selected) in sorted(by_parent.items())
+        if total != selected
+    ]
+    if missing_parent_rows or partial:
+        raise RuntimeError(
+            "B1.1 requires complete sentence coverage for every selected paragraph: "
+            f"missing_parents={missing_parent_rows[:20]!r} partial={partial[:20]!r}"
+        )
+    return {
+        "paragraph_count": len(parents),
+        "sentence_child_count": sum(total for total, _selected in by_parent.values()),
+    }
 
 
 def _load_scoped_boundary_authority(
@@ -251,6 +316,11 @@ def benchmark_b1_1_a2_paragraph_authority_parity(
             "B1.1 selected sentences are missing authored paragraph parents: "
             f"count={len(missing_membership)} first={missing_membership[:20]!r}"
         )
+    coverage = _assert_complete_paragraph_selection(
+        database_url,
+        paragraph_ids=(parent_id for parent_id, _ordinal in membership.values()),
+        sentence_refs=(sentence.sentence_ref for sentence in sentences),
+    )
 
     paragraph_children: dict[int, list[ParagraphSemanticDelta]] = defaultdict(list)
     admitted_objects: dict[int, set[tuple[int, int]]] = defaultdict(set)
@@ -365,6 +435,8 @@ def benchmark_b1_1_a2_paragraph_authority_parity(
             "operator_families": list(FAMILY_NAMES),
             "factor_type_symbol_ids": list(factor_type_ids),
             "objects_require_sentence_boundary_promotion": True,
+            "selected_paragraphs_complete": True,
+            "selected_paragraph_sentence_child_count": coverage["sentence_child_count"],
             "later_parent_reconciliation_in_scope": False,
             "actor_profiles_in_scope": False,
             "resolved_demands_in_scope": False,
