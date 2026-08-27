@@ -1,23 +1,156 @@
-"""E0b sentence closure scheduler using fixed-family tranche admission.
-
-This module deliberately reuses the already-certified E0 batch claim and token
-load helpers.  It changes only the persistence call: the composed independent
-sentence closures are admitted together by ``persist_sentence_tranche_setwise``.
-"""
+"""E0b fixed-family scheduling for independent numeric sentence closures."""
 
 from __future__ import annotations
 
-from src.pnf.numeric_operator_composition import compose_numeric_sentence
-from src.storage.postgres.numeric_hyperfabric_store import _load_profile, _operator_lexicon
+from collections import defaultdict
+from dataclasses import dataclass
+from uuid import uuid4
+
+from src.pnf.numeric_hyperfabric import WorkOperation, WorkState
+from src.pnf.numeric_operator_composition import NumericToken, compose_numeric_sentence
+from src.storage.postgres.numeric_hyperfabric_store import (
+    WorkLease,
+    _load_profile,
+    _operator_lexicon,
+)
 from src.storage.postgres.numeric_sentence_tranche_admission import (
     persist_sentence_tranche_setwise,
 )
-from src.storage.postgres.numeric_sentence_tranche_closure import (
-    SentenceTrancheClosureReceipt,
-    _claim_sentence_work_tranche,
-    _load_sentence_tokens_tranche,
-)
 from src.storage.postgres.spacy_parser_model import connect
+
+
+@dataclass(frozen=True, slots=True)
+class SentenceTrancheClosureReceipt:
+    sentence_count: int
+    tranche_count: int
+    work_claim_batch_count: int
+    authority_transaction_count: int
+    source_token_batch_load_count: int
+    per_sentence_claim_round_trip_count: int
+    per_sentence_transaction_count: int
+
+
+def _claim_sentence_work_tranche(
+    cursor,
+    *,
+    run_ref: str,
+    worker_ref: str,
+    limit: int,
+    lease_seconds: int = 120,
+) -> tuple[WorkLease, ...]:
+    if limit < 1:
+        raise ValueError("sentence tranche limit must be positive")
+    if lease_seconds < 1:
+        raise ValueError("numeric PNF work lease must be positive")
+    token = uuid4().hex
+    cursor.execute(
+        """
+        WITH picked AS (
+            SELECT work_id
+              FROM execution.semantic_pnf_work_item
+             WHERE run_ref = %s
+               AND operation_id = %s
+               AND (
+                   state_id = %s
+                   OR (state_id = %s AND lease_expires_at < CURRENT_TIMESTAMP)
+               )
+             ORDER BY priority, work_id
+             FOR UPDATE SKIP LOCKED
+             LIMIT %s
+        )
+        UPDATE execution.semantic_pnf_work_item AS work
+           SET state_id = %s,
+               lease_owner = %s,
+               lease_token = %s,
+               lease_epoch = work.lease_epoch + 1,
+               lease_expires_at = CURRENT_TIMESTAMP
+                   + (%s * INTERVAL '1 second'),
+               attempt_count = work.attempt_count + 1
+          FROM picked
+         WHERE work.work_id = picked.work_id
+        RETURNING work.work_id, work.region_id, work.lease_epoch
+        """,
+        (
+            run_ref,
+            int(WorkOperation.SENTENCE_CLOSE),
+            int(WorkState.READY),
+            int(WorkState.LEASED),
+            limit,
+            int(WorkState.LEASED),
+            worker_ref,
+            token,
+            lease_seconds,
+        ),
+    )
+    return tuple(
+        WorkLease(
+            work_id=int(work_id),
+            region_id=int(region_id),
+            operation=WorkOperation.SENTENCE_CLOSE,
+            lease_token=token,
+            lease_epoch=int(lease_epoch),
+        )
+        for work_id, region_id, lease_epoch in cursor.fetchall()
+    )
+
+
+def _load_sentence_tokens_tranche(
+    cursor,
+    region_ids: tuple[int, ...],
+) -> dict[int, tuple[NumericToken, ...]]:
+    if not region_ids:
+        return {}
+    cursor.execute(
+        """
+        SELECT link.region_id,
+               token.token_id,
+               token.orth_symbol_id,
+               token.lemma_symbol_id,
+               token.pos_symbol_id,
+               token.tag_symbol_id,
+               token.dependency_symbol_id,
+               token.head_token_id,
+               token.morph_set_id,
+               token.start_char,
+               token.end_char
+          FROM execution.semantic_pnf_sentence_region AS link
+          JOIN execution.semantic_parser_token AS token
+            ON token.sentence_id = link.sentence_id
+         WHERE link.region_id = ANY(%s)
+           AND token.representation_version = 2
+         ORDER BY link.region_id, token.local_token_ordinal, token.token_id
+        """,
+        (list(region_ids),),
+    )
+    grouped: dict[int, list[NumericToken]] = defaultdict(list)
+    for row in cursor.fetchall():
+        region_id = int(row[0])
+        if row[7] is None:
+            raise RuntimeError(
+                "numeric parser token has missing dependency head "
+                f"for sentence region {region_id}: token_id={row[1]}"
+            )
+        grouped[region_id].append(
+            NumericToken(
+                token_id=int(row[1]),
+                orth_id=int(row[2]),
+                lemma_id=int(row[3]),
+                pos_id=int(row[4]),
+                tag_id=int(row[5]),
+                dependency_id=int(row[6]),
+                head_token_id=int(row[7]),
+                morph_set_id=int(row[8]) if row[8] is not None else None,
+                start_char=int(row[9]),
+                end_char=int(row[10]),
+            )
+        )
+    missing = [region_id for region_id in region_ids if not grouped.get(region_id)]
+    if missing:
+        raise RuntimeError(
+            "numeric sentence tranche contains regions without typed parser tokens: "
+            f"count={len(missing)} first={missing[:20]!r}"
+        )
+    return {region_id: tuple(tokens) for region_id, tokens in grouped.items()}
 
 
 def close_sentence_tranche_setwise(
@@ -28,8 +161,6 @@ def close_sentence_tranche_setwise(
     limit: int = 64,
     lease_seconds: int = 120,
 ) -> SentenceTrancheClosureReceipt:
-    """Close one independent sentence tranche with fixed-per-family SQL work."""
-
     if limit < 1:
         raise ValueError("numeric sentence closure limit must be positive")
     connection = connect(database_url)
@@ -82,7 +213,7 @@ def close_sentence_tranche_setwise(
         connection.close()
 
 
-def drain_sentence_closure_tranches_setwise(
+def drain_sentence_closure_tranches(
     database_url: str,
     *,
     run_ref: str,
@@ -90,8 +221,6 @@ def drain_sentence_closure_tranches_setwise(
     limit: int = 64,
     tranche_size: int = 64,
 ) -> SentenceTrancheClosureReceipt:
-    """Drain sentence closure through E0b fixed-family tranche admissions."""
-
     if limit < 1 or tranche_size < 1:
         raise ValueError("numeric sentence closure limits must be positive")
     completed = tranches = claims = transactions = token_loads = 0
@@ -121,6 +250,7 @@ def drain_sentence_closure_tranches_setwise(
 
 
 __all__ = [
+    "SentenceTrancheClosureReceipt",
     "close_sentence_tranche_setwise",
-    "drain_sentence_closure_tranches_setwise",
+    "drain_sentence_closure_tranches",
 ]
