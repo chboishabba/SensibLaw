@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Two-phase minimal C3b canonical reducer certification harness.
+"""Two-phase minimal delta-native hierarchy certification harness.
 
 The baseline phase must run on an isolated database migrated through C3a/C3
 boundary transport (074/075) but *before* migration 076 replaces the canonical
@@ -9,11 +9,16 @@ paragraph as the legacy-authority oracle, and measures the legacy reducer in
 rollback-only repetitions.
 
 After migration 076 is applied to the same isolated database, the certify phase
-runs the existing rollback-safe delta-fed reducer probe against that retained
-legacy paragraph authority and measures the delta-fed reducer on the same
-oracle. Semantic parity and physical performance remain distinct receipts: a
-speedup cannot manufacture semantic correctness, and parity does not imply a
-wall-clock win.
+uses that one oracle to close several independent gates at once:
+
+* C3b: delta-fed canonical reducer semantic parity;
+* C4: paired legacy-vs-delta-fed reducer timing on the same interface;
+* B1.1: scoped A2 sentence->paragraph boundary-authority parity; and
+* B2: recursive boundary transport/fusion parity across every populated hop.
+
+Semantic parity, transport algebra, sparse authority, and physical performance
+remain separately typed in the receipt. A speedup cannot manufacture semantic
+correctness, and semantic parity does not imply a wall-clock win.
 """
 
 from __future__ import annotations
@@ -30,14 +35,20 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.benchmark_b1_1_a2_paragraph_authority_parity import (
+    benchmark_b1_1_a2_paragraph_authority_parity,
+)
 from scripts.benchmark_delta_fed_canonical_parent_reducer import (
     benchmark_delta_fed_canonical_parent_reducer,
+)
+from scripts.benchmark_recursive_boundary_delta_transport import (
+    benchmark_recursive_boundary_delta_transport,
 )
 from src.storage.postgres.spacy_parser_model import STREAMING_SPACY_CONTRACT
 from src.storage.postgres.streaming_spacy_execution import run_streaming_spacy_execution
 from src.storage.postgres.spacy_parser_model import connect
 
-CONTRACT = "sensiblaw.c3b-minimal-canonical-fixture.v0_2"
+CONTRACT = "sensiblaw.minimal-delta-native-hierarchy-certification.v0_3"
 FIXTURE_TEXT = """The tenant must pay rent. The landlord may inspect the premises.
 
 If rent is unpaid, the landlord may give notice. The tenant must leave after termination.
@@ -262,8 +273,9 @@ def certify_delta_fed_reducer(
     timing_repetitions: int = 3,
 ) -> dict[str, Any]:
     if baseline.get("contract") != CONTRACT or baseline.get("phase") != "baseline":
-        raise ValueError("baseline receipt is not a C3b minimal baseline")
+        raise ValueError("baseline receipt is not a minimal delta-native baseline")
     run_ref = str(baseline["run_ref"])
+    document_ref = str(baseline["document_ref"])
     region_id = int(baseline["paragraph_oracle"]["region_id"])
     interface_id = int(baseline["paragraph_oracle"]["interface_id"])
 
@@ -295,6 +307,8 @@ def certify_delta_fed_reducer(
     finally:
         connection.close()
 
+    # C3b semantic parity remains the first gate. Everything below consumes the
+    # same retained oracle but cannot turn a parity failure into success.
     probe = benchmark_delta_fed_canonical_parent_reducer(
         database_url,
         run_ref=run_ref,
@@ -316,15 +330,32 @@ def certify_delta_fed_reducer(
     ratio = delta_median / legacy_median
     improvement_fraction = 1.0 - ratio
 
+    # B1.1 is deliberately scoped to the A2-owned sentence boundary semantics,
+    # not the whole reconciled paragraph frontier.
+    b1_1 = benchmark_b1_1_a2_paragraph_authority_parity(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        limit_sentences=64,
+    )
+
+    # B2 checks the same transport/fusion law recursively for every populated
+    # parent fibre and separately checks root-only lookup authority.
+    b2 = benchmark_recursive_boundary_delta_transport(
+        database_url,
+        run_ref=run_ref,
+        document_ref=document_ref,
+    )
+
     return {
         "contract": CONTRACT,
         "phase": "certify",
         "fixture_id": baseline["fixture_id"],
         "run_ref": run_ref,
-        "document_ref": baseline["document_ref"],
+        "document_ref": document_ref,
         "paragraph_oracle": baseline["paragraph_oracle"],
-        "delta_fed_probe": probe,
-        "performance": {
+        "c3b": {"delta_fed_probe": probe},
+        "c4_performance": {
             "legacy_reducer": legacy_timing,
             "delta_fed_reducer": delta_timing,
             "delta_to_legacy_ratio": ratio,
@@ -333,23 +364,47 @@ def certify_delta_fed_reducer(
             "paired_same_region_interface": True,
             "performance_is_independent_of_semantic_parity": True,
         },
+        "b1_1": b1_1,
+        "b2": b2,
         "gates": {
             "migration_076_applied": True,
-            "boundary_parity_clean": (
+            "c3b_boundary_parity_clean": (
                 int(probe["boundary"]["missing_from_projection"]) == 0
                 and int(probe["boundary"]["extra_in_projection"]) == 0
             ),
-            "canonical_authority_parity": bool(probe["authority_parity"]["equal"]),
-            "probe_rolled_back": bool(
+            "c3b_canonical_authority_parity": bool(
+                probe["authority_parity"]["equal"]
+            ),
+            "c3b_probe_rolled_back": bool(
                 probe["authority"]["probe_transaction_rolled_back"]
             ),
-            "zero_source_token_rescan": (
+            "c3b_zero_source_token_rescan": (
                 int(probe["work_shape"]["source_token_rescan_count"]) == 0
+            ),
+            "b1_1_scoped_authority_parity": bool(b1_1["parity"]["equal"]),
+            "b1_1_zero_source_interior_rescan": bool(
+                b1_1["work"]["zero_source_interior_rescan"]
+            ),
+            "b2_exact_recursive_transport": bool(
+                b2["parity"]["exact_transport_equal"]
+            ),
+            "b2_fusion_naturality": bool(
+                b2["parity"]["fusion_naturality_equal"]
+            ),
+            "b2_zero_source_interior_rescan": (
+                int(b2["work"]["source_interior_rescan_count"]) == 0
+            ),
+            "b2_root_only_global_lookup": bool(
+                b2["root_authority"]["root_only_global_lookup"]
+            ),
+            "b2_root_only_visible_lookup": bool(
+                b2["root_authority"]["root_only_visible_lookup"]
             ),
         },
         "authority": {
             "canonical_authority_promotion_claimed": False,
             "certification_mutates_legacy_authority": False,
+            "b1_1_or_b2_create_independent_authority": False,
         },
     }
 
