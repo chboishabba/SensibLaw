@@ -14,8 +14,13 @@ from dataclasses import dataclass, fields
 from enum import StrEnum
 from typing import Any, Mapping
 
+from src.runtime.delta_execution_timing import (
+    DeltaExecutionTimingLedger,
+    DeltaTimingStage,
+)
 
-ACCEPTED_METRIC_LEDGER_REF = "sensiblaw.accepted-metric-ledger.v0_1"
+
+ACCEPTED_METRIC_LEDGER_REF = "sensiblaw.accepted-metric-ledger.v0_2"
 TARGET_POST_PARSER_TO_SPACY_RATIO = 0.10
 
 
@@ -119,6 +124,92 @@ class PostParserPhaseLedger:
         return {field.name: getattr(self, field.name) for field in fields(self)}
 
 
+def _delta_execution_timing(
+    receipt: Mapping[str, Any], phases: PostParserPhaseLedger
+) -> DeltaExecutionTimingLedger:
+    """Project direct native stage timers into the reusable delta timing ledger.
+
+    This is attribution of measurements already made by the streaming executor,
+    not reconstruction from total wall time. Unknown/unclassified wall remains
+    unknown and is deliberately not assigned to a synthetic owner.
+    """
+
+    ledger = DeltaExecutionTimingLedger()
+    if not ledger.enabled:
+        return ledger
+
+    fibre_ref = str(receipt.get("source_ref") or "") or None
+    token_count = _number(receipt.get("token_count"))
+    sentence_count = _number(receipt.get("sentence_count"))
+    sentence_pairs = _number(receipt.get("pnf_sentence_adjacent_pairs"))
+    paragraph_pairs = _number(receipt.get("pnf_paragraph_adjacent_pairs"))
+    visible_rows = _number(receipt.get("pnf_visible_index_rows"))
+
+    rows = (
+        (
+            DeltaTimingStage.PROJECTION_ATOMS,
+            "numeric_projection_worker",
+            phases.numeric_projection_worker_work_ns,
+            token_count,
+            token_count,
+        ),
+        (
+            DeltaTimingStage.LOCAL_REDUCER,
+            "sentence_closure_worker",
+            phases.sentence_closure_worker_work_ns,
+            sentence_count,
+            sentence_count,
+        ),
+        (
+            DeltaTimingStage.LOCAL_REDUCER,
+            "sentence_closure_coordinator",
+            phases.sentence_closure_coordinator_ns,
+            sentence_count,
+            sentence_count,
+        ),
+        (
+            DeltaTimingStage.LOCAL_REDUCER,
+            "sentence_adjacency",
+            phases.sentence_adjacency_ns,
+            sentence_pairs,
+            sentence_pairs,
+        ),
+        (
+            DeltaTimingStage.LOCAL_REDUCER,
+            "hierarchy_materialization",
+            phases.hierarchy_work_ns,
+            sentence_count,
+            None,
+        ),
+        (
+            DeltaTimingStage.LOCAL_REDUCER,
+            "paragraph_adjacency",
+            phases.paragraph_adjacency_ns,
+            paragraph_pairs,
+            paragraph_pairs,
+        ),
+        (
+            DeltaTimingStage.AUTHORITY_PUBLICATION,
+            "global_lookup_publication",
+            phases.lookup_publication_ns,
+            visible_rows,
+            visible_rows,
+        ),
+    )
+    for stage, owner_ref, elapsed_ns, input_units, output_units in rows:
+        if elapsed_ns is None:
+            continue
+        ledger.record(
+            stage=stage,
+            owner_ref=owner_ref,
+            fibre_ref=fibre_ref,
+            elapsed_ns=elapsed_ns,
+            input_work_units=input_units,
+            output_work_units=output_units,
+        )
+    return ledger
+
+
 @dataclass(frozen=True, slots=True)
 class AcceptedMetricLedger:
     spacy_parser_wall_occupancy_ns: int | None
@@ -128,6 +219,7 @@ class AcceptedMetricLedger:
     post_parser_only_wall_ns: int | None
     timing_basis: str
     phases: PostParserPhaseLedger
+    delta_execution_timing: DeltaExecutionTimingLedger
 
     @property
     def parser_relative_ratio(self) -> float | None:
@@ -168,15 +260,18 @@ class AcceptedMetricLedger:
             "parser_relative_ratio": self.parser_relative_ratio,
             "timing_basis": self.timing_basis,
             "phases": self.phases.to_dict(),
+            "delta_execution_timing": self.delta_execution_timing.to_dict(),
             "timing_semantics": (
                 "parser/post values are directly measured monotonic occupancy unions; "
-                "overlap is retained explicitly and no side is reconstructed from total wall"
+                "overlap is retained explicitly and no side is reconstructed from total wall; "
+                "delta owner timing attributes already-direct native stage measurements"
             ),
         }
 
 
 def build_accepted_metric_ledger(run: Mapping[str, Any]) -> AcceptedMetricLedger:
     receipt = extract_parser_receipt(run)
+    phases = PostParserPhaseLedger.from_receipt(receipt)
     return AcceptedMetricLedger(
         spacy_parser_wall_occupancy_ns=_number(
             receipt.get("spacy_parser_wall_occupancy_ns")
@@ -188,7 +283,8 @@ def build_accepted_metric_ledger(run: Mapping[str, Any]) -> AcceptedMetricLedger
         spacy_parser_only_wall_ns=_number(receipt.get("spacy_parser_only_wall_ns")),
         post_parser_only_wall_ns=_number(receipt.get("post_parser_only_wall_ns")),
         timing_basis=str(receipt.get("timing_basis") or ""),
-        phases=PostParserPhaseLedger.from_receipt(receipt),
+        phases=phases,
+        delta_execution_timing=_delta_execution_timing(receipt, phases),
     )
 
 
