@@ -40,19 +40,22 @@ def _database_name(connection: Any) -> str:
 def _configure(database_url: str) -> str:
     connection = connect(database_url)
     try:
+        # Database-level settings must be committed independently of the
+        # benchmark transaction.  Keep the profiling setup out of the
+        # semantic run's transaction lifecycle.
+        connection.autocommit = True
         database = _database_name(connection)
-        with connection.transaction():
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT datname FROM pg_database WHERE datname = current_database()"
-                )
-                if cursor.fetchone() is None:
-                    raise RuntimeError("profile database disappeared")
-                cursor.execute(
-                    f'ALTER DATABASE "{database.replace(chr(34), chr(34) * 2)}" '
-                    "SET track_functions = 'pl'"
-                )
-                cursor.execute("SELECT pg_stat_reset()")
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT datname FROM pg_database WHERE datname = current_database()"
+            )
+            if cursor.fetchone() is None:
+                raise RuntimeError("profile database disappeared")
+            cursor.execute(
+                f'ALTER DATABASE "{database.replace(chr(34), chr(34) * 2)}" '
+                "SET track_functions = 'pl'"
+            )
+            cursor.execute("SELECT pg_stat_reset()")
         return database
     finally:
         connection.close()
