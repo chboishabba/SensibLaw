@@ -26,7 +26,10 @@ UPDATE execution.semantic_pnf_parent_delta_projection AS projection
    AND export.target_kind = projection.target_kind
    AND export.target_id = projection.target_id;
 
-CREATE OR REPLACE VIEW execution.semantic_pnf_parent_delta_fused_export AS
+-- C2's view has a shorter row type; PostgreSQL cannot add view columns with
+-- CREATE OR REPLACE VIEW, so replace that projection explicitly.
+DROP VIEW IF EXISTS execution.semantic_pnf_parent_delta_fused_export;
+CREATE VIEW execution.semantic_pnf_parent_delta_fused_export AS
 SELECT parent_region_id,
        export_kind,
        target_kind,

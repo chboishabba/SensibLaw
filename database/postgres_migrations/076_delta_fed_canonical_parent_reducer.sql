@@ -11,7 +11,8 @@ BEGIN;
 -- relation because an interface with zero exports can still carry an actor
 -- profile.  No token or proposition interior is reconstructed.
 
-CREATE OR REPLACE FUNCTION execution.numeric_pnf_parent_boundary_atoms(
+DROP FUNCTION IF EXISTS execution.numeric_pnf_parent_boundary_atoms(BIGINT);
+CREATE FUNCTION execution.numeric_pnf_parent_boundary_atoms(
     selected_parent_region_id BIGINT
 )
 RETURNS TABLE (
