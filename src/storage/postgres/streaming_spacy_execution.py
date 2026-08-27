@@ -311,6 +311,32 @@ def _refresh_final_numeric_lookup(
         connection.close()
 
 
+def _accumulate_worker_result(
+    result: tuple[int, int, int, int, int, tuple[Interval, ...], tuple[Interval, ...]],
+    *,
+    parser_intervals: list[Interval],
+    post_intervals: list[Interval],
+) -> tuple[int, int, int, int, int]:
+    (
+        completed_partitions,
+        completed_sentences,
+        parser_work_ns,
+        projection_work_ns,
+        sentence_closure_work_ns,
+        worker_parser_intervals,
+        worker_post_intervals,
+    ) = result
+    parser_intervals.extend(worker_parser_intervals)
+    post_intervals.extend(worker_post_intervals)
+    return (
+        completed_partitions,
+        completed_sentences,
+        parser_work_ns,
+        projection_work_ns,
+        sentence_closure_work_ns,
+    )
+
+
 def run_streaming_spacy_execution(
     *,
     database_url: str,
@@ -382,46 +408,38 @@ def run_streaming_spacy_execution(
     parser_intervals: list[Interval] = []
     post_intervals: list[Interval] = []
     if state != "complete":
-        context = mp.get_context("spawn")
-        for round_ordinal in range(128):
-            with ProcessPoolExecutor(
-                max_workers=worker_count,
-                mp_context=context,
-                initializer=linux_parent_death_initializer,
-            ) as pool:
-                futures = [
-                    pool.submit(
-                        _worker_drain,
-                        database_url,
-                        run_ref,
-                        f"parser-worker:{run_ref}:{round_ordinal}:{index}",
-                        policy,
-                        str(root),
-                    )
-                    for index in range(worker_count)
-                ]
-                for future in futures:
-                    (
-                        _completed_partitions,
-                        _completed_sentences,
-                        worker_parser_ns,
-                        worker_projection_ns,
-                        worker_sentence_closure_ns,
-                        worker_parser_intervals,
-                        worker_post_intervals,
-                    ) = future.result()
-                    parser_work_ns += worker_parser_ns
-                    projection_worker_work_ns += worker_projection_ns
-                    sentence_closure_worker_work_ns += worker_sentence_closure_ns
-                    parser_intervals.extend(worker_parser_intervals)
-                    post_intervals.extend(worker_post_intervals)
+        if len(proposed_partitions) == 1:
+            # Workload admission: one parser partition has no useful process-level
+            # fan-out.  Execute the exact same worker kernel directly and avoid
+            # spawn/pool boundary work; semantics and authority remain unchanged.
+            result = _worker_drain(
+                database_url,
+                run_ref,
+                f"parser-direct:{run_ref}",
+                policy,
+                str(root),
+            )
+            (
+                _completed_partitions,
+                _completed_sentences,
+                worker_parser_ns,
+                worker_projection_ns,
+                worker_sentence_closure_ns,
+            ) = _accumulate_worker_result(
+                result,
+                parser_intervals=parser_intervals,
+                post_intervals=post_intervals,
+            )
+            parser_work_ns += worker_parser_ns
+            projection_worker_work_ns += worker_projection_ns
+            sentence_closure_worker_work_ns += worker_sentence_closure_ns
             recover_expired(database_url, run_ref=run_ref)
             state, ready, leased, failed = execution_state(
                 database_url, run_ref=run_ref, document_ref=document_ref
             )
             _emit_progress(
                 progress_observer,
-                round_ordinal=round_ordinal,
+                round_ordinal=0,
                 state=state,
                 ready=ready,
                 leased=leased,
@@ -429,16 +447,68 @@ def run_streaming_spacy_execution(
             )
             if failed:
                 raise RuntimeError("typed parser partition failed")
-            if state == "complete":
-                break
-            if ready:
-                continue
-            if leased:
-                time.sleep(min(1.0, policy.lease_seconds / 4))
-                continue
-            raise RuntimeError("parser coverage remained open without runnable work")
+            if state != "complete":
+                raise RuntimeError(
+                    "single-partition direct parser execution did not close coverage"
+                )
         else:
-            raise RuntimeError("parser execution exceeded bounded scheduling rounds")
+            context = mp.get_context("spawn")
+            for round_ordinal in range(128):
+                with ProcessPoolExecutor(
+                    max_workers=worker_count,
+                    mp_context=context,
+                    initializer=linux_parent_death_initializer,
+                ) as pool:
+                    futures = [
+                        pool.submit(
+                            _worker_drain,
+                            database_url,
+                            run_ref,
+                            f"parser-worker:{run_ref}:{round_ordinal}:{index}",
+                            policy,
+                            str(root),
+                        )
+                        for index in range(worker_count)
+                    ]
+                    for future in futures:
+                        (
+                            _completed_partitions,
+                            _completed_sentences,
+                            worker_parser_ns,
+                            worker_projection_ns,
+                            worker_sentence_closure_ns,
+                        ) = _accumulate_worker_result(
+                            future.result(),
+                            parser_intervals=parser_intervals,
+                            post_intervals=post_intervals,
+                        )
+                        parser_work_ns += worker_parser_ns
+                        projection_worker_work_ns += worker_projection_ns
+                        sentence_closure_worker_work_ns += worker_sentence_closure_ns
+                recover_expired(database_url, run_ref=run_ref)
+                state, ready, leased, failed = execution_state(
+                    database_url, run_ref=run_ref, document_ref=document_ref
+                )
+                _emit_progress(
+                    progress_observer,
+                    round_ordinal=round_ordinal,
+                    state=state,
+                    ready=ready,
+                    leased=leased,
+                    failed=failed,
+                )
+                if failed:
+                    raise RuntimeError("typed parser partition failed")
+                if state == "complete":
+                    break
+                if ready:
+                    continue
+                if leased:
+                    time.sleep(min(1.0, policy.lease_seconds / 4))
+                    continue
+                raise RuntimeError("parser coverage remained open without runnable work")
+            else:
+                raise RuntimeError("parser execution exceeded bounded scheduling rounds")
 
     coordinator_post_started = monotonic_ns()
     stage_started = monotonic_ns()
@@ -539,6 +609,11 @@ def run_streaming_spacy_execution(
         "spacy_parser_only_wall_ns": parser_only_wall_ns,
         "post_parser_only_wall_ns": post_parser_only_wall_ns,
         "unclassified_orchestration_wall_ns": unclassified_wall_ns,
+        "parser_execution_mode": (
+            "direct_single_partition"
+            if len(proposed_partitions) == 1
+            else "spawned_process_pool"
+        ),
         "timing_basis": "process-active-work+monotonic-wall-occupancy:v3",
         "wall_timing_semantics": (
             "parser_only+post_only+overlap+unclassified partition pipeline wall; "
