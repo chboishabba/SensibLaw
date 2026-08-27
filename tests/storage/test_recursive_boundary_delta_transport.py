@@ -56,36 +56,47 @@ def test_b2_work_receipt_forbids_interior_rescan_and_per_hop_global_lookup() -> 
 
 
 def test_transport_trigger_sources_do_not_reopen_interiors_or_global_lookup() -> None:
-    source = (
-        MIGRATION_073.read_text(encoding="utf-8")
-        + "\n"
-        + MIGRATION_075.read_text(encoding="utf-8")
-    ).casefold()
+    export_source = MIGRATION_073.read_text(encoding="utf-8").casefold()
+    lookup_source = MIGRATION_075.read_text(encoding="utf-8").casefold()
     for required in (
         "transport_numeric_pnf_export_delta_insert",
         "transport_numeric_pnf_export_delta_update",
         "transport_numeric_pnf_export_delta_delete",
+        "for each statement",
+    ):
+        assert required in export_source
+    for required in (
         "transport_numeric_pnf_lookup_delta_insert",
         "transport_numeric_pnf_lookup_delta_update",
         "transport_numeric_pnf_lookup_delta_delete",
         "for each statement",
     ):
-        assert required in source
-    # These migrations may contain certification/bootstrap prose and structural
-    # joins, but the normal statement-level transport implementation has no
-    # semantic-interior or global-lookup source carrier.
-    transport_start = source.index("create or replace function execution.transport_numeric_pnf_export_delta_insert")
-    seed_start = source.index("create or replace function execution.seed_numeric_pnf_parent_delta_projection")
-    normal_transport = source[transport_start:seed_start]
-    for forbidden in (
-        "semantic_parser_token",
-        "semantic_pnf_object as",
-        "semantic_pnf_factor as",
-        "semantic_pnf_hyperedge",
-        "semantic_pnf_global_lookup",
-        "semantic_pnf_visible_lookup",
-    ):
-        assert forbidden not in normal_transport
+        assert required in lookup_source
+
+    export_transport = export_source[
+        export_source.index(
+            "create or replace function execution.transport_numeric_pnf_export_delta_insert"
+        ) : export_source.index(
+            "create or replace function execution.seed_numeric_pnf_parent_delta_projection"
+        )
+    ]
+    lookup_transport = lookup_source[
+        lookup_source.index(
+            "create or replace function execution.transport_numeric_pnf_lookup_delta_insert"
+        ) : lookup_source.index(
+            "-- extend fixture/bootstrap to the complete export and lookup boundary"
+        )
+    ]
+    for normal_transport in (export_transport, lookup_transport):
+        for forbidden in (
+            "semantic_parser_token",
+            "semantic_pnf_object as",
+            "semantic_pnf_factor as",
+            "semantic_pnf_hyperedge",
+            "semantic_pnf_global_lookup",
+            "semantic_pnf_visible_lookup",
+        ):
+            assert forbidden not in normal_transport
 
 
 def test_b2_preserves_root_only_lookup_authority() -> None:
