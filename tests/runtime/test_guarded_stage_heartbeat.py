@@ -18,7 +18,7 @@ class _Progress:
         yield Handle()
 
 
-def test_guarded_stage_emits_timeout_surviving_heartbeats(monkeypatch, tmp_path: Path):
+def test_guarded_stage_emits_live_owner_heartbeats(monkeypatch, tmp_path: Path):
     monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_ALL", "1")
     monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
     monkeypatch.setenv("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS", "0.01")
@@ -27,6 +27,7 @@ def test_guarded_stage_emits_timeout_surviving_heartbeats(monkeypatch, tmp_path:
 
     guard = ActiveDocumentResourceGuard(document_ref="document:heartbeat")
     with guard.stage(_Progress(), "numeric_pnf_compilation"):
+        guard.set_active_kernel("hierarchy_materialization")
         time.sleep(0.04)
 
     rows = [
@@ -37,9 +38,11 @@ def test_guarded_stage_emits_timeout_surviving_heartbeats(monkeypatch, tmp_path:
     ]
     kernels = [row["current_kernel"] for row in rows]
     assert kernels[0] == "stage_boundary_before"
-    assert "stage_heartbeat" in kernels
+    assert "hierarchy_materialization" in kernels
     assert kernels[-1] == "stage_boundary_after"
-    heartbeats = [row for row in rows if row["current_kernel"] == "stage_heartbeat"]
+    heartbeats = [
+        row for row in rows if row["current_kernel"] == "hierarchy_materialization"
+    ]
     assert all(row["partial_timing"]["acceptance_eligible"] is False for row in heartbeats)
     assert all(row["partial_timing"]["partial_run_evidence"] is True for row in heartbeats)
 
@@ -53,6 +56,7 @@ def test_zero_heartbeat_interval_disables_periodic_samples(monkeypatch, tmp_path
 
     guard = ActiveDocumentResourceGuard(document_ref="document:no-heartbeat")
     with guard.stage(_Progress(), "numeric_pnf_compilation"):
+        guard.set_active_kernel("sentence_adjacency")
         time.sleep(0.02)
 
     rows = [
