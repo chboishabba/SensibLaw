@@ -220,6 +220,11 @@ def compile_numeric_pnf_document(
     parser_checkpoint_dir: str | None,
     progress: Any | None = None,
 ) -> DocumentCompilation:
+    progress_observer = (
+        progress.observe
+        if progress is not None and hasattr(progress, "observe")
+        else None
+    )
     carrier = run_streaming_spacy_execution(
         database_url=database_url,
         run_ref=run_ref,
@@ -235,6 +240,7 @@ def compile_numeric_pnf_document(
             target_chars=parser_target_chars,
             overlap_chars=parser_overlap_chars,
         ),
+        progress_observer=progress_observer,
     )
     parser_receipt = dict(carrier["parser_receipt"])
     timing_details = {
