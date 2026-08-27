@@ -220,8 +220,12 @@ def compile_numeric_pnf_document(
     parser_checkpoint_dir: str | None,
     progress: Any | None = None,
 ) -> DocumentCompilation:
+    # The shared progress surface has two compatible observers: the durable
+    # document adapter accepts one details mapping, while PhaseHandle exposes
+    # the same payload through keyword-only ``details``.  Keep the streaming
+    # executor's mapping callback stable and adapt at this boundary.
     progress_observer = (
-        progress.observe
+        (lambda details: progress.observe(details=details))
         if progress is not None and hasattr(progress, "observe")
         else None
     )
