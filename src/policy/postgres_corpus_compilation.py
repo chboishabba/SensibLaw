@@ -32,7 +32,10 @@ from src.policy.operational_corpus_compilation import (
     DOCUMENT_COMPILE_STAGE_COUNT,
 )
 from src.runtime.document_stage_metrics import stage_measure_declaration
-from src.runtime.active_document_resources import ActiveDocumentResourceGuard
+from src.runtime.active_document_resources import (
+    ActiveDocumentResourceGuard,
+    GuardedDocumentProgress,
+)
 from src.runtime.execution_resource_ledger import ExecutionResourceLedger
 from src.runtime.progress import PhaseRecorder
 from src.runtime.strict_postgres_execution import StrictExecutionError
@@ -256,6 +259,14 @@ def _compile_document_postgres_worker(
                 if worker_progress is not None
                 else nullcontext(None)
             ) as document_progress:
+                document_guard = ActiveDocumentResourceGuard(
+                    document_ref=document_ref
+                )
+                guarded_progress = (
+                    GuardedDocumentProgress(document_progress, document_guard)
+                    if document_progress is not None
+                    else None
+                )
                 refs = store_kwargs["document_executor"](
                     store=store,
                     corpus_ref=str(store_kwargs["corpus_ref"]),
@@ -273,7 +284,7 @@ def _compile_document_postgres_worker(
                     parser_target_chars=int(store_kwargs["parser_target_chars"]),
                     parser_overlap_chars=int(store_kwargs["parser_overlap_chars"]),
                     parser_checkpoint_dir=store_kwargs["parser_checkpoint_dir"],
-                    progress=document_progress,
+                    progress=guarded_progress,
                     execution_strategy_ref=str(
                         store_kwargs.get("execution_strategy_ref")
                         or "local-compatibility-replay"
