@@ -19,9 +19,11 @@ from src.storage.postgres.numeric_hierarchy_planner import (
     materialize_numeric_document_hierarchy,
 )
 from src.storage.postgres.numeric_hyperfabric_store import (
-    drain_sentence_closure,
     hyperfabric_counts,
     register_authored_hierarchy,
+)
+from src.storage.postgres.numeric_sentence_tranche_closure import (
+    drain_sentence_closure_tranches,
 )
 from src.storage.postgres.hierarchy_diagnostic import assert_hierarchy_integrity
 from src.storage.postgres.numeric_parser_summary import numeric_execution_summary
@@ -151,12 +153,14 @@ def _worker_drain(
         )
         if not partitions:
             closure_started = monotonic_ns()
-            completed_sentences += drain_sentence_closure(
+            closure_receipt = drain_sentence_closure_tranches(
                 database_url,
                 run_ref=run_ref,
                 worker_ref=f"{worker_ref}:pnf",
                 limit=max(1, policy.batch_size * 4),
+                tranche_size=max(1, policy.batch_size * 4),
             )
+            completed_sentences += closure_receipt.sentence_count
             closure_finished = monotonic_ns()
             sentence_closure_work_ns += closure_finished - closure_started
             post_intervals.append((closure_started, closure_finished))
@@ -218,12 +222,14 @@ def _worker_drain(
                     completed_partitions += 1
 
                     closure_started = monotonic_ns()
-                    completed_sentences += drain_sentence_closure(
+                    closure_receipt = drain_sentence_closure_tranches(
                         database_url,
                         run_ref=run_ref,
                         worker_ref=f"{worker_ref}:pnf",
                         limit=max(1, policy.batch_size * 4),
+                        tranche_size=max(1, policy.batch_size * 4),
                     )
+                    completed_sentences += closure_receipt.sentence_count
                     closure_finished = monotonic_ns()
                     sentence_closure_work_ns += closure_finished - closure_started
                     post_intervals.append((closure_started, closure_finished))
@@ -260,14 +266,15 @@ def _emit_progress(
 def _drain_remaining_sentence_closure(database_url: str, *, run_ref: str) -> int:
     total = 0
     while True:
-        completed = drain_sentence_closure(
+        receipt = drain_sentence_closure_tranches(
             database_url,
             run_ref=run_ref,
             worker_ref=f"parser-coordinator:{run_ref}:pnf",
             limit=256,
+            tranche_size=256,
         )
-        total += completed
-        if completed == 0:
+        total += receipt.sentence_count
+        if receipt.sentence_count == 0:
             return total
 
 
