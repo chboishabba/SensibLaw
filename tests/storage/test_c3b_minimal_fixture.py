@@ -45,8 +45,30 @@ def test_certification_gates_zero_boundary_mismatch_and_rescan() -> None:
 
 def test_harness_does_not_mutate_or_reconstruct_canonical_authority() -> None:
     source = _source().casefold()
-    assert "rebuild_numeric_pnf_parent_frontier" in source  # only function-definition inspection
+    assert "rebuild_numeric_pnf_parent_frontier" in source  # rollback timing/probe only
     assert "insert into execution.semantic_pnf_interface_export" not in source
     assert "delete from execution.semantic_pnf_interface_export" not in source
     assert "update execution.semantic_pnf_interface_export" not in source
     assert "seed_numeric_pnf_parent_delta_projection" not in source
+
+
+def test_performance_is_paired_on_same_oracle_and_separate_from_semantic_gate() -> None:
+    source = _source()
+    assert "_benchmark_current_reducer" in source
+    assert "expect_delta_fed=False" in source
+    assert "expect_delta_fed=True" in source
+    assert '"paired_same_region_interface": True' in source
+    assert '"performance_is_independent_of_semantic_parity": True' in source
+    assert '"delta_to_legacy_ratio"' in source
+    assert '"improvement_fraction"' in source
+    # Physical speed is reported, not used to manufacture the semantic gate.
+    gates_source = source[source.index('"gates": {', source.index("def certify_delta_fed_reducer")) :]
+    assert '"delta_fed_faster"' not in gates_source.split('"authority": {', 1)[0]
+
+
+def test_each_timing_repetition_rolls_back() -> None:
+    source = _source()
+    assert "connection.rollback()" in source
+    assert '"every_repetition_rolled_back": True' in source
+    assert 'baseline_parser.add_argument("--timing-repetitions"' in source
+    assert 'certify_parser.add_argument("--timing-repetitions"' in source
