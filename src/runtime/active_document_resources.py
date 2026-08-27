@@ -25,7 +25,7 @@ from .document_execution_policy import current_process_rss_bytes
 
 
 MIB = 1024 * 1024
-PARTIAL_TIMING_SCHEMA_VERSION = "sensiblaw.partial-document-timing.v0_2"
+PARTIAL_TIMING_SCHEMA_VERSION = "sensiblaw.partial-document-timing.v0_3"
 
 
 class DocumentResourceLimitError(RuntimeError):
@@ -120,6 +120,16 @@ class ActiveDocumentResourceGuard:
         self._previous_process_cpu_ns = self._started_process_cpu_ns
         self._sample_ordinal = 0
         self._timing_lock = Lock()
+        self._kernel_lock = Lock()
+        self._active_kernel = "stage_heartbeat"
+
+    def set_active_kernel(self, current_kernel: str) -> None:
+        with self._kernel_lock:
+            self._active_kernel = str(current_kernel)
+
+    def active_kernel(self) -> str:
+        with self._kernel_lock:
+            return self._active_kernel
 
     def sample(self) -> dict[str, int]:
         return {
@@ -169,8 +179,6 @@ class ActiveDocumentResourceGuard:
         observed = max(resources.values())
         soft_pressure = observed >= self.soft_limit_bytes
         if soft_pressure:
-            # Only unreachable diagnostic/temporary cycles can be released here;
-            # live semantic carriers remain owned by their later consumers.
             gc.collect()
             resources = self.sample()
             observed = max(resources.values())
@@ -222,8 +230,6 @@ class ActiveDocumentResourceGuard:
         temporary.replace(path)
 
     def _append_timing_sample(self, payload: Mapping[str, Any]) -> None:
-        """Append timeout-surviving execution-only timing evidence when requested."""
-
         if os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_ALL") != "1":
             return
         root = os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_DIR")
@@ -251,8 +257,6 @@ class ActiveDocumentResourceGuard:
             stream.flush()
 
     def _write_checkpoint(self, payload: Mapping[str, Any]) -> None:
-        """Retain stage samples only when an acceptance calibration asks for them."""
-
         if os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_ALL") != "1":
             return
         root = os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_DIR")
@@ -274,6 +278,7 @@ class ActiveDocumentResourceGuard:
 
     @contextmanager
     def stage(self, progress: Any, stage: str, **kwargs: Any) -> Iterator[Any]:
+        self.set_active_kernel("stage_boundary_before")
         before = self.checkpoint(stage=stage, current_kernel="stage_boundary_before")
         heartbeat_stop = Event()
         heartbeat_interval = _heartbeat_seconds()
@@ -283,7 +288,7 @@ class ActiveDocumentResourceGuard:
             while not heartbeat_stop.wait(heartbeat_interval):
                 self.checkpoint(
                     stage=stage,
-                    current_kernel="stage_heartbeat",
+                    current_kernel=self.active_kernel(),
                     enforce_limits=False,
                 )
 
@@ -309,6 +314,7 @@ class ActiveDocumentResourceGuard:
                 heartbeat_stop.set()
                 if heartbeat_thread is not None:
                     heartbeat_thread.join(timeout=max(1.0, heartbeat_interval * 2))
+                self.set_active_kernel("stage_boundary_after")
                 after = self.checkpoint(
                     stage=stage, current_kernel="stage_boundary_after"
                 )
@@ -332,10 +338,23 @@ class GuardedDocumentProgress:
     def stage(self, stage: str, **kwargs: Any):
         return self._guard.stage(self._progress, stage, **kwargs)
 
+    def observe(self, details: Mapping[str, Any]) -> None:
+        current_kernel = str(details.get("current_kernel") or "numeric_pnf_compilation")
+        self._guard.set_active_kernel(current_kernel)
+        persisted_counts = {
+            str(key): int(value)
+            for key, value in details.items()
+            if isinstance(value, int) and not isinstance(value, bool)
+        }
+        self._guard.checkpoint(
+            stage="numeric_pnf_compilation",
+            current_kernel=current_kernel,
+            persisted_counts=persisted_counts,
+            enforce_limits=False,
+        )
+
 
 class NullDocumentProgress:
-    """Minimal stage sink so resource checks also run without user progress."""
-
     @contextmanager
     def stage(self, stage: str, **_kwargs: Any) -> Iterator[Any]:
         class Handle:
