@@ -15,6 +15,7 @@ from src.pnf.numeric_hyperfabric import (
     RegionMeasure,
     TargetKind,
     description_length,
+    numeric_digest,
 )
 from src.storage.postgres import numeric_hyperfabric_store as store
 from src.storage.postgres.spacy_parser_model import connect
@@ -375,6 +376,184 @@ def _load_paragraph_sketches(
     return tuple(sketches)
 
 
+def _close_canonical_parent_interface(
+    cursor: Any,
+    *,
+    region_id: int,
+    profile: MdlProfile,
+) -> int:
+    """Create only parent topology, then let the sparse reducer own its boundary.
+
+    The DASHI ParentInterfaceReduction/SparseFibredFrontier contract makes the
+    admitted parent export the authority and lookup a projection of that export.
+    The older store helper first copied child exports and child lookups into a
+    provisional parent and then the canonical reducer deleted/rebuilt both.
+    This path preserves the same interface identity inputs and child topology,
+    but consumes the already transported parent boundary for cardinality and
+    invokes the canonical reducer before any parent boundary is observable.
+    """
+
+    cursor.execute(
+        """
+        SELECT run_ref, document_ref, parent_region_id,
+               graph_revision, closure_state
+          FROM execution.semantic_pnf_region
+         WHERE region_id = %s
+         FOR UPDATE
+        """,
+        (region_id,),
+    )
+    region = cursor.fetchone()
+    if region is None:
+        raise RuntimeError("parent PNF region disappeared")
+
+    cursor.execute(
+        "SELECT interface_id FROM execution.semantic_pnf_interface WHERE region_id = %s",
+        (region_id,),
+    )
+    existing = cursor.fetchone()
+    if existing is not None:
+        interface_id = int(existing[0])
+        cursor.execute(
+            "SELECT * FROM execution.rebuild_numeric_pnf_parent_frontier(%s)",
+            (interface_id,),
+        )
+        cursor.fetchone()
+        return interface_id
+
+    children = store._load_child_interfaces(cursor, region_id)
+    if not children:
+        raise RuntimeError("cannot close a PNF parent without child interfaces")
+    aggregate = children[0][3]
+    for child in children[1:]:
+        aggregate = aggregate.join(child[3])
+    child_interface_ids = tuple(child[2] for child in children)
+
+    # Migration 073 continuously transports exactly the closed child export
+    # boundary into this parent-local fibre.  Counting that carrier avoids the
+    # historical region->interface->export reconstruction while retaining the
+    # same DISTINCT (export kind, target kind, target id) identity coordinate.
+    cursor.execute(
+        """
+        SELECT count(*)
+          FROM (
+              SELECT DISTINCT export_kind, target_kind, target_id
+                FROM execution.semantic_pnf_parent_delta_projection
+               WHERE parent_region_id = %s
+          ) AS boundary
+        """,
+        (region_id,),
+    )
+    interface_cardinality = int(cursor.fetchone()[0])
+    compressed = RegionMeasure(
+        node_count=aggregate.node_count,
+        edge_count=aggregate.edge_count,
+        alternative_count=aggregate.alternative_count,
+        unresolved_count=aggregate.unresolved_count,
+        boundary_demand_weight=aggregate.boundary_demand_weight,
+        encoded_byte_count=aggregate.encoded_byte_count,
+        rule_count=aggregate.rule_count + 1,
+        closure_rounds=aggregate.closure_rounds + 1,
+        query_cost_ns=aggregate.query_cost_ns,
+        promoted_object_count=min(
+            aggregate.promoted_object_count,
+            interface_cardinality,
+        ),
+        interface_cardinality=interface_cardinality,
+        hierarchy_cost=aggregate.hierarchy_cost + len(children),
+    )
+    graph_revision = int(region[3]) + 1
+    parent_interface_id: int | None = None
+    if region[2] is not None:
+        cursor.execute(
+            "SELECT interface_id FROM execution.semantic_pnf_interface WHERE region_id = %s",
+            (int(region[2]),),
+        )
+        parent = cursor.fetchone()
+        parent_interface_id = int(parent[0]) if parent else None
+
+    digest = numeric_digest(
+        region_id,
+        graph_revision,
+        child_interface_ids,
+        compressed.node_count,
+        compressed.edge_count,
+        compressed.interface_cardinality,
+        compressed.unresolved_count,
+    )
+    cursor.execute(
+        """
+        INSERT INTO execution.semantic_pnf_interface
+            (interface_digest, region_id, parent_interface_id,
+             closure_state, graph_revision, node_count, edge_count,
+             alternative_count, unresolved_count, boundary_demand_weight,
+             encoded_byte_count, rule_count, closure_rounds, query_cost_ns,
+             promoted_object_count, interface_cardinality,
+             hierarchy_cost, mdl_cost)
+        VALUES (
+            %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s
+        )
+        RETURNING interface_id
+        """,
+        (
+            digest,
+            region_id,
+            parent_interface_id,
+            int(ClosureState.CLOSED),
+            graph_revision,
+            compressed.node_count,
+            compressed.edge_count,
+            compressed.alternative_count,
+            compressed.unresolved_count,
+            compressed.boundary_demand_weight,
+            compressed.encoded_byte_count,
+            compressed.rule_count,
+            compressed.closure_rounds,
+            compressed.query_cost_ns,
+            compressed.promoted_object_count,
+            compressed.interface_cardinality,
+            compressed.hierarchy_cost,
+            description_length(compressed, profile),
+        ),
+    )
+    interface_id = int(cursor.fetchone()[0])
+
+    # Topology is independent of parent semantic admission.  Ancestor material
+    # publication is intentionally deferred by the enclosing hierarchy GUC and
+    # rebuilt set-wise once the complete document topology exists.
+    cursor.execute(
+        """
+        UPDATE execution.semantic_pnf_interface
+           SET parent_interface_id = %s
+         WHERE interface_id = ANY(%s)
+           AND parent_interface_id IS NULL
+        """,
+        (interface_id, list(child_interface_ids)),
+    )
+    cursor.execute(
+        """
+        UPDATE execution.semantic_pnf_region
+           SET closure_state = %s,
+               graph_revision = %s,
+               closed_at = CURRENT_TIMESTAMP
+         WHERE region_id = %s
+        """,
+        (int(ClosureState.CLOSED), graph_revision, region_id),
+    )
+
+    # Sole parent-boundary authority: admitted exports, actor summaries,
+    # unresolved demands, resolution state, and searchable lookup are all
+    # produced together by the existing canonical sparse reducer.
+    cursor.execute(
+        "SELECT * FROM execution.rebuild_numeric_pnf_parent_frontier(%s)",
+        (interface_id,),
+    )
+    cursor.fetchone()
+    return interface_id
+
+
 def _refresh_reductive_measure(
     cursor: Any,
     *,
@@ -524,7 +703,7 @@ def materialize_numeric_document_hierarchy(
                         raise RuntimeError(
                             "paragraph closure encountered an open sentence region"
                         )
-                    interface_id = store._close_parent_interface(
+                    interface_id = _close_canonical_parent_interface(
                         cursor,
                         region_id=paragraph_id,
                         profile=profile,
@@ -607,7 +786,7 @@ def materialize_numeric_document_hierarchy(
                             for member_ordinal, member in enumerate(members)
                         ],
                     )
-                    interface_id = store._close_parent_interface(
+                    interface_id = _close_canonical_parent_interface(
                         cursor,
                         region_id=adaptive_id,
                         profile=profile,
@@ -618,7 +797,7 @@ def materialize_numeric_document_hierarchy(
                         profile=profile,
                     )
 
-                document_interface_id = store._close_parent_interface(
+                document_interface_id = _close_canonical_parent_interface(
                     cursor,
                     region_id=document_region_id,
                     profile=profile,
