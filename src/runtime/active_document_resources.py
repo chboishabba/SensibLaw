@@ -1,8 +1,13 @@
 """Shared resource guard for the active document compiler lifecycle.
 
 This guard is execution-only: it neither persists partial semantic state nor
-changes compiler output.  An early limit stop is explicitly restart-from-
+changes compiler output. An early limit stop is explicitly restart-from-
 document, with an atomic receipt for the next allocation investigation.
+
+Resource checkpoints also carry partial monotonic/CPU timing coordinates. Those
+coordinates survive timeout or resource-stop termination and are diagnostic
+only: they must never be promoted into completed parser/post-parser acceptance
+metrics.
 """
 
 from __future__ import annotations
@@ -12,12 +17,14 @@ import gc
 import json
 import os
 from pathlib import Path
+from time import monotonic_ns, process_time_ns
 from typing import Any, Iterator, Mapping
 
 from .document_execution_policy import current_process_rss_bytes
 
 
 MIB = 1024 * 1024
+PARTIAL_TIMING_SCHEMA_VERSION = "sensiblaw.partial-document-timing.v0_1"
 
 
 class DocumentResourceLimitError(RuntimeError):
@@ -79,7 +86,7 @@ def current_process_tree_rss_bytes() -> int:
 
 
 class ActiveDocumentResourceGuard:
-    """Sample stage boundaries and emit a restart-only receipt before hard stop."""
+    """Sample stage boundaries and emit restart-only resource/timing evidence."""
 
     def __init__(self, *, document_ref: str):
         self.document_ref = document_ref
@@ -93,12 +100,42 @@ class ActiveDocumentResourceGuard:
             raise ValueError(
                 "SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB must exceed soft limit"
             )
+        self._started_monotonic_ns = monotonic_ns()
+        self._started_process_cpu_ns = process_time_ns()
+        self._previous_monotonic_ns = self._started_monotonic_ns
+        self._previous_process_cpu_ns = self._started_process_cpu_ns
+        self._sample_ordinal = 0
 
     def sample(self) -> dict[str, int]:
         return {
             "rss_bytes": current_process_rss_bytes(),
             "process_tree_rss_bytes": current_process_tree_rss_bytes(),
         }
+
+    def _timing_sample(self, *, stage: str, current_kernel: str) -> dict[str, Any]:
+        observed_monotonic_ns = monotonic_ns()
+        observed_process_cpu_ns = process_time_ns()
+        self._sample_ordinal += 1
+        payload = {
+            "schema_version": PARTIAL_TIMING_SCHEMA_VERSION,
+            "sample_ordinal": self._sample_ordinal,
+            "stage": stage,
+            "current_kernel": current_kernel,
+            "observed_monotonic_ns": observed_monotonic_ns,
+            "document_elapsed_ns": observed_monotonic_ns - self._started_monotonic_ns,
+            "interval_elapsed_ns": observed_monotonic_ns - self._previous_monotonic_ns,
+            "process_cpu_elapsed_ns": observed_process_cpu_ns
+            - self._started_process_cpu_ns,
+            "interval_process_cpu_ns": observed_process_cpu_ns
+            - self._previous_process_cpu_ns,
+            "semantic_authority_effect": "none",
+            "semantic_identity_effect": "none",
+            "acceptance_eligible": False,
+            "partial_run_evidence": True,
+        }
+        self._previous_monotonic_ns = observed_monotonic_ns
+        self._previous_process_cpu_ns = observed_process_cpu_ns
+        return payload
 
     def checkpoint(
         self,
@@ -125,6 +162,10 @@ class ActiveDocumentResourceGuard:
             "active_stage": stage,
             "current_kernel": current_kernel,
             "resources": resources,
+            "partial_timing": self._timing_sample(
+                stage=stage,
+                current_kernel=current_kernel,
+            ),
             "soft_memory_limit_bytes": self.soft_limit_bytes,
             "hard_memory_limit_bytes": self.hard_limit_bytes,
             "soft_pressure": soft_pressure,
@@ -135,6 +176,7 @@ class ActiveDocumentResourceGuard:
             "restart_from_document": True,
             "partial_state_resumable": False,
         }
+        self._append_timing_sample(payload)
         self._write_checkpoint(payload)
         if observed >= self.hard_limit_bytes or (
             fail_on_soft_pressure and observed >= self.soft_limit_bytes
@@ -160,6 +202,35 @@ class ActiveDocumentResourceGuard:
         temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n")
         temporary.replace(path)
+
+    def _append_timing_sample(self, payload: Mapping[str, Any]) -> None:
+        """Append timeout-surviving execution-only timing evidence when requested."""
+
+        if os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_ALL") != "1":
+            return
+        root = os.environ.get("SENSIBLAW_RESOURCE_CHECKPOINT_DIR")
+        if not root:
+            return
+        safe_document = "".join(
+            value if value.isalnum() or value in "-_." else "_"
+            for value in self.document_ref
+        )
+        path = Path(root) / f"{safe_document}.partial-timing.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        row = {
+            "document_ref": self.document_ref,
+            "active_stage": payload["active_stage"],
+            "current_kernel": payload["current_kernel"],
+            "resources": payload["resources"],
+            "active_batch_size": payload["active_batch_size"],
+            "retained_indexes": payload["retained_indexes"],
+            "persisted_counts": payload["persisted_counts"],
+            "partial_timing": payload["partial_timing"],
+        }
+        encoded = json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
+        with path.open("a", encoding="utf-8") as stream:
+            stream.write(encoded)
+            stream.flush()
 
     def _write_checkpoint(self, payload: Mapping[str, Any]) -> None:
         """Retain stage samples only when an acceptance calibration asks for them."""
@@ -190,7 +261,10 @@ class ActiveDocumentResourceGuard:
             if stage == "parser_observation_projection":
                 handle.observe(
                     measures=before["resources"],
-                    details={"current_kernel": "stage_boundary_before"},
+                    details={
+                        "current_kernel": "stage_boundary_before",
+                        "partial_timing": before["partial_timing"],
+                    },
                 )
             try:
                 yield handle
@@ -201,7 +275,10 @@ class ActiveDocumentResourceGuard:
                 if stage == "parser_observation_projection":
                     handle.observe(
                         measures=after["resources"],
-                        details={"current_kernel": "stage_boundary_after"},
+                        details={
+                            "current_kernel": "stage_boundary_after",
+                            "partial_timing": after["partial_timing"],
+                        },
                     )
 
 
@@ -235,5 +312,6 @@ __all__ = [
     "DocumentResourceLimitError",
     "GuardedDocumentProgress",
     "NullDocumentProgress",
+    "PARTIAL_TIMING_SCHEMA_VERSION",
     "current_process_tree_rss_bytes",
 ]
