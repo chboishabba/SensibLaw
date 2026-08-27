@@ -12,19 +12,10 @@ from typing import Any, Callable, Iterable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
 from src.runtime.numeric_observability import numeric_authority_counts_enabled
-from src.storage.postgres.numeric_adjacent_reconciliation import (
-    drain_adjacent_reconciliation,
-)
-from src.storage.postgres.numeric_hierarchy_planner import (
-    materialize_numeric_document_hierarchy,
-)
-from src.storage.postgres.numeric_hyperfabric_store import (
-    hyperfabric_counts,
-    register_authored_hierarchy,
-)
-from src.storage.postgres.numeric_sentence_tranche_closure import (
-    drain_sentence_closure_tranches,
-)
+from src.storage.postgres.numeric_adjacent_reconciliation import drain_adjacent_reconciliation
+from src.storage.postgres.numeric_hierarchy_planner import materialize_numeric_document_hierarchy
+from src.storage.postgres.numeric_hyperfabric_store import hyperfabric_counts, register_authored_hierarchy
+from src.storage.postgres.numeric_sentence_tranche_closure import drain_sentence_closure_tranches
 from src.storage.postgres.hierarchy_diagnostic import assert_hierarchy_integrity
 from src.storage.postgres.numeric_parser_summary import numeric_execution_summary
 from src.storage.postgres.spacy_numeric_projection import commit_numeric_doc
@@ -39,12 +30,7 @@ from src.storage.postgres.spacy_parser_model import (
     write_source,
 )
 from src.storage.postgres.spacy_parser_registration import register_or_reuse_execution
-from src.storage.postgres.spacy_parser_store import (
-    execution_state,
-    fail_partition,
-    lease_partitions,
-    recover_expired,
-)
+from src.storage.postgres.spacy_parser_store import execution_state, fail_partition, lease_partitions, recover_expired
 
 
 Interval = tuple[int, int]
@@ -107,12 +93,7 @@ def _renew_batch(
                             WHERE partition_ref = %s AND state = 'leased'
                               AND lease_token = %s AND lease_epoch = %s
                             """,
-                            (
-                                lease_seconds,
-                                partition.partition_ref,
-                                partition.lease_token,
-                                partition.lease_epoch,
-                            ),
+                            (lease_seconds, partition.partition_ref, partition.lease_token, partition.lease_epoch),
                         )
         finally:
             connection.close()
@@ -125,13 +106,7 @@ def _worker_drain(
     policy: ParserStreamingPolicy,
     artifact_root: str,
 ) -> tuple[int, int, int, int, int, tuple[Interval, ...], tuple[Interval, ...]]:
-    """Load spaCy once and return explicit parser/numeric active-work kernels.
-
-    Python's monotonic clock is a system monotonic clock on the Linux production
-    target, so intervals from spawned workers can be unioned by the coordinator.
-    The resulting occupancy decomposition does not pretend overlapping parser
-    and post-parser work are sequential stages.
-    """
+    """Load spaCy once and return explicit parser/numeric active-work kernels."""
 
     from src.nlp.spacy_adapter import get_streaming_nlp
 
@@ -186,11 +161,7 @@ def _worker_drain(
             for partition in partitions:
                 yield read_partition_text(partition), partition
 
-        iterator = iter(
-            pipeline.pipe(
-                inputs(), as_tuples=True, batch_size=policy.batch_size, n_process=1
-            )
-        )
+        iterator = iter(pipeline.pipe(inputs(), as_tuples=True, batch_size=policy.batch_size, n_process=1))
         try:
             while True:
                 parser_started = monotonic_ns()
@@ -263,6 +234,17 @@ def _emit_progress(
         )
 
 
+def _emit_owner_progress(
+    observer: Callable[[Mapping[str, Any]], None] | None,
+    *,
+    current_kernel: str,
+    state: str,
+    **counts: int,
+) -> None:
+    if observer is not None:
+        observer({"current_kernel": current_kernel, "owner_state": state, **counts})
+
+
 def _drain_remaining_sentence_closure(database_url: str, *, run_ref: str) -> int:
     total = 0
     while True:
@@ -278,9 +260,7 @@ def _drain_remaining_sentence_closure(database_url: str, *, run_ref: str) -> int
             return total
 
 
-def _drain_remaining_adjacent_reconciliation(
-    database_url: str, *, run_ref: str, stage: str
-) -> int:
+def _drain_remaining_adjacent_reconciliation(database_url: str, *, run_ref: str, stage: str) -> int:
     total = 0
     while True:
         summary = drain_adjacent_reconciliation(
@@ -294,17 +274,12 @@ def _drain_remaining_adjacent_reconciliation(
             return total
 
 
-def _refresh_final_numeric_lookup(
-    database_url: str, *, run_ref: str, document_ref: str
-) -> int:
+def _refresh_final_numeric_lookup(database_url: str, *, run_ref: str, document_ref: str) -> int:
     connection = connect(database_url)
     try:
         with connection.transaction():
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT execution.refresh_pnf_global_lookup(%s, %s)",
-                    (run_ref, document_ref),
-                )
+                cursor.execute("SELECT execution.refresh_pnf_global_lookup(%s, %s)", (run_ref, document_ref))
                 row = cursor.fetchone()
                 return int(row[0]) if row is not None else 0
     finally:
@@ -328,13 +303,7 @@ def _accumulate_worker_result(
     ) = result
     parser_intervals.extend(worker_parser_intervals)
     post_intervals.extend(worker_post_intervals)
-    return (
-        completed_partitions,
-        completed_sentences,
-        parser_work_ns,
-        projection_work_ns,
-        sentence_closure_work_ns,
-    )
+    return completed_partitions, completed_sentences, parser_work_ns, projection_work_ns, sentence_closure_work_ns
 
 
 def run_streaming_spacy_execution(
@@ -357,9 +326,7 @@ def run_streaming_spacy_execution(
     policy = policy or ParserStreamingPolicy()
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)
-    _content_ref, source_path, source_digest, source_bytes = write_source(
-        canonical_text, root
-    )
+    _content_ref, source_path, source_digest, source_bytes = write_source(canonical_text, root)
     source_ref = typed_ref("parser-source:", run_ref, document_ref, source_digest)
     proposed_partitions = build_structural_partitions(
         run_ref=run_ref,
@@ -389,17 +356,8 @@ def run_streaming_spacy_execution(
         canonical_text=canonical_text,
         execution_window_chars=max(65_536, policy.target_chars * 2),
     )
-    state, ready, leased, failed = execution_state(
-        database_url, run_ref=run_ref, document_ref=document_ref
-    )
-    _emit_progress(
-        progress_observer,
-        round_ordinal=-1,
-        state=state,
-        ready=ready,
-        leased=leased,
-        failed=failed,
-    )
+    state, ready, leased, failed = execution_state(database_url, run_ref=run_ref, document_ref=document_ref)
+    _emit_progress(progress_observer, round_ordinal=-1, state=state, ready=ready, leased=leased, failed=failed)
     if failed:
         raise RuntimeError("typed parser partition failed")
     parser_work_ns = 0
@@ -409,23 +367,8 @@ def run_streaming_spacy_execution(
     post_intervals: list[Interval] = []
     if state != "complete":
         if len(proposed_partitions) == 1:
-            # Workload admission: one parser partition has no useful process-level
-            # fan-out.  Execute the exact same worker kernel directly and avoid
-            # spawn/pool boundary work; semantics and authority remain unchanged.
-            result = _worker_drain(
-                database_url,
-                run_ref,
-                f"parser-direct:{run_ref}",
-                policy,
-                str(root),
-            )
-            (
-                _completed_partitions,
-                _completed_sentences,
-                worker_parser_ns,
-                worker_projection_ns,
-                worker_sentence_closure_ns,
-            ) = _accumulate_worker_result(
+            result = _worker_drain(database_url, run_ref, f"parser-direct:{run_ref}", policy, str(root))
+            (_completed_partitions, _completed_sentences, worker_parser_ns, worker_projection_ns, worker_sentence_closure_ns) = _accumulate_worker_result(
                 result,
                 parser_intervals=parser_intervals,
                 post_intervals=post_intervals,
@@ -434,23 +377,12 @@ def run_streaming_spacy_execution(
             projection_worker_work_ns += worker_projection_ns
             sentence_closure_worker_work_ns += worker_sentence_closure_ns
             recover_expired(database_url, run_ref=run_ref)
-            state, ready, leased, failed = execution_state(
-                database_url, run_ref=run_ref, document_ref=document_ref
-            )
-            _emit_progress(
-                progress_observer,
-                round_ordinal=0,
-                state=state,
-                ready=ready,
-                leased=leased,
-                failed=failed,
-            )
+            state, ready, leased, failed = execution_state(database_url, run_ref=run_ref, document_ref=document_ref)
+            _emit_progress(progress_observer, round_ordinal=0, state=state, ready=ready, leased=leased, failed=failed)
             if failed:
                 raise RuntimeError("typed parser partition failed")
             if state != "complete":
-                raise RuntimeError(
-                    "single-partition direct parser execution did not close coverage"
-                )
+                raise RuntimeError("single-partition direct parser execution did not close coverage")
         else:
             context = mp.get_context("spawn")
             for round_ordinal in range(128):
@@ -471,13 +403,7 @@ def run_streaming_spacy_execution(
                         for index in range(worker_count)
                     ]
                     for future in futures:
-                        (
-                            _completed_partitions,
-                            _completed_sentences,
-                            worker_parser_ns,
-                            worker_projection_ns,
-                            worker_sentence_closure_ns,
-                        ) = _accumulate_worker_result(
+                        (_completed_partitions, _completed_sentences, worker_parser_ns, worker_projection_ns, worker_sentence_closure_ns) = _accumulate_worker_result(
                             future.result(),
                             parser_intervals=parser_intervals,
                             post_intervals=post_intervals,
@@ -486,17 +412,8 @@ def run_streaming_spacy_execution(
                         projection_worker_work_ns += worker_projection_ns
                         sentence_closure_worker_work_ns += worker_sentence_closure_ns
                 recover_expired(database_url, run_ref=run_ref)
-                state, ready, leased, failed = execution_state(
-                    database_url, run_ref=run_ref, document_ref=document_ref
-                )
-                _emit_progress(
-                    progress_observer,
-                    round_ordinal=round_ordinal,
-                    state=state,
-                    ready=ready,
-                    leased=leased,
-                    failed=failed,
-                )
+                state, ready, leased, failed = execution_state(database_url, run_ref=run_ref, document_ref=document_ref)
+                _emit_progress(progress_observer, round_ordinal=round_ordinal, state=state, ready=ready, leased=leased, failed=failed)
                 if failed:
                     raise RuntimeError("typed parser partition failed")
                 if state == "complete":
@@ -511,34 +428,43 @@ def run_streaming_spacy_execution(
                 raise RuntimeError("parser execution exceeded bounded scheduling rounds")
 
     coordinator_post_started = monotonic_ns()
+
+    _emit_owner_progress(progress_observer, current_kernel="sentence_closure_coordinator", state="started")
     stage_started = monotonic_ns()
-    _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
+    remaining_sentence_count = _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
     sentence_closure_coordinator_ns = monotonic_ns() - stage_started
+    _emit_owner_progress(progress_observer, current_kernel="sentence_closure_coordinator", state="completed", sentence_count=remaining_sentence_count)
 
+    _emit_owner_progress(progress_observer, current_kernel="sentence_adjacency", state="started")
     stage_started = monotonic_ns()
-    sentence_pair_count = _drain_remaining_adjacent_reconciliation(
-        database_url, run_ref=run_ref, stage="sentence"
-    )
+    sentence_pair_count = _drain_remaining_adjacent_reconciliation(database_url, run_ref=run_ref, stage="sentence")
     sentence_adjacency_ns = monotonic_ns() - stage_started
+    _emit_owner_progress(progress_observer, current_kernel="sentence_adjacency", state="completed", pair_count=sentence_pair_count)
 
+    _emit_owner_progress(progress_observer, current_kernel="hierarchy_materialization", state="started")
     stage_started = monotonic_ns()
-    hierarchy = materialize_numeric_document_hierarchy(
-        database_url, run_ref=run_ref, document_ref=document_ref
-    )
+    hierarchy = materialize_numeric_document_hierarchy(database_url, run_ref=run_ref, document_ref=document_ref)
     hierarchy_work_ns = monotonic_ns() - stage_started
-
-    stage_started = monotonic_ns()
-    paragraph_pair_count = _drain_remaining_adjacent_reconciliation(
-        database_url, run_ref=run_ref, stage="paragraph"
+    _emit_owner_progress(
+        progress_observer,
+        current_kernel="hierarchy_materialization",
+        state="completed",
+        segmentation_evaluations=hierarchy.segmentation_evaluations,
     )
+
+    _emit_owner_progress(progress_observer, current_kernel="paragraph_adjacency", state="started")
+    stage_started = monotonic_ns()
+    paragraph_pair_count = _drain_remaining_adjacent_reconciliation(database_url, run_ref=run_ref, stage="paragraph")
     paragraph_adjacency_ns = monotonic_ns() - stage_started
+    _emit_owner_progress(progress_observer, current_kernel="paragraph_adjacency", state="completed", pair_count=paragraph_pair_count)
 
+    _emit_owner_progress(progress_observer, current_kernel="lookup_publication", state="started")
     stage_started = monotonic_ns()
-    final_lookup_rows = _refresh_final_numeric_lookup(
-        database_url, run_ref=run_ref, document_ref=document_ref
-    )
+    final_lookup_rows = _refresh_final_numeric_lookup(database_url, run_ref=run_ref, document_ref=document_ref)
     lookup_publication_ns = monotonic_ns() - stage_started
+    _emit_owner_progress(progress_observer, current_kernel="lookup_publication", state="completed", row_count=final_lookup_rows)
 
+    _emit_owner_progress(progress_observer, current_kernel="numeric_execution_summary", state="started")
     stage_started = monotonic_ns()
     summary = numeric_execution_summary(
         database_url,
@@ -548,18 +474,16 @@ def run_streaming_spacy_execution(
         parser_contract_ref=parser_contract_ref,
     )
     summary_work_ns = monotonic_ns() - stage_started
-    hierarchy_integrity = assert_hierarchy_integrity(
-        database_url,
-        run_ref=run_ref,
-        document_ref=document_ref,
-    )
+    _emit_owner_progress(progress_observer, current_kernel="numeric_execution_summary", state="completed")
+
+    _emit_owner_progress(progress_observer, current_kernel="hierarchy_integrity", state="started")
+    hierarchy_integrity = assert_hierarchy_integrity(database_url, run_ref=run_ref, document_ref=document_ref)
+    _emit_owner_progress(progress_observer, current_kernel="hierarchy_integrity", state="completed")
 
     coordinator_post_finished = monotonic_ns()
     coordinator_post_parser_ns = coordinator_post_finished - coordinator_post_started
     post_intervals.append((coordinator_post_started, coordinator_post_finished))
-    post_parser_worker_work_ns = (
-        projection_worker_work_ns + sentence_closure_worker_work_ns
-    )
+    post_parser_worker_work_ns = projection_worker_work_ns + sentence_closure_worker_work_ns
     post_parser_work_ns = post_parser_worker_work_ns + coordinator_post_parser_ns
 
     parser_wall_ns = _interval_duration(parser_intervals)
@@ -609,11 +533,7 @@ def run_streaming_spacy_execution(
         "spacy_parser_only_wall_ns": parser_only_wall_ns,
         "post_parser_only_wall_ns": post_parser_only_wall_ns,
         "unclassified_orchestration_wall_ns": unclassified_wall_ns,
-        "parser_execution_mode": (
-            "direct_single_partition"
-            if len(proposed_partitions) == 1
-            else "spawned_process_pool"
-        ),
+        "parser_execution_mode": "direct_single_partition" if len(proposed_partitions) == 1 else "spawned_process_pool",
         "timing_basis": "process-active-work+monotonic-wall-occupancy:v3",
         "wall_timing_semantics": (
             "parser_only+post_only+overlap+unclassified partition pipeline wall; "
@@ -624,9 +544,7 @@ def run_streaming_spacy_execution(
         "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
     }
     if numeric_authority_counts_enabled():
-        counts = hyperfabric_counts(
-            database_url, run_ref=run_ref, document_ref=document_ref
-        )
+        counts = hyperfabric_counts(database_url, run_ref=run_ref, document_ref=document_ref)
         parser_receipt.update(
             {
                 "pnf_region_count": counts["regions"],
@@ -644,9 +562,6 @@ def run_streaming_spacy_execution(
     )
 
 
-# ``src.pnf`` deliberately defers strategy installation while this module is
-# partially initialized.  Install after the hierarchy hooks above exist so
-# spawned parser workers receive the same execution strategy as the parent.
 from src.policy import install_execution_strategies
 
 install_execution_strategies()
