@@ -17,6 +17,7 @@ import gc
 import json
 import os
 from pathlib import Path
+from threading import Event, Lock, Thread
 from time import monotonic_ns, process_time_ns
 from typing import Any, Iterator, Mapping
 
@@ -24,7 +25,7 @@ from .document_execution_policy import current_process_rss_bytes
 
 
 MIB = 1024 * 1024
-PARTIAL_TIMING_SCHEMA_VERSION = "sensiblaw.partial-document-timing.v0_1"
+PARTIAL_TIMING_SCHEMA_VERSION = "sensiblaw.partial-document-timing.v0_2"
 
 
 class DocumentResourceLimitError(RuntimeError):
@@ -46,6 +47,19 @@ def _environment_mib(name: str, default: int) -> int:
     if result < 1:
         raise ValueError(f"{name} must be positive")
     return result
+
+
+def _heartbeat_seconds() -> float:
+    raw = os.environ.get("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS")
+    if raw is None or not raw.strip():
+        return 5.0
+    try:
+        value = float(raw)
+    except ValueError as error:
+        raise ValueError("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS must be numeric") from error
+    if value < 0:
+        raise ValueError("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS cannot be negative")
+    return value
 
 
 def current_process_tree_rss_bytes() -> int:
@@ -105,6 +119,7 @@ class ActiveDocumentResourceGuard:
         self._previous_monotonic_ns = self._started_monotonic_ns
         self._previous_process_cpu_ns = self._started_process_cpu_ns
         self._sample_ordinal = 0
+        self._timing_lock = Lock()
 
     def sample(self) -> dict[str, int]:
         return {
@@ -113,29 +128,30 @@ class ActiveDocumentResourceGuard:
         }
 
     def _timing_sample(self, *, stage: str, current_kernel: str) -> dict[str, Any]:
-        observed_monotonic_ns = monotonic_ns()
-        observed_process_cpu_ns = process_time_ns()
-        self._sample_ordinal += 1
-        payload = {
-            "schema_version": PARTIAL_TIMING_SCHEMA_VERSION,
-            "sample_ordinal": self._sample_ordinal,
-            "stage": stage,
-            "current_kernel": current_kernel,
-            "observed_monotonic_ns": observed_monotonic_ns,
-            "document_elapsed_ns": observed_monotonic_ns - self._started_monotonic_ns,
-            "interval_elapsed_ns": observed_monotonic_ns - self._previous_monotonic_ns,
-            "process_cpu_elapsed_ns": observed_process_cpu_ns
-            - self._started_process_cpu_ns,
-            "interval_process_cpu_ns": observed_process_cpu_ns
-            - self._previous_process_cpu_ns,
-            "semantic_authority_effect": "none",
-            "semantic_identity_effect": "none",
-            "acceptance_eligible": False,
-            "partial_run_evidence": True,
-        }
-        self._previous_monotonic_ns = observed_monotonic_ns
-        self._previous_process_cpu_ns = observed_process_cpu_ns
-        return payload
+        with self._timing_lock:
+            observed_monotonic_ns = monotonic_ns()
+            observed_process_cpu_ns = process_time_ns()
+            self._sample_ordinal += 1
+            payload = {
+                "schema_version": PARTIAL_TIMING_SCHEMA_VERSION,
+                "sample_ordinal": self._sample_ordinal,
+                "stage": stage,
+                "current_kernel": current_kernel,
+                "observed_monotonic_ns": observed_monotonic_ns,
+                "document_elapsed_ns": observed_monotonic_ns - self._started_monotonic_ns,
+                "interval_elapsed_ns": observed_monotonic_ns - self._previous_monotonic_ns,
+                "process_cpu_elapsed_ns": observed_process_cpu_ns
+                - self._started_process_cpu_ns,
+                "interval_process_cpu_ns": observed_process_cpu_ns
+                - self._previous_process_cpu_ns,
+                "semantic_authority_effect": "none",
+                "semantic_identity_effect": "none",
+                "acceptance_eligible": False,
+                "partial_run_evidence": True,
+            }
+            self._previous_monotonic_ns = observed_monotonic_ns
+            self._previous_process_cpu_ns = observed_process_cpu_ns
+            return payload
 
     def checkpoint(
         self,
@@ -147,6 +163,7 @@ class ActiveDocumentResourceGuard:
         persisted_counts: Mapping[str, int] | None = None,
         reusable_partition_refs: tuple[str, ...] = (),
         fail_on_soft_pressure: bool = False,
+        enforce_limits: bool = True,
     ) -> dict[str, Any]:
         resources = self.sample()
         observed = max(resources.values())
@@ -178,8 +195,9 @@ class ActiveDocumentResourceGuard:
         }
         self._append_timing_sample(payload)
         self._write_checkpoint(payload)
-        if observed >= self.hard_limit_bytes or (
-            fail_on_soft_pressure and observed >= self.soft_limit_bytes
+        if enforce_limits and (
+            observed >= self.hard_limit_bytes
+            or (fail_on_soft_pressure and observed >= self.soft_limit_bytes)
         ):
             payload["resource_limit_reached"] = True
             payload["resource_limit_kind"] = (
@@ -257,6 +275,25 @@ class ActiveDocumentResourceGuard:
     @contextmanager
     def stage(self, progress: Any, stage: str, **kwargs: Any) -> Iterator[Any]:
         before = self.checkpoint(stage=stage, current_kernel="stage_boundary_before")
+        heartbeat_stop = Event()
+        heartbeat_interval = _heartbeat_seconds()
+        heartbeat_thread: Thread | None = None
+
+        def emit_heartbeats() -> None:
+            while not heartbeat_stop.wait(heartbeat_interval):
+                self.checkpoint(
+                    stage=stage,
+                    current_kernel="stage_heartbeat",
+                    enforce_limits=False,
+                )
+
+        if heartbeat_interval > 0:
+            heartbeat_thread = Thread(
+                target=emit_heartbeats,
+                name=f"sensiblaw-stage-heartbeat-{stage}",
+                daemon=True,
+            )
+            heartbeat_thread.start()
         with progress.stage(stage, **kwargs) as handle:
             if stage == "parser_observation_projection":
                 handle.observe(
@@ -269,6 +306,9 @@ class ActiveDocumentResourceGuard:
             try:
                 yield handle
             finally:
+                heartbeat_stop.set()
+                if heartbeat_thread is not None:
+                    heartbeat_thread.join(timeout=max(1.0, heartbeat_interval * 2))
                 after = self.checkpoint(
                     stage=stage, current_kernel="stage_boundary_after"
                 )
