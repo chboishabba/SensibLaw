@@ -62,7 +62,7 @@ LAYERS = (
 
 _SCOPE = """
 source_region.run_ref=%s
-AND (%s IS NULL OR source_region.document_ref=%s)
+AND (%s::TEXT IS NULL OR source_region.document_ref=%s::TEXT)
 """
 
 _DEMAND_CTE = """
