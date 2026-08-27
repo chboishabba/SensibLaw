@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """E0d old-vs-new authority parity and execution-geometry certification.
 
-The two databases must represent the same replay fixture:
+Compare a migration-179 replay with a migration-180 replay using portable
+semantic coordinates. Database-local BIGINT allocation and PNF digests whose
+preimages contain such allocation are deliberately excluded from the hard gate.
 
-* legacy: complete schema through migration 179;
-* projected: complete schema through migration 180.
-
-The harness compares portable semantic coordinates rather than BIGINT surrogate
-allocation. When replay commands are supplied it also resets PostgreSQL
-function statistics, executes each command against its database, and records
-the compatibility-adaptor/projector geometry. Authority parity is a hard gate;
-timing is evidence and is never promoted to a speedup claim by this script.
+Optional replay commands are executed under PostgreSQL PL/pgSQL function
+accounting. Semantic parity is a hard gate; performance is evidence only.
 """
 
 from __future__ import annotations
@@ -35,7 +31,7 @@ from src.storage.postgres.delta_projection_certification import (
 )
 from src.storage.postgres.spacy_parser_model import connect
 
-CONTRACT = "sensiblaw.e0d-anaphor-delta-certification.v0_1"
+CONTRACT = "sensiblaw.e0d-anaphor-delta-certification.v0_2"
 
 LAYERS = (
     DeltaCertificationLayer("source_delta", ("source_pronouns",)),
@@ -64,6 +60,74 @@ LAYERS = (
     ),
 )
 
+_SCOPE = """
+source_region.run_ref=%s
+AND (%s IS NULL OR source_region.document_ref=%s)
+"""
+
+_DEMAND_CTE = """
+WITH scoped_demand AS MATERIALIZED (
+    SELECT demand.*,
+           source_region.region_kind AS source_region_kind,
+           source_region.start_char AS source_region_start,
+           source_region.end_char AS source_region_end,
+           source_token.start_char AS source_token_start,
+           source_token.end_char AS source_token_end,
+           source_token.local_token_ordinal AS source_token_ordinal,
+           encode(source_token.token_digest,'hex') AS source_token_digest,
+           encode(source_kind.symbol_digest,'hex') AS source_kind_digest,
+           encode(source_head.symbol_digest,'hex') AS source_head_digest,
+           encode(expected_factor.symbol_digest,'hex') AS expected_factor_digest,
+           encode(expected_object.symbol_digest,'hex') AS expected_object_digest,
+           encode(lexical.symbol_digest,'hex') AS lexical_digest,
+           encode(surface.symbol_digest,'hex') AS surface_digest,
+           encode(role.symbol_digest,'hex') AS role_digest,
+           encode(residual.symbol_digest,'hex') AS residual_digest
+      FROM execution.semantic_pnf_demand AS demand
+      JOIN execution.semantic_pnf_region AS source_region
+        ON source_region.region_id=demand.source_region_id
+      JOIN execution.semantic_symbol AS residual
+        ON residual.symbol_id=demand.residual_type_symbol_id
+       AND residual.kind_id=13
+       AND residual.symbol_text='anaphor_unresolved'
+      LEFT JOIN execution.semantic_pnf_object AS source_object
+        ON source_object.object_id=demand.source_object_id
+      LEFT JOIN execution.semantic_symbol AS source_kind
+        ON source_kind.symbol_id=source_object.object_kind_symbol_id
+      LEFT JOIN execution.semantic_symbol AS source_head
+        ON source_head.symbol_id=source_object.head_symbol_id
+      LEFT JOIN execution.semantic_pnf_object_token_support AS source_support
+        ON source_support.object_id=source_object.object_id
+       AND source_support.ordinal=0
+      LEFT JOIN execution.semantic_parser_token AS source_token
+        ON source_token.token_id=source_support.token_id
+      LEFT JOIN execution.semantic_symbol AS expected_factor
+        ON expected_factor.symbol_id=demand.expected_factor_type_symbol_id
+      LEFT JOIN execution.semantic_symbol AS expected_object
+        ON expected_object.symbol_id=demand.expected_object_kind_symbol_id
+      LEFT JOIN execution.semantic_symbol AS lexical
+        ON lexical.symbol_id=demand.lexical_symbol_id
+      LEFT JOIN execution.semantic_symbol AS surface
+        ON surface.symbol_id=demand.surface_lexical_symbol_id
+      LEFT JOIN execution.semantic_symbol AS role
+        ON role.symbol_id=demand.role_symbol_id
+     WHERE """ + _SCOPE + """
+)
+"""
+
+_DEMAND_KEY = """
+d.source_region_kind,
+d.source_region_start,
+d.source_region_end,
+d.source_token_start,
+d.source_token_end,
+d.source_token_ordinal,
+d.source_kind_digest,
+d.source_head_digest,
+d.surface_digest,
+d.residual_digest
+"""
+
 
 def _rows(cursor: Any, query: str, params: tuple[Any, ...]) -> tuple[tuple[Any, ...], ...]:
     cursor.execute(query, params)
@@ -74,6 +138,52 @@ def _scope_params(run_ref: str, document_ref: str | None) -> tuple[Any, ...]:
     return (run_ref, document_ref, document_ref)
 
 
+def _object_target_sql(prefix: str) -> str:
+    return f"""
+    concat_ws(':',
+        'object',
+        {prefix}_region.region_kind::TEXT,
+        {prefix}_region.start_char::TEXT,
+        {prefix}_region.end_char::TEXT,
+        encode({prefix}_kind.symbol_digest,'hex'),
+        encode({prefix}_head.symbol_digest,'hex'),
+        COALESCE((
+            SELECT string_agg(
+                       token.start_char::TEXT || '-' || token.end_char::TEXT,
+                       ',' ORDER BY support.ordinal,token.start_char,token.end_char
+                   )
+              FROM execution.semantic_pnf_object_token_support AS support
+              JOIN execution.semantic_parser_token AS token
+                ON token.token_id=support.token_id
+             WHERE support.object_id={prefix}.object_id
+        ),'')
+    )
+    """
+
+
+def _factor_target_sql(prefix: str) -> str:
+    return f"""
+    concat_ws(':',
+        'factor',
+        {prefix}_region.region_kind::TEXT,
+        {prefix}_region.start_char::TEXT,
+        {prefix}_region.end_char::TEXT,
+        encode({prefix}_type.symbol_digest,'hex'),
+        encode({prefix}_predicate.symbol_digest,'hex'),
+        COALESCE((
+            SELECT string_agg(
+                       token.start_char::TEXT || '-' || token.end_char::TEXT,
+                       ',' ORDER BY support.ordinal,token.start_char,token.end_char
+                   )
+              FROM execution.semantic_pnf_factor_token_support AS support
+              JOIN execution.semantic_parser_token AS token
+                ON token.token_id=support.token_id
+             WHERE support.factor_id={prefix}.factor_id
+        ),'')
+    )
+    """
+
+
 def _snapshot(
     database_url: str,
     *,
@@ -81,23 +191,26 @@ def _snapshot(
     document_ref: str | None,
 ) -> dict[str, tuple[tuple[Any, ...], ...]]:
     connection = connect(database_url)
+    scope = _scope_params(run_ref, document_ref)
     try:
         with connection.transaction():
             with connection.cursor() as cursor:
                 cursor.execute("SET TRANSACTION READ ONLY")
-                scope = _scope_params(run_ref, document_ref)
 
                 source_pronouns = _rows(
                     cursor,
                     """
-                    SELECT encode(region.region_digest,'hex'),
+                    SELECT source_region.region_kind,
+                           source_region.start_char,
+                           source_region.end_char,
                            token.start_char,
                            token.end_char,
-                           encode(token.token_digest,'hex'),
-                           encode(lemma.symbol_digest,'hex')
-                      FROM execution.semantic_pnf_region AS region
+                           token.local_token_ordinal,
+                           encode(lemma.symbol_digest,'hex'),
+                           encode(pos.symbol_digest,'hex')
+                      FROM execution.semantic_pnf_region AS source_region
                       JOIN execution.semantic_pnf_sentence_region AS mapping
-                        ON mapping.region_id=region.region_id
+                        ON mapping.region_id=source_region.region_id
                       JOIN execution.semantic_parser_token AS token
                         ON token.sentence_id=mapping.sentence_id
                        AND token.representation_version=2
@@ -106,9 +219,11 @@ def _snapshot(
                        AND token.pos_symbol_id=constant.pronoun_pos_symbol_id
                       JOIN execution.semantic_symbol AS lemma
                         ON lemma.symbol_id=token.lemma_symbol_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                     ORDER BY region.start_char,token.start_char,token.token_id
+                      JOIN execution.semantic_symbol AS pos
+                        ON pos.symbol_id=token.pos_symbol_id
+                     WHERE """ + _SCOPE + """
+                     ORDER BY source_region.start_char,token.start_char,
+                              token.local_token_ordinal
                     """,
                     scope,
                 )
@@ -116,26 +231,35 @@ def _snapshot(
                 mentions = _rows(
                     cursor,
                     """
-                    SELECT encode(mention.mention_digest,'hex'),
-                           encode(region.region_digest,'hex'),
+                    SELECT source_region.region_kind,
+                           source_region.start_char,
+                           source_region.end_char,
                            mention.start_char,
                            mention.end_char,
-                           encode(token.token_digest,'hex'),
+                           mention.mention_kind,
+                           token.start_char,
+                           token.end_char,
+                           token.local_token_ordinal,
                            encode(head.symbol_digest,'hex'),
-                           encode(object.object_digest,'hex')
+                           encode(object_kind.symbol_digest,'hex'),
+                           encode(object_head.symbol_digest,'hex')
                       FROM execution.semantic_pnf_mention AS mention
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=mention.region_id
+                      JOIN execution.semantic_pnf_region AS source_region
+                        ON source_region.region_id=mention.region_id
                       JOIN execution.semantic_parser_token AS token
                         ON token.token_id=mention.head_token_id
                       JOIN execution.semantic_symbol AS head
                         ON head.symbol_id=mention.head_symbol_id
                       LEFT JOIN execution.semantic_pnf_object AS object
                         ON object.object_id=mention.object_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
+                      LEFT JOIN execution.semantic_symbol AS object_kind
+                        ON object_kind.symbol_id=object.object_kind_symbol_id
+                      LEFT JOIN execution.semantic_symbol AS object_head
+                        ON object_head.symbol_id=object.head_symbol_id
+                     WHERE """ + _SCOPE + """
                        AND mention.mention_kind=4
-                     ORDER BY region.start_char,mention.start_char,mention.mention_digest
+                     ORDER BY source_region.start_char,mention.start_char,
+                              token.local_token_ordinal
                     """,
                     scope,
                 )
@@ -143,20 +267,27 @@ def _snapshot(
                 mention_token_support = _rows(
                     cursor,
                     """
-                    SELECT encode(mention.mention_digest,'hex'),
-                           encode(token.token_digest,'hex'),
+                    SELECT source_region.region_kind,
+                           source_region.start_char,
+                           source_region.end_char,
+                           mention.start_char,
+                           mention.end_char,
+                           mention.mention_kind,
+                           token.start_char,
+                           token.end_char,
+                           token.local_token_ordinal,
                            support.ordinal
                       FROM execution.semantic_pnf_mention AS mention
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=mention.region_id
+                      JOIN execution.semantic_pnf_region AS source_region
+                        ON source_region.region_id=mention.region_id
                       JOIN execution.semantic_pnf_mention_token AS support
                         ON support.mention_id=mention.mention_id
                       JOIN execution.semantic_parser_token AS token
                         ON token.token_id=support.token_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
+                     WHERE """ + _SCOPE + """
                        AND mention.mention_kind=4
-                     ORDER BY mention.mention_digest,support.ordinal,token.token_digest
+                     ORDER BY source_region.start_char,mention.start_char,
+                              support.ordinal,token.local_token_ordinal
                     """,
                     scope,
                 )
@@ -164,22 +295,31 @@ def _snapshot(
                 object_token_support = _rows(
                     cursor,
                     """
-                    SELECT encode(object.object_digest,'hex'),
-                           encode(token.token_digest,'hex'),
+                    SELECT source_region.region_kind,
+                           source_region.start_char,
+                           source_region.end_char,
+                           encode(object_kind.symbol_digest,'hex'),
+                           encode(object_head.symbol_digest,'hex'),
+                           token.start_char,
+                           token.end_char,
+                           token.local_token_ordinal,
                            support.ordinal
                       FROM execution.semantic_pnf_mention AS mention
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=mention.region_id
+                      JOIN execution.semantic_pnf_region AS source_region
+                        ON source_region.region_id=mention.region_id
                       JOIN execution.semantic_pnf_object AS object
                         ON object.object_id=mention.object_id
+                      JOIN execution.semantic_symbol AS object_kind
+                        ON object_kind.symbol_id=object.object_kind_symbol_id
+                      JOIN execution.semantic_symbol AS object_head
+                        ON object_head.symbol_id=object.head_symbol_id
                       JOIN execution.semantic_pnf_object_token_support AS support
                         ON support.object_id=object.object_id
                       JOIN execution.semantic_parser_token AS token
                         ON token.token_id=support.token_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
+                     WHERE """ + _SCOPE + """
                        AND mention.mention_kind=4
-                     ORDER BY object.object_digest,support.ordinal,token.token_digest
+                     ORDER BY source_region.start_char,token.start_char,support.ordinal
                     """,
                     scope,
                 )
@@ -187,94 +327,79 @@ def _snapshot(
                 object_mention_support = _rows(
                     cursor,
                     """
-                    SELECT encode(object.object_digest,'hex'),
-                           encode(mention.mention_digest,'hex')
+                    SELECT source_region.region_kind,
+                           source_region.start_char,
+                           source_region.end_char,
+                           encode(object_kind.symbol_digest,'hex'),
+                           encode(object_head.symbol_digest,'hex'),
+                           mention.start_char,
+                           mention.end_char,
+                           mention.mention_kind
                       FROM execution.semantic_pnf_mention AS mention
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=mention.region_id
+                      JOIN execution.semantic_pnf_region AS source_region
+                        ON source_region.region_id=mention.region_id
                       JOIN execution.semantic_pnf_object AS object
                         ON object.object_id=mention.object_id
+                      JOIN execution.semantic_symbol AS object_kind
+                        ON object_kind.symbol_id=object.object_kind_symbol_id
+                      JOIN execution.semantic_symbol AS object_head
+                        ON object_head.symbol_id=object.head_symbol_id
                       JOIN execution.semantic_pnf_object_mention_support AS support
                         ON support.object_id=object.object_id
                        AND support.mention_id=mention.mention_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
+                     WHERE """ + _SCOPE + """
                        AND mention.mention_kind=4
-                     ORDER BY object.object_digest,mention.mention_digest
+                     ORDER BY source_region.start_char,mention.start_char
                     """,
                     scope,
                 )
 
                 demands = _rows(
                     cursor,
-                    """
-                    SELECT encode(demand.demand_digest,'hex'),
-                           encode(region.region_digest,'hex'),
-                           encode(source_object.object_digest,'hex'),
-                           demand.expected_target_kind,
-                           encode(expected_factor.symbol_digest,'hex'),
-                           encode(expected_object.symbol_digest,'hex'),
-                           encode(lexical.symbol_digest,'hex'),
-                           encode(surface.symbol_digest,'hex'),
-                           encode(role.symbol_digest,'hex'),
-                           encode(residual.symbol_digest,'hex'),
-                           demand.recency_class,
-                           demand.state,
-                           demand.max_candidates,
-                           demand.source_start_char,
-                           demand.candidate_count,
-                           demand.resolved_target_kind
-                      FROM execution.semantic_pnf_demand AS demand
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=demand.source_region_id
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      LEFT JOIN execution.semantic_pnf_object AS source_object
-                        ON source_object.object_id=demand.source_object_id
-                      LEFT JOIN execution.semantic_symbol AS expected_factor
-                        ON expected_factor.symbol_id=demand.expected_factor_type_symbol_id
-                      LEFT JOIN execution.semantic_symbol AS expected_object
-                        ON expected_object.symbol_id=demand.expected_object_kind_symbol_id
-                      LEFT JOIN execution.semantic_symbol AS lexical
-                        ON lexical.symbol_id=demand.lexical_symbol_id
-                      LEFT JOIN execution.semantic_symbol AS surface
-                        ON surface.symbol_id=demand.surface_lexical_symbol_id
-                      LEFT JOIN execution.semantic_symbol AS role
-                        ON role.symbol_id=demand.role_symbol_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                     ORDER BY region.start_char,demand.source_start_char,demand.demand_digest
+                    _DEMAND_CTE + """
+                    SELECT """ + _DEMAND_KEY + """,
+                           d.expected_target_kind,
+                           d.expected_factor_digest,
+                           d.expected_object_digest,
+                           d.lexical_digest,
+                           d.role_digest,
+                           d.recency_class,
+                           d.state,
+                           d.max_candidates,
+                           d.source_start_char,
+                           d.candidate_count,
+                           d.resolved_target_kind
+                      FROM scoped_demand AS d
+                     ORDER BY d.source_region_start,d.source_token_start,
+                              d.source_token_ordinal,d.residual_digest
                     """,
                     scope,
                 )
 
                 demand_exports = _rows(
                     cursor,
-                    """
-                    SELECT encode(interface_region.region_digest,'hex'),
+                    _DEMAND_CTE + """
+                    SELECT """ + _DEMAND_KEY + """,
+                           interface_region.region_kind,
+                           interface_region.start_char,
+                           interface_region.end_char,
                            export.export_kind,
                            export.target_kind,
-                           encode(demand.demand_digest,'hex'),
                            encode(key_symbol.symbol_digest,'hex'),
                            encode(role_symbol.symbol_digest,'hex'),
                            encode(residual_symbol.symbol_digest,'hex'),
                            row_number() OVER (
-                               PARTITION BY interface_region.region_digest
-                               ORDER BY demand.source_start_char,demand.demand_digest
-                           )::BIGINT AS portable_ordinal,
+                               PARTITION BY interface_region.region_kind,
+                                            interface_region.start_char,
+                                            interface_region.end_char
+                               ORDER BY d.source_token_start,d.source_token_end,
+                                        d.source_token_ordinal,d.residual_digest
+                           )::BIGINT,
                            export.promotion_score
-                      FROM execution.semantic_pnf_interface_export AS export
-                      JOIN execution.semantic_pnf_demand AS demand
+                      FROM scoped_demand AS d
+                      JOIN execution.semantic_pnf_interface_export AS export
                         ON export.target_kind=3
-                       AND demand.demand_id=export.target_id
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      JOIN execution.semantic_pnf_region AS source_region
-                        ON source_region.region_id=demand.source_region_id
+                       AND export.target_id=d.demand_id
                       JOIN execution.semantic_pnf_interface AS interface
                         ON interface.interface_id=export.interface_id
                       JOIN execution.semantic_pnf_region AS interface_region
@@ -285,42 +410,36 @@ def _snapshot(
                         ON role_symbol.symbol_id=export.role_symbol_id
                       LEFT JOIN execution.semantic_symbol AS residual_symbol
                         ON residual_symbol.symbol_id=export.residual_type_symbol_id
-                     WHERE source_region.run_ref=%s
-                       AND (%s IS NULL OR source_region.document_ref=%s)
-                     ORDER BY interface_region.region_digest,portable_ordinal,demand.demand_digest
+                     ORDER BY interface_region.start_char,d.source_token_start
                     """,
                     scope,
                 )
 
                 demand_lookups = _rows(
                     cursor,
-                    """
-                    SELECT encode(interface_region.region_digest,'hex'),
+                    _DEMAND_CTE + """
+                    SELECT """ + _DEMAND_KEY + """,
+                           interface_region.region_kind,
+                           interface_region.start_char,
+                           interface_region.end_char,
                            lookup.key_kind,
-                           CASE
-                             WHEN lookup.key_a=0 THEN '0'
-                             ELSE encode(key_a.symbol_digest,'hex')
-                           END,
-                           CASE
-                             WHEN lookup.key_b=0 THEN '0'
-                             ELSE encode(key_b.symbol_digest,'hex')
-                           END,
+                           CASE WHEN lookup.key_a=0 THEN '0'
+                                ELSE encode(key_a.symbol_digest,'hex') END,
+                           CASE WHEN lookup.key_b=0 THEN '0'
+                                ELSE encode(key_b.symbol_digest,'hex') END,
                            lookup.target_kind,
-                           encode(demand.demand_digest,'hex'),
                            row_number() OVER (
-                               PARTITION BY interface_region.region_digest,lookup.key_kind
-                               ORDER BY demand.source_start_char,demand.demand_digest
-                           )::BIGINT AS portable_ordinal
-                      FROM execution.semantic_pnf_interface_lookup AS lookup
-                      JOIN execution.semantic_pnf_demand AS demand
+                               PARTITION BY interface_region.region_kind,
+                                            interface_region.start_char,
+                                            interface_region.end_char,
+                                            lookup.key_kind
+                               ORDER BY d.source_token_start,d.source_token_end,
+                                        d.source_token_ordinal,d.residual_digest
+                           )::BIGINT
+                      FROM scoped_demand AS d
+                      JOIN execution.semantic_pnf_interface_lookup AS lookup
                         ON lookup.target_kind=3
-                       AND demand.demand_id=lookup.target_id
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      JOIN execution.semantic_pnf_region AS source_region
-                        ON source_region.region_id=demand.source_region_id
+                       AND lookup.target_id=d.demand_id
                       JOIN execution.semantic_pnf_interface AS interface
                         ON interface.interface_id=lookup.interface_id
                       JOIN execution.semantic_pnf_region AS interface_region
@@ -329,80 +448,110 @@ def _snapshot(
                         ON key_a.symbol_id=lookup.key_a
                       LEFT JOIN execution.semantic_symbol AS key_b
                         ON key_b.symbol_id=lookup.key_b
-                     WHERE source_region.run_ref=%s
-                       AND (%s IS NULL OR source_region.document_ref=%s)
-                     ORDER BY interface_region.region_digest,lookup.key_kind,
-                              portable_ordinal,demand.demand_digest
+                     ORDER BY interface_region.start_char,lookup.key_kind,
+                              d.source_token_start
                     """,
                     scope,
                 )
 
                 occurrence_provenance = _rows(
                     cursor,
-                    """
-                    SELECT encode(demand.demand_digest,'hex'),
+                    _DEMAND_CTE + """
+                    SELECT """ + _DEMAND_KEY + """,
                            provenance.occurrence_role,
-                           encode(token.token_digest,'hex'),
-                           encode(object.object_digest,'hex'),
+                           token.start_char,
+                           token.end_char,
+                           token.local_token_ordinal,
+                           object_region.region_kind,
+                           object_region.start_char,
+                           object_region.end_char,
+                           encode(object_kind.symbol_digest,'hex'),
+                           encode(object_head.symbol_digest,'hex'),
                            provenance.ordinal,
                            provenance.producer_ref
-                      FROM execution.semantic_pnf_demand_occurrence_provenance AS provenance
-                      JOIN execution.semantic_pnf_demand AS demand
-                        ON demand.demand_id=provenance.demand_id
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=demand.source_region_id
+                      FROM scoped_demand AS d
+                      JOIN execution.semantic_pnf_demand_occurrence_provenance AS provenance
+                        ON provenance.demand_id=d.demand_id
                       JOIN execution.semantic_parser_token AS token
                         ON token.token_id=provenance.token_id
                       LEFT JOIN execution.semantic_pnf_object AS object
                         ON object.object_id=provenance.object_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                     ORDER BY demand.demand_digest,provenance.occurrence_role,
-                              provenance.ordinal,token.token_digest
+                      LEFT JOIN execution.semantic_pnf_region AS object_region
+                        ON object_region.region_id=object.region_id
+                      LEFT JOIN execution.semantic_symbol AS object_kind
+                        ON object_kind.symbol_id=object.object_kind_symbol_id
+                      LEFT JOIN execution.semantic_symbol AS object_head
+                        ON object_head.symbol_id=object.head_symbol_id
+                     ORDER BY d.source_region_start,d.source_token_start,
+                              provenance.occurrence_role,provenance.ordinal
                     """,
                     scope,
                 )
 
+                object_target = _object_target_sql("target_object")
+                factor_target = _factor_target_sql("target_factor")
                 candidates = _rows(
                     cursor,
-                    """
-                    SELECT encode(demand.demand_digest,'hex'),
+                    _DEMAND_CTE + f"""
+                    SELECT {_DEMAND_KEY},
                            candidate.ordinal,
                            candidate.target_kind,
                            CASE candidate.target_kind
-                             WHEN 1 THEN encode(target_object.object_digest,'hex')
-                             WHEN 2 THEN encode(target_factor.factor_digest,'hex')
-                             WHEN 3 THEN encode(target_demand.demand_digest,'hex')
-                             ELSE NULL
+                             WHEN 1 THEN {object_target}
+                             WHEN 2 THEN {factor_target}
+                             ELSE concat_ws(
+                                 ':','demand',
+                                 target_demand_region.region_kind::TEXT,
+                                 target_demand_region.start_char::TEXT,
+                                 target_demand_region.end_char::TEXT,
+                                 target_demand_token.start_char::TEXT,
+                                 target_demand_token.end_char::TEXT,
+                                 encode(target_demand_residual.symbol_digest,'hex')
+                             )
                            END,
-                           encode(source_interface_region.region_digest,'hex'),
+                           source_interface_region.region_kind,
+                           source_interface_region.start_char,
+                           source_interface_region.end_char,
                            candidate.ancestor_distance,
                            candidate.index_rank,
                            candidate.candidate_score,
-                           encode(common_scope_region.region_digest,'hex'),
+                           common_scope_region.region_kind,
+                           common_scope_region.start_char,
+                           common_scope_region.end_char,
                            candidate.validation_state
-                      FROM execution.semantic_pnf_demand_candidate AS candidate
-                      JOIN execution.semantic_pnf_demand AS demand
-                        ON demand.demand_id=candidate.demand_id
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=demand.source_region_id
+                      FROM scoped_demand AS d
+                      JOIN execution.semantic_pnf_demand_candidate AS candidate
+                        ON candidate.demand_id=d.demand_id
                       LEFT JOIN execution.semantic_pnf_object AS target_object
                         ON candidate.target_kind=1
                        AND target_object.object_id=candidate.target_id
+                      LEFT JOIN execution.semantic_pnf_region AS target_object_region
+                        ON target_object_region.region_id=target_object.region_id
+                      LEFT JOIN execution.semantic_symbol AS target_object_kind
+                        ON target_object_kind.symbol_id=target_object.object_kind_symbol_id
+                      LEFT JOIN execution.semantic_symbol AS target_object_head
+                        ON target_object_head.symbol_id=target_object.head_symbol_id
                       LEFT JOIN execution.semantic_pnf_factor AS target_factor
                         ON candidate.target_kind=2
                        AND target_factor.factor_id=candidate.target_id
+                      LEFT JOIN execution.semantic_pnf_region AS target_factor_region
+                        ON target_factor_region.region_id=target_factor.region_id
+                      LEFT JOIN execution.semantic_symbol AS target_factor_type
+                        ON target_factor_type.symbol_id=target_factor.factor_type_symbol_id
+                      LEFT JOIN execution.semantic_symbol AS target_factor_predicate
+                        ON target_factor_predicate.symbol_id=target_factor.predicate_symbol_id
                       LEFT JOIN execution.semantic_pnf_demand AS target_demand
                         ON candidate.target_kind=3
                        AND target_demand.demand_id=candidate.target_id
+                      LEFT JOIN execution.semantic_pnf_region AS target_demand_region
+                        ON target_demand_region.region_id=target_demand.source_region_id
+                      LEFT JOIN execution.semantic_symbol AS target_demand_residual
+                        ON target_demand_residual.symbol_id=target_demand.residual_type_symbol_id
+                      LEFT JOIN execution.semantic_pnf_object_token_support AS target_demand_support
+                        ON target_demand_support.object_id=target_demand.source_object_id
+                       AND target_demand_support.ordinal=0
+                      LEFT JOIN execution.semantic_parser_token AS target_demand_token
+                        ON target_demand_token.token_id=target_demand_support.token_id
                       LEFT JOIN execution.semantic_pnf_interface AS source_interface
                         ON source_interface.interface_id=candidate.source_interface_id
                       LEFT JOIN execution.semantic_pnf_region AS source_interface_region
@@ -411,38 +560,42 @@ def _snapshot(
                         ON common_scope.interface_id=candidate.common_scope_interface_id
                       LEFT JOIN execution.semantic_pnf_region AS common_scope_region
                         ON common_scope_region.region_id=common_scope.region_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                     ORDER BY demand.demand_digest,candidate.ordinal,
-                              candidate.target_kind,candidate.target_id
+                     ORDER BY d.source_region_start,d.source_token_start,
+                              candidate.ordinal,candidate.target_kind
                     """,
                     scope,
                 )
 
                 frontier_resolutions = _rows(
                     cursor,
-                    """
-                    SELECT encode(demand.demand_digest,'hex'),
-                           encode(interface_region.region_digest,'hex'),
+                    _DEMAND_CTE + f"""
+                    SELECT {_DEMAND_KEY},
+                           interface_region.region_kind,
+                           interface_region.start_char,
+                           interface_region.end_char,
                            resolution.outcome_state,
                            resolution.candidate_count,
                            resolution.selected_target_kind,
                            CASE resolution.selected_target_kind
-                             WHEN 1 THEN encode(target_object.object_digest,'hex')
-                             WHEN 2 THEN encode(target_factor.factor_digest,'hex')
-                             WHEN 3 THEN encode(target_demand.demand_digest,'hex')
+                             WHEN 1 THEN {object_target}
+                             WHEN 2 THEN {factor_target}
+                             WHEN 3 THEN concat_ws(
+                                 ':','demand',
+                                 target_demand_region.region_kind::TEXT,
+                                 target_demand_region.start_char::TEXT,
+                                 target_demand_region.end_char::TEXT,
+                                 target_demand_token.start_char::TEXT,
+                                 target_demand_token.end_char::TEXT,
+                                 encode(target_demand_residual.symbol_digest,'hex')
+                             )
                              ELSE NULL
                            END,
-                           encode(witness_region.region_digest,'hex')
-                      FROM execution.semantic_pnf_frontier_resolution AS resolution
-                      JOIN execution.semantic_pnf_demand AS demand
-                        ON demand.demand_id=resolution.demand_id
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=demand.source_region_id
+                           witness_region.region_kind,
+                           witness_region.start_char,
+                           witness_region.end_char
+                      FROM scoped_demand AS d
+                      JOIN execution.semantic_pnf_frontier_resolution AS resolution
+                        ON resolution.demand_id=d.demand_id
                       JOIN execution.semantic_pnf_interface AS interface
                         ON interface.interface_id=resolution.interface_id
                       JOIN execution.semantic_pnf_region AS interface_region
@@ -450,49 +603,70 @@ def _snapshot(
                       LEFT JOIN execution.semantic_pnf_object AS target_object
                         ON resolution.selected_target_kind=1
                        AND target_object.object_id=resolution.selected_target_id
+                      LEFT JOIN execution.semantic_pnf_region AS target_object_region
+                        ON target_object_region.region_id=target_object.region_id
+                      LEFT JOIN execution.semantic_symbol AS target_object_kind
+                        ON target_object_kind.symbol_id=target_object.object_kind_symbol_id
+                      LEFT JOIN execution.semantic_symbol AS target_object_head
+                        ON target_object_head.symbol_id=target_object.head_symbol_id
                       LEFT JOIN execution.semantic_pnf_factor AS target_factor
                         ON resolution.selected_target_kind=2
                        AND target_factor.factor_id=resolution.selected_target_id
+                      LEFT JOIN execution.semantic_pnf_region AS target_factor_region
+                        ON target_factor_region.region_id=target_factor.region_id
+                      LEFT JOIN execution.semantic_symbol AS target_factor_type
+                        ON target_factor_type.symbol_id=target_factor.factor_type_symbol_id
+                      LEFT JOIN execution.semantic_symbol AS target_factor_predicate
+                        ON target_factor_predicate.symbol_id=target_factor.predicate_symbol_id
                       LEFT JOIN execution.semantic_pnf_demand AS target_demand
                         ON resolution.selected_target_kind=3
                        AND target_demand.demand_id=resolution.selected_target_id
+                      LEFT JOIN execution.semantic_pnf_region AS target_demand_region
+                        ON target_demand_region.region_id=target_demand.source_region_id
+                      LEFT JOIN execution.semantic_symbol AS target_demand_residual
+                        ON target_demand_residual.symbol_id=target_demand.residual_type_symbol_id
+                      LEFT JOIN execution.semantic_pnf_object_token_support AS target_demand_support
+                        ON target_demand_support.object_id=target_demand.source_object_id
+                       AND target_demand_support.ordinal=0
+                      LEFT JOIN execution.semantic_parser_token AS target_demand_token
+                        ON target_demand_token.token_id=target_demand_support.token_id
                       LEFT JOIN execution.semantic_pnf_interface AS witness
                         ON witness.interface_id=resolution.witness_interface_id
                       LEFT JOIN execution.semantic_pnf_region AS witness_region
                         ON witness_region.region_id=witness.region_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                     ORDER BY demand.demand_digest,interface_region.region_digest
+                     ORDER BY d.source_region_start,d.source_token_start,
+                              interface_region.start_char
                     """,
                     scope,
                 )
 
                 affected_interfaces = _rows(
                     cursor,
-                    """
-                    SELECT DISTINCT encode(interface_region.region_digest,'hex')
-                      FROM execution.semantic_pnf_demand AS demand
-                      JOIN execution.semantic_symbol AS residual
-                        ON residual.symbol_id=demand.residual_type_symbol_id
-                       AND residual.kind_id=13
-                       AND residual.symbol_text='anaphor_unresolved'
-                      JOIN execution.semantic_pnf_region AS region
-                        ON region.region_id=demand.source_region_id
+                    _DEMAND_CTE + """
+                    SELECT DISTINCT interface_region.region_kind,
+                                    interface_region.start_char,
+                                    interface_region.end_char
+                      FROM scoped_demand AS d
                       JOIN execution.semantic_pnf_interface AS interface
-                        ON interface.interface_id=demand.source_interface_id
+                        ON interface.interface_id=d.source_interface_id
                       JOIN execution.semantic_pnf_region AS interface_region
                         ON interface_region.region_id=interface.region_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                     ORDER BY 1
+                     ORDER BY interface_region.start_char,interface_region.end_char
                     """,
                     scope,
                 )
 
                 affected_interface_authority = _rows(
                     cursor,
-                    """
-                    SELECT encode(interface_region.region_digest,'hex'),
+                    _DEMAND_CTE + """
+                    , affected AS MATERIALIZED (
+                        SELECT DISTINCT d.source_interface_id
+                          FROM scoped_demand AS d
+                         WHERE d.source_interface_id IS NOT NULL
+                    )
+                    SELECT interface_region.region_kind,
+                           interface_region.start_char,
+                           interface_region.end_char,
                            interface.interface_cardinality,
                            interface.promoted_object_count,
                            interface.unresolved_count,
@@ -503,29 +677,20 @@ def _snapshot(
                            count(export.target_id) FILTER (
                                WHERE export.target_kind=3
                            )::BIGINT
-                      FROM execution.semantic_pnf_interface AS interface
+                      FROM affected
+                      JOIN execution.semantic_pnf_interface AS interface
+                        ON interface.interface_id=affected.source_interface_id
                       JOIN execution.semantic_pnf_region AS interface_region
                         ON interface_region.region_id=interface.region_id
-                      JOIN (
-                          SELECT DISTINCT demand.source_interface_id
-                            FROM execution.semantic_pnf_demand AS demand
-                            JOIN execution.semantic_symbol AS residual
-                              ON residual.symbol_id=demand.residual_type_symbol_id
-                             AND residual.kind_id=13
-                             AND residual.symbol_text='anaphor_unresolved'
-                            JOIN execution.semantic_pnf_region AS source_region
-                              ON source_region.region_id=demand.source_region_id
-                           WHERE source_region.run_ref=%s
-                             AND (%s IS NULL OR source_region.document_ref=%s)
-                      ) AS affected
-                        ON affected.source_interface_id=interface.interface_id
                       LEFT JOIN execution.semantic_pnf_interface_export AS export
                         ON export.interface_id=interface.interface_id
-                     GROUP BY interface_region.region_digest,
+                     GROUP BY interface_region.region_kind,
+                              interface_region.start_char,
+                              interface_region.end_char,
                               interface.interface_cardinality,
                               interface.promoted_object_count,
                               interface.unresolved_count
-                     ORDER BY interface_region.region_digest
+                     ORDER BY interface_region.start_char,interface_region.end_char
                     """,
                     scope,
                 )
@@ -533,27 +698,31 @@ def _snapshot(
                 document_authority = _rows(
                     cursor,
                     """
-                    SELECT encode(region.region_digest,'hex'),
-                           region.closure_state,
+                    SELECT source_region.region_kind,
+                           source_region.start_char,
+                           source_region.end_char,
+                           source_region.closure_state,
                            interface.closure_state,
                            interface.interface_cardinality,
                            interface.promoted_object_count,
                            interface.unresolved_count,
                            count(export.target_id)::BIGINT
-                      FROM execution.semantic_pnf_region AS region
+                      FROM execution.semantic_pnf_region AS source_region
                       JOIN execution.semantic_pnf_interface AS interface
-                        ON interface.region_id=region.region_id
+                        ON interface.region_id=source_region.region_id
                       LEFT JOIN execution.semantic_pnf_interface_export AS export
                         ON export.interface_id=interface.interface_id
-                     WHERE region.run_ref=%s
-                       AND (%s IS NULL OR region.document_ref=%s)
-                       AND region.region_kind=10
-                     GROUP BY region.region_digest,region.closure_state,
+                     WHERE """ + _SCOPE + """
+                       AND source_region.region_kind=10
+                     GROUP BY source_region.region_kind,
+                              source_region.start_char,
+                              source_region.end_char,
+                              source_region.closure_state,
                               interface.closure_state,
                               interface.interface_cardinality,
                               interface.promoted_object_count,
                               interface.unresolved_count
-                     ORDER BY region.region_digest
+                     ORDER BY source_region.start_char,source_region.end_char
                     """,
                     scope,
                 )
@@ -621,11 +790,7 @@ def _run_replay(command: str, *, database_url: str) -> tuple[int, int]:
     environment = os.environ.copy()
     environment["DATABASE_URL"] = database_url
     started = monotonic_ns()
-    completed = subprocess.run(
-        shlex.split(command),
-        env=environment,
-        check=False,
-    )
+    completed = subprocess.run(shlex.split(command), env=environment, check=False)
     return int(completed.returncode), monotonic_ns() - started
 
 
@@ -661,10 +826,7 @@ def _function_stats(database_url: str) -> dict[str, dict[str, int | float]]:
         connection.close()
 
 
-def _maybe_replay(
-    database_url: str,
-    command: str | None,
-) -> dict[str, Any]:
+def _maybe_replay(database_url: str, command: str | None) -> dict[str, Any]:
     if command is None:
         return {
             "executed_by_harness": False,
@@ -717,7 +879,6 @@ def _geometry(
         "e0d_pronoun_occurrence_count": len(e0d_snapshot["source_pronouns"]),
         "legacy_affected_key_count": len(legacy_snapshot["affected_interfaces"]),
         "e0d_affected_key_count": len(e0d_snapshot["affected_interfaces"]),
-        "source_interior_rescan_claimed": False,
         "performance_win_claimed": False,
     }
 
@@ -732,17 +893,13 @@ def certify_e0d(
     legacy_command: str | None = None,
     e0d_command: str | None = None,
 ) -> dict[str, Any]:
-    legacy_has_delta = _has_delta_projector(legacy_database_url)
-    e0d_has_delta = _has_delta_projector(e0d_database_url)
-    if legacy_has_delta:
+    if _has_delta_projector(legacy_database_url):
         raise RuntimeError(
             "legacy database already contains migration-180 delta projector; "
-            "use a fixture migrated through 179"
+            "use a scratch fixture migrated through 179"
         )
-    if not e0d_has_delta:
-        raise RuntimeError(
-            "E0d database does not contain migration-180 delta projector"
-        )
+    if not _has_delta_projector(e0d_database_url):
+        raise RuntimeError("E0d database does not contain migration-180 delta projector")
 
     legacy_profile = _maybe_replay(legacy_database_url, legacy_command)
     if legacy_profile.get("returncode") not in (None, 0):
@@ -780,8 +937,9 @@ def certify_e0d(
             "legacy_run_ref": legacy_run_ref,
             "e0d_run_ref": e0d_run_ref,
             "document_ref": document_ref,
-            "portable_identity_only": True,
+            "portable_semantic_coordinates_only": True,
             "database_local_surrogate_ids_compared": False,
+            "pnf_digests_with_local_id_preimages_compared": False,
             "surrogate_rank_compared": False,
             "portable_ordering_compared": True,
         },
