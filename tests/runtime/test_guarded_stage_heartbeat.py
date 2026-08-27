@@ -1,0 +1,67 @@
+import json
+import time
+from contextlib import contextmanager
+from pathlib import Path
+
+from src.runtime.active_document_resources import ActiveDocumentResourceGuard
+
+
+class _Progress:
+    @contextmanager
+    def stage(self, stage: str, **_kwargs):
+        class Handle:
+            active_stage = stage
+
+            def observe(self, **_values):
+                return None
+
+        yield Handle()
+
+
+def test_guarded_stage_emits_timeout_surviving_heartbeats(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_ALL", "1")
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS", "0.01")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", "8192")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", "16384")
+
+    guard = ActiveDocumentResourceGuard(document_ref="document:heartbeat")
+    with guard.stage(_Progress(), "numeric_pnf_compilation"):
+        time.sleep(0.04)
+
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "document_heartbeat.partial-timing.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    kernels = [row["current_kernel"] for row in rows]
+    assert kernels[0] == "stage_boundary_before"
+    assert "stage_heartbeat" in kernels
+    assert kernels[-1] == "stage_boundary_after"
+    heartbeats = [row for row in rows if row["current_kernel"] == "stage_heartbeat"]
+    assert all(row["partial_timing"]["acceptance_eligible"] is False for row in heartbeats)
+    assert all(row["partial_timing"]["partial_run_evidence"] is True for row in heartbeats)
+
+
+def test_zero_heartbeat_interval_disables_periodic_samples(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_ALL", "1")
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS", "0")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", "8192")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", "16384")
+
+    guard = ActiveDocumentResourceGuard(document_ref="document:no-heartbeat")
+    with guard.stage(_Progress(), "numeric_pnf_compilation"):
+        time.sleep(0.02)
+
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "document_no-heartbeat.partial-timing.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert [row["current_kernel"] for row in rows] == [
+        "stage_boundary_before",
+        "stage_boundary_after",
+    ]
