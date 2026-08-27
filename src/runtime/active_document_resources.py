@@ -328,6 +328,43 @@ class ActiveDocumentResourceGuard:
                     )
 
 
+class _GuardedStageHandle:
+    """Forward a phase handle while making owner observations durable."""
+
+    def __init__(
+        self,
+        handle: Any,
+        guard: ActiveDocumentResourceGuard,
+        stage: str,
+    ) -> None:
+        self._handle = handle
+        self._guard = guard
+        self._stage = stage
+        self.active_stage = getattr(handle, "active_stage", stage)
+
+    def observe(self, **values: Any) -> None:
+        self._handle.observe(**values)
+        details = values.get("details")
+        details_mapping = details if isinstance(details, Mapping) else {}
+        current_kernel = str(
+            details_mapping.get("current_kernel")
+            or values.get("current_kernel")
+            or self._guard.active_kernel()
+        )
+        self._guard.set_active_kernel(current_kernel)
+        persisted_counts = {
+            str(key): int(value)
+            for key, value in details_mapping.items()
+            if isinstance(value, int) and not isinstance(value, bool)
+        }
+        self._guard.checkpoint(
+            stage=self._stage,
+            current_kernel=current_kernel,
+            persisted_counts=persisted_counts,
+            enforce_limits=False,
+        )
+
+
 class GuardedDocumentProgress:
     """Inject the shared guard into an existing progress sink's stage lifecycle."""
 
@@ -335,8 +372,10 @@ class GuardedDocumentProgress:
         self._progress = progress
         self._guard = guard
 
-    def stage(self, stage: str, **kwargs: Any):
-        return self._guard.stage(self._progress, stage, **kwargs)
+    @contextmanager
+    def stage(self, stage: str, **kwargs: Any) -> Iterator[Any]:
+        with self._guard.stage(self._progress, stage, **kwargs) as handle:
+            yield _GuardedStageHandle(handle, self._guard, stage)
 
     def observe(self, details: Mapping[str, Any]) -> None:
         current_kernel = str(details.get("current_kernel") or "numeric_pnf_compilation")

@@ -3,7 +3,10 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-from src.runtime.active_document_resources import ActiveDocumentResourceGuard
+from src.runtime.active_document_resources import (
+    ActiveDocumentResourceGuard,
+    GuardedDocumentProgress,
+)
 
 
 class _Progress:
@@ -69,3 +72,37 @@ def test_zero_heartbeat_interval_disables_periodic_samples(monkeypatch, tmp_path
         "stage_boundary_before",
         "stage_boundary_after",
     ]
+
+
+def test_inner_progress_observation_reaches_guarded_timing_stream(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_ALL", "1")
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_CHECKPOINT_DIR", str(tmp_path))
+    monkeypatch.setenv("SENSIBLAW_RESOURCE_HEARTBEAT_SECONDS", "0")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_SOFT_MEMORY_MIB", "8192")
+    monkeypatch.setenv("SENSIBLAW_DOCUMENT_HARD_MEMORY_MIB", "16384")
+
+    guard = ActiveDocumentResourceGuard(document_ref="document:inner-owner")
+    progress = GuardedDocumentProgress(_Progress(), guard)
+    with progress.stage("numeric_pnf_compilation") as handle:
+        handle.observe(
+            details={
+                "current_kernel": "hierarchy_materialization",
+                "completed": 3,
+            }
+        )
+
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "document_inner-owner.partial-timing.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(
+        row["current_kernel"] == "hierarchy_materialization" for row in rows
+    )
+    owner_rows = [
+        row for row in rows if row["current_kernel"] == "hierarchy_materialization"
+    ]
+    assert owner_rows[-1]["persisted_counts"]["completed"] == 3
