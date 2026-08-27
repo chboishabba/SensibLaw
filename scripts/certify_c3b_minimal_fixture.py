@@ -4,13 +4,16 @@
 The baseline phase must run on an isolated database migrated through C3a/C3
 boundary transport (074/075) but *before* migration 076 replaces the canonical
 parent reducer. It executes the normal streaming producer over a tiny authored
-fixture, requires at least one paragraph interface, and records the strongest
-paragraph as the legacy-authority oracle.
+fixture, requires at least one paragraph interface, records the strongest
+paragraph as the legacy-authority oracle, and measures the legacy reducer in
+rollback-only repetitions.
 
 After migration 076 is applied to the same isolated database, the certify phase
 runs the existing rollback-safe delta-fed reducer probe against that retained
-legacy paragraph authority. No full corpus run is required and certification
-never mutates the historical .env database.
+legacy paragraph authority and measures the delta-fed reducer on the same
+oracle. Semantic parity and physical performance remain distinct receipts: a
+speedup cannot manufacture semantic correctness, and parity does not imply a
+wall-clock win.
 """
 
 from __future__ import annotations
@@ -18,7 +21,9 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from statistics import median
 import sys
+from time import monotonic_ns
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,7 +37,7 @@ from src.storage.postgres.spacy_parser_model import STREAMING_SPACY_CONTRACT
 from src.storage.postgres.streaming_spacy_execution import run_streaming_spacy_execution
 from src.storage.postgres.spacy_parser_model import connect
 
-CONTRACT = "sensiblaw.c3b-minimal-canonical-fixture.v0_1"
+CONTRACT = "sensiblaw.c3b-minimal-canonical-fixture.v0_2"
 FIXTURE_TEXT = """The tenant must pay rent. The landlord may inspect the premises.
 
 If rent is unpaid, the landlord may give notice. The tenant must leave after termination.
@@ -125,11 +130,65 @@ def _select_paragraph_oracle(
         connection.close()
 
 
+def _benchmark_current_reducer(
+    database_url: str,
+    *,
+    interface_id: int,
+    expect_delta_fed: bool,
+    repetitions: int,
+) -> dict[str, Any]:
+    """Measure the installed reducer repeatedly; every repetition rolls back."""
+
+    if repetitions < 1:
+        raise ValueError("timing repetitions must be positive")
+    samples: list[int] = []
+    results: list[list[int]] = []
+    for _ in range(repetitions):
+        connection = connect(database_url)
+        rolled_back = False
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SET LOCAL statement_timeout = '120s'")
+                installed_delta_fed = _reducer_is_delta_fed(cursor)
+                if installed_delta_fed is not expect_delta_fed:
+                    expected = "delta-fed" if expect_delta_fed else "legacy"
+                    raise RuntimeError(f"expected {expected} canonical reducer for timing")
+                started = monotonic_ns()
+                cursor.execute(
+                    "SELECT * FROM execution.rebuild_numeric_pnf_parent_frontier(%s)",
+                    (interface_id,),
+                )
+                row = cursor.fetchone()
+                samples.append(monotonic_ns() - started)
+                results.append([int(value) for value in row] if row is not None else [])
+            connection.rollback()
+            rolled_back = True
+        finally:
+            if not rolled_back:
+                try:
+                    connection.rollback()
+                except Exception:
+                    pass
+            connection.close()
+    ordered = sorted(samples)
+    return {
+        "repetitions": repetitions,
+        "samples_ns": samples,
+        "median_ns": int(median(samples)),
+        "min_ns": ordered[0],
+        "max_ns": ordered[-1],
+        "reducer_results": results,
+        "every_repetition_rolled_back": True,
+        "delta_fed_reducer": expect_delta_fed,
+    }
+
+
 def create_legacy_baseline(
     database_url: str,
     *,
     fixture_id: str,
     artifact_root: Path,
+    timing_repetitions: int = 3,
 ) -> dict[str, Any]:
     run_ref = f"c3b-minimal-run:{fixture_id}"
     document_ref = f"c3b-minimal-document:{fixture_id}"
@@ -167,6 +226,13 @@ def create_legacy_baseline(
     if oracle["child_count"] < 1:
         raise RuntimeError("selected paragraph oracle has no child fibres")
 
+    legacy_timing = _benchmark_current_reducer(
+        database_url,
+        interface_id=oracle["interface_id"],
+        expect_delta_fed=False,
+        repetitions=timing_repetitions,
+    )
+
     return {
         "contract": CONTRACT,
         "phase": "baseline",
@@ -174,6 +240,7 @@ def create_legacy_baseline(
         "run_ref": run_ref,
         "document_ref": document_ref,
         "paragraph_oracle": oracle,
+        "performance": {"legacy_reducer": legacy_timing},
         "gates": {
             "legacy_reducer_used": True,
             "complete_boundary_transport_installed": True,
@@ -183,6 +250,7 @@ def create_legacy_baseline(
             "baseline_requires_isolated_database": True,
             "migration_076_applied": False,
             "canonical_authority_promotion_claimed": False,
+            "timing_repetitions_mutate_authority": False,
         },
     }
 
@@ -191,11 +259,13 @@ def certify_delta_fed_reducer(
     database_url: str,
     *,
     baseline: dict[str, Any],
+    timing_repetitions: int = 3,
 ) -> dict[str, Any]:
     if baseline.get("contract") != CONTRACT or baseline.get("phase") != "baseline":
         raise ValueError("baseline receipt is not a C3b minimal baseline")
     run_ref = str(baseline["run_ref"])
     region_id = int(baseline["paragraph_oracle"]["region_id"])
+    interface_id = int(baseline["paragraph_oracle"]["interface_id"])
 
     connection = connect(database_url)
     try:
@@ -230,6 +300,22 @@ def certify_delta_fed_reducer(
         run_ref=run_ref,
         region_id=region_id,
     )
+    delta_timing = _benchmark_current_reducer(
+        database_url,
+        interface_id=interface_id,
+        expect_delta_fed=True,
+        repetitions=timing_repetitions,
+    )
+    legacy_timing = baseline.get("performance", {}).get("legacy_reducer")
+    if not isinstance(legacy_timing, dict) or "median_ns" not in legacy_timing:
+        raise ValueError("baseline receipt is missing paired legacy timing")
+    legacy_median = int(legacy_timing["median_ns"])
+    delta_median = int(delta_timing["median_ns"])
+    if legacy_median <= 0:
+        raise ValueError("legacy reducer median must be positive")
+    ratio = delta_median / legacy_median
+    improvement_fraction = 1.0 - ratio
+
     return {
         "contract": CONTRACT,
         "phase": "certify",
@@ -238,6 +324,15 @@ def certify_delta_fed_reducer(
         "document_ref": baseline["document_ref"],
         "paragraph_oracle": baseline["paragraph_oracle"],
         "delta_fed_probe": probe,
+        "performance": {
+            "legacy_reducer": legacy_timing,
+            "delta_fed_reducer": delta_timing,
+            "delta_to_legacy_ratio": ratio,
+            "improvement_fraction": improvement_fraction,
+            "delta_fed_faster": delta_median < legacy_median,
+            "paired_same_region_interface": True,
+            "performance_is_independent_of_semantic_parity": True,
+        },
         "gates": {
             "migration_076_applied": True,
             "boundary_parity_clean": (
@@ -274,11 +369,13 @@ def main() -> int:
     baseline_parser.add_argument("--database-url", required=True)
     baseline_parser.add_argument("--fixture-id", default="default")
     baseline_parser.add_argument("--artifact-root", type=Path, required=True)
+    baseline_parser.add_argument("--timing-repetitions", type=int, default=3)
     baseline_parser.add_argument("--output", type=Path, required=True)
 
     certify_parser = subparsers.add_parser("certify")
     certify_parser.add_argument("--database-url", required=True)
     certify_parser.add_argument("--baseline", type=Path, required=True)
+    certify_parser.add_argument("--timing-repetitions", type=int, default=3)
     certify_parser.add_argument("--output", type=Path)
 
     args = parser.parse_args()
@@ -287,12 +384,17 @@ def main() -> int:
             args.database_url,
             fixture_id=args.fixture_id,
             artifact_root=args.artifact_root,
+            timing_repetitions=args.timing_repetitions,
         )
         _write_receipt(receipt, args.output)
         return 0
 
     baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
-    receipt = certify_delta_fed_reducer(args.database_url, baseline=baseline)
+    receipt = certify_delta_fed_reducer(
+        args.database_url,
+        baseline=baseline,
+        timing_repetitions=args.timing_repetitions,
+    )
     _write_receipt(receipt, args.output)
     gates = receipt["gates"]
     return 0 if all(bool(value) for value in gates.values()) else 2
