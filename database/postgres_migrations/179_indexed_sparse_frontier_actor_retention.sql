@@ -1,15 +1,15 @@
 BEGIN;
 
 -- 179: migration 062 has a second demand × actor-profile exposure before
--- candidate generation.  Low-salience actor pruning asks, for every parent
--- profile, whether any unresolved child object demand could request it.  The
+-- candidate generation. Low-salience actor pruning asks, for every parent
+-- profile, whether any unresolved child object demand could request it. The
 -- historical correlated NOT EXISTS can therefore repeatedly scan the same child
 -- demand fibre once per profile.
 --
 -- Preserve that retention predicate exactly, including its deliberate omission
 -- of lexical matching: a low-salience actor survives when any unresolved child
 -- object demand matches the profile's optional object-kind, role and factor-type
--- constraints.  Build that relation once by indexed key intersection instead.
+-- constraints. Build that relation once by indexed key intersection instead.
 
 CREATE OR REPLACE FUNCTION execution.indexed_numeric_pnf_demanded_actor_profiles(
     selected_region_id BIGINT,
@@ -25,7 +25,7 @@ LANGUAGE plpgsql
 STABLE
 AS $$
 BEGIN
-    -- The actor-retention predicate intentionally ignores lexical identity.  It
+    -- The actor-retention predicate intentionally ignores lexical identity. It
     -- may use the persisted constraint fibre only when key kinds 1/2/4 exactly
     -- represent the canonical factor/object/role columns of the child demands.
     IF EXISTS (
@@ -215,6 +215,8 @@ DECLARE
     delete_start INTEGER;
     next_stage_start INTEGER;
     old_delete_block TEXT;
+    historical_boundary BOOLEAN := FALSE;
+    delta_boundary BOOLEAN := FALSE;
     replacement TEXT := E'    DELETE FROM execution.semantic_pnf_actor_profile AS profile\n'
         || E'     WHERE profile.interface_id = selected_interface_id\n'
         || E'       AND profile.promotion_score < COALESCE(threshold_value, 0)\n'
@@ -258,10 +260,21 @@ BEGIN
         || E'     WHERE profile.interface_id = selected_interface_id\n'
         || E'       AND profile.promotion_score < COALESCE(threshold_value, 0)\n'
     );
+
+    -- Migration 062 and the C3 delta-fed reducer use the same semantic stage
+    -- boundary but different source-carrier prose. Recognize both exact owners;
+    -- do not weaken this to an arbitrary later comment or substring.
     next_stage_start := strpos(
         source_body,
         E'    -- Unresolved holes always cross the boundary.  Resolved demands disappear.\n'
     );
+    IF next_stage_start = 0 THEN
+        next_stage_start := strpos(
+            source_body,
+            E'    -- Unresolved holes cross the boundary from the transported delta carrier.\n'
+        );
+    END IF;
+
     IF delete_start = 0
        OR next_stage_start = 0
        OR next_stage_start <= delete_start THEN
@@ -274,10 +287,24 @@ BEGIN
         delete_start,
         next_stage_start - delete_start
     );
-    IF strpos(
-        old_delete_block,
-        'JOIN execution.semantic_pnf_interface_export AS demand_export'
-    ) = 0
+
+    historical_boundary :=
+        strpos(
+            old_delete_block,
+            'JOIN execution.semantic_pnf_interface_export AS demand_export'
+        ) > 0;
+    delta_boundary :=
+        strpos(
+            old_delete_block,
+            'FROM execution.semantic_pnf_parent_delta_projection AS demand_export'
+        ) > 0
+        AND strpos(
+            old_delete_block,
+            'demand_export.parent_region_id = selected_region_id'
+        ) > 0
+        AND strpos(old_delete_block, 'demand_export.target_kind = 3') > 0;
+
+    IF NOT (historical_boundary OR delta_boundary)
        OR strpos(old_delete_block, 'demand.expected_target_kind = 1') = 0
        OR strpos(
            old_delete_block,
