@@ -61,8 +61,9 @@ def test_performance_is_paired_on_same_oracle_and_separate_from_semantic_gate() 
     assert '"performance_is_independent_of_semantic_parity": True' in source
     assert '"delta_to_legacy_ratio"' in source
     assert '"improvement_fraction"' in source
-    # Physical speed is reported, not used to manufacture the semantic gate.
-    gates_source = source[source.index('"gates": {', source.index("def certify_delta_fed_reducer")) :]
+    gates_source = source[
+        source.index('"gates": {', source.index("def certify_delta_fed_reducer")) :
+    ]
     assert '"delta_fed_faster"' not in gates_source.split('"authority": {', 1)[0]
 
 
@@ -72,3 +73,26 @@ def test_each_timing_repetition_rolls_back() -> None:
     assert '"every_repetition_rolled_back": True' in source
     assert 'baseline_parser.add_argument("--timing-repetitions"' in source
     assert 'certify_parser.add_argument("--timing-repetitions"' in source
+
+
+def test_post_076_certification_bundles_b1_1_and_b2_without_merging_claims() -> None:
+    source = _source()
+    assert "benchmark_b1_1_a2_paragraph_authority_parity(" in source
+    assert "benchmark_recursive_boundary_delta_transport(" in source
+    assert '"b1_1": b1_1' in source
+    assert '"b2": b2' in source
+    assert '"b1_1_scoped_authority_parity"' in source
+    assert '"b2_exact_recursive_transport"' in source
+    assert '"b2_fusion_naturality"' in source
+    assert '"b2_root_only_global_lookup"' in source
+    assert '"b2_root_only_visible_lookup"' in source
+
+
+def test_b1_1_and_b2_cannot_override_c3b_semantic_parity() -> None:
+    source = _source()
+    probe_index = source.index("probe = benchmark_delta_fed_canonical_parent_reducer(")
+    b1_index = source.index("b1_1 = benchmark_b1_1_a2_paragraph_authority_parity(")
+    b2_index = source.index("b2 = benchmark_recursive_boundary_delta_transport(")
+    assert probe_index < b1_index < b2_index
+    assert '"c3b_canonical_authority_parity"' in source
+    assert '"b1_1_or_b2_create_independent_authority": False' in source
