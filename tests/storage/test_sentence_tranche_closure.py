@@ -74,9 +74,10 @@ def test_tranche_authority_uses_region_keyed_fixed_stages() -> None:
     assert "tmp_numeric_sentence_tranche_factor" in source
     assert "tmp_numeric_sentence_tranche_demand" in source
     assert "PRIMARY KEY (region_id, ordinal)" in source
-    assert "COPY tmp_numeric_sentence_tranche_object" in source
-    assert "COPY tmp_numeric_sentence_tranche_factor" in source
-    assert "COPY tmp_numeric_sentence_tranche_demand" in source
+    assert "with cursor.copy(" in source
+    assert '_OBJECT_STAGE = "tmp_numeric_sentence_tranche_object"' in source
+    assert '_FACTOR_STAGE = "tmp_numeric_sentence_tranche_factor"' in source
+    assert '_DEMAND_STAGE = "tmp_numeric_sentence_tranche_demand"' in source
 
 
 def test_tranche_authority_preserves_exact_per_sentence_interface_digest() -> None:
