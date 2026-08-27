@@ -467,6 +467,10 @@ def materialize_numeric_document_hierarchy(
     try:
         with connection.transaction():
             with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config(%s, %s, true)",
+                    ("sensiblaw.defer_frontier_rebuild", "on"),
+                )
                 profile = store._load_profile(cursor)
                 cursor.execute(
                     """
@@ -530,6 +534,12 @@ def materialize_numeric_document_hierarchy(
                         interface_id=interface_id,
                         profile=profile,
                     )
+
+                cursor.execute(
+                    "SELECT execution.reduce_numeric_pnf_document_frontiers(%s, %s)",
+                    (run_ref, document_ref),
+                )
+                cursor.fetchone()
 
                 sketches = _load_paragraph_sketches(
                     cursor,
@@ -618,6 +628,11 @@ def materialize_numeric_document_hierarchy(
                     interface_id=document_interface_id,
                     profile=profile,
                 )
+                cursor.execute(
+                    "SELECT execution.reduce_numeric_pnf_document_frontiers(%s, %s)",
+                    (run_ref, document_ref),
+                )
+                cursor.fetchone()
                 cursor.execute(
                     "SELECT execution.rebuild_pnf_document_ancestors(%s, %s)",
                     (run_ref, document_ref),
