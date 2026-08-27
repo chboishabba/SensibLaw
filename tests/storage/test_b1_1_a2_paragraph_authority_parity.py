@@ -62,3 +62,13 @@ def test_b1_1_is_read_only_and_does_not_claim_later_reconciliation() -> None:
     assert '"actor_profiles_in_scope": False' in source
     assert '"resolved_demands_in_scope": False' in source
     assert '"global_lookup_in_scope": False' in source
+
+
+def test_b1_1_fails_closed_on_partial_paragraph_samples() -> None:
+    source = _source()
+    assert "_assert_complete_paragraph_selection" in source
+    assert "count(DISTINCT child.region_id) AS total_children" in source
+    assert "selected_children" in source
+    assert "total != selected" in source
+    assert "requires complete sentence coverage for every selected paragraph" in source
+    assert '"selected_paragraphs_complete": True' in source
