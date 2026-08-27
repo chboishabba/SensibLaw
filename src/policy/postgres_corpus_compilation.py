@@ -1935,6 +1935,9 @@ def compile_directory_postgres(
                         },
                         worker=worker_ref,
                     )
+                document_guard = ActiveDocumentResourceGuard(
+                    document_ref=document_ref
+                )
                 with (
                     progress.phase(
                         f"postgres_{execution_phase}_document_compile",
@@ -1953,6 +1956,11 @@ def compile_directory_postgres(
                     if progress is not None
                     else nullcontext(None)
                 ) as document_progress:
+                    guarded_document_progress = (
+                        GuardedDocumentProgress(document_progress, document_guard)
+                        if document_progress is not None
+                        else None
+                    )
                     executor_kwargs: dict[str, Any] = {
                         "store": store,
                         "corpus_ref": corpus_ref,
@@ -1978,7 +1986,7 @@ def compile_directory_postgres(
                             if state_file is not None
                             else None
                         ),
-                        "progress": document_progress,
+                        "progress": guarded_document_progress,
                         "execution_strategy_ref": execution_strategy_ref,
                         "database_url": database_url,
                         "strict_run_ref": f"strict:{document_ref}",

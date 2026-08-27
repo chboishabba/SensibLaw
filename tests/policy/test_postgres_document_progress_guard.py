@@ -11,5 +11,6 @@ def test_postgres_document_worker_guards_numeric_progress() -> None:
     source = SOURCE.read_text(encoding="utf-8")
 
     assert "ActiveDocumentResourceGuard(" in source
-    assert "GuardedDocumentProgress(document_progress, document_guard)" in source
+    assert source.count("GuardedDocumentProgress(document_progress, document_guard)") >= 2
     assert "progress=guarded_progress" in source
+    assert '"progress": guarded_document_progress' in source
