@@ -76,3 +76,28 @@ def test_coordinator_uses_one_large_bounded_tranche() -> None:
     assert "limit=256" in coordinator
     assert "tranche_size=256" in coordinator
     assert "receipt.sentence_count" in coordinator
+
+
+def test_single_partition_workload_uses_same_worker_without_process_pool() -> None:
+    source = STREAMING.read_text(encoding="utf-8")
+    direct_start = source.index("if len(proposed_partitions) == 1:")
+    pool_start = source.index("else:\n            context = mp.get_context", direct_start)
+    direct = source[direct_start:pool_start]
+    assert "_worker_drain(" in direct
+    assert "ProcessPoolExecutor(" not in direct
+    assert 'f"parser-direct:{run_ref}"' in direct
+    assert "single-partition direct parser execution did not close coverage" in direct
+
+
+def test_multi_partition_path_retains_spawned_pool() -> None:
+    source = STREAMING.read_text(encoding="utf-8")
+    assert 'context = mp.get_context("spawn")' in source
+    assert "ProcessPoolExecutor(" in source
+    assert "initializer=linux_parent_death_initializer" in source
+
+
+def test_receipt_declares_parser_execution_mode() -> None:
+    source = STREAMING.read_text(encoding="utf-8")
+    assert '"parser_execution_mode": (' in source
+    assert '"direct_single_partition"' in source
+    assert '"spawned_process_pool"' in source
