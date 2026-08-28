@@ -23,7 +23,11 @@ UPDATE execution.semantic_pnf_parent_delta_projection AS projection
    AND source.role_symbol_id IS NOT DISTINCT FROM projection.role_symbol_id
    AND source.residual_type_symbol_id IS NOT DISTINCT FROM projection.residual_type_symbol_id;
 
-CREATE OR REPLACE VIEW execution.semantic_pnf_parent_delta_fused_export AS
+-- 075 created this view with a different column order.  PostgreSQL cannot
+-- change a view's output names/order through CREATE OR REPLACE VIEW, so make
+-- the replacement explicit and keep the dependent boundary functions intact.
+DROP VIEW IF EXISTS execution.semantic_pnf_parent_delta_fused_export;
+CREATE VIEW execution.semantic_pnf_parent_delta_fused_export AS
 SELECT parent_region_id,
        export_kind,
        target_kind,
