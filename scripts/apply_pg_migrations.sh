@@ -15,10 +15,20 @@ if ! command -v sha256sum >/dev/null 2>&1; then
     echo "sha256sum is required to verify immutable migrations." >&2
     exit 1
 fi
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required for migration runtime preflight." >&2
+    exit 1
+fi
 if [[ ! -d "${MIGRATIONS_DIR}" ]]; then
     echo "Migration directory not found: ${MIGRATIONS_DIR}" >&2
     exit 1
 fi
+
+# Compile the migration chain's final trigger ownership before touching the DB.
+# This catches stale owner collisions and forbidden hot-path row triggers at the
+# same boundary where immutable migration hashes are enforced.
+python3 "${ROOT_DIR}/tools/audit_pg_migration_runtime.py" \
+    "${MIGRATIONS_DIR}" >/dev/null
 
 PSQL_CMD=("psql")
 if [[ -n "${DATABASE_URL:-}" ]]; then
