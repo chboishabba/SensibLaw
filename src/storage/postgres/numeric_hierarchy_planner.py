@@ -650,6 +650,13 @@ def materialize_numeric_document_hierarchy(
                     "SELECT set_config(%s, %s, true)",
                     ("sensiblaw.defer_frontier_rebuild", "on"),
                 )
+                cursor.execute(
+                    "SELECT set_config(%s, %s, true)",
+                    (
+                        "sensiblaw.interface_key_budget",
+                        str(interface_key_budget),
+                    ),
+                )
                 profile = store._load_profile(cursor)
                 cursor.execute(
                     """
