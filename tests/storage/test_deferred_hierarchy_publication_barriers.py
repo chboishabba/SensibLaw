@@ -23,24 +23,40 @@ def test_211_makes_existing_defer_contract_effective() -> None:
     assert "RETURN;" in deferred
 
 
-def test_document_reducer_is_the_forced_publication_barrier() -> None:
+def test_211_preserves_scheduler_object_instead_of_copying_old_loop() -> None:
     sql = MIGRATION.read_text(encoding="utf-8")
-    barrier = sql.split(
-        "CREATE OR REPLACE FUNCTION execution.reduce_numeric_pnf_document_frontiers",
-        1,
+    assert (
+        "ALTER FUNCTION execution.reduce_numeric_pnf_document_frontiers(TEXT, TEXT)"
+        in sql
+    )
+    assert "RENAME TO reduce_numeric_pnf_document_frontiers_affected_scheduler_v210" in sql
+    assert (
+        "execution.reduce_numeric_pnf_document_frontiers_affected_scheduler_v210("
+        in sql
+    )
+    # Regression: migration 211 must not resurrect a migration-062 style
+    # FOR-interface scheduler or restate affected-frontier ordering itself.
+    assert "FOR selected IN" not in sql
+    assert "ORDER BY region.region_kind" not in sql
+
+
+def test_stable_document_api_is_the_forced_publication_barrier() -> None:
+    sql = MIGRATION.read_text(encoding="utf-8")
+    wrapper = sql.split(
+        "CREATE FUNCTION execution.reduce_numeric_pnf_document_frontiers(", 1
     )[1]
-    assert "set_config('sensiblaw.force_frontier_rebuild', 'on', true)" in barrier
-    assert "execution.rebuild_numeric_pnf_parent_frontier" in barrier
-    assert "ORDER BY region.region_kind" in barrier
-    assert "EXCEPTION WHEN OTHERS" in barrier
+    assert "set_config('sensiblaw.force_frontier_rebuild', 'on', true)" in wrapper
+    assert "reduce_numeric_pnf_document_frontiers_affected_scheduler_v210" in wrapper
+    assert "EXCEPTION WHEN OTHERS" in wrapper
 
 
 def test_python_hierarchy_already_declares_deferred_materialization() -> None:
     source = PLANNER.read_text(encoding="utf-8")
     assert '"sensiblaw.defer_frontier_rebuild", "on"' in source
     assert source.count("reduce_numeric_pnf_document_frontiers") >= 2
-    # This is the formerly-expensive per-shell call.  Migration 211 now turns
-    # it into a non-publishing read while the enclosing planner has defer=on.
+    # This formerly-expensive per-shell call now returns published summary only
+    # while the enclosing planner has defer=on. The unchanged document API is
+    # the force barrier installed by migration 211.
     assert "rebuild_numeric_pnf_parent_frontier" in source
 
 
