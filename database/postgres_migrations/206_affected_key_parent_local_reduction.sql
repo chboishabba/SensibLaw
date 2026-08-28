@@ -1283,7 +1283,7 @@ BEGIN
            unresolved_value,
            resolved_value,
            actor_value,
-           EXTRACT(EPOCH FROM (clock_timestamp() - started_at)) * 1000;
+           (EXTRACT(EPOCH FROM (clock_timestamp() - started_at)) * 1000)::DOUBLE PRECISION;
 END;
 $$;
 
