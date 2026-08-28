@@ -66,11 +66,12 @@ def test_canonical_api_routes_through_delta_native_bridge() -> None:
     assert "execution.rebuild_numeric_pnf_parent_frontier_delta_input" not in sql
 
 
-def test_python_bridge_refuses_to_call_partial_work_wall_acceptance() -> None:
+def test_python_bridge_separates_structural_work_from_wall_acceptance() -> None:
     source = PY.read_text()
     assert "affected_keys_from_fingerprints" in source
     assert "accumulated_boundary_keys" in source
     assert "touched_boundary_keys" in source
     assert "hierarchy_transport_work" in source
-    assert "parser" not in source.lower() or "parser" in source.lower()  # no wall gate here
-    assert "acceptance" not in source.lower()
+    assert "parser_wall" not in source
+    assert "post_parser_wall" not in source
+    assert "acceptance_eligible" not in source
