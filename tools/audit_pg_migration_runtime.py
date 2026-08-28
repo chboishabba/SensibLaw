@@ -43,6 +43,14 @@ FORBIDDEN_FINAL_ROW_TRIGGER_TABLES = {
     "execution.semantic_pnf_candidate_preference",
 }
 
+# Append-only history guards are intentionally row-level: they reject UPDATE
+# of immutable history and do not project rows into another relation.  They
+# must not be confused with the row-level hot-path projection triggers this
+# audit is intended to catch.
+APPEND_ONLY_GUARD_FUNCTIONS = {
+    "execution.reject_numeric_pnf_runtime_history_update",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class TriggerOwner:
@@ -108,7 +116,11 @@ def audit_migrations(paths: Iterable[Path]) -> dict[str, object]:
             )
 
     for owner in active.values():
-        if owner.table.lower() in FORBIDDEN_FINAL_ROW_TRIGGER_TABLES and owner.level == "row":
+        if (
+            owner.table.lower() in FORBIDDEN_FINAL_ROW_TRIGGER_TABLES
+            and owner.level == "row"
+            and owner.function.lower() not in APPEND_ONLY_GUARD_FUNCTIONS
+        ):
             fatal.append(
                 {
                     "kind": "forbidden-final-row-trigger",
