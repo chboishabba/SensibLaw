@@ -3,20 +3,15 @@ BEGIN;
 -- C3e/systemic hierarchy orchestration ---------------------------------------
 --
 -- The hierarchy planner already declares sensiblaw.defer_frontier_rebuild while
--- it constructs paragraph/adaptive/document topology.  Historically the
--- canonical rebuild API ignored that declaration, so every parent shell paid a
--- synchronous semantic reduction and the planner then invoked the document
--- frontier reducer again at its intended publication barriers.
+-- constructing paragraph/adaptive/document topology. Historically the parent
+-- rebuild API ignored that declaration, so every shell synchronously published
+-- its frontier and the planner then called the document scheduler again at the
+-- intended publication barriers.
 --
--- Make the existing defer contract real without replacing the current
--- receipt-driven/affected-only document scheduler.  The canonical parent API is
--- cheap while topology is deferred.  A tiny force wrapper temporarily enables
--- publication and delegates to the *existing* reduce_numeric_pnf_document_frontiers
--- implementation, whatever migration currently owns that scheduler.
---
--- This migration changes execution scheduling only.  The delta-native parent
--- reducer remains the sole producer of parent exports, actor summaries,
--- resolutions, and lookup state.
+-- Make the defer contract real without copying or replacing the current
+-- receipt-driven/affected-only scheduler implementation. We rename the active
+-- scheduler object in place and put a force/defer wrapper under its stable API
+-- name. This preserves the exact scheduler installed by migrations 197--210.
 
 CREATE OR REPLACE FUNCTION execution.rebuild_numeric_pnf_parent_frontier(
     selected_interface_id BIGINT
@@ -46,8 +41,8 @@ BEGIN
         'off'
     )) IN ('1', 'on', 'true', 'yes');
 
-    -- Shell construction asks for the historical return shape, but no semantic
-    -- frontier is allowed to publish before the explicit document barrier.
+    -- Topology construction may ask for the historical return shape, but no
+    -- parent semantic state may publish before an explicit document barrier.
     IF defer_requested AND NOT force_requested THEN
         RETURN QUERY
         SELECT COALESCE(interface.interface_cardinality, 0)::BIGINT,
@@ -128,11 +123,13 @@ BEGIN
 END;
 $$;
 
--- Do not CREATE OR REPLACE reduce_numeric_pnf_document_frontiers here.  The
--- latest receipt-driven affected-frontier migration owns it.  This wrapper is
--- deliberately a delegation barrier so later scheduler improvements compose
--- automatically rather than being shadowed by this migration.
-CREATE OR REPLACE FUNCTION execution.force_reduce_numeric_pnf_document_frontiers(
+-- Preserve the latest affected-only scheduler by renaming the active function
+-- object rather than restating its body here. Migration 211 is applied once by
+-- the immutable migration installer, so this rename is deterministic.
+ALTER FUNCTION execution.reduce_numeric_pnf_document_frontiers(TEXT, TEXT)
+    RENAME TO reduce_numeric_pnf_document_frontiers_affected_scheduler_v210;
+
+CREATE FUNCTION execution.reduce_numeric_pnf_document_frontiers(
     selected_run_ref TEXT,
     selected_document_ref TEXT
 )
@@ -146,7 +143,7 @@ BEGIN
     prior_force := current_setting('sensiblaw.force_frontier_rebuild', true);
     PERFORM set_config('sensiblaw.force_frontier_rebuild', 'on', true);
 
-    SELECT execution.reduce_numeric_pnf_document_frontiers(
+    SELECT execution.reduce_numeric_pnf_document_frontiers_affected_scheduler_v210(
         selected_run_ref,
         selected_document_ref
     )
@@ -169,8 +166,10 @@ END;
 $$;
 
 COMMENT ON FUNCTION execution.rebuild_numeric_pnf_parent_frontier(BIGINT) IS
-    'Canonical parent-frontier API. Under sensiblaw.defer_frontier_rebuild it performs zero publication writes unless an explicit force barrier owns publication.';
-COMMENT ON FUNCTION execution.force_reduce_numeric_pnf_document_frontiers(TEXT, TEXT) IS
-    'C3e publication barrier: force canonical publication while delegating unchanged to the current receipt-driven/affected-only document frontier scheduler.';
+    'Canonical parent-frontier API. Under sensiblaw.defer_frontier_rebuild it performs zero publication writes unless an explicit document publication barrier forces reduction.';
+COMMENT ON FUNCTION execution.reduce_numeric_pnf_document_frontiers(TEXT, TEXT) IS
+    'C3e stable document publication barrier. Forces canonical parent publication while delegating unchanged to the exact affected-only scheduler inherited from migrations 197--210.';
+COMMENT ON FUNCTION execution.reduce_numeric_pnf_document_frontiers_affected_scheduler_v210(TEXT, TEXT) IS
+    'Frozen implementation object inherited by migration 211 from the previously active affected-only/receipt-driven document frontier scheduler.';
 
 COMMIT;
