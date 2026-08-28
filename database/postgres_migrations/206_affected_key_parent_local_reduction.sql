@@ -1244,7 +1244,7 @@ BEGIN
         object_keys, factor_keys, demand_keys, actor_keys, outward_keys,
         emitted_value, selected_hierarchy_depth, cold_value,
         output_value, unresolved_value, resolved_value, actor_value,
-        EXTRACT(EPOCH FROM (clock_timestamp() - started_at)) * 1000
+           (EXTRACT(EPOCH FROM (clock_timestamp() - started_at)) * 1000)::DOUBLE PRECISION
     )
     ON CONFLICT (interface_id) DO UPDATE SET
         parent_region_id = EXCLUDED.parent_region_id,
