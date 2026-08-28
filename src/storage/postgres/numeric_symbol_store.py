@@ -90,12 +90,29 @@ def intern_symbols(
             key=lambda item: (int(item[0][0]), item[0][1]),
         ):
             copy.write_row((int(kind), text, digest))
+
+    # Concurrent fibres may intern overlapping symbol sets.  Unique-index conflict
+    # handling alone can deadlock when transactions acquire those keys in different
+    # physical orders.  Acquire transaction-scoped advisory locks for the requested
+    # logical keys in one deterministic total order before touching semantic_symbol.
+    # The lock is execution-only; database-local surrogate identity remains owned by
+    # the unique (kind_id, symbol_text) relation.
+    cursor.execute(
+        f"""
+        SELECT pg_advisory_xact_lock(
+                   hashtextextended(kind_id::TEXT || ':' || symbol_text, 0)
+               )
+          FROM {temporary}
+         ORDER BY kind_id, symbol_text
+        """
+    )
     cursor.execute(
         f"""
         INSERT INTO execution.semantic_symbol
             (kind_id, symbol_text, symbol_digest)
         SELECT kind_id, symbol_text, symbol_digest
           FROM {temporary}
+         ORDER BY kind_id, symbol_text
         ON CONFLICT (kind_id, symbol_text) DO NOTHING
         """
     )
