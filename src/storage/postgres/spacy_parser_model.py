@@ -29,7 +29,27 @@ def connect(database_url: str) -> Any:
         import psycopg
     except ImportError as error:  # pragma: no cover - deployment dependency
         raise RuntimeError("psycopg is required for typed parser execution") from error
-    return psycopg.connect(database_url, autocommit=False)
+    connection = psycopg.connect(database_url, autocommit=False)
+    # The SQL parent-frontier wrapper reads this session setting when an
+    # explicitly admitted exact-work envelope is supplied.  Keep the
+    # historical policy as the default and validate overrides before they can
+    # reach PostgreSQL.
+    configured_budget = os.environ.get("SENSIBLAW_INTERFACE_KEY_BUDGET", "8192")
+    try:
+        if int(configured_budget) < 1:
+            raise ValueError
+    except (TypeError, ValueError) as error:
+        connection.close()
+        raise ValueError(
+            "SENSIBLAW_INTERFACE_KEY_BUDGET must be a positive integer"
+        ) from error
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT set_config(%s, %s, false)",
+            ("sensiblaw.interface_key_budget", configured_budget),
+        )
+    connection.commit()
+    return connection
 
 
 @dataclass(frozen=True)
