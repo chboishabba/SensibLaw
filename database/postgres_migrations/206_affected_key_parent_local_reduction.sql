@@ -1114,11 +1114,13 @@ BEGIN
     END IF;
 
     SELECT
-        (SELECT count(*) FROM execution.semantic_pnf_parent_delta_projection
-          WHERE parent_region_id = selected_region_id)
+        (SELECT count(*)
+           FROM execution.semantic_pnf_parent_delta_projection AS projection
+          WHERE projection.parent_region_id = selected_region_id)
         +
-        (SELECT count(*) FROM execution.semantic_pnf_parent_actor_delta_projection
-          WHERE parent_region_id = selected_region_id)
+        (SELECT count(*)
+           FROM execution.semantic_pnf_parent_actor_delta_projection AS actor
+          WHERE actor.parent_region_id = selected_region_id)
       INTO input_atoms;
 
     SELECT count(*),
@@ -1131,26 +1133,29 @@ BEGIN
            accumulated_demand_keys
       FROM (
           SELECT 1::SMALLINT AS family, target_id AS a, 0::BIGINT AS b, 0::BIGINT AS c
-            FROM execution.semantic_pnf_parent_delta_projection
-           WHERE parent_region_id = selected_region_id AND target_kind = 1
+            FROM execution.semantic_pnf_parent_delta_projection AS projection
+           WHERE projection.parent_region_id = selected_region_id
+             AND projection.target_kind = 1
           UNION
           SELECT 2, target_id, 0, 0
-            FROM execution.semantic_pnf_parent_delta_projection
-           WHERE parent_region_id = selected_region_id AND target_kind = 2
+            FROM execution.semantic_pnf_parent_delta_projection AS projection
+           WHERE projection.parent_region_id = selected_region_id
+             AND projection.target_kind = 2
           UNION
           SELECT 3, target_id, 0, 0
-            FROM execution.semantic_pnf_parent_delta_projection
-           WHERE parent_region_id = selected_region_id AND target_kind = 3
+            FROM execution.semantic_pnf_parent_delta_projection AS projection
+           WHERE projection.parent_region_id = selected_region_id
+             AND projection.target_kind = 3
           UNION
           SELECT 4, object_id, COALESCE(role_symbol_id, 0),
                  COALESCE(factor_type_symbol_id, 0)
-            FROM execution.semantic_pnf_parent_actor_delta_projection
-           WHERE parent_region_id = selected_region_id
+            FROM execution.semantic_pnf_parent_actor_delta_projection AS actor
+           WHERE actor.parent_region_id = selected_region_id
           UNION
           SELECT 5, export_kind, target_kind, target_id
-            FROM execution.semantic_pnf_parent_delta_projection
-           WHERE parent_region_id = selected_region_id
-             AND target_kind NOT IN (1, 2, 3)
+            FROM execution.semantic_pnf_parent_delta_projection AS projection
+           WHERE projection.parent_region_id = selected_region_id
+             AND projection.target_kind NOT IN (1, 2, 3)
       ) AS keys(family, a, b, c);
 
     IF GREATEST(
@@ -1175,8 +1180,8 @@ BEGIN
            count(*) FILTER (WHERE key_family = 4),
            count(*) FILTER (WHERE key_family = 5)
       INTO touched, object_keys, factor_keys, demand_keys, actor_keys, outward_keys
-      FROM execution.semantic_pnf_parent_affected_key
-     WHERE parent_region_id = selected_region_id;
+      FROM execution.semantic_pnf_parent_affected_key AS key
+     WHERE key.parent_region_id = selected_region_id;
 
     IF GREATEST(object_keys, factor_keys, demand_keys, actor_keys, outward_keys)
        > selected_key_budget THEN
@@ -1221,8 +1226,8 @@ BEGIN
         emitted_value := execution.refresh_numeric_pnf_parent_output_fingerprints(
             selected_interface_id
         );
-        DELETE FROM execution.semantic_pnf_parent_affected_key
-         WHERE parent_region_id = selected_region_id;
+        DELETE FROM execution.semantic_pnf_parent_affected_key AS key
+         WHERE key.parent_region_id = selected_region_id;
     END IF;
 
     INSERT INTO execution.semantic_pnf_delta_native_parent_work_receipt
