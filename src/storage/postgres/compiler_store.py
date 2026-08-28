@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from typing import Any, Callable, Iterator, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
@@ -66,7 +67,25 @@ class PostgresCompilerStore:
     @classmethod
     def connect(cls, database_url: str) -> "PostgresCompilerStore":
         psycopg = _require_psycopg()
-        return cls(psycopg.connect(database_url))
+        connection = psycopg.connect(database_url, autocommit=False)
+        configured_budget = os.environ.get(
+            "SENSIBLAW_INTERFACE_KEY_BUDGET", "8192"
+        )
+        try:
+            if int(configured_budget) < 1:
+                raise ValueError
+        except (TypeError, ValueError) as error:
+            connection.close()
+            raise ValueError(
+                "SENSIBLAW_INTERFACE_KEY_BUDGET must be a positive integer"
+            ) from error
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT set_config(%s, %s, false)",
+                ("sensiblaw.interface_key_budget", configured_budget),
+            )
+        connection.commit()
+        return cls(connection)
 
     def close(self) -> None:
         self.connection.close()
