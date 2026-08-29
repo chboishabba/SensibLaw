@@ -28,13 +28,14 @@ def publish_preleased_resolved_direct_sentence(
     lease: WorkLease,
     publication: DirectPublicationReceipt,
     profile: MdlProfile,
+    defer_interface_ancestors: bool = True,
 ) -> int:
     """Admit one pre-resolved closure using an already-created sentence fence.
 
-    Partition projection has no ancestor consumer between sentence admission and the
-    hierarchy publication barrier. Migrations 143/194 permit these intermediate
-    projections to be deferred, while migration 142 owns the exact set-wise final
-    document projection.
+    Parser-partition projection has no ancestor consumer between sentence admission
+    and the hierarchy publication barrier. Migrations 143/194 permit those
+    intermediate projections to be deferred, while migration 142 owns the exact
+    set-wise final document projection. Standalone callers explicitly opt out.
     """
 
     if publication.parser_token_writes != 0:
@@ -44,7 +45,7 @@ def publish_preleased_resolved_direct_sentence(
         lease=lease,
         closure=publication.closure,
         profile=profile,
-        defer_interface_ancestors=True,
+        defer_interface_ancestors=defer_interface_ancestors,
     )
 
 
@@ -57,7 +58,7 @@ def publish_resolved_direct_sentence(
     publication: DirectPublicationReceipt,
     profile: MdlProfile,
 ) -> int:
-    """Admit one pre-resolved sentence through canonical set-wise persistence."""
+    """Admit one standalone pre-resolved sentence with historical exact ancestry."""
 
     if publication.parser_token_writes != 0:
         raise RuntimeError("direct publication unexpectedly declared parser-token writes")
@@ -73,6 +74,7 @@ def publish_resolved_direct_sentence(
         lease=lease,
         publication=publication,
         profile=profile,
+        defer_interface_ancestors=False,
     )
 
 
