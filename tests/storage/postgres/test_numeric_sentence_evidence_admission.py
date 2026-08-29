@@ -5,6 +5,7 @@ import pytest
 from src.storage.postgres.numeric_sentence_evidence_admission import (
     DirectProvenanceViolation,
     EvidenceSupportCursor,
+    _collapse_bounded_executemany,
     _direct_authority_sql,
     _rewrite_evidence_support_sql,
 )
@@ -58,10 +59,17 @@ def test_rewrite_helper_leaves_parser_sql_visible_to_authority_guard() -> None:
 class _Cursor:
     def __init__(self) -> None:
         self.queries: list[str] = []
+        self.params: list[object] = []
+        self.executemany_queries: list[str] = []
         self.rowcount = 0
 
     def execute(self, query: str, params=None):
         self.queries.append(query)
+        self.params.append(params)
+        return self
+
+    def executemany(self, query: str, params_seq):
+        self.executemany_queries.append(query)
         return self
 
 
@@ -98,3 +106,46 @@ def test_cursor_facade_rewrites_legacy_support_insert_without_leaking_relation()
     assert "semantic_pnf_object_evidence_support" in cursor.queries[0]
     assert "(object_id, evidence_id, ordinal)" in cursor.queries[0]
     assert "semantic_pnf_object_token_support" not in cursor.queries[0]
+
+
+def test_bounded_interface_executemany_collapses_to_one_statement() -> None:
+    sql = """
+        INSERT INTO execution.semantic_pnf_interface_export
+            (interface_id, export_kind, target_kind, target_id,
+             key_symbol_id, rank, promotion_score)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT DO NOTHING
+    """
+    batched = _collapse_bounded_executemany(
+        sql,
+        [(9, 1, 1, 10, 100, 0, 0.5), (9, 1, 1, 11, 101, 1, 0.4)],
+    )
+    assert batched is not None
+    batched_sql, params = batched
+    assert batched_sql.count("(%s, %s, %s, %s, %s, %s, %s)") == 2
+    assert batched_sql.count("ON CONFLICT DO NOTHING") == 1
+    assert params == (9, 1, 1, 10, 100, 0, 0.5, 9, 1, 1, 11, 101, 1, 0.4)
+
+
+def test_cursor_facade_uses_one_execute_for_bounded_interface_rows() -> None:
+    cursor = _Cursor()
+    wrapped = EvidenceSupportCursor(cursor)
+    sql = """
+        INSERT INTO execution.semantic_pnf_interface_lookup
+            (interface_id, key_kind, key_a, key_b, target_kind, target_id, rank)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT DO NOTHING
+    """
+    wrapped.executemany(sql, [(9, 1, 100, 0, 1, 10, 0), (9, 1, 101, 0, 1, 11, 1)])
+    assert len(cursor.queries) == 1
+    assert cursor.executemany_queries == []
+    assert cursor.queries[0].count("(%s, %s, %s, %s, %s, %s, %s)") == 2
+
+
+def test_non_interface_executemany_keeps_reference_shape() -> None:
+    cursor = _Cursor()
+    wrapped = EvidenceSupportCursor(cursor)
+    sql = "INSERT INTO execution.some_other_table (a, b) VALUES (%s, %s)"
+    wrapped.executemany(sql, [(1, 2), (3, 4)])
+    assert cursor.queries == []
+    assert cursor.executemany_queries == [sql]
