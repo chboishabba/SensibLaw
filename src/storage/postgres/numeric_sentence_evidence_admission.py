@@ -28,6 +28,7 @@ _FACTOR_TOKEN_TABLE = "execution.semantic_pnf_factor_token_support"
 _OBJECT_EVIDENCE_TABLE = "execution.semantic_pnf_object_evidence_support"
 _FACTOR_EVIDENCE_TABLE = "execution.semantic_pnf_factor_evidence_support"
 _PARSER_TOKEN_TABLE = "execution.semantic_parser_token"
+_LEGACY_OCCURRENCE_TABLE = "execution.semantic_pnf_demand_occurrence_provenance"
 _OBJECT_INSERT = f"INSERT INTO {_OBJECT_TOKEN_TABLE}"
 _FACTOR_INSERT = f"INSERT INTO {_FACTOR_TOKEN_TABLE}"
 
@@ -48,14 +49,18 @@ def _rewrite_evidence_support_sql(sql: str) -> str:
 
     rewritten = sql
     if _OBJECT_INSERT in rewritten:
-        rewritten = rewritten.replace(_OBJECT_INSERT, f"INSERT INTO {_OBJECT_EVIDENCE_TABLE}", 1)
+        rewritten = rewritten.replace(
+            _OBJECT_INSERT, f"INSERT INTO {_OBJECT_EVIDENCE_TABLE}", 1
+        )
         rewritten = rewritten.replace(
             "(object_id, token_id, ordinal)",
             "(object_id, evidence_id, ordinal)",
             1,
         )
     if _FACTOR_INSERT in rewritten:
-        rewritten = rewritten.replace(_FACTOR_INSERT, f"INSERT INTO {_FACTOR_EVIDENCE_TABLE}", 1)
+        rewritten = rewritten.replace(
+            _FACTOR_INSERT, f"INSERT INTO {_FACTOR_EVIDENCE_TABLE}", 1
+        )
         rewritten = rewritten.replace(
             "(factor_id, token_id, ordinal)",
             "(factor_id, evidence_id, ordinal)",
@@ -73,6 +78,7 @@ def _direct_authority_sql(sql: str) -> str:
         _PARSER_TOKEN_TABLE,
         _OBJECT_TOKEN_TABLE,
         _FACTOR_TOKEN_TABLE,
+        _LEGACY_OCCURRENCE_TABLE,
     )
     crossed = next((table for table in forbidden if table in lowered), None)
     if crossed is not None:
@@ -90,6 +96,7 @@ class EvidenceSupportCursor:
     """Cursor facade enforcing evidence-only durable provenance for direct mode."""
 
     __slots__ = ("_cursor",)
+    uses_source_evidence_provenance = True
 
     def __init__(self, cursor: Any) -> None:
         self._cursor = cursor
@@ -100,7 +107,9 @@ class EvidenceSupportCursor:
             return self._cursor.execute(rewritten, *args, **kwargs)
         return self._cursor.execute(rewritten, params, *args, **kwargs)
 
-    def executemany(self, query: Any, params_seq: Any, *args: Any, **kwargs: Any) -> Any:
+    def executemany(
+        self, query: Any, params_seq: Any, *args: Any, **kwargs: Any
+    ) -> Any:
         return self._cursor.executemany(
             _direct_authority_sql(str(query)),
             params_seq,

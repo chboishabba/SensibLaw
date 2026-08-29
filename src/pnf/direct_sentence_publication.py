@@ -16,7 +16,10 @@ from src.pnf.numeric_hyperfabric import SymbolKind
 from src.pnf.numeric_operator_composition import NumericSentenceClosure
 from src.pnf.packed_sentence_fibre import PackedSentenceFibre
 from src.storage.postgres.numeric_symbol_store import intern_symbols, normalize_symbol
-from src.storage.postgres.source_evidence_support import upsert_source_evidence
+from src.storage.postgres.source_evidence_support import (
+    upsert_source_evidence,
+    upsert_source_evidence_annotations,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,7 +34,9 @@ def _required(mapping: Mapping[int, int], value: int, *, kind: str) -> int:
     try:
         return int(mapping[int(value)])
     except KeyError as exc:
-        raise RuntimeError(f"direct publication has no {kind} mapping for {value}") from exc
+        raise RuntimeError(
+            f"direct publication has no {kind} mapping for {value}"
+        ) from exc
 
 
 def remap_direct_closure(
@@ -45,8 +50,12 @@ def remap_direct_closure(
     objects = tuple(
         replace(
             spec,
-            source_token_id=_required(evidence_ids, spec.source_token_id, kind="evidence"),
-            object_kind_symbol_id=_required(symbol_ids, spec.object_kind_symbol_id, kind="symbol"),
+            source_token_id=_required(
+                evidence_ids, spec.source_token_id, kind="evidence"
+            ),
+            object_kind_symbol_id=_required(
+                symbol_ids, spec.object_kind_symbol_id, kind="symbol"
+            ),
             head_symbol_id=_required(symbol_ids, spec.head_symbol_id, kind="symbol"),
         )
         for spec in closure.objects
@@ -54,13 +63,21 @@ def remap_direct_closure(
     factors = tuple(
         replace(
             spec,
-            factor_type_symbol_id=_required(symbol_ids, spec.factor_type_symbol_id, kind="symbol"),
-            predicate_symbol_id=_required(symbol_ids, spec.predicate_symbol_id, kind="symbol"),
+            factor_type_symbol_id=_required(
+                symbol_ids, spec.factor_type_symbol_id, kind="symbol"
+            ),
+            predicate_symbol_id=_required(
+                symbol_ids, spec.predicate_symbol_id, kind="symbol"
+            ),
             slots=tuple(
                 replace(
                     slot,
-                    role_symbol_id=_required(symbol_ids, slot.role_symbol_id, kind="symbol"),
-                    source_token_id=_required(evidence_ids, slot.source_token_id, kind="evidence"),
+                    role_symbol_id=_required(
+                        symbol_ids, slot.role_symbol_id, kind="symbol"
+                    ),
+                    source_token_id=_required(
+                        evidence_ids, slot.source_token_id, kind="evidence"
+                    ),
                 )
                 for slot in spec.slots
             ),
@@ -79,12 +96,16 @@ def remap_direct_closure(
         replace(
             spec,
             expected_factor_type_symbol_id=(
-                _required(symbol_ids, spec.expected_factor_type_symbol_id, kind="symbol")
+                _required(
+                    symbol_ids, spec.expected_factor_type_symbol_id, kind="symbol"
+                )
                 if spec.expected_factor_type_symbol_id is not None
                 else None
             ),
             expected_object_kind_symbol_id=(
-                _required(symbol_ids, spec.expected_object_kind_symbol_id, kind="symbol")
+                _required(
+                    symbol_ids, spec.expected_object_kind_symbol_id, kind="symbol"
+                )
                 if spec.expected_object_kind_symbol_id is not None
                 else None
             ),
@@ -98,7 +119,9 @@ def remap_direct_closure(
                 if spec.role_symbol_id is not None
                 else None
             ),
-            residual_type_symbol_id=_required(symbol_ids, spec.residual_type_symbol_id, kind="symbol"),
+            residual_type_symbol_id=_required(
+                symbol_ids, spec.residual_type_symbol_id, kind="symbol"
+            ),
         )
         for spec in closure.demands
     )
@@ -122,17 +145,23 @@ def _publication_from_resolved(
             ) from exc
         prior = local_symbol_to_database.setdefault(int(local_id), database_id)
         if prior != database_id:
-            raise RuntimeError("one local symbol address resolved to multiple database ids")
+            raise RuntimeError(
+                "one local symbol address resolved to multiple database ids"
+            )
 
     local_evidence_to_database: dict[int, int] = {}
     for local_id, digest in direct.source_evidence_ids:
         try:
             database_id = int(evidence_by_digest[bytes(digest)])
         except KeyError as exc:
-            raise RuntimeError("durable evidence resolution lost a source digest") from exc
+            raise RuntimeError(
+                "durable evidence resolution lost a source digest"
+            ) from exc
         prior = local_evidence_to_database.setdefault(int(local_id), database_id)
         if prior != database_id:
-            raise RuntimeError("one local evidence address resolved to multiple database ids")
+            raise RuntimeError(
+                "one local evidence address resolved to multiple database ids"
+            )
 
     resolved = remap_direct_closure(
         direct.closure,
@@ -176,6 +205,12 @@ def resolve_direct_publications(
         run_ref=run_ref,
         document_ref=document_ref,
         fibres=fibres,
+    )
+    upsert_source_evidence_annotations(
+        cursor,
+        fibres=fibres,
+        evidence_by_digest=evidence_by_digest,
+        database_symbols=database_symbols,
     )
     return tuple(
         _publication_from_resolved(
