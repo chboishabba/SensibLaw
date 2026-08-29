@@ -91,19 +91,24 @@ def intern_symbols(
         ):
             copy.write_row((int(kind), text, digest))
 
-    # Concurrent fibres may intern overlapping symbol sets.  Unique-index conflict
-    # handling alone can deadlock when transactions acquire those keys in different
-    # physical orders.  Acquire transaction-scoped advisory locks for the requested
-    # logical keys in one deterministic total order before touching semantic_symbol.
-    # The lock is execution-only; database-local surrogate identity remains owned by
-    # the unique (kind_id, symbol_text) relation.
+    # Existing corpus symbols already have canonical database-local identity and
+    # need no creation serialization. Only unresolved keys can race to allocate a
+    # new surrogate id, so advisory locking is restricted to that frontier. The
+    # deterministic order retains the deadlock-avoidance contract for concurrent
+    # first admission while removing lock contention from ordinary symbol reuse.
     cursor.execute(
         f"""
         SELECT pg_advisory_xact_lock(
-                   hashtextextended(kind_id::TEXT || ':' || symbol_text, 0)
+                   hashtextextended(requested.kind_id::TEXT || ':' || requested.symbol_text, 0)
                )
-          FROM {temporary}
-         ORDER BY kind_id, symbol_text
+          FROM {temporary} AS requested
+         WHERE NOT EXISTS (
+                   SELECT 1
+                     FROM execution.semantic_symbol AS symbol
+                    WHERE symbol.kind_id = requested.kind_id
+                      AND symbol.symbol_text = requested.symbol_text
+               )
+         ORDER BY requested.kind_id, requested.symbol_text
         """
     )
     cursor.execute(
