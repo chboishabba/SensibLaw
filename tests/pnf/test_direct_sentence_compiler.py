@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.pnf.direct_sentence_compiler import compile_packed_sentence, source_evidence_id
+from src.pnf.direct_sentence_compiler import (
+    compile_packed_sentence,
+    sentence_region_id,
+    source_evidence_id,
+)
 from src.pnf.packed_sentence_fibre import PackedSentenceFibre, PackedSourceToken
 
 
@@ -59,8 +63,10 @@ def test_direct_compiler_reuses_sentence_owner_without_database() -> None:
         end_byte=19,
         tokens=tuple(_packed(token) for token in tokens),
     )
-    receipt = compile_packed_sentence(region_id=7, fibre=fibre)
+    receipt = compile_packed_sentence(fibre=fibre)
     assert receipt.database_crossings == 0
+    assert receipt.local_region_id == sentence_region_id(fibre)
+    assert receipt.local_region_id > 0
     assert len(receipt.closure.factors) == 1
     assert receipt.closure.factors[0].support_token_ids == tuple(
         sorted((source_evidence_id(b"b" * 32), source_evidence_id(b"c" * 32)))
@@ -71,3 +77,20 @@ def test_direct_compiler_reuses_sentence_owner_without_database() -> None:
         b"c" * 32,
         b"d" * 32,
     }
+
+
+def test_explicit_region_override_is_compatibility_only() -> None:
+    fibre = PackedSentenceFibre(
+        sentence_digest=b"q" * 32,
+        ordinal=0,
+        start_char=0,
+        end_char=4,
+        start_byte=0,
+        end_byte=4,
+        tokens=(_packed(_Token(0, b"z" * 32, "pay", "VERB", "ROOT", 0, 0, 4)),),
+    )
+    automatic = compile_packed_sentence(fibre=fibre)
+    overridden = compile_packed_sentence(fibre=fibre, region_id=7)
+    assert automatic.local_region_id == sentence_region_id(fibre)
+    assert overridden.local_region_id == 7
+    assert automatic.database_crossings == overridden.database_crossings == 0
