@@ -28,6 +28,8 @@ _FACTOR_TOKEN_TABLE = "execution.semantic_pnf_factor_token_support"
 _OBJECT_EVIDENCE_TABLE = "execution.semantic_pnf_object_evidence_support"
 _FACTOR_EVIDENCE_TABLE = "execution.semantic_pnf_factor_evidence_support"
 _PARSER_TOKEN_TABLE = "execution.semantic_parser_token"
+_OBJECT_INSERT = f"INSERT INTO {_OBJECT_TOKEN_TABLE}"
+_FACTOR_INSERT = f"INSERT INTO {_FACTOR_TOKEN_TABLE}"
 
 
 class DirectProvenanceViolation(RuntimeError):
@@ -35,17 +37,25 @@ class DirectProvenanceViolation(RuntimeError):
 
 
 def _rewrite_evidence_support_sql(sql: str) -> str:
-    """Rewrite only the two durable support inserts; all other SQL is unchanged."""
+    """Translate only the two durable support INSERT targets.
 
-    rewritten = sql.replace(_OBJECT_TOKEN_TABLE, _OBJECT_EVIDENCE_TABLE)
-    rewritten = rewritten.replace(_FACTOR_TOKEN_TABLE, _FACTOR_EVIDENCE_TABLE)
-    if _OBJECT_EVIDENCE_TABLE in rewritten:
+    Local temp-stage columns intentionally keep compatibility names such as
+    ``token_id``; on the direct path those values are stable evidence ids.  Do not
+    globally replace support relation names because provenance/diagnostic SELECTs
+    must remain visible to the direct authority guard rather than being silently
+    mutated into malformed evidence SQL.
+    """
+
+    rewritten = sql
+    if _OBJECT_INSERT in rewritten:
+        rewritten = rewritten.replace(_OBJECT_INSERT, f"INSERT INTO {_OBJECT_EVIDENCE_TABLE}", 1)
         rewritten = rewritten.replace(
             "(object_id, token_id, ordinal)",
             "(object_id, evidence_id, ordinal)",
             1,
         )
-    if _FACTOR_EVIDENCE_TABLE in rewritten:
+    if _FACTOR_INSERT in rewritten:
+        rewritten = rewritten.replace(_FACTOR_INSERT, f"INSERT INTO {_FACTOR_EVIDENCE_TABLE}", 1)
         rewritten = rewritten.replace(
             "(factor_id, token_id, ordinal)",
             "(factor_id, evidence_id, ordinal)",
@@ -55,13 +65,7 @@ def _rewrite_evidence_support_sql(sql: str) -> str:
 
 
 def _direct_authority_sql(sql: str) -> str:
-    """Translate support SQL and reject every legacy provenance dependency.
-
-    Local temp-stage columns may retain compatibility names such as ``token_id``;
-    they carry stable evidence ids on the direct path. What is forbidden is any
-    access to the durable parser-token projection or either durable token-support
-    relation after rewriting.
-    """
+    """Translate support INSERTs and reject every remaining legacy dependency."""
 
     rewritten = _rewrite_evidence_support_sql(sql)
     lowered = rewritten.lower()
@@ -72,8 +76,12 @@ def _direct_authority_sql(sql: str) -> str:
     )
     crossed = next((table for table in forbidden if table in lowered), None)
     if crossed is not None:
+        compact = " ".join(rewritten.split())
+        if len(compact) > 320:
+            compact = compact[:317] + "..."
         raise DirectProvenanceViolation(
-            f"direct evidence publication crossed legacy provenance authority: {crossed}"
+            "direct evidence publication crossed legacy provenance authority: "
+            f"{crossed}; sql={compact!r}"
         )
     return rewritten
 

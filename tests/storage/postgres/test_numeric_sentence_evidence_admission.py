@@ -10,7 +10,7 @@ from src.storage.postgres.numeric_sentence_evidence_admission import (
 )
 
 
-def test_support_sql_rewrites_only_durable_support_carrier() -> None:
+def test_support_sql_rewrites_only_durable_support_insert_target() -> None:
     object_sql = """
         INSERT INTO execution.semantic_pnf_object_token_support
             (object_id, token_id, ordinal)
@@ -36,11 +36,23 @@ def test_support_sql_rewrites_only_durable_support_carrier() -> None:
     assert "semantic_pnf_factor_token_support" not in rewritten_factor
 
 
-def test_rewrite_helper_remains_mechanical_but_direct_authority_fails_closed() -> None:
+def test_support_select_is_not_silently_rewritten() -> None:
+    sql = """
+        SELECT support.token_id
+          FROM execution.semantic_pnf_factor_token_support AS support
+         WHERE support.factor_id = %s
+    """
+    assert _rewrite_evidence_support_sql(sql) == sql
+    with pytest.raises(DirectProvenanceViolation, match="semantic_pnf_factor_token_support"):
+        _direct_authority_sql(sql)
+
+
+def test_rewrite_helper_leaves_parser_sql_visible_to_authority_guard() -> None:
     sql = "SELECT token_id FROM execution.semantic_parser_token WHERE token_id = %s"
     assert _rewrite_evidence_support_sql(sql) == sql
-    with pytest.raises(DirectProvenanceViolation, match="semantic_parser_token"):
+    with pytest.raises(DirectProvenanceViolation, match="semantic_parser_token") as error:
         _direct_authority_sql(sql)
+    assert "sql='SELECT token_id FROM execution.semantic_parser_token" in str(error.value)
 
 
 class _Cursor:
@@ -74,7 +86,7 @@ def test_cursor_facade_keeps_demand_scheduling_sql_authoritative() -> None:
     assert cursor.queries == [demand_sql]
 
 
-def test_cursor_facade_rewrites_legacy_support_without_leaking_token_relation() -> None:
+def test_cursor_facade_rewrites_legacy_support_insert_without_leaking_relation() -> None:
     cursor = _Cursor()
     wrapped = EvidenceSupportCursor(cursor)
     wrapped.execute(
