@@ -38,9 +38,17 @@ _DEMAND_STAGE = "tmp_numeric_sentence_demand"
 
 
 def _create_stages(cursor: Any) -> None:
+    """Create reusable bounded stages for the current transaction.
+
+    Reference execution historically admitted one sentence per transaction, while
+    direct partition publication deliberately admits many sentences under one durable
+    partition fence.  Keep one set of temporary relations for that transaction and
+    clear them before each sentence rather than recreating/colliding on fixed names.
+    """
+
     cursor.execute(
         f"""
-        CREATE TEMP TABLE {_OBJECT_STAGE} (
+        CREATE TEMP TABLE IF NOT EXISTS {_OBJECT_STAGE} (
             ordinal INTEGER PRIMARY KEY,
             object_digest BYTEA NOT NULL,
             object_kind_symbol_id BIGINT NOT NULL,
@@ -52,7 +60,7 @@ def _create_stages(cursor: Any) -> None:
             promotion_score DOUBLE PRECISION NOT NULL,
             promoted BOOLEAN NOT NULL
         ) ON COMMIT DROP;
-        CREATE TEMP TABLE {_FACTOR_STAGE} (
+        CREATE TEMP TABLE IF NOT EXISTS {_FACTOR_STAGE} (
             ordinal INTEGER PRIMARY KEY,
             factor_digest BYTEA NOT NULL,
             factor_type_symbol_id BIGINT NOT NULL,
@@ -61,13 +69,13 @@ def _create_stages(cursor: Any) -> None:
             modal_state SMALLINT NOT NULL,
             support_score DOUBLE PRECISION NOT NULL
         ) ON COMMIT DROP;
-        CREATE TEMP TABLE {_FACTOR_SUPPORT_STAGE} (
+        CREATE TEMP TABLE IF NOT EXISTS {_FACTOR_SUPPORT_STAGE} (
             factor_ordinal INTEGER NOT NULL,
             support_ordinal INTEGER NOT NULL,
             token_id BIGINT NOT NULL,
             PRIMARY KEY (factor_ordinal, support_ordinal)
         ) ON COMMIT DROP;
-        CREATE TEMP TABLE {_FACTOR_SLOT_STAGE} (
+        CREATE TEMP TABLE IF NOT EXISTS {_FACTOR_SLOT_STAGE} (
             factor_ordinal INTEGER NOT NULL,
             slot_ordinal INTEGER NOT NULL,
             role_symbol_id BIGINT NOT NULL,
@@ -76,7 +84,7 @@ def _create_stages(cursor: Any) -> None:
             required BOOLEAN NOT NULL,
             PRIMARY KEY (factor_ordinal, slot_ordinal)
         ) ON COMMIT DROP;
-        CREATE TEMP TABLE {_DEMAND_STAGE} (
+        CREATE TEMP TABLE IF NOT EXISTS {_DEMAND_STAGE} (
             ordinal INTEGER PRIMARY KEY,
             demand_digest BYTEA NOT NULL,
             expected_target_kind SMALLINT NOT NULL,
@@ -87,7 +95,13 @@ def _create_stages(cursor: Any) -> None:
             residual_type_symbol_id BIGINT NOT NULL,
             recency_class SMALLINT NOT NULL,
             max_candidates INTEGER NOT NULL
-        ) ON COMMIT DROP
+        ) ON COMMIT DROP;
+        TRUNCATE TABLE
+            {_OBJECT_STAGE},
+            {_FACTOR_STAGE},
+            {_FACTOR_SUPPORT_STAGE},
+            {_FACTOR_SLOT_STAGE},
+            {_DEMAND_STAGE};
         """
     )
 
@@ -461,138 +475,161 @@ def persist_sentence_closure_setwise(
             measure.closure_rounds,
             measure.query_cost_ns,
             len(promoted_object_ids),
-            len(promoted_object_ids) + len(factor_ids) + len(demand_ids),
+            (len(promoted_object_ids) + len(factor_ids) + len(demand_ids)),
             measure.hierarchy_cost,
             description_length(measure, profile),
         ),
     )
     interface_id = int(cursor.fetchone()[0])
 
-    # Interface exports are a direct projection of the staged sentence carrier.
-    # Publish all three families in one server-side statement. Promoted object
-    # ranks compress exactly as Python enumerate(promoted_object_ids) did.
-    cursor.execute(
-        f"""
+    cursor.executemany(
+        """
         INSERT INTO execution.semantic_pnf_interface_export
             (interface_id, export_kind, target_kind, target_id,
-             key_symbol_id, role_symbol_id, residual_type_symbol_id,
-             rank, promotion_score)
-        SELECT %s,
-               {int(ExportKind.OBJECT)},
-               {int(TargetKind.OBJECT)},
-               object.object_id,
-               stage.head_symbol_id,
-               NULL::BIGINT,
-               NULL::BIGINT,
-               row_number() OVER (ORDER BY stage.ordinal) - 1,
-               stage.promotion_score
-          FROM {_OBJECT_STAGE} AS stage
-          JOIN execution.semantic_pnf_object AS object
-            ON object.object_digest = stage.object_digest
-         WHERE stage.promoted
-        UNION ALL
-        SELECT %s,
-               {int(ExportKind.FACTOR)},
-               {int(TargetKind.FACTOR)},
-               factor.factor_id,
-               stage.factor_type_symbol_id,
-               NULL::BIGINT,
-               NULL::BIGINT,
-               stage.ordinal,
-               0
-          FROM {_FACTOR_STAGE} AS stage
-          JOIN execution.semantic_pnf_factor AS factor
-            ON factor.factor_digest = stage.factor_digest
-        UNION ALL
-        SELECT %s,
-               {int(ExportKind.DEMAND)},
-               {int(TargetKind.DEMAND)},
-               demand.demand_id,
-               stage.lexical_symbol_id,
-               NULL::BIGINT,
-               stage.residual_type_symbol_id,
-               stage.ordinal,
-               0
-          FROM {_DEMAND_STAGE} AS stage
-          JOIN execution.semantic_pnf_demand AS demand
-            ON demand.demand_digest = stage.demand_digest
+             key_symbol_id, rank, promotion_score)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         """,
-        (interface_id, interface_id, interface_id),
+        [
+            (
+                interface_id,
+                int(ExportKind.OBJECT),
+                int(TargetKind.OBJECT),
+                object_id,
+                head_symbol_id,
+                rank,
+                score,
+            )
+            for rank, (object_id, head_symbol_id, score) in enumerate(
+                promoted_object_ids
+            )
+        ],
+    )
+    cursor.executemany(
+        """
+        INSERT INTO execution.semantic_pnf_interface_export
+            (interface_id, export_kind, target_kind, target_id,
+             key_symbol_id, rank, promotion_score)
+        VALUES (%s, %s, %s, %s, %s, %s, 0)
+        ON CONFLICT DO NOTHING
+        """,
+        [
+            (
+                interface_id,
+                int(ExportKind.FACTOR),
+                int(TargetKind.FACTOR),
+                factor_id,
+                factor_type_id,
+                rank,
+            )
+            for rank, (factor_id, factor_type_id, _predicate_id) in enumerate(
+                factor_ids
+            )
+        ],
+    )
+    cursor.executemany(
+        """
+        INSERT INTO execution.semantic_pnf_interface_export
+            (interface_id, export_kind, target_kind, target_id,
+             key_symbol_id, residual_type_symbol_id,
+             rank, promotion_score)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 0)
+        ON CONFLICT DO NOTHING
+        """,
+        [
+            (
+                interface_id,
+                int(ExportKind.DEMAND),
+                int(TargetKind.DEMAND),
+                demand_id,
+                lexical_id,
+                residual_id,
+                rank,
+            )
+            for rank, (
+                demand_id,
+                residual_id,
+                _factor_type_id,
+                lexical_id,
+            ) in enumerate(demand_ids)
+        ],
     )
 
-    # Lookup rows are another direct stage projection. Keeping this server-side
-    # avoids rebuilding a Python list only to send the same numeric tuples back
-    # through executemany.
-    cursor.execute(
-        f"""
+    lookup_rows: list[tuple[int, int, int, int, int, int, int]] = []
+    for rank, (object_id, head_symbol_id, _score) in enumerate(promoted_object_ids):
+        lookup_rows.append(
+            (
+                interface_id,
+                int(KeyKind.NORMALIZED_SYMBOL),
+                head_symbol_id,
+                0,
+                int(TargetKind.OBJECT),
+                object_id,
+                rank,
+            )
+        )
+    for rank, (factor_id, factor_type_id, predicate_id) in enumerate(factor_ids):
+        lookup_rows.extend(
+            (
+                (
+                    interface_id,
+                    int(KeyKind.FACTOR_TYPE),
+                    factor_type_id,
+                    0,
+                    int(TargetKind.FACTOR),
+                    factor_id,
+                    rank,
+                ),
+                (
+                    interface_id,
+                    int(KeyKind.NORMALIZED_SYMBOL),
+                    predicate_id,
+                    0,
+                    int(TargetKind.FACTOR),
+                    factor_id,
+                    rank,
+                ),
+            )
+        )
+    for rank, (demand_id, residual_id, factor_type_id, lexical_id) in enumerate(
+        demand_ids
+    ):
+        lookup_rows.append(
+            (
+                interface_id,
+                int(KeyKind.RESIDUAL_TYPE),
+                residual_id,
+                factor_type_id or 0,
+                int(TargetKind.DEMAND),
+                demand_id,
+                rank,
+            )
+        )
+        if lexical_id:
+            lookup_rows.append(
+                (
+                    interface_id,
+                    int(KeyKind.NORMALIZED_SYMBOL),
+                    lexical_id,
+                    residual_id,
+                    int(TargetKind.DEMAND),
+                    demand_id,
+                    rank,
+                )
+            )
+    cursor.executemany(
+        """
         INSERT INTO execution.semantic_pnf_interface_lookup
             (interface_id, key_kind, key_a, key_b,
              target_kind, target_id, rank)
-        SELECT %s,
-               {int(KeyKind.NORMALIZED_SYMBOL)},
-               stage.head_symbol_id,
-               0,
-               {int(TargetKind.OBJECT)},
-               object.object_id,
-               row_number() OVER (ORDER BY stage.ordinal) - 1
-          FROM {_OBJECT_STAGE} AS stage
-          JOIN execution.semantic_pnf_object AS object
-            ON object.object_digest = stage.object_digest
-         WHERE stage.promoted
-        UNION ALL
-        SELECT %s,
-               {int(KeyKind.FACTOR_TYPE)},
-               stage.factor_type_symbol_id,
-               0,
-               {int(TargetKind.FACTOR)},
-               factor.factor_id,
-               stage.ordinal
-          FROM {_FACTOR_STAGE} AS stage
-          JOIN execution.semantic_pnf_factor AS factor
-            ON factor.factor_digest = stage.factor_digest
-        UNION ALL
-        SELECT %s,
-               {int(KeyKind.NORMALIZED_SYMBOL)},
-               stage.predicate_symbol_id,
-               0,
-               {int(TargetKind.FACTOR)},
-               factor.factor_id,
-               stage.ordinal
-          FROM {_FACTOR_STAGE} AS stage
-          JOIN execution.semantic_pnf_factor AS factor
-            ON factor.factor_digest = stage.factor_digest
-        UNION ALL
-        SELECT %s,
-               {int(KeyKind.RESIDUAL_TYPE)},
-               stage.residual_type_symbol_id,
-               COALESCE(stage.expected_factor_type_symbol_id, 0),
-               {int(TargetKind.DEMAND)},
-               demand.demand_id,
-               stage.ordinal
-          FROM {_DEMAND_STAGE} AS stage
-          JOIN execution.semantic_pnf_demand AS demand
-            ON demand.demand_digest = stage.demand_digest
-        UNION ALL
-        SELECT %s,
-               {int(KeyKind.NORMALIZED_SYMBOL)},
-               stage.lexical_symbol_id,
-               stage.residual_type_symbol_id,
-               {int(TargetKind.DEMAND)},
-               demand.demand_id,
-               stage.ordinal
-          FROM {_DEMAND_STAGE} AS stage
-          JOIN execution.semantic_pnf_demand AS demand
-            ON demand.demand_digest = stage.demand_digest
-         WHERE stage.lexical_symbol_id IS NOT NULL
-           AND stage.lexical_symbol_id <> 0
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         """,
-        (interface_id, interface_id, interface_id, interface_id, interface_id),
+        lookup_rows,
     )
-
     cursor.execute(
-        "SELECT execution.rebuild_pnf_interface_ancestors(%s)", (interface_id,)
+        "SELECT execution.rebuild_pnf_interface_ancestors(%s)",
+        (interface_id,),
     )
     cursor.execute(
         """
@@ -602,7 +639,11 @@ def persist_sentence_closure_setwise(
                closed_at = CURRENT_TIMESTAMP
          WHERE region_id = %s
         """,
-        (int(ClosureState.LOCALLY_CLOSED), graph_revision, lease.region_id),
+        (
+            int(ClosureState.LOCALLY_CLOSED),
+            graph_revision,
+            lease.region_id,
+        ),
     )
     cursor.execute(
         """
