@@ -2,7 +2,7 @@
 
 This schema is additive: the historical ``semantic_parser_token`` relations remain
 available to explicit reference/parity/audit execution, while direct publication owns
-support through full source-evidence digests and coordinates.  ``evidence_id`` is only
+support through full source-evidence digests and coordinates. ``evidence_id`` is only
 a storage locator; ``evidence_digest`` is the stable semantic identity.
 """
 
@@ -50,7 +50,12 @@ def source_evidence_rows(fibre: PackedSentenceFibre) -> tuple[SourceEvidenceRow,
 
 
 def ensure_source_evidence_support_schema(cursor: Any) -> EvidenceSupportSchemaReceipt:
-    """Install the G4 evidence carrier without any parser-token foreign key."""
+    """Install the G4 evidence carrier without any parser-token foreign key.
+
+    Production databases receive this schema from the canonical migration chain.
+    This helper remains for isolated tests and compatibility setup only; the direct
+    publication hot path deliberately does not call it per sentence.
+    """
 
     cursor.execute(
         """
@@ -101,32 +106,61 @@ def upsert_source_evidence(
     document_ref: str,
     fibres: Sequence[PackedSentenceFibre],
 ) -> dict[bytes, int]:
-    """Persist full evidence identities and fail closed on coordinate disagreement."""
+    """Persist evidence set-wise and fail closed on coordinate disagreement.
+
+    The former implementation issued one client/server INSERT per token. Gate-A
+    showed 12,750 evidence rows, making that loop a dominant publication cost.
+    The input relation is already finite and typed, so one UNNEST projection owns
+    the entire batch without changing stable evidence identity or conflict rules.
+    """
 
     rows = tuple(row for fibre in fibres for row in source_evidence_rows(fibre))
-    for row in rows:
-        cursor.execute(
-            """
-            INSERT INTO execution.semantic_source_token_evidence
-                (evidence_digest, run_ref, document_ref, sentence_digest,
-                 token_ordinal, start_char, end_char, start_byte, end_byte)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (evidence_digest) DO NOTHING
-            """,
-            (
-                row.evidence_digest,
-                run_ref,
-                document_ref,
-                row.sentence_digest,
-                row.token_ordinal,
-                row.start_char,
-                row.end_char,
-                row.start_byte,
-                row.end_byte,
-            ),
-        )
     if not rows:
         return {}
+
+    cursor.execute(
+        """
+        WITH input AS (
+            SELECT *
+              FROM unnest(
+                  %s::BYTEA[],
+                  %s::BYTEA[],
+                  %s::INTEGER[],
+                  %s::BIGINT[],
+                  %s::BIGINT[],
+                  %s::BIGINT[],
+                  %s::BIGINT[]
+              ) AS row(
+                  evidence_digest,
+                  sentence_digest,
+                  token_ordinal,
+                  start_char,
+                  end_char,
+                  start_byte,
+                  end_byte
+              )
+        )
+        INSERT INTO execution.semantic_source_token_evidence
+            (evidence_digest, run_ref, document_ref, sentence_digest,
+             token_ordinal, start_char, end_char, start_byte, end_byte)
+        SELECT evidence_digest, %s, %s, sentence_digest,
+               token_ordinal, start_char, end_char, start_byte, end_byte
+          FROM input
+        ON CONFLICT (evidence_digest) DO NOTHING
+        """,
+        (
+            [row.evidence_digest for row in rows],
+            [row.sentence_digest for row in rows],
+            [row.token_ordinal for row in rows],
+            [row.start_char for row in rows],
+            [row.end_char for row in rows],
+            [row.start_byte for row in rows],
+            [row.end_byte for row in rows],
+            run_ref,
+            document_ref,
+        ),
+    )
+
     digests = [row.evidence_digest for row in rows]
     cursor.execute(
         """
