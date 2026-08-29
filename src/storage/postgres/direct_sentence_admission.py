@@ -1,15 +1,14 @@
 """Canonical durable admission for a DB-free direct sentence closure.
 
-The sentence-local compiler and its semantic digests remain authoritative.  This
+The sentence-local compiler and its semantic digests remain authoritative. This
 module performs only publication-time work: resolve local symbol/evidence addresses,
-allocate a durable sentence region/work lease, and reuse the existing numeric PNF
-closure writer.  The writer's two legacy parser-token support statements are
-redirected to stable source-evidence support; all other admission SQL is unchanged.
+allocate a durable sentence region/work lease, and reuse the canonical set-wise PNF
+closure writer with stable source-evidence support.
 """
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any
 from uuid import uuid4
 
 from src.pnf.direct_sentence_compiler import DirectSentenceCompileReceipt
@@ -23,43 +22,10 @@ from src.pnf.numeric_hyperfabric import (
     numeric_digest,
 )
 from src.pnf.packed_sentence_fibre import PackedSentenceFibre
-from src.storage.postgres.numeric_hyperfabric_store import (
-    WorkLease,
-    _load_profile,
-    _persist_sentence_closure,
+from src.storage.postgres.numeric_hyperfabric_store import WorkLease, _load_profile
+from src.storage.postgres.numeric_sentence_evidence_admission import (
+    persist_sentence_closure_evidence_setwise,
 )
-
-
-_OBJECT_TOKEN_SUPPORT = "execution.semantic_pnf_object_token_support"
-_FACTOR_TOKEN_SUPPORT = "execution.semantic_pnf_factor_token_support"
-_OBJECT_EVIDENCE_SUPPORT = "execution.semantic_pnf_object_evidence_support"
-_FACTOR_EVIDENCE_SUPPORT = "execution.semantic_pnf_factor_evidence_support"
-
-
-class _EvidenceSupportCursor:
-    """Redirect only legacy token-support writes to stable evidence support."""
-
-    def __init__(self, cursor: Any) -> None:
-        self._cursor = cursor
-
-    def execute(self, query: Any, params: Any = None) -> Any:
-        sql = str(query)
-        if _OBJECT_TOKEN_SUPPORT in sql:
-            rewritten = sql.replace(_OBJECT_TOKEN_SUPPORT, _OBJECT_EVIDENCE_SUPPORT)
-            rewritten = rewritten.replace("token_id", "evidence_id")
-            return self._cursor.execute(rewritten, params)
-        return self._cursor.execute(query, params)
-
-    def executemany(self, query: Any, params_seq: Iterable[Any]) -> Any:
-        sql = str(query)
-        if _FACTOR_TOKEN_SUPPORT in sql:
-            rewritten = sql.replace(_FACTOR_TOKEN_SUPPORT, _FACTOR_EVIDENCE_SUPPORT)
-            rewritten = rewritten.replace("token_id", "evidence_id")
-            return self._cursor.executemany(rewritten, params_seq)
-        return self._cursor.executemany(query, params_seq)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._cursor, name)
 
 
 def _parent_region_id(
@@ -273,8 +239,8 @@ def publish_direct_sentence(
     )
     lease = _lease_sentence_work(cursor, region_id=region_id, work_id=work_id)
     profile = _load_profile(cursor)
-    return _persist_sentence_closure(
-        _EvidenceSupportCursor(cursor),
+    return persist_sentence_closure_evidence_setwise(
+        cursor,
         lease=lease,
         closure=publication.closure,
         profile=profile,
