@@ -53,6 +53,22 @@ def _symbol_id(kind: SymbolKind, text: str) -> int:
     )
 
 
+def _morph_set_id(morphology: tuple[tuple[str, str], ...]) -> int:
+    """Hash morphology through typed numeric symbol identities, never repr/text bytes."""
+
+    parts: list[bytes] = []
+    for feature, value in morphology:
+        feature_id = _symbol_id(SymbolKind.MORPH_FEATURE, feature)
+        value_id = _symbol_id(SymbolKind.MORPH_VALUE, value)
+        parts.extend(
+            (
+                feature_id.to_bytes(8, "big", signed=False),
+                value_id.to_bytes(8, "big", signed=False),
+            )
+        )
+    return _stable_positive_id(b"fibre-morph-set-id:v2", *parts)
+
+
 def compile_packed_sentence(
     *,
     fibre: PackedSentenceFibre,
@@ -76,6 +92,14 @@ def compile_packed_sentence(
                 (SymbolKind.TAG, token.tag),
                 (SymbolKind.DEPENDENCY, token.dependency),
             }
+        )
+        values.update(
+            (kind, text)
+            for feature, value in token.morphology
+            for kind, text in (
+                (SymbolKind.MORPH_FEATURE, feature),
+                (SymbolKind.MORPH_VALUE, value),
+            )
         )
     symbols = {(kind, text): _symbol_id(kind, text) for kind, text in values}
     inverse: dict[int, tuple[SymbolKind, str]] = {}
@@ -106,14 +130,7 @@ def compile_packed_sentence(
             tag_id=symbols[(SymbolKind.TAG, token.tag)],
             dependency_id=symbols[(SymbolKind.DEPENDENCY, token.dependency)],
             head_token_id=evidence_by_local[token.head_local_id],
-            morph_set_id=(
-                _stable_positive_id(
-                    b"fibre-morph-set-id:v1",
-                    repr(token.morphology).encode("utf-8"),
-                )
-                if token.morphology
-                else None
-            ),
+            morph_set_id=_morph_set_id(token.morphology) if token.morphology else None,
             start_char=token.start_char,
             end_char=token.end_char,
         )
