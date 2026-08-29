@@ -18,8 +18,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic_ns
-from typing import Any
-
 from src.nlp.spacy_adapter import get_streaming_nlp
 from src.runtime.overlapped_parser_semantic_stream import (
     Interval,
