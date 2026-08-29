@@ -149,3 +149,23 @@ def test_non_interface_executemany_keeps_reference_shape() -> None:
     wrapped.executemany(sql, [(1, 2), (3, 4)])
     assert cursor.queries == []
     assert cursor.executemany_queries == [sql]
+
+
+def test_partition_cursor_defers_intermediate_ancestor_rebuild() -> None:
+    cursor = _Cursor()
+    wrapped = EvidenceSupportCursor(cursor, defer_interface_ancestors=True)
+    result = wrapped.execute(
+        "SELECT execution.rebuild_pnf_interface_ancestors(%s)",
+        (123,),
+    )
+    assert result is wrapped
+    assert cursor.queries == []
+
+
+def test_standalone_cursor_keeps_exact_ancestor_rebuild() -> None:
+    cursor = _Cursor()
+    wrapped = EvidenceSupportCursor(cursor)
+    sql = "SELECT execution.rebuild_pnf_interface_ancestors(%s)"
+    wrapped.execute(sql, (123,))
+    assert cursor.queries == [sql]
+    assert cursor.params == [(123,)]
