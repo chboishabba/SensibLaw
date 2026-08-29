@@ -348,9 +348,11 @@ def _upsert_source_evidence(
                 (evidence_digest, run_ref, document_ref, sentence_digest,
                  token_digest, start_char, end_char, evidence_kind)
             VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
-            ON CONFLICT (evidence_digest) DO UPDATE SET
-                run_ref = EXCLUDED.run_ref,
-                document_ref = EXCLUDED.document_ref
+            ON CONFLICT (run_ref, document_ref, evidence_digest) DO UPDATE SET
+                sentence_digest = EXCLUDED.sentence_digest,
+                token_digest = EXCLUDED.token_digest,
+                start_char = EXCLUDED.start_char,
+                end_char = EXCLUDED.end_char
             RETURNING evidence_id
             """,
             (
