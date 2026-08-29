@@ -32,6 +32,8 @@ _LEGACY_OCCURRENCE_TABLE = "execution.semantic_pnf_demand_occurrence_provenance"
 _INTERFACE_EXPORT_TABLE = "execution.semantic_pnf_interface_export"
 _INTERFACE_LOOKUP_TABLE = "execution.semantic_pnf_interface_lookup"
 _ANCESTOR_REBUILD_CALL = "select execution.rebuild_pnf_interface_ancestors"
+_STAGE_SETUP_MARKER = "create temp table if not exists tmp_numeric_sentence_object"
+_STAGE_TRUNCATE_MARKER = "truncate table"
 _OBJECT_INSERT = f"INSERT INTO {_OBJECT_TOKEN_TABLE}"
 _FACTOR_INSERT = f"INSERT INTO {_FACTOR_TOKEN_TABLE}"
 
@@ -41,14 +43,7 @@ class DirectProvenanceViolation(RuntimeError):
 
 
 def _rewrite_evidence_support_sql(sql: str) -> str:
-    """Translate only the two durable support INSERT targets.
-
-    Local temp-stage columns intentionally keep compatibility names such as
-    ``token_id``; on the direct path those values are stable evidence ids.  Do not
-    globally replace support relation names because provenance/diagnostic SELECTs
-    must remain visible to the direct authority guard rather than being silently
-    mutated into malformed evidence SQL.
-    """
+    """Translate only the two durable support INSERT targets."""
 
     rewritten = sql
     if _OBJECT_INSERT in rewritten:
@@ -99,14 +94,7 @@ def _collapse_bounded_executemany(
     sql: str,
     params_seq: Any,
 ) -> tuple[str, tuple[Any, ...]] | None:
-    """Collapse bounded interface row inserts into one PostgreSQL statement.
-
-    The shared sentence writer uses ``executemany`` for interface exports/lookups.
-    Direct execution is already bounded by one sentence closure, so repeating the
-    literal VALUES template inside one statement preserves the exact conflict rule
-    while eliminating one client/server execution per row. Other ``executemany``
-    calls remain untouched.
-    """
+    """Collapse bounded interface row inserts into one PostgreSQL statement."""
 
     lowered = sql.lower()
     if not any(
@@ -136,27 +124,63 @@ def _collapse_bounded_executemany(
     return batched_sql, flattened
 
 
-class EvidenceSupportCursor:
-    """Cursor facade enforcing evidence-only durable provenance for direct mode."""
+def _reuse_stage_setup_sql(sql: str, *, already_created: bool) -> tuple[str, bool]:
+    """Create transaction-local sentence stages once, then issue only TRUNCATE.
 
-    __slots__ = ("_cursor", "_defer_interface_ancestors")
+    ``numeric_sentence_admission._create_stages`` intentionally emits idempotent
+    CREATE TEMP statements followed by TRUNCATE so reference callers can stand
+    alone. A direct parser partition admits many sentences in one transaction;
+    reparsing those CREATE statements for every sentence has no semantic effect.
+    """
+
+    lowered = sql.lower()
+    if _STAGE_SETUP_MARKER not in lowered:
+        return sql, already_created
+    if not already_created:
+        return sql, True
+    truncate_at = lowered.find(_STAGE_TRUNCATE_MARKER)
+    if truncate_at < 0:
+        return sql, already_created
+    return sql[truncate_at:], True
+
+
+class EvidenceSupportCursor:
+    """Cursor facade enforcing and optimizing direct evidence publication."""
+
+    __slots__ = (
+        "_cursor",
+        "_defer_interface_ancestors",
+        "_reuse_sentence_stages",
+        "_sentence_stages_created",
+    )
     uses_source_evidence_provenance = True
 
-    def __init__(self, cursor: Any, *, defer_interface_ancestors: bool = False) -> None:
+    def __init__(
+        self,
+        cursor: Any,
+        *,
+        defer_interface_ancestors: bool = False,
+        reuse_sentence_stages: bool = False,
+    ) -> None:
         self._cursor = cursor
         self._defer_interface_ancestors = bool(defer_interface_ancestors)
+        self._reuse_sentence_stages = bool(reuse_sentence_stages)
+        self._sentence_stages_created = False
 
     def execute(self, query: Any, params: Any = None, *args: Any, **kwargs: Any) -> Any:
         rewritten = _direct_authority_sql(str(query))
+        if self._reuse_sentence_stages:
+            rewritten, self._sentence_stages_created = _reuse_stage_setup_sql(
+                rewritten,
+                already_created=self._sentence_stages_created,
+            )
         if (
             self._defer_interface_ancestors
             and _ANCESTOR_REBUILD_CALL in rewritten.lower()
         ):
             # Migrations 143/194 establish that hierarchy consumers do not read
             # these intermediate per-sentence rows. Migration 142 rebuilds the
-            # exact document ancestor projection set-wise at the hierarchy
-            # publication barrier. Keep standalone direct admission historical;
-            # only the pre-leased partition path opts into this deferral.
+            # exact document ancestor projection at the publication barrier.
             return self
         if params is None:
             return self._cursor.execute(rewritten, *args, **kwargs)
