@@ -1,7 +1,7 @@
 """Commit one leased spaCy partition through the canonical direct sentence path.
 
 Parser partition/coverage rows remain the durable scheduling carrier, but sentence,
-token and entity observation rows are never materialised.  Observed counts are kept
+token and entity observation rows are never materialised. Observed counts are kept
 in the partition receipt; semantic support is admitted through stable source evidence.
 """
 
@@ -12,9 +12,13 @@ from pathlib import Path
 from typing import Any
 
 from src.pnf.direct_sentence_compiler import compile_packed_sentence
+from src.pnf.direct_sentence_publication import resolve_direct_publications
 from src.pnf.numeric_hyperfabric import numeric_digest
 from src.pnf.packed_sentence_fibre import pack_spacy_partition
-from src.storage.postgres.direct_sentence_admission import publish_direct_sentence
+from src.storage.postgres.numeric_hyperfabric_store import _load_profile
+from src.storage.postgres.resolved_direct_sentence_admission import (
+    publish_resolved_direct_sentence,
+)
 from src.storage.postgres.spacy_parser_model import (
     DOCBIN_ENCODING,
     STREAMING_SPACY_CONTRACT,
@@ -123,13 +127,26 @@ def commit_direct_partition(
                     )
                     return 0
 
-                for fibre, receipt in zip(packed.sentences, compiled, strict=True):
-                    publish_direct_sentence(
+                publications = resolve_direct_publications(
+                    cursor,
+                    run_ref=partition.run_ref,
+                    document_ref=partition.document_ref,
+                    fibres=packed.sentences,
+                    directs=compiled,
+                )
+                profile = _load_profile(cursor)
+                for fibre, publication in zip(
+                    packed.sentences,
+                    publications,
+                    strict=True,
+                ):
+                    publish_resolved_direct_sentence(
                         cursor,
                         run_ref=partition.run_ref,
                         document_ref=partition.document_ref,
                         fibre=fibre,
-                        direct=receipt,
+                        publication=publication,
+                        profile=profile,
                     )
 
                 for start_char, end_char, start_byte, end_byte in packed.boundary_obligations:
