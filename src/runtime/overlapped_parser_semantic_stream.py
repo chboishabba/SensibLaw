@@ -7,14 +7,16 @@ PNF meaning.
 
 A queue bound prevents parser output from becoming retained history.  Completed
 items are consumed in order, and the producer may be at most ``queue_size``
-items ahead of semantic consumption.
+items ahead of semantic consumption.  Consumer cancellation is propagated back
+to the producer so a failed semantic publication cannot strand a parser thread
+blocked on a full queue.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from queue import Queue
-from threading import Thread
+from queue import Full, Queue
+from threading import Event, Thread
 from time import monotonic_ns
 from typing import Any, Iterable, Iterator
 
@@ -73,6 +75,16 @@ def stream_parsed_items(
     queue: Queue[ParsedStreamItem | _ProducerFailure | object] = Queue(
         maxsize=queue_size
     )
+    stop = Event()
+
+    def put_until_stopped(item: ParsedStreamItem | _ProducerFailure | object) -> bool:
+        while not stop.is_set():
+            try:
+                queue.put(item, timeout=0.05)
+                return True
+            except Full:
+                continue
+        return False
 
     def produce() -> None:
         try:
@@ -84,31 +96,31 @@ def stream_parsed_items(
                     n_process=1,
                 )
             )
-            while True:
+            while not stop.is_set():
                 started = monotonic_ns()
                 try:
                     doc, context = next(iterator)
                 except StopIteration:
-                    finished = monotonic_ns()
-                    # Iterator exhaustion itself is not semantic parser work,
-                    # but this timestamp is the observable parser EOF boundary.
-                    activity.finished_ns = finished
+                    activity.finished_ns = monotonic_ns()
                     break
                 finished = monotonic_ns()
                 interval = (started, finished)
                 activity.intervals.append(interval)
-                queue.put(
+                if not put_until_stopped(
                     ParsedStreamItem(
                         doc=doc,
                         context=context,
                         parser_interval=interval,
                     )
-                )
+                ):
+                    return
         except BaseException as error:
             activity.finished_ns = monotonic_ns()
-            queue.put(_ProducerFailure(error))
+            put_until_stopped(_ProducerFailure(error))
         finally:
-            queue.put(_SENTINEL)
+            if activity.finished_ns is None:
+                activity.finished_ns = monotonic_ns()
+            put_until_stopped(_SENTINEL)
 
     producer = Thread(
         target=produce,
@@ -125,6 +137,9 @@ def stream_parsed_items(
                 raise item.error
             yield item
     finally:
+        # If the consumer raises or stops iteration early, unblock a producer
+        # waiting on the bounded queue rather than retaining parser history.
+        stop.set()
         producer.join()
     if activity.finished_ns is None:
         activity.finished_ns = monotonic_ns()
