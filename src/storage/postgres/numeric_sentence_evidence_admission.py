@@ -31,6 +31,7 @@ _PARSER_TOKEN_TABLE = "execution.semantic_parser_token"
 _LEGACY_OCCURRENCE_TABLE = "execution.semantic_pnf_demand_occurrence_provenance"
 _INTERFACE_EXPORT_TABLE = "execution.semantic_pnf_interface_export"
 _INTERFACE_LOOKUP_TABLE = "execution.semantic_pnf_interface_lookup"
+_ANCESTOR_REBUILD_CALL = "select execution.rebuild_pnf_interface_ancestors"
 _OBJECT_INSERT = f"INSERT INTO {_OBJECT_TOKEN_TABLE}"
 _FACTOR_INSERT = f"INSERT INTO {_FACTOR_TOKEN_TABLE}"
 
@@ -103,7 +104,7 @@ def _collapse_bounded_executemany(
     The shared sentence writer uses ``executemany`` for interface exports/lookups.
     Direct execution is already bounded by one sentence closure, so repeating the
     literal VALUES template inside one statement preserves the exact conflict rule
-    while eliminating one client/server execution per row.  Other ``executemany``
+    while eliminating one client/server execution per row. Other ``executemany``
     calls remain untouched.
     """
 
@@ -138,14 +139,25 @@ def _collapse_bounded_executemany(
 class EvidenceSupportCursor:
     """Cursor facade enforcing evidence-only durable provenance for direct mode."""
 
-    __slots__ = ("_cursor",)
+    __slots__ = ("_cursor", "_defer_interface_ancestors")
     uses_source_evidence_provenance = True
 
-    def __init__(self, cursor: Any) -> None:
+    def __init__(self, cursor: Any, *, defer_interface_ancestors: bool = False) -> None:
         self._cursor = cursor
+        self._defer_interface_ancestors = bool(defer_interface_ancestors)
 
     def execute(self, query: Any, params: Any = None, *args: Any, **kwargs: Any) -> Any:
         rewritten = _direct_authority_sql(str(query))
+        if (
+            self._defer_interface_ancestors
+            and _ANCESTOR_REBUILD_CALL in rewritten.lower()
+        ):
+            # Migrations 143/194 establish that hierarchy consumers do not read
+            # these intermediate per-sentence rows. Migration 142 rebuilds the
+            # exact document ancestor projection set-wise at the hierarchy
+            # publication barrier. Keep standalone direct admission historical;
+            # only the pre-leased partition path opts into this deferral.
+            return self
         if params is None:
             return self._cursor.execute(rewritten, *args, **kwargs)
         return self._cursor.execute(rewritten, params, *args, **kwargs)
@@ -182,12 +194,17 @@ def persist_sentence_closure_evidence_setwise(
     lease: WorkLease,
     closure: NumericSentenceClosure,
     profile: MdlProfile,
+    defer_interface_ancestors: bool = False,
 ) -> int:
     """Persist direct closure semantics without any parser-token provenance."""
 
-    evidence_cursor = (
-        cursor if isinstance(cursor, EvidenceSupportCursor) else EvidenceSupportCursor(cursor)
-    )
+    if isinstance(cursor, EvidenceSupportCursor):
+        evidence_cursor = cursor
+    else:
+        evidence_cursor = EvidenceSupportCursor(
+            cursor,
+            defer_interface_ancestors=defer_interface_ancestors,
+        )
     return persist_sentence_closure_setwise(
         evidence_cursor,
         lease=lease,
