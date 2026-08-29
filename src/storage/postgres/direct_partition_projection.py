@@ -15,9 +15,12 @@ from src.pnf.direct_sentence_compiler import compile_packed_sentence
 from src.pnf.direct_sentence_publication import resolve_direct_publications
 from src.pnf.numeric_hyperfabric import numeric_digest
 from src.pnf.packed_sentence_fibre import pack_spacy_partition
+from src.storage.postgres.direct_sentence_admission import (
+    register_and_lease_sentence_work_batch,
+)
 from src.storage.postgres.numeric_hyperfabric_store import _load_profile
 from src.storage.postgres.resolved_direct_sentence_admission import (
-    publish_resolved_direct_sentence,
+    publish_preleased_resolved_direct_sentence,
 )
 from src.storage.postgres.spacy_parser_model import (
     DOCBIN_ENCODING,
@@ -135,16 +138,20 @@ def commit_direct_partition(
                     directs=compiled,
                 )
                 profile = _load_profile(cursor)
-                for fibre, publication in zip(
-                    packed.sentences,
+                sentence_leases = register_and_lease_sentence_work_batch(
+                    cursor,
+                    run_ref=partition.run_ref,
+                    document_ref=partition.document_ref,
+                    fibres=packed.sentences,
+                )
+                for lease, publication in zip(
+                    sentence_leases,
                     publications,
                     strict=True,
                 ):
-                    publish_resolved_direct_sentence(
+                    publish_preleased_resolved_direct_sentence(
                         cursor,
-                        run_ref=partition.run_ref,
-                        document_ref=partition.document_ref,
-                        fibre=fibre,
+                        lease=lease,
                         publication=publication,
                         profile=profile,
                     )
