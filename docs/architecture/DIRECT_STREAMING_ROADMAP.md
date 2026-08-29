@@ -17,13 +17,15 @@ listed there before changing parser/direct-PNF execution.
 | G3 direct/reference parity | executable, not production-certified | bounded consumer-observation parity corpus and fail-closed router promotion remain |
 | G4a stable evidence/provenance | closed for direct execution | stable evidence is durable semantic support; direct runs require no parser rows |
 | G4b production parser-token retirement | pending cutover | certify parser-token writes = 0 on the public production authority after G3 |
-| cold Gate-A functional | closed | complete direct end-to-end execution exists |
-| cold Gate-A performance | open | system optimization continues, but is not a semantic prerequisite for G3/G4 certification |
-| G5/G6 streaming/delta hierarchy | next architecture tranche | consume semantic work alongside parser progress and propagate only affected deltas |
+| cold Gate-A functional | closed on pre-overlap head | complete direct end-to-end execution exists; revalidate after overlap changes |
+| parser/direct partition overlap | implemented, awaiting fresh receipt | completed partition `n` is consumed while spaCy parses partition `n+1` through a bounded one-item queue |
+| event-level Pac-Man feed | open | move feed point earlier only when canonical parser adapter exposes stable prefix/event semantics |
+| delta-native hierarchy | next architecture tranche | propagate only affected outward deltas/frontiers rather than broad post-parse rescans |
 
 ## Last measured cold direct checkpoint
 
-Fresh isolated workload:
+The last **measured** green checkpoint predates the new parser/semantic overlap
+implementation. Fresh isolated workload:
 
 - 247 sentences;
 - 12,750 tokens;
@@ -44,14 +46,16 @@ direct/parser ratio       ~8.80x
 ```
 
 The control-plane tranche reduced publication by about 12.4% relative to the
-previous green direct baseline.  Keep that work.
+previous green direct baseline. Keep that work.
 
-However, this measurement also shows that `2x parser time` is a **whole-system
+Do **not** compare the old `local publication` field mechanically with the new
+overlap receipt. Under overlap, parser and publication active times can overlap
+and therefore do not sum to wall time. `direct_total_ns` remains directly
+comparable; the new receipt explicitly reports `phase_accounting =
+overlapped_active_time`.
+
+This checkpoint already showed that `2x parser time` is a **whole-system
 milestone**, not a prerequisite that should block the architecture roadmap.
-Even eliminating hierarchy completely would leave publication far above that
-budget, while eliminating publication completely would still leave parser plus
-hierarchy above `2x` on this run.
-
 Therefore do not spend indefinite effort shaving the cold publication path
 before implementing the mechanisms intended to overlap and avoid work.
 
@@ -62,7 +66,8 @@ bank G1/G2/G4a + measured partition publication win
     -> bounded G3 direct/reference parity
     -> direct production cutover
     -> certify production G4b
-    -> stream semantic execution alongside parser availability
+    -> validate/expand implemented parser-semantic overlap
+    -> expose stable earlier parser events/prefixes when canonical parser permits
     -> delta-native affected-boundary hierarchy/reconciliation
     -> benchmark cold + incremental/warm execution
     -> revisit partition-keyed graph/provenance persistence only if still dominant
@@ -103,41 +108,70 @@ The exact semantic law is:
 state(prefix ++ suffix) = continue(state(prefix), suffix)
 ```
 
-`src/pnf/streaming_semantic_pacman.py` is the runtime strategy kernel for this
-law.  It intentionally stores no parser-event history.
+`src/pnf/streaming_semantic_pacman.py` is the pure runtime strategy kernel for
+this law. It intentionally stores no parser-event history.
+
+## Implemented overlap layer
+
+`src/runtime/overlapped_parser_semantic_stream.py` provides a bounded ordered
+producer/consumer bridge. In the direct Gate-A path:
+
+```text
+producer thread:  canonical spaCy pipeline.pipe(...)
+                        |
+                        v
+                  queue(maxsize=1)
+                        |
+                        v
+consumer:         commit_direct_partition(...)
+```
+
+This means a completed parser partition is consumed immediately while spaCy is
+allowed to work on the next partition. The queue bound prevents completed
+parser output from becoming retained history. Consumer failure/early-stop
+signals cancellation to the producer.
+
+The semantic owner remains `commit_direct_partition` -> packed fibre -> existing
+numeric sentence composition. The overlap helper owns scheduling only.
 
 ## Feed-point reality
 
-The existing PostgreSQL streaming spaCy worker currently obtains a completed
-bounded spaCy `Doc` from `pipeline.pipe(...)`, then projects/commits it and
-runs PNF closure.  That is streaming at partition granularity, not yet at the
-final semantic event granularity.
+The current parser still exposes a completed bounded spaCy `Doc` as the stable
+unit. Therefore the implemented runtime is **partition-fused Pac-Man streaming**,
+not yet token/dependency-event streaming.
 
-Do not fake finer streaming by creating a second parser or second PNF graph
-implementation.  Move the feed point earlier only when the canonical parser
-adapter can expose a stable event/prefix carrier whose consumer-visible meaning
-is preserved.
+That is a deliberate intermediate point. Do not fake finer streaming by
+creating a second parser or PNF graph implementation. Move the feed point earlier
+only when the canonical parser adapter can expose a stable event/prefix carrier
+whose consumer-visible meaning is preserved.
 
-Until then, completed-Doc or sentence batches are valid *physical fusions* of
-the same streaming fold.
+Completed-Doc, sentence, SWAR, or partition batches are valid physical fusions
+of the same ordered delta fold.
 
 ## Performance receipts for G5/G6
 
-The streaming programme should add at least:
+The direct overlap benchmark now reports:
+
+```text
+parser_semantic_overlap_ns
+semantic_sentences_at_parser_eof
+stream_completion_fraction
+post_parser_tail_ns
+phase_accounting = overlapped_active_time
+```
+
+The broader streaming programme should additionally converge on:
 
 ```text
 stream_work_units
 tail_work_units
-stream_completion_fraction
 frontier_size_at_EOF
-tail_wall_time
-semantic/parser overlap wall time
 affected hierarchy boundaries
 avoided unchanged relation writes
 ```
 
 The intuitive target `stream_completion_fraction >= 0.8` is initially an
-engineering objective only.  It is not a correctness gate.
+engineering objective only. It is not a correctness gate.
 
 Warm/incremental execution must be measured separately from cold ingestion.
 The architecture should eventually make the important cost proportional to the
@@ -149,6 +183,7 @@ affected frontier rather than the total pre-existing document state.
 - no parser-token surrogate as direct semantic identity;
 - no sentence-local PostgreSQL requirement;
 - no full prefix/history replay for each new parser observation;
+- no unbounded parser-output queue masquerading as streaming;
 - no hierarchy rescan merely to discover whether an outward delta exists;
 - no production cutover without consumer-visible direct/reference parity;
 - no benchmark result redefining semantic authority.
