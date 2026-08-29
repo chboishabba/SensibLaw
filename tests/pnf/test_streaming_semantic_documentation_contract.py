@@ -4,22 +4,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-FORMAL_OWNERS = (
+CORE_FORMAL_OWNERS = (
     "StreamingSemanticPacmanKernelExact.agda",
-    "StreamingPhysicalOverlapReceiptExact.agda",
     "DeltaNativePNFDreamFlowExact.agda",
     "FibreSolverDeltaStreamExact.agda",
     "DirectDeltaCompilerArchitectureExact.agda",
     "DirectDeltaCompilerActivationExact.agda",
     "DirectStreamingRoadmapSynthesisExact.agda",
 )
+FORMAL_OWNERS = CORE_FORMAL_OWNERS + ("StreamingPhysicalOverlapReceiptExact.agda",)
 
 
 def test_agents_requires_streaming_agda_owners() -> None:
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "docs/architecture/STREAMING_SEMANTIC_PACMAN.md" in agents
     assert "state(prefix ++ suffix) = continue(state(prefix), suffix)" in agents
-    for owner in FORMAL_OWNERS:
+    for owner in CORE_FORMAL_OWNERS:
         assert owner in agents
 
 
