@@ -29,7 +29,13 @@ def publish_preleased_resolved_direct_sentence(
     publication: DirectPublicationReceipt,
     profile: MdlProfile,
 ) -> int:
-    """Admit one pre-resolved closure using an already-created sentence fence."""
+    """Admit one pre-resolved closure using an already-created sentence fence.
+
+    Partition projection has no ancestor consumer between sentence admission and the
+    hierarchy publication barrier. Migrations 143/194 permit these intermediate
+    projections to be deferred, while migration 142 owns the exact set-wise final
+    document projection.
+    """
 
     if publication.parser_token_writes != 0:
         raise RuntimeError("direct publication unexpectedly declared parser-token writes")
@@ -38,6 +44,7 @@ def publish_preleased_resolved_direct_sentence(
         lease=lease,
         closure=publication.closure,
         profile=profile,
+        defer_interface_ancestors=True,
     )
 
 
