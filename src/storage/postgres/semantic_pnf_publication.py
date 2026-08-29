@@ -1,10 +1,9 @@
 """Publication boundary for DB-free sentence-local semantic closures.
 
-The local composer owns semantic identity.  This module resolves typed symbols,
-stable source evidence, and a durable sentence region only after composition.
-Object/factor/demand digests are copied unchanged.  The existing hyperfabric
-closure writer is reused through a narrow cursor adapter that redirects its two
-legacy parser-token support writes into stable evidence support tables.
+Local composition owns semantic identity. Database ids are resolved only here,
+and stable source evidence is scoped to the durable run/document. The existing
+hyperfabric writer is reused while its legacy parser-token support writes are
+redirected to evidence support.
 """
 
 from __future__ import annotations
@@ -21,13 +20,7 @@ from src.pnf.numeric_hyperfabric import (
     WorkState,
     numeric_digest,
 )
-from src.pnf.numeric_operator_composition import (
-    NumericDemandSpec,
-    NumericFactorSpec,
-    NumericObjectSpec,
-    NumericSentenceClosure,
-    NumericSlotSpec,
-)
+from src.pnf.numeric_operator_composition import NumericSentenceClosure
 from src.storage.postgres.numeric_hyperfabric_store import (
     WorkLease,
     _load_profile,
@@ -44,7 +37,7 @@ _FACTOR_EVIDENCE_SUPPORT = "execution.semantic_pnf_factor_evidence_support"
 
 
 class _EvidenceSupportCursor:
-    """Redirect only legacy support writes; delegate every other cursor action."""
+    """Redirect only legacy token-support writes to stable evidence support."""
 
     def __init__(self, cursor: Any, evidence_id_by_local_token: Mapping[int, int]):
         self._cursor = cursor
@@ -83,8 +76,7 @@ class _EvidenceSupportCursor:
             ]
             rewritten = sql.replace(_FACTOR_TOKEN_SUPPORT, _FACTOR_EVIDENCE_SUPPORT)
             return self._cursor.executemany(
-                rewritten.replace("token_id", "evidence_id"),
-                rows,
+                rewritten.replace("token_id", "evidence_id"), rows
             )
         return self._cursor.executemany(query, params_seq)
 
@@ -93,16 +85,16 @@ class _EvidenceSupportCursor:
 
 
 def _resolve_symbol_ids(
-    cursor: Any,
-    composition: LocalSentenceComposition,
+    cursor: Any, composition: LocalSentenceComposition
 ) -> dict[int, int]:
     values = [(binding.kind, binding.text) for binding in composition.symbol_bindings]
     db_by_value = intern_symbols(cursor, values)
-    resolved: dict[int, int] = {}
-    for binding in composition.symbol_bindings:
-        normalized = normalize_symbol(binding.kind, binding.text)
-        resolved[binding.local_ref] = int(db_by_value[(binding.kind, normalized)])
-    return resolved
+    return {
+        binding.local_ref: int(
+            db_by_value[(binding.kind, normalize_symbol(binding.kind, binding.text))]
+        )
+        for binding in composition.symbol_bindings
+    }
 
 
 def _mapped(symbol_id: int | None, db_id_by_local: Mapping[int, int]) -> int | None:
@@ -124,7 +116,9 @@ def reindex_closure_for_publication(
     objects = tuple(
         replace(
             row,
-            object_kind_symbol_id=int(_mapped(row.object_kind_symbol_id, db_symbol_id_by_local)),
+            object_kind_symbol_id=int(
+                _mapped(row.object_kind_symbol_id, db_symbol_id_by_local)
+            ),
             head_symbol_id=int(_mapped(row.head_symbol_id, db_symbol_id_by_local)),
         )
         for row in closure.objects
@@ -132,12 +126,18 @@ def reindex_closure_for_publication(
     factors = tuple(
         replace(
             row,
-            factor_type_symbol_id=int(_mapped(row.factor_type_symbol_id, db_symbol_id_by_local)),
-            predicate_symbol_id=int(_mapped(row.predicate_symbol_id, db_symbol_id_by_local)),
+            factor_type_symbol_id=int(
+                _mapped(row.factor_type_symbol_id, db_symbol_id_by_local)
+            ),
+            predicate_symbol_id=int(
+                _mapped(row.predicate_symbol_id, db_symbol_id_by_local)
+            ),
             slots=tuple(
                 replace(
                     slot,
-                    role_symbol_id=int(_mapped(slot.role_symbol_id, db_symbol_id_by_local)),
+                    role_symbol_id=int(
+                        _mapped(slot.role_symbol_id, db_symbol_id_by_local)
+                    ),
                 )
                 for slot in row.slots
             ),
@@ -335,6 +335,9 @@ def _lease_direct_work(cursor: Any, *, work_id: int, region_id: int) -> WorkLeas
 
 def _upsert_source_evidence(
     cursor: Any,
+    *,
+    run_ref: str,
+    document_ref: str,
     composition: LocalSentenceComposition,
 ) -> dict[int, int]:
     result: dict[int, int] = {}
@@ -342,15 +345,18 @@ def _upsert_source_evidence(
         cursor.execute(
             """
             INSERT INTO execution.semantic_pnf_source_evidence
-                (evidence_digest, sentence_digest, token_digest,
-                 start_char, end_char, evidence_kind)
-            VALUES (%s, %s, %s, %s, %s, 1)
+                (evidence_digest, run_ref, document_ref, sentence_digest,
+                 token_digest, start_char, end_char, evidence_kind)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
             ON CONFLICT (evidence_digest) DO UPDATE SET
-                evidence_digest = EXCLUDED.evidence_digest
+                run_ref = EXCLUDED.run_ref,
+                document_ref = EXCLUDED.document_ref
             RETURNING evidence_id
             """,
             (
                 evidence.evidence_digest,
+                run_ref,
+                document_ref,
                 composition.sentence_digest,
                 evidence.token_digest,
                 evidence.start_char,
@@ -372,10 +378,14 @@ def publish_local_sentence(
 
     db_symbols = _resolve_symbol_ids(cursor, composition)
     reindexed = reindex_closure_for_publication(
-        composition.closure,
-        db_symbol_id_by_local=db_symbols,
+        composition.closure, db_symbol_id_by_local=db_symbols
     )
-    evidence_ids = _upsert_source_evidence(cursor, composition)
+    evidence_ids = _upsert_source_evidence(
+        cursor,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        composition=composition,
+    )
     region_id, work_id = _register_direct_region(
         cursor,
         run_ref=run_ref,
@@ -384,16 +394,12 @@ def publish_local_sentence(
     )
     lease = _lease_direct_work(cursor, work_id=work_id, region_id=region_id)
     profile = _load_profile(cursor)
-    support_cursor = _EvidenceSupportCursor(cursor, evidence_ids)
     return _persist_sentence_closure(
-        support_cursor,
+        _EvidenceSupportCursor(cursor, evidence_ids),
         lease=lease,
         closure=reindexed,
         profile=profile,
     )
 
 
-__all__ = [
-    "publish_local_sentence",
-    "reindex_closure_for_publication",
-]
+__all__ = ["publish_local_sentence", "reindex_closure_for_publication"]
