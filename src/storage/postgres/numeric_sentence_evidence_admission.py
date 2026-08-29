@@ -4,6 +4,11 @@ This keeps the existing set-wise sentence admission as the single persistence ow
 while changing only the durable support carrier. Direct execution has evidence ids
 in the fields historically named ``*_token_id``; the compatibility reference path
 continues to use parser-token ids unchanged.
+
+The direct cursor is also an authority boundary: legacy parser-token projection may
+exist for reference/parity execution, but direct publication must neither read nor
+write ``semantic_parser_token`` and must never persist the legacy token-support
+relations. Violations fail closed before reaching PostgreSQL.
 """
 
 from __future__ import annotations
@@ -22,6 +27,11 @@ _OBJECT_TOKEN_TABLE = "execution.semantic_pnf_object_token_support"
 _FACTOR_TOKEN_TABLE = "execution.semantic_pnf_factor_token_support"
 _OBJECT_EVIDENCE_TABLE = "execution.semantic_pnf_object_evidence_support"
 _FACTOR_EVIDENCE_TABLE = "execution.semantic_pnf_factor_evidence_support"
+_PARSER_TOKEN_TABLE = "execution.semantic_parser_token"
+
+
+class DirectProvenanceViolation(RuntimeError):
+    """Direct publication attempted to cross into legacy parser-token authority."""
 
 
 def _rewrite_evidence_support_sql(sql: str) -> str:
@@ -44,8 +54,32 @@ def _rewrite_evidence_support_sql(sql: str) -> str:
     return rewritten
 
 
+def _direct_authority_sql(sql: str) -> str:
+    """Translate support SQL and reject every legacy provenance dependency.
+
+    Local temp-stage columns may retain compatibility names such as ``token_id``;
+    they carry stable evidence ids on the direct path. What is forbidden is any
+    access to the durable parser-token projection or either durable token-support
+    relation after rewriting.
+    """
+
+    rewritten = _rewrite_evidence_support_sql(sql)
+    lowered = rewritten.lower()
+    forbidden = (
+        _PARSER_TOKEN_TABLE,
+        _OBJECT_TOKEN_TABLE,
+        _FACTOR_TOKEN_TABLE,
+    )
+    crossed = next((table for table in forbidden if table in lowered), None)
+    if crossed is not None:
+        raise DirectProvenanceViolation(
+            f"direct evidence publication crossed legacy provenance authority: {crossed}"
+        )
+    return rewritten
+
+
 class EvidenceSupportCursor:
-    """Cursor facade that changes only token-support persistence into evidence support."""
+    """Cursor facade enforcing evidence-only durable provenance for direct mode."""
 
     __slots__ = ("_cursor",)
 
@@ -53,14 +87,14 @@ class EvidenceSupportCursor:
         self._cursor = cursor
 
     def execute(self, query: Any, params: Any = None, *args: Any, **kwargs: Any) -> Any:
-        rewritten = _rewrite_evidence_support_sql(str(query))
+        rewritten = _direct_authority_sql(str(query))
         if params is None:
             return self._cursor.execute(rewritten, *args, **kwargs)
         return self._cursor.execute(rewritten, params, *args, **kwargs)
 
     def executemany(self, query: Any, params_seq: Any, *args: Any, **kwargs: Any) -> Any:
         return self._cursor.executemany(
-            _rewrite_evidence_support_sql(str(query)),
+            _direct_authority_sql(str(query)),
             params_seq,
             *args,
             **kwargs,
@@ -68,7 +102,7 @@ class EvidenceSupportCursor:
 
     def copy(self, query: Any, *args: Any, **kwargs: Any) -> Any:
         return self._cursor.copy(
-            _rewrite_evidence_support_sql(str(query)),
+            _direct_authority_sql(str(query)),
             *args,
             **kwargs,
         )
@@ -84,7 +118,7 @@ def persist_sentence_closure_evidence_setwise(
     closure: NumericSentenceClosure,
     profile: MdlProfile,
 ) -> int:
-    """Persist direct closure semantics without any parser-token support relation."""
+    """Persist direct closure semantics without any parser-token provenance."""
 
     return persist_sentence_closure_setwise(
         EvidenceSupportCursor(cursor),
@@ -95,6 +129,7 @@ def persist_sentence_closure_evidence_setwise(
 
 
 __all__ = [
+    "DirectProvenanceViolation",
     "EvidenceSupportCursor",
     "persist_sentence_closure_evidence_setwise",
 ]
