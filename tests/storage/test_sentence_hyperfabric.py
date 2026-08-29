@@ -27,6 +27,9 @@ def test_compile_doc_sentences_needs_no_database_identity(monkeypatch) -> None:
     sentence = SimpleNamespace(
         sentence_ref="parser-sentence:local",
         sentence_digest=sentence_digest,
+        ordinal=3,
+        start_char=10,
+        end_char=15,
     )
     token = SimpleNamespace(
         sentence_ref=sentence.sentence_ref,
@@ -59,8 +62,26 @@ def test_compile_doc_sentences_needs_no_database_identity(monkeypatch) -> None:
     result = subject.compile_doc_sentences(partition=object(), doc=object())
 
     assert len(result) == 1
-    assert result[0].region_ref == subject.stable_sentence_region_ref(sentence_digest)
-    assert result[0].tokens[0].token_id == subject.stable_token_ref(token_digest)
-    assert result[0].tokens[0].head_token_id == result[0].tokens[0].token_id
-    assert captured["region_id"] == result[0].region_ref
-    assert result[0].token_digests == ((result[0].tokens[0].token_id, token_digest),)
+    compiled = result[0]
+    assert compiled.ordinal == 3
+    assert (compiled.start_char, compiled.end_char) == (10, 15)
+    assert compiled.region_ref == subject.stable_sentence_region_ref(sentence_digest)
+    assert compiled.tokens[0].token_id == subject.stable_token_ref(token_digest)
+    assert compiled.tokens[0].head_token_id == compiled.tokens[0].token_id
+    assert captured["region_id"] == compiled.region_ref
+    assert len(compiled.source_evidence) == 1
+    evidence = compiled.source_evidence[0]
+    assert evidence.local_token_ref == compiled.tokens[0].token_id
+    assert evidence.token_digest == token_digest
+    assert evidence.evidence_digest == subject.stable_source_evidence_digest(
+        sentence_digest=sentence_digest,
+        token_digest=token_digest,
+        start_char=10,
+        end_char=15,
+    )
+    binding = next(
+        row
+        for row in compiled.symbol_bindings
+        if row.kind is SymbolKind.LEMMA and row.text == "shall"
+    )
+    assert binding.local_ref == compiled.tokens[0].lemma_id
