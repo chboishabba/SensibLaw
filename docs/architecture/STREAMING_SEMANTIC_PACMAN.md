@@ -20,7 +20,7 @@ newer promoted equivalents):
 - `DASHI/Cognition/PNF/DirectDeltaCompilerActivationExact.agda`
 - `DASHI/Cognition/PNF/DirectStreamingRoadmapSynthesisExact.agda`
 
-If code and these formal owners disagree, do not silently pick one.  Record the
+If code and these formal owners disagree, do not silently pick one. Record the
 mismatch and repair the bridge or the stale side explicitly.
 
 ## Core law
@@ -30,7 +30,7 @@ The semantic state after the whole stream must be obtainable by continuing from
 the prefix state:
 
 ```text
-state(p ++ q) = continue(state(p), q)
+state(prefix ++ suffix) = continue(state(prefix), suffix)
 ```
 
 Equivalently, in the delta-native formulation:
@@ -42,7 +42,7 @@ S[p ++ q] = apply(S[p], Delta(q))
 A consumed parser prefix is therefore never rescanned merely because later
 parser observations arrive.
 
-Physical batching is allowed.  A parser partition, sentence tranche, SIMD/SWAR
+Physical batching is allowed. A parser partition, sentence tranche, SIMD/SWAR
 batch, or another bounded execution unit may fuse adjacent events as long as
 ordered semantic composition is unchanged.
 
@@ -65,7 +65,7 @@ It is **not**:
 K_t = all previous parser events + a promise to compile them later
 ```
 
-Resolved events disappear into current authority.  Only unresolved forward
+Resolved events disappear into current authority. Only unresolved forward
 obligations remain on the frontier.
 
 Examples of legitimate frontier members include:
@@ -119,8 +119,8 @@ End-of-stream must **not** mean "start semantic compilation now".
 
 ## Current implementation seam
 
-`src/pnf/streaming_semantic_pacman.py` is the pure execution kernel.  It is a
-strategy layer around the existing semantic authority.  It stores no parser
+`src/pnf/streaming_semantic_pacman.py` is the pure execution kernel. It is a
+strategy layer around the existing semantic authority. It stores no parser
 history and exposes:
 
 - ordered `consume(event)`;
@@ -129,11 +129,38 @@ history and exposes:
 - `finalize()` for residual tail work only;
 - work accounting for stream-vs-tail measurement.
 
-The current PostgreSQL/spaCy orchestrator still receives a completed bounded
-spaCy `Doc` before its numeric projection.  Therefore current production
-streaming is coarser than the final target.  The correct migration is to move
-the feed point earlier as the parser adapter exposes stable observations, while
-keeping this same semantic kernel and existing PNF owner.
+`src/runtime/overlapped_parser_semantic_stream.py` is the first physical overlap
+owner. It runs the canonical parser producer in one thread and exposes a bounded
+ordered queue to the existing direct semantic/publication consumer. The queue
+is intentionally small (Gate-A uses one item), so parser output cannot become
+an unbounded retained history. Consumer failure/early-stop signals cancellation
+back to the producer.
+
+The direct Gate-A path now uses this overlap:
+
+```text
+spaCy parses partition n+1
+          ||
+          || overlap
+          \/
+direct packed-fibre compile/publication consumes completed partition n
+```
+
+`commit_direct_partition` remains the existing semantic/publication owner. The
+overlap layer never constructs its own objects/factors/demands and therefore is
+not a second compiler.
+
+### Current granularity and next feed point
+
+spaCy still yields a completed bounded `Doc` for each parser partition. Thus the
+implemented overlap is **partition-fused streaming**, not yet token/dependency
+event streaming. This is a legitimate physical fusion of the formal ordered
+fold and already removes the previous barrier where the benchmark materialised
+all leased parsed partitions before beginning direct work.
+
+The next evolution is to move the feed point earlier only when the canonical
+parser adapter can expose stable prefix/events whose consumer-visible meaning is
+well-defined. Keep the same semantic owner and Pac-Man state when that happens.
 
 Do **not** implement a second token-by-token graph compiler merely to claim
 streaming.
@@ -150,7 +177,7 @@ G4  durable stable-evidence authority, production parser-token writes = 0
 ```
 
 The Pac-Man kernel is the temporal synthesis of G1/G2 with the delta-native
-G5/G6 destination.  It does not weaken G3 or G4 and does not make parser-token
+G5/G6 destination. It does not weaken G3 or G4 and does not make parser-token
 surrogates semantic identity.
 
 PostgreSQL is the durable/global/publication boundary, not the mandatory
@@ -172,7 +199,21 @@ fraction = W_stream / (W_stream + W_tail)
 The initial aspiration may be `fraction >= 0.8`, but correctness must never
 depend on that threshold.
 
-Wall time is usually more useful.  The desired system shape is:
+The overlapped Gate-A receipt adds concrete physical measurements:
+
+```text
+parser_semantic_overlap_ns
+semantic_sentences_at_parser_eof
+stream_completion_fraction
+post_parser_tail_ns
+phase_accounting = overlapped_active_time
+```
+
+Because parser and publication active intervals now overlap, their active-time
+fields are not expected to sum to total wall time. End-to-end `direct_total_ns`
+remains the comparable wall-clock metric.
+
+Wall time should converge toward:
 
 ```text
 T_direct ~= max(T_parser, T_semantic_stream) + T_tail + T_publication_boundary
@@ -195,14 +236,14 @@ The current recommended order is:
 bank the proven direct architecture and measured publication improvements
     -> bounded G3 parity corpus
     -> promote direct production authority / certify production G4
-    -> wire parser observations through this streaming kernel
+    -> expand the implemented parser/semantic overlap toward stable event prefixes
     -> make hierarchy/reconciliation delta-native over affected boundaries
     -> benchmark cold and incremental execution
     -> revisit deeper persistence batching only if it remains dominant
 ```
 
 Do not require endless cold-publication micro-optimization before advancing to
-streaming/delta hierarchy.  Benchmarks prioritize implementation work; they do
+streaming/delta hierarchy. Benchmarks prioritize implementation work; they do
 not redefine the semantic architecture.
 
 ## Acceptance tests for future streaming work
@@ -219,6 +260,8 @@ apply:
 6. Stable evidence identities survive publication reindexing.
 7. Sentence-local database crossings remain zero.
 8. Production direct mode does not require parser-token rows.
-9. Stream/tail work is measured separately.
+9. Stream/tail work and parser/semantic overlap are measured separately.
 10. Consumer-visible direct/reference parity remains the production cutover
     authority.
+11. Parser/semantic overlap remains bounded and consumer cancellation cannot
+    strand a producer behind retained parser history.
