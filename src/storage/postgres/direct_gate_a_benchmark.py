@@ -2,9 +2,15 @@
 
 This is deliberately benchmark-only: it does not change the public execution default.
 It uses the real parser partition scheduler and the real hierarchy/reconciliation tail,
-but each spaCy Doc is consumed directly into packed sentence fibres and stable-evidence
-PNF admission.  A result is returned only after the database proves that no parser
-sentence/token/entity observation rows were materialised.
+but each completed spaCy partition is consumed immediately into packed sentence fibres
+and stable-evidence PNF admission while spaCy is allowed to parse the next partition.
+A result is returned only after the database proves that no parser sentence/token/entity
+observation rows were materialised.
+
+The overlap is the first physical instantiation of the streaming semantic Pac-Man
+constitution.  It does not introduce a second compiler: `commit_direct_partition`
+remains the semantic/publication owner.  The parser producer is bounded so completed
+parser history cannot accumulate unboundedly waiting for a later full compile.
 """
 
 from __future__ import annotations
@@ -15,6 +21,11 @@ from time import monotonic_ns
 from typing import Any
 
 from src.nlp.spacy_adapter import get_streaming_nlp
+from src.runtime.overlapped_parser_semantic_stream import (
+    Interval,
+    ParserStreamActivity,
+    stream_parsed_items,
+)
 from src.storage.postgres.direct_partition_projection import commit_direct_partition
 from src.storage.postgres.numeric_adjacent_reconciliation import drain_adjacent_reconciliation
 from src.storage.postgres.numeric_hierarchy_planner import materialize_numeric_document_hierarchy
@@ -61,6 +72,11 @@ class DirectGateABenchmarkReceipt:
     pnf_object_count: int
     pnf_factor_count: int
     pnf_demand_count: int
+    parser_semantic_overlap_ns: int
+    semantic_sentences_at_parser_eof: int
+    stream_completion_fraction: float
+    post_parser_tail_ns: int
+    phase_accounting: str = "overlapped_active_time"
 
 
 def _preflight_direct_schema(database_url: str) -> None:
@@ -147,13 +163,20 @@ def _gate_counts(
                       WHERE run_ref = %s AND document_ref = %s)
                 """,
                 (
-                    run_ref, document_ref,
-                    run_ref, document_ref,
-                    run_ref, document_ref,
-                    run_ref, document_ref,
-                    run_ref, document_ref,
-                    run_ref, document_ref,
-                    run_ref, document_ref,
+                    run_ref,
+                    document_ref,
+                    run_ref,
+                    document_ref,
+                    run_ref,
+                    document_ref,
+                    run_ref,
+                    document_ref,
+                    run_ref,
+                    document_ref,
+                    run_ref,
+                    document_ref,
+                    run_ref,
+                    document_ref,
                 ),
             )
             row = cursor.fetchone()
@@ -162,6 +185,17 @@ def _gate_counts(
     if row is None:
         raise RuntimeError("Gate-A database receipt is missing")
     return tuple(int(value) for value in row)  # type: ignore[return-value]
+
+
+def _overlap_duration(left: tuple[Interval, ...], right: tuple[Interval, ...]) -> int:
+    total = 0
+    for left_start, left_end in left:
+        for right_start, right_end in right:
+            start = max(left_start, right_start)
+            end = min(left_end, right_end)
+            if end > start:
+                total += end - start
+    return total
 
 
 def run_direct_gate_a_benchmark(
@@ -174,7 +208,13 @@ def run_direct_gate_a_benchmark(
     artifact_root: str | Path,
     policy: ParserStreamingPolicy | None = None,
 ) -> DirectGateABenchmarkReceipt:
-    """Run one fresh canonical direct benchmark and return its proof-bearing receipt."""
+    """Run one fresh canonical direct benchmark and return its proof-bearing receipt.
+
+    Parser and direct partition publication overlap through a bounded one-item
+    queue.  `spacy_ns` and `local_publish_ns` are therefore active-time phase
+    measurements and may overlap; they are not expected to sum to wall time.
+    `direct_total_ns` remains end-to-end wall time.
+    """
 
     if not canonical_text:
         raise ValueError("Gate-A benchmark requires non-empty canonical text")
@@ -183,16 +223,11 @@ def run_direct_gate_a_benchmark(
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)
 
-    # Model loading and one-time source/plan registration are deliberately outside the
-    # performance interval.  The measured total is parse + direct semantic work +
-    # hierarchy/reconciliation, matching the first-stage Agda performance target.
     pipeline = get_streaming_nlp()
     _content_ref, source_path, source_digest, source_bytes = write_source(
         canonical_text, root
     )
-    source_ref = typed_ref(
-        "parser-source:", run_ref, document_ref, source_digest
-    )
+    source_ref = typed_ref("parser-source:", run_ref, document_ref, source_digest)
     proposed = build_structural_partitions(
         run_ref=run_ref,
         document_ref=document_ref,
@@ -223,8 +258,13 @@ def run_direct_gate_a_benchmark(
     )
 
     total_started = monotonic_ns()
-    spacy_ns = 0
+    parser_intervals: list[Interval] = []
+    publish_intervals: list[Interval] = []
+    published_sentence_intervals: list[tuple[int, int, int]] = []
+    parser_finished_ns: int | None = None
     published_sentences = 0
+    local_publish_ns = 0
+
     for round_ordinal in range(128):
         partitions = lease_partitions(
             database_url,
@@ -247,33 +287,43 @@ def run_direct_gate_a_benchmark(
                 continue
             raise RuntimeError("Gate-A coverage remained open without runnable work")
 
-        inputs = tuple((read_partition_text(partition), partition) for partition in partitions)
-        parse_started = monotonic_ns()
-        parsed = tuple(
-            pipeline.pipe(
-                inputs,
-                as_tuples=True,
-                batch_size=policy.batch_size,
-                n_process=1,
-            )
+        inputs = tuple(
+            (read_partition_text(partition), partition) for partition in partitions
         )
-        batch_spacy_ns = max(0, monotonic_ns() - parse_started)
-        spacy_ns += batch_spacy_ns
-        per_partition_ns = batch_spacy_ns // max(1, len(parsed))
-        for doc, partition in parsed:
+        activity = ParserStreamActivity()
+        for item in stream_parsed_items(
+            pipeline,
+            inputs,
+            batch_size=policy.batch_size,
+            queue_size=1,
+            activity=activity,
+        ):
+            doc = item.doc
+            partition = item.context
             try:
-                published_sentences += commit_direct_partition(
+                publish_started = monotonic_ns()
+                sentence_count_for_partition = commit_direct_partition(
                     database_url,
                     partition=partition,
                     doc=doc,
                     policy=policy,
                     artifact_root=root,
                     pipeline=pipeline,
-                    elapsed_ns=per_partition_ns,
+                    elapsed_ns=max(0, item.parser_interval[1] - item.parser_interval[0]),
                 )
+                publish_finished = monotonic_ns()
+                local_publish_ns += publish_finished - publish_started
+                publish_intervals.append((publish_started, publish_finished))
+                published_sentence_intervals.append(
+                    (publish_started, publish_finished, sentence_count_for_partition)
+                )
+                published_sentences += sentence_count_for_partition
             except BaseException as error:
                 fail_partition(database_url, partition=partition, error=error)
                 raise
+        parser_intervals.extend(activity.intervals)
+        if activity.finished_ns is not None:
+            parser_finished_ns = activity.finished_ns
     else:
         raise RuntimeError("Gate-A direct execution exceeded bounded scheduling rounds")
 
@@ -286,9 +336,13 @@ def run_direct_gate_a_benchmark(
     )
     _drain_adjacent(database_url, run_ref=run_ref, stage="paragraph")
     _refresh_lookup(database_url, run_ref=run_ref, document_ref=document_ref)
-    direct_total_ns = max(0, monotonic_ns() - total_started)
-    hierarchy_reconcile_ns = max(0, direct_total_ns - (local_publish_finished - total_started))
-    local_publish_ns = max(0, (local_publish_finished - total_started) - spacy_ns)
+    direct_finished = monotonic_ns()
+    direct_total_ns = max(0, direct_finished - total_started)
+    hierarchy_reconcile_ns = max(0, direct_finished - local_publish_finished)
+    spacy_ns = sum(max(0, end - start) for start, end in parser_intervals)
+    parser_semantic_overlap_ns = _overlap_duration(
+        tuple(parser_intervals), tuple(publish_intervals)
+    )
 
     state, _ready, _leased, failed = execution_state(
         database_url,
@@ -296,7 +350,9 @@ def run_direct_gate_a_benchmark(
         document_ref=document_ref,
     )
     if state != "complete" or failed:
-        raise RuntimeError(f"Gate-A coverage did not close: state={state!r} failed={failed}")
+        raise RuntimeError(
+            f"Gate-A coverage did not close: state={state!r} failed={failed}"
+        )
 
     (
         parser_sentence_rows,
@@ -318,9 +374,22 @@ def run_direct_gate_a_benchmark(
             f"entities={parser_entity_rows}"
         )
     if stable_evidence_rows == 0 or published_sentences == 0:
-        raise RuntimeError("Gate-A direct execution produced no stable semantic evidence")
+        raise RuntimeError(
+            "Gate-A direct execution produced no stable semantic evidence"
+        )
     if spacy_ns <= 0:
         raise RuntimeError("Gate-A spaCy timing receipt is empty")
+
+    parser_eof = parser_finished_ns or total_started
+    semantic_sentences_at_parser_eof = sum(
+        count
+        for _started, finished, count in published_sentence_intervals
+        if finished <= parser_eof
+    )
+    stream_completion_fraction = semantic_sentences_at_parser_eof / max(
+        1, published_sentences
+    )
+    post_parser_tail_ns = max(0, direct_finished - parser_eof)
 
     counts = hyperfabric_counts(
         database_url,
@@ -350,6 +419,10 @@ def run_direct_gate_a_benchmark(
         pnf_object_count=counts["objects"],
         pnf_factor_count=counts["factors"],
         pnf_demand_count=counts["demands"],
+        parser_semantic_overlap_ns=parser_semantic_overlap_ns,
+        semantic_sentences_at_parser_eof=semantic_sentences_at_parser_eof,
+        stream_completion_fraction=stream_completion_fraction,
+        post_parser_tail_ns=post_parser_tail_ns,
     )
 
 
