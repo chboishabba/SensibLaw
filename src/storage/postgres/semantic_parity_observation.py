@@ -1,7 +1,7 @@
 """Canonical parity surface for local and legacy SQL sentence composition.
 
 Raw numeric digests are intentionally not compared: legacy composition hashes
-allocated database ids, while direct composition hashes stable local ids.  The
+allocated database ids, while direct composition hashes stable local ids. The
 parity surface instead resolves both carriers to typed symbol text and source
 spans, then compares the complete object/factor/demand structure before PNF
 publication.
@@ -21,11 +21,9 @@ from src.storage.postgres.numeric_hyperfabric_store import (
     _operator_lexicon,
 )
 from src.storage.postgres.numeric_symbol_store import load_symbol_texts
-from src.storage.postgres.sentence_hyperfabric import (
-    LocalSentenceComposition,
-    compile_doc_sentences,
-)
+from src.storage.postgres.sentence_hyperfabric import compile_doc_sentences
 from src.storage.postgres.spacy_parser_model import ParserPartition, connect
+from src.storage.postgres.spacy_parser_store import refresh_coverage
 
 
 def _symbol_ids(closure: NumericSentenceClosure) -> set[int]:
@@ -147,7 +145,7 @@ def reference_parity_observations(
     *,
     partition: ParserPartition,
 ) -> dict[bytes, tuple[object, ...]]:
-    """Read the actual committed legacy carrier and compose it without persisting PNF."""
+    """Read the committed legacy carrier and compose it without persisting PNF."""
 
     connection = connect(database_url)
     try:
@@ -186,8 +184,57 @@ def reference_parity_observations(
         connection.close()
 
 
+def poison_parity_partition(
+    database_url: str,
+    *,
+    partition: ParserPartition,
+    reason: str = "SemanticParityError",
+) -> None:
+    """Make a post-projection parity failure durable and coverage-visible."""
+
+    connection = connect(database_url)
+    try:
+        with connection.transaction():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE execution.semantic_parser_partition
+                       SET state = 'failed',
+                           last_error_reason = %s,
+                           lease_owner = NULL,
+                           lease_token = NULL,
+                           lease_expires_at = NULL,
+                           updated_at = CURRENT_TIMESTAMP
+                     WHERE partition_ref = %s
+                       AND state = 'completed'
+                       AND lease_epoch = %s
+                    """,
+                    (reason, partition.partition_ref, partition.lease_epoch),
+                )
+                if cursor.rowcount != 1:
+                    raise RuntimeError("parity failure could not poison completed partition")
+                cursor.execute(
+                    """
+                    UPDATE execution.semantic_parser_attempt
+                       SET state = 'failed',
+                           error_reason = %s,
+                           completed_at = CURRENT_TIMESTAMP
+                     WHERE attempt_ref = %s
+                    """,
+                    (reason, partition.attempt_ref),
+                )
+                refresh_coverage(
+                    cursor,
+                    run_ref=partition.run_ref,
+                    document_ref=partition.document_ref,
+                )
+    finally:
+        connection.close()
+
+
 __all__ = [
     "canonical_closure_observation",
     "local_parity_observations",
+    "poison_parity_partition",
     "reference_parity_observations",
 ]
