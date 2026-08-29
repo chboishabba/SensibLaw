@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from src.pnf.direct_sentence_compiler import (
     compile_packed_sentence,
     sentence_region_id,
     source_evidence_id,
 )
+from src.pnf.numeric_hyperfabric import SymbolKind
 from src.pnf.packed_sentence_fibre import PackedSentenceFibre, PackedSourceToken
 
 
@@ -94,3 +95,35 @@ def test_explicit_region_override_is_compatibility_only() -> None:
     assert automatic.local_region_id == sentence_region_id(fibre)
     assert overridden.local_region_id == 7
     assert automatic.database_crossings == overridden.database_crossings == 0
+
+
+def test_morphology_is_typed_before_numeric_identity() -> None:
+    token = replace(
+        _packed(_Token(0, b"m" * 32, "pay", "VERB", "ROOT", 0, 0, 4)),
+        morphology=(("Number", "Sing"), ("Tense", "Pres")),
+    )
+    fibre = PackedSentenceFibre(
+        sentence_digest=b"m" * 32,
+        ordinal=0,
+        start_char=0,
+        end_char=4,
+        start_byte=0,
+        end_byte=4,
+        tokens=(token,),
+    )
+    first = compile_packed_sentence(fibre=fibre)
+    second = compile_packed_sentence(fibre=fibre)
+    symbols = {(kind, text) for kind, text, _value in first.symbol_ids}
+
+    assert (SymbolKind.MORPH_FEATURE, "Number") in symbols
+    assert (SymbolKind.MORPH_VALUE, "Sing") in symbols
+    assert (SymbolKind.MORPH_FEATURE, "Tense") in symbols
+    assert (SymbolKind.MORPH_VALUE, "Pres") in symbols
+    assert first.database_crossings == second.database_crossings == 0
+    assert first.symbol_ids == second.symbol_ids
+    assert tuple(row.object_digest for row in first.closure.objects) == tuple(
+        row.object_digest for row in second.closure.objects
+    )
+    assert tuple(row.factor_digest for row in first.closure.factors) == tuple(
+        row.factor_digest for row in second.closure.factors
+    )
