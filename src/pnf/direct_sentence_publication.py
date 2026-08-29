@@ -9,7 +9,7 @@ while preserving the semantic digests already produced by the direct composer.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from src.pnf.direct_sentence_compiler import DirectSentenceCompileReceipt
 from src.pnf.numeric_hyperfabric import SymbolKind
@@ -46,9 +46,7 @@ def remap_direct_closure(
         replace(
             spec,
             source_token_id=_required(evidence_ids, spec.source_token_id, kind="evidence"),
-            object_kind_symbol_id=_required(
-                symbol_ids, spec.object_kind_symbol_id, kind="symbol"
-            ),
+            object_kind_symbol_id=_required(symbol_ids, spec.object_kind_symbol_id, kind="symbol"),
             head_symbol_id=_required(symbol_ids, spec.head_symbol_id, kind="symbol"),
         )
         for spec in closure.objects
@@ -56,21 +54,13 @@ def remap_direct_closure(
     factors = tuple(
         replace(
             spec,
-            factor_type_symbol_id=_required(
-                symbol_ids, spec.factor_type_symbol_id, kind="symbol"
-            ),
-            predicate_symbol_id=_required(
-                symbol_ids, spec.predicate_symbol_id, kind="symbol"
-            ),
+            factor_type_symbol_id=_required(symbol_ids, spec.factor_type_symbol_id, kind="symbol"),
+            predicate_symbol_id=_required(symbol_ids, spec.predicate_symbol_id, kind="symbol"),
             slots=tuple(
                 replace(
                     slot,
-                    role_symbol_id=_required(
-                        symbol_ids, slot.role_symbol_id, kind="symbol"
-                    ),
-                    source_token_id=_required(
-                        evidence_ids, slot.source_token_id, kind="evidence"
-                    ),
+                    role_symbol_id=_required(symbol_ids, slot.role_symbol_id, kind="symbol"),
+                    source_token_id=_required(evidence_ids, slot.source_token_id, kind="evidence"),
                 )
                 for slot in spec.slots
             ),
@@ -108,33 +98,19 @@ def remap_direct_closure(
                 if spec.role_symbol_id is not None
                 else None
             ),
-            residual_type_symbol_id=_required(
-                symbol_ids, spec.residual_type_symbol_id, kind="symbol"
-            ),
+            residual_type_symbol_id=_required(symbol_ids, spec.residual_type_symbol_id, kind="symbol"),
         )
         for spec in closure.demands
     )
     return replace(closure, objects=objects, factors=factors, demands=demands)
 
 
-def resolve_direct_publication(
-    cursor: Any,
+def _publication_from_resolved(
     *,
-    run_ref: str,
-    document_ref: str,
-    fibre: PackedSentenceFibre,
     direct: DirectSentenceCompileReceipt,
+    database_symbols: Mapping[tuple[SymbolKind, str], int],
+    evidence_by_digest: Mapping[bytes, int],
 ) -> DirectPublicationReceipt:
-    """Resolve only identities that survive from the local fibre into durable state.
-
-    The evidence schema is migration-owned on canonical databases. Keeping DDL out of
-    this per-sentence hot path avoids repeated catalog work during Gate-A publication.
-    """
-
-    database_symbols = intern_symbols(
-        cursor,
-        ((kind, text) for kind, text, _local_id in direct.symbol_ids),
-    )
     local_symbol_to_database: dict[int, int] = {}
     for kind, text, local_id in direct.symbol_ids:
         normalized = normalize_symbol(SymbolKind(kind), text)
@@ -148,12 +124,6 @@ def resolve_direct_publication(
         if prior != database_id:
             raise RuntimeError("one local symbol address resolved to multiple database ids")
 
-    evidence_by_digest = upsert_source_evidence(
-        cursor,
-        run_ref=run_ref,
-        document_ref=document_ref,
-        fibres=(fibre,),
-    )
     local_evidence_to_database: dict[int, int] = {}
     for local_id, digest in direct.source_evidence_ids:
         try:
@@ -176,8 +146,69 @@ def resolve_direct_publication(
     )
 
 
+def resolve_direct_publications(
+    cursor: Any,
+    *,
+    run_ref: str,
+    document_ref: str,
+    fibres: Sequence[PackedSentenceFibre],
+    directs: Sequence[DirectSentenceCompileReceipt],
+) -> tuple[DirectPublicationReceipt, ...]:
+    """Resolve one partition's durable identities with two set-wise DB projections."""
+
+    fibres = tuple(fibres)
+    directs = tuple(directs)
+    if len(fibres) != len(directs):
+        raise ValueError("direct publication fibre/receipt cardinality changed")
+    if not fibres:
+        return ()
+
+    database_symbols = intern_symbols(
+        cursor,
+        (
+            (kind, text)
+            for direct in directs
+            for kind, text, _local_id in direct.symbol_ids
+        ),
+    )
+    evidence_by_digest = upsert_source_evidence(
+        cursor,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        fibres=fibres,
+    )
+    return tuple(
+        _publication_from_resolved(
+            direct=direct,
+            database_symbols=database_symbols,
+            evidence_by_digest=evidence_by_digest,
+        )
+        for direct in directs
+    )
+
+
+def resolve_direct_publication(
+    cursor: Any,
+    *,
+    run_ref: str,
+    document_ref: str,
+    fibre: PackedSentenceFibre,
+    direct: DirectSentenceCompileReceipt,
+) -> DirectPublicationReceipt:
+    """Compatibility singleton wrapper around partition-scoped resolution."""
+
+    return resolve_direct_publications(
+        cursor,
+        run_ref=run_ref,
+        document_ref=document_ref,
+        fibres=(fibre,),
+        directs=(direct,),
+    )[0]
+
+
 __all__ = [
     "DirectPublicationReceipt",
     "remap_direct_closure",
     "resolve_direct_publication",
+    "resolve_direct_publications",
 ]
