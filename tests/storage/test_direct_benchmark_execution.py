@@ -41,7 +41,7 @@ class _Connection:
 
 
 def test_zero_projection_receipt_requires_zero_parser_rows(monkeypatch) -> None:
-    connection = _Connection((0, 0, 0, 7))
+    connection = _Connection((0, 0, 0, 7, 100))
     monkeypatch.setattr(direct, "connect", lambda _url: connection)
     receipt = direct._direct_zero_projection_receipt(
         "postgresql://unused", run_ref="run", document_ref="doc"
@@ -51,13 +51,14 @@ def test_zero_projection_receipt_requires_zero_parser_rows(monkeypatch) -> None:
         "parser_token_writes": 0,
         "parser_entity_writes": 0,
         "stable_evidence_rows": 7,
+        "spacy_observed_ns": 100,
     }
     assert "semantic_parser_token" in connection.cursor_value.query
-    assert connection.cursor_value.params == ("run", "doc") * 4
+    assert connection.cursor_value.params == ("run", "doc") * 5
 
 
 def test_zero_projection_receipt_fails_closed(monkeypatch) -> None:
-    monkeypatch.setattr(direct, "connect", lambda _url: _Connection((0, 1, 0, 7)))
+    monkeypatch.setattr(direct, "connect", lambda _url: _Connection((0, 1, 0, 7, 100)))
     with pytest.raises(RuntimeError, match="zero parser projection"):
         direct._direct_zero_projection_receipt(
             "postgresql://unused", run_ref="run", document_ref="doc"
@@ -103,8 +104,11 @@ def test_benchmark_entrypoint_forces_direct_and_returns_evidence_carrier(monkeyp
             "parser_token_writes": 0,
             "parser_entity_writes": 0,
             "stable_evidence_rows": 5,
+            "spacy_observed_ns": 100,
         },
     )
+    ticks = iter((1000, 1150))
+    monkeypatch.setattr(direct, "monotonic_ns", lambda: next(ticks))
 
     carrier = direct.run_direct_benchmark_execution(
         database_url="postgresql://unused",
@@ -122,3 +126,6 @@ def test_benchmark_entrypoint_forces_direct_and_returns_evidence_carrier(monkeyp
     assert receipt["parser_token_writes"] == 0
     assert receipt["gate_a_benchmark_ready"] is True
     assert receipt["authority"] == "stable_source_evidence_and_direct_pnf_hyperfabric"
+    assert receipt["optimized_direct_total_ns"] == 150
+    assert receipt["direct_over_spacy_ratio"] == 1.5
+    assert receipt["agda_first_stage_target_met"] is True
