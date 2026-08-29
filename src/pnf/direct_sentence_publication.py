@@ -16,10 +16,7 @@ from src.pnf.numeric_hyperfabric import SymbolKind
 from src.pnf.numeric_operator_composition import NumericSentenceClosure
 from src.pnf.packed_sentence_fibre import PackedSentenceFibre
 from src.storage.postgres.numeric_symbol_store import intern_symbols, normalize_symbol
-from src.storage.postgres.source_evidence_support import (
-    ensure_source_evidence_support_schema,
-    upsert_source_evidence,
-)
+from src.storage.postgres.source_evidence_support import upsert_source_evidence
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,9 +125,12 @@ def resolve_direct_publication(
     fibre: PackedSentenceFibre,
     direct: DirectSentenceCompileReceipt,
 ) -> DirectPublicationReceipt:
-    """Resolve only identities that survive from the local fibre into durable state."""
+    """Resolve only identities that survive from the local fibre into durable state.
 
-    ensure_source_evidence_support_schema(cursor)
+    The evidence schema is migration-owned on canonical databases. Keeping DDL out of
+    this per-sentence hot path avoids repeated catalog work during Gate-A publication.
+    """
+
     database_symbols = intern_symbols(
         cursor,
         ((kind, text) for kind, text, _local_id in direct.symbol_ids),
