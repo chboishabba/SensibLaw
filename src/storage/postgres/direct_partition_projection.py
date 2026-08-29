@@ -19,6 +19,7 @@ from src.storage.postgres.direct_sentence_admission import (
     register_and_lease_sentence_work_batch,
 )
 from src.storage.postgres.numeric_hyperfabric_store import _load_profile
+from src.storage.postgres.numeric_sentence_evidence_admission import EvidenceSupportCursor
 from src.storage.postgres.resolved_direct_sentence_admission import (
     publish_preleased_resolved_direct_sentence,
 )
@@ -144,13 +145,18 @@ def commit_direct_partition(
                     document_ref=partition.document_ref,
                     fibres=packed.sentences,
                 )
+                publication_cursor = EvidenceSupportCursor(
+                    cursor,
+                    defer_interface_ancestors=True,
+                    reuse_sentence_stages=True,
+                )
                 for lease, publication in zip(
                     sentence_leases,
                     publications,
                     strict=True,
                 ):
                     publish_preleased_resolved_direct_sentence(
-                        cursor,
+                        publication_cursor,
                         lease=lease,
                         publication=publication,
                         profile=profile,
