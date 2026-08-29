@@ -11,6 +11,7 @@ from time import monotonic_ns
 from typing import Any, Callable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
+from src.storage.postgres.direct_semantic_projection import commit_direct_doc
 from src.storage.postgres.numeric_adjacent_reconciliation import (
     drain_adjacent_reconciliation,
 )
@@ -21,6 +22,17 @@ from src.storage.postgres.numeric_hyperfabric_store import (
     drain_sentence_closure,
     hyperfabric_counts,
     register_authored_hierarchy,
+)
+from src.storage.postgres.semantic_execution_mode import (
+    SemanticExecutionMode,
+    SemanticParityError,
+    parse_semantic_execution_mode,
+    route_semantic_observation,
+)
+from src.storage.postgres.semantic_parity_observation import (
+    local_parity_observations,
+    poison_parity_partition,
+    reference_parity_observations,
 )
 from src.storage.postgres.spacy_numeric_projection import commit_numeric_doc
 from src.storage.postgres.spacy_parser_carrier import PostgresSentenceCarrier
@@ -84,11 +96,13 @@ def _worker_drain(
     worker_ref: str,
     policy: ParserStreamingPolicy,
     artifact_root: str,
+    semantic_execution_mode: str = "reference",
 ) -> tuple[int, int]:
-    """Load spaCy once, commit numeric observations, then close sentence PNF."""
+    """Load spaCy once and execute the selected sentence semantic authority."""
 
     from src.nlp.spacy_adapter import get_streaming_nlp
 
+    mode = parse_semantic_execution_mode(semantic_execution_mode)
     pipeline = get_streaming_nlp()
     completed_partitions = 0
     completed_sentences = 0
@@ -101,12 +115,13 @@ def _worker_drain(
             lease_seconds=policy.lease_seconds,
         )
         if not partitions:
-            completed_sentences += drain_sentence_closure(
-                database_url,
-                run_ref=run_ref,
-                worker_ref=f"{worker_ref}:pnf",
-                limit=max(1, policy.batch_size * 4),
-            )
+            if mode is not SemanticExecutionMode.DIRECT:
+                completed_sentences += drain_sentence_closure(
+                    database_url,
+                    run_ref=run_ref,
+                    worker_ref=f"{worker_ref}:pnf",
+                    limit=max(1, policy.batch_size * 4),
+                )
             return completed_partitions, completed_sentences
         stop = Event()
         heartbeat = Thread(
@@ -131,32 +146,84 @@ def _worker_drain(
                 n_process=1,
             ):
                 try:
-                    commit_numeric_doc(
-                        database_url,
-                        partition=partition,
-                        doc=doc,
-                        policy=policy,
-                        artifact_root=Path(artifact_root),
-                        pipeline=pipeline,
-                        elapsed_ns=max(
-                            0,
-                            monotonic_ns()
-                            - started.get(partition.partition_ref, monotonic_ns()),
-                        ),
+                    elapsed_ns = max(
+                        0,
+                        monotonic_ns()
+                        - started.get(partition.partition_ref, monotonic_ns()),
                     )
+                    if mode is SemanticExecutionMode.DIRECT:
+                        completed_sentences += commit_direct_doc(
+                            database_url,
+                            partition=partition,
+                            doc=doc,
+                            policy=policy,
+                            artifact_root=Path(artifact_root),
+                            pipeline=pipeline,
+                            elapsed_ns=elapsed_ns,
+                        )
+                    elif mode is SemanticExecutionMode.REFERENCE:
+                        commit_numeric_doc(
+                            database_url,
+                            partition=partition,
+                            doc=doc,
+                            policy=policy,
+                            artifact_root=Path(artifact_root),
+                            pipeline=pipeline,
+                            elapsed_ns=elapsed_ns,
+                        )
+                        completed_sentences += drain_sentence_closure(
+                            database_url,
+                            run_ref=run_ref,
+                            worker_ref=f"{worker_ref}:pnf",
+                            limit=max(1, policy.batch_size * 4),
+                        )
+                    else:
+                        direct_observation = local_parity_observations(
+                            partition=partition,
+                            doc=doc,
+                        )
+                        commit_numeric_doc(
+                            database_url,
+                            partition=partition,
+                            doc=doc,
+                            policy=policy,
+                            artifact_root=Path(artifact_root),
+                            pipeline=pipeline,
+                            elapsed_ns=elapsed_ns,
+                        )
+                        reference_observation = reference_parity_observations(
+                            database_url,
+                            partition=partition,
+                        )
+                        try:
+                            route_semantic_observation(
+                                SemanticExecutionMode.PARITY,
+                                direct=lambda: direct_observation,
+                                reference=lambda: reference_observation,
+                            )
+                        except SemanticParityError:
+                            poison_parity_partition(
+                                database_url,
+                                partition=partition,
+                            )
+                            raise
+                        completed_sentences += drain_sentence_closure(
+                            database_url,
+                            run_ref=run_ref,
+                            worker_ref=f"{worker_ref}:pnf",
+                            limit=max(1, policy.batch_size * 4),
+                        )
                     completed_partitions += 1
-                    completed_sentences += drain_sentence_closure(
-                        database_url,
-                        run_ref=run_ref,
-                        worker_ref=f"{worker_ref}:pnf",
-                        limit=max(1, policy.batch_size * 4),
-                    )
                 except BaseException as error:
-                    fail_partition(
-                        database_url,
-                        partition=partition,
-                        error=error,
-                    )
+                    if not (
+                        mode is SemanticExecutionMode.PARITY
+                        and isinstance(error, SemanticParityError)
+                    ):
+                        fail_partition(
+                            database_url,
+                            partition=partition,
+                            error=error,
+                        )
                     raise
         finally:
             stop.set()
@@ -253,11 +320,13 @@ def run_streaming_spacy_execution(
     worker_count: int = 2,
     policy: ParserStreamingPolicy | None = None,
     progress_observer: Callable[[Mapping[str, Any]], None] | None = None,
+    semantic_execution_mode: SemanticExecutionMode | str = SemanticExecutionMode.REFERENCE,
 ) -> PostgresSentenceCarrier:
-    """Parse once, close numeric PNF, reconcile adjacency, and close the DAG."""
+    """Parse once and execute direct, reference, or fail-closed parity PNF."""
 
     if not 1 <= worker_count <= 32:
         raise ValueError("parser worker_count must be between 1 and 32")
+    mode = parse_semantic_execution_mode(semantic_execution_mode)
     policy = policy or ParserStreamingPolicy()
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)
@@ -330,6 +399,7 @@ def run_streaming_spacy_execution(
                         f"parser-worker:{run_ref}:{round_ordinal}:{index}",
                         policy,
                         str(root),
+                        mode.value,
                     )
                     for index in range(worker_count)
                 ]
@@ -362,7 +432,8 @@ def run_streaming_spacy_execution(
         else:
             raise RuntimeError("parser execution exceeded bounded scheduling rounds")
 
-    _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
+    if mode is not SemanticExecutionMode.DIRECT:
+        _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
     sentence_pair_count = _drain_remaining_adjacent_reconciliation(
         database_url,
         run_ref=run_ref,
@@ -401,6 +472,7 @@ def run_streaming_spacy_execution(
         "backend_ref": "parser:spacy:numeric-postgresql",
         "parser_contract_ref": parser_contract_ref,
         "execution_contract_ref": STREAMING_SPACY_CONTRACT,
+        "semantic_execution_mode": mode.value,
         "source_ref": source_ref,
         "sentence_count": summary.sentence_count,
         "token_count": summary.token_count,
@@ -418,7 +490,11 @@ def run_streaming_spacy_execution(
         "pnf_factor_count": counts["factors"],
         "pnf_object_count": counts["objects"],
         "pnf_demand_count": counts["demands"],
-        "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
+        "authority": (
+            "postgresql_numeric_direct_pnf_hyperfabric"
+            if mode is SemanticExecutionMode.DIRECT
+            else "postgresql_numeric_parser_and_pnf_hyperfabric"
+        ),
     }
     return PostgresSentenceCarrier(
         database_url=database_url,
