@@ -1,10 +1,8 @@
 """Evidence-backed return surface for direct semantic execution.
 
-This carrier deliberately does not reconstruct lemma/POS/dependency fields that
-were not persisted in direct mode.  It exposes source text, sentence spans, and
-stable token evidence only.  Legacy parser compatibility reconstruction remains
-available exclusively through ``PostgresSentenceCarrier`` in reference/parity
-mode.
+This carrier never reconstructs parser-token authority. Counts come from durable
+partition receipts and sentence/token compatibility data comes only from stable,
+run/document-scoped source evidence.
 """
 
 from __future__ import annotations
@@ -44,7 +42,7 @@ def direct_execution_summary(
     source_ref: str,
     parser_contract_ref: str,
 ) -> ParserExecutionSummary:
-    """Summarise consumed observations from receipts, not parser row counts."""
+    """Summarise observed work from receipts, not parser sentence/token rows."""
 
     connection = connect(database_url)
     try:
@@ -144,10 +142,13 @@ class DirectSentenceCarrier(Mapping[str, Any]):
                            min(evidence.start_char),
                            max(evidence.end_char)
                       FROM execution.semantic_pnf_source_evidence AS evidence
+                     WHERE evidence.run_ref = %s
+                       AND evidence.document_ref = %s
                      GROUP BY evidence.sentence_digest
                      ORDER BY min(evidence.start_char), max(evidence.end_char),
                               evidence.sentence_digest
-                    """
+                    """,
+                    (self.summary.run_ref, self.summary.document_ref),
                 )
                 sentence_rows = tuple(cursor.fetchall())
                 for sentence_digest, start_char, end_char in sentence_rows:
@@ -157,10 +158,16 @@ class DirectSentenceCarrier(Mapping[str, Any]):
                         """
                         SELECT evidence_digest, token_digest, start_char, end_char
                           FROM execution.semantic_pnf_source_evidence
-                         WHERE sentence_digest = %s
+                         WHERE run_ref = %s
+                           AND document_ref = %s
+                           AND sentence_digest = %s
                          ORDER BY start_char, end_char, evidence_id
                         """,
-                        (sentence_digest,),
+                        (
+                            self.summary.run_ref,
+                            self.summary.document_ref,
+                            sentence_digest,
+                        ),
                     )
                     tokens = tuple(
                         {
