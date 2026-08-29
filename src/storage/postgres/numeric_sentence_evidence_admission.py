@@ -29,6 +29,8 @@ _OBJECT_EVIDENCE_TABLE = "execution.semantic_pnf_object_evidence_support"
 _FACTOR_EVIDENCE_TABLE = "execution.semantic_pnf_factor_evidence_support"
 _PARSER_TOKEN_TABLE = "execution.semantic_parser_token"
 _LEGACY_OCCURRENCE_TABLE = "execution.semantic_pnf_demand_occurrence_provenance"
+_INTERFACE_EXPORT_TABLE = "execution.semantic_pnf_interface_export"
+_INTERFACE_LOOKUP_TABLE = "execution.semantic_pnf_interface_lookup"
 _OBJECT_INSERT = f"INSERT INTO {_OBJECT_TOKEN_TABLE}"
 _FACTOR_INSERT = f"INSERT INTO {_FACTOR_TOKEN_TABLE}"
 
@@ -92,6 +94,47 @@ def _direct_authority_sql(sql: str) -> str:
     return rewritten
 
 
+def _collapse_bounded_executemany(
+    sql: str,
+    params_seq: Any,
+) -> tuple[str, tuple[Any, ...]] | None:
+    """Collapse bounded interface row inserts into one PostgreSQL statement.
+
+    The shared sentence writer uses ``executemany`` for interface exports/lookups.
+    Direct execution is already bounded by one sentence closure, so repeating the
+    literal VALUES template inside one statement preserves the exact conflict rule
+    while eliminating one client/server execution per row.  Other ``executemany``
+    calls remain untouched.
+    """
+
+    lowered = sql.lower()
+    if not any(
+        f"insert into {table}" in lowered
+        for table in (_INTERFACE_EXPORT_TABLE, _INTERFACE_LOOKUP_TABLE)
+    ):
+        return None
+
+    rows = tuple(tuple(row) for row in params_seq)
+    if not rows:
+        return None
+
+    values_at = lowered.find("values")
+    conflict_at = lowered.find("on conflict", values_at + len("values"))
+    if values_at < 0 or conflict_at < 0:
+        return None
+
+    template = sql[values_at + len("values") : conflict_at].strip()
+    placeholder_count = template.count("%s")
+    if placeholder_count == 0 or any(len(row) != placeholder_count for row in rows):
+        return None
+
+    prefix = sql[: values_at + len("values")]
+    suffix = sql[conflict_at:]
+    batched_sql = prefix + " " + ", ".join(template for _ in rows) + "\n" + suffix
+    flattened = tuple(value for row in rows for value in row)
+    return batched_sql, flattened
+
+
 class EvidenceSupportCursor:
     """Cursor facade enforcing evidence-only durable provenance for direct mode."""
 
@@ -110,8 +153,13 @@ class EvidenceSupportCursor:
     def executemany(
         self, query: Any, params_seq: Any, *args: Any, **kwargs: Any
     ) -> Any:
+        rewritten = _direct_authority_sql(str(query))
+        batched = _collapse_bounded_executemany(rewritten, params_seq)
+        if batched is not None:
+            batched_sql, flattened = batched
+            return self._cursor.execute(batched_sql, flattened, *args, **kwargs)
         return self._cursor.executemany(
-            _direct_authority_sql(str(query)),
+            rewritten,
             params_seq,
             *args,
             **kwargs,
@@ -137,8 +185,11 @@ def persist_sentence_closure_evidence_setwise(
 ) -> int:
     """Persist direct closure semantics without any parser-token provenance."""
 
+    evidence_cursor = (
+        cursor if isinstance(cursor, EvidenceSupportCursor) else EvidenceSupportCursor(cursor)
+    )
     return persist_sentence_closure_setwise(
-        EvidenceSupportCursor(cursor),
+        evidence_cursor,
         lease=lease,
         closure=closure,
         profile=profile,
