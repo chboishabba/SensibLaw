@@ -14,6 +14,7 @@ Before modifying this runtime, inspect the corresponding DASHI Agda owners in
 newer promoted equivalents):
 
 - `DASHI/Cognition/PNF/StreamingSemanticPacmanKernelExact.agda`
+- `DASHI/Cognition/PNF/StreamingPhysicalOverlapReceiptExact.agda`
 - `DASHI/Cognition/PNF/DeltaNativePNFDreamFlowExact.agda`
 - `DASHI/Cognition/PNF/FibreSolverDeltaStreamExact.agda`
 - `DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda`
