@@ -25,7 +25,6 @@ from src.storage.postgres.resolved_direct_sentence_admission import (
 )
 from src.storage.postgres.spacy_parser_model import (
     DOCBIN_ENCODING,
-    STREAMING_SPACY_CONTRACT,
     ParserPartition,
     ParserStreamingPolicy,
     connect,
