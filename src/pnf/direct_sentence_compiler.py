@@ -1,7 +1,7 @@
 """Pure packed-fibre adapter for the existing numeric sentence composer.
 
-No PostgreSQL import is permitted here.  The adapter gives lexical and source
-evidence values deterministic local numeric identities, then reuses
+No PostgreSQL import is permitted here. The adapter gives region, lexical and source
+evidence values deterministic fibre-local numeric identities, then reuses
 ``compose_numeric_sentence`` unchanged as the semantic owner.
 """
 
@@ -25,6 +25,7 @@ class DirectSentenceCompileReceipt:
     closure: NumericSentenceClosure
     source_evidence_ids: tuple[tuple[int, bytes], ...]
     symbol_ids: tuple[tuple[SymbolKind, str, int], ...]
+    local_region_id: int
     database_crossings: int = 0
 
 
@@ -38,6 +39,12 @@ def source_evidence_id(digest: bytes) -> int:
     return _stable_positive_id(b"source-token-evidence-id:v1", digest)
 
 
+def sentence_region_id(fibre: PackedSentenceFibre) -> int:
+    """Return a deterministic fibre-local region address, never a DB surrogate."""
+
+    return _stable_positive_id(b"fibre-sentence-region-id:v1", fibre.sentence_digest)
+
+
 def _symbol_id(kind: SymbolKind, text: str) -> int:
     return _stable_positive_id(
         b"fibre-symbol-id:v1",
@@ -48,11 +55,17 @@ def _symbol_id(kind: SymbolKind, text: str) -> int:
 
 def compile_packed_sentence(
     *,
-    region_id: int,
     fibre: PackedSentenceFibre,
+    region_id: int | None = None,
 ) -> DirectSentenceCompileReceipt:
-    """Execute the existing sentence semantics entirely in memory."""
+    """Execute the existing sentence semantics entirely in memory.
 
+    ``region_id`` is retained only as an explicit compatibility/testing override.
+    Ordinary direct execution derives its region address from the packed sentence,
+    so the local solve needs no database-generated identity.
+    """
+
+    local_region_id = sentence_region_id(fibre) if region_id is None else int(region_id)
     values = set(operator_symbol_values())
     for token in fibre.tokens:
         values.update(
@@ -107,7 +120,7 @@ def compile_packed_sentence(
         for token in fibre.tokens
     )
     closure = compose_numeric_sentence(
-        region_id=region_id,
+        region_id=local_region_id,
         tokens=numeric_tokens,
         lexicon=lexicon,
     )
@@ -122,11 +135,13 @@ def compile_packed_sentence(
                 key=lambda row: (int(row[0]), row[1]),
             )
         ),
+        local_region_id=local_region_id,
     )
 
 
 __all__ = [
     "DirectSentenceCompileReceipt",
     "compile_packed_sentence",
+    "sentence_region_id",
     "source_evidence_id",
 ]
