@@ -6,6 +6,10 @@ strict acceptance wrapper, stops it after a short operator-selected interval,
 and observes PostgreSQL from a separate connection while the semantic
 transaction is live.  The resulting SQL/wait/churn samples survive rollback and
 are always marked acceptance-ineligible.
+
+Use ``--run-root`` for one packageable artifact directory. The canonical
+tranche output is stored below ``<run-root>/tranche-output``; the older
+``--output-root`` plus ``--acceptance-root`` form remains supported.
 """
 
 from __future__ import annotations
@@ -29,8 +33,21 @@ def _args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tranche", default="GWB", choices=("GWB", "AU", "BREXIT", "ALL"))
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"), required=False)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--acceptance-root", type=Path, required=True)
+    parser.add_argument(
+        "--run-root",
+        type=Path,
+        help="Single artifact root; tranche output is stored below it.",
+    )
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        help="Legacy separate tranche-output root (optional with --run-root).",
+    )
+    parser.add_argument(
+        "--acceptance-root",
+        type=Path,
+        help="Legacy acceptance root; use --run-root for one-folder output.",
+    )
     parser.add_argument("--seconds", type=float, default=60.0)
     parser.add_argument("--sample-seconds", type=float, default=2.0)
     parser.add_argument("--soft-memory-mib", type=int, default=12 * 1024)
@@ -51,6 +68,12 @@ def _args() -> argparse.Namespace:
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
+    if args.run_root is not None and args.acceptance_root is not None:
+        parser.error("use --run-root or --acceptance-root, not both")
+    if args.run_root is None and args.acceptance_root is None:
+        parser.error("--run-root or --acceptance-root is required")
+    if args.run_root is not None and args.output_root is not None:
+        parser.error("--output-root is derived from --run-root")
     if args.seconds <= 0 or args.sample_seconds <= 0:
         parser.error("probe and sample durations must be positive")
     return args
@@ -199,7 +222,8 @@ def _statement_delta(first: dict[str, Any], last: dict[str, Any]) -> list[dict[s
 
 def main() -> int:
     args = _args()
-    root = args.acceptance_root.resolve()
+    root = (args.run_root or args.acceptance_root).resolve()
+    output_root = (args.output_root or root / "tranche-output").resolve()
     root.mkdir(parents=True, exist_ok=True)
     sql_samples_path = root / "iteration-sql-observer.jsonl"
     summary_path = root / "iteration-probe-summary.json"
@@ -210,7 +234,7 @@ def main() -> int:
         "--tranche", args.tranche,
         "--database-url", args.database_url,
         "--postgres-mode", "existing",
-        "--output-root", str(args.output_root.resolve()),
+        "--output-root", str(output_root),
         "--acceptance-root", str(root),
         "--strict-exact",
         "--soft-memory-mib", str(args.soft_memory_mib),

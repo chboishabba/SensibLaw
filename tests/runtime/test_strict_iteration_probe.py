@@ -30,6 +30,13 @@ def test_iteration_probe_preserves_existing_owner_and_resource_receipts() -> Non
     assert "acceptance-receipt.json" in source
 
 
+def test_iteration_probe_supports_one_run_root_with_derived_tranche_output() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert '"--run-root"' in source
+    assert 'root / "tranche-output"' in source
+    assert "use --run-root or --acceptance-root, not both" in source
+
+
 def test_iteration_probe_has_a_bounded_operator_kill() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
     assert 'parser.add_argument("--seconds"' in source
