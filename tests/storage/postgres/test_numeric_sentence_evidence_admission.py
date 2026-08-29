@@ -7,6 +7,7 @@ from src.storage.postgres.numeric_sentence_evidence_admission import (
     EvidenceSupportCursor,
     _collapse_bounded_executemany,
     _direct_authority_sql,
+    _reuse_stage_setup_sql,
     _rewrite_evidence_support_sql,
 )
 
@@ -169,3 +170,32 @@ def test_standalone_cursor_keeps_exact_ancestor_rebuild() -> None:
     wrapped.execute(sql, (123,))
     assert cursor.queries == [sql]
     assert cursor.params == [(123,)]
+
+
+def test_stage_setup_is_created_once_then_reduced_to_truncate() -> None:
+    sql = """
+        CREATE TEMP TABLE IF NOT EXISTS tmp_numeric_sentence_object (ordinal INTEGER);
+        CREATE TEMP TABLE IF NOT EXISTS tmp_numeric_sentence_factor (ordinal INTEGER);
+        TRUNCATE TABLE tmp_numeric_sentence_object, tmp_numeric_sentence_factor;
+    """
+    first, created = _reuse_stage_setup_sql(sql, already_created=False)
+    assert first == sql
+    assert created is True
+    second, created = _reuse_stage_setup_sql(sql, already_created=created)
+    assert second.lstrip().lower().startswith("truncate table")
+    assert "create temp table" not in second.lower()
+    assert created is True
+
+
+def test_partition_cursor_reuses_sentence_stage_ddl() -> None:
+    cursor = _Cursor()
+    wrapped = EvidenceSupportCursor(cursor, reuse_sentence_stages=True)
+    sql = """
+        CREATE TEMP TABLE IF NOT EXISTS tmp_numeric_sentence_object (ordinal INTEGER);
+        TRUNCATE TABLE tmp_numeric_sentence_object;
+    """
+    wrapped.execute(sql)
+    wrapped.execute(sql)
+    assert "create temp table" in cursor.queries[0].lower()
+    assert cursor.queries[1].lstrip().lower().startswith("truncate table")
+    assert "create temp table" not in cursor.queries[1].lower()
