@@ -20,10 +20,53 @@ Before writing code, read:
 - `docs/itir_vs_sl.md`
 - `docs/implementation_style_guide.md`
 - `docs/authority_surfaces.md`
+- `docs/architecture/STREAMING_SEMANTIC_PACMAN.md` for parser, PNF, hierarchy,
+  direct execution, persistence, or performance work
 
 Do not start from generic Python repo habits alone. SensibLaw follows ITIR
 style rules that prefer a generic data-in/world-model-out product surface and
 treat lane modules as demos or compatibility shims.
+
+### Formal architecture is required reading for semantic runtime work
+
+SensibLaw's direct packed-fibre/runtime architecture is co-specified in
+`chboishabba/dashi_agda`. Before changing parser streaming, packed fibres,
+numeric PNF composition, semantic deltas, hierarchy/reconciliation, direct vs
+reference authority, stable evidence, or publication placement, inspect the
+newest promoted versions of these formal owners (currently on
+`agent/delta-native-parent-frontier` if not yet merged to `master`):
+
+- `DASHI/Cognition/PNF/StreamingSemanticPacmanKernelExact.agda`
+- `DASHI/Cognition/PNF/DeltaNativePNFDreamFlowExact.agda`
+- `DASHI/Cognition/PNF/FibreSolverDeltaStreamExact.agda`
+- `DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda`
+- `DASHI/Cognition/PNF/DirectDeltaCompilerActivationExact.agda`
+- `DASHI/Cognition/PNF/DirectStreamingRoadmapSynthesisExact.agda`
+
+Agents must not infer the formal contract from old PR prose when the Agda owner
+is available. If runtime code, documentation, and Agda disagree, surface the
+mismatch and repair the stale side explicitly. Do not silently reinterpret the
+formal invariant.
+
+The temporal execution target is the streaming "Pac-Man" fold:
+
+```text
+state(prefix ++ suffix) = continue(state(prefix), suffix)
+```
+
+Already-consumed parser observations are not rescanned merely because later
+observations arrive. The execution kernel retains current semantic authority
+plus only unresolved outward frontier state. End-of-stream finalization is for
+the residual frontier and publication boundary; it is not permission to start
+a second whole-sentence semantic compilation.
+
+`src/pnf/streaming_semantic_pacman.py` is the execution strategy surface for
+this rule. It must adapt the existing semantic owner rather than becoming a
+second PNF implementation.
+
+"80% solved by parser EOF" is a performance hypothesis/measurement target, not
+a semantic theorem. Record stream work and tail work separately; never make
+correctness conditional on that percentage.
 
 Hard rules:
 
@@ -32,6 +75,25 @@ Hard rules:
 - One capability has one semantic authority. Concurrency, persistence,
   admission, progress, UI, or lane identity must be injected as strategy or
   profile rather than creating another top-level implementation.
+- Parser streaming is an execution strategy over the existing numeric PNF
+  authority. Do not create a token-stream graph compiler, sentence-stream PNF,
+  or partition PNF with independent semantics.
+- A consumed parser prefix must be represented by current authority plus its
+  unresolved frontier, not by retained history awaiting later replay.
+- Physical parser partitions, sentence tranches, SIMD/SWAR batches, and COPY
+  batches may fuse ordered work only when consumer-visible semantics are
+  invariant under that physical partitioning.
+- PostgreSQL is a durable/global/publication boundary, not the mandatory
+  sentence-local execution bus. Direct sentence-local DB crossings must remain
+  zero.
+- Stable typed source evidence, not `semantic_parser_token.token_id`, is the
+  direct semantic support identity. Production direct mode must not regain a
+  hidden parser-token authority dependency.
+- Direct/reference parity is over declared consumer-visible observations, not
+  database surrogate ids. Production cutover remains fail-closed until parity
+  evidence exists.
+- Fixed point means no outward semantic delta/frontier obligation remains. It
+  does not mean a full accumulated state was rescanned successfully.
 - Do not add another corpus compiler entrypoint while the operational/fibred
   compiler contracts remain non-equivalent.
 - Do not import `src.section_parser` in new code. It is a deprecated
@@ -122,6 +184,8 @@ Target Python 3.11 features (match statements, typing.Annotated) while keeping m
 
 ## Testing Guidelines
 Co-locate unit tests next to their target modules within `tests/`, mirroring the package path. Name tests `test_<feature>.py` and favour descriptive `test_handles_multi_column_toc` style functions. Leverage Hypothesis strategies where coverage is critical, and patch outbound IO via `pytest-mock`. Run `pytest --maxfail=1 -q` before opening a PR and capture new failure modes with regression fixtures.
+
+For streaming semantic work, include explicit regressions for prefix/suffix equivalence, no history replay, frontier-only finalization, and stream/tail work accounting. Where runtime integration changes, preserve existing Gate-A checks for stable evidence, complete coverage, zero parser rows in direct execution, and zero sentence-local DB crossings.
 
 ## Commit & Pull Request Guidelines
 Follow the repository’s imperative commit style (`Improve multi-column TOC parsing`). Keep commits scoped to a logical change and document cross-cutting edits in the body if needed. Pull requests should include a crisp summary, linked issues, before/after notes for behaviour changes, and updated screenshots when UI surfaces change. Confirm CI passes locally (`pytest`, `ruff check`, `ruff format --check`) and note any skipped checks in the description.
