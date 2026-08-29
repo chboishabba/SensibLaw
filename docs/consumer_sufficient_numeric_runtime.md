@@ -1,13 +1,52 @@
 # Consumer-sufficient numeric runtime
 
+## 2026 direct-streaming authority update
+
+This document began as a record of an earlier PostgreSQL-heavy runtime tranche.
+Where that historical discussion says parser-token rows are authority, the
+current direct packed-fibre architecture **supersedes that statement for direct
+production execution**.
+
+Current direct execution is governed by:
+
+- `docs/architecture/STREAMING_SEMANTIC_PACMAN.md`;
+- `docs/architecture/DIRECT_STREAMING_ROADMAP.md`;
+- the formal DASHI owners listed in those documents.
+
+The current authority split is:
+
+```text
+reference/parity parser projection
+    -> parser-token relations may exist as an audit/reference carrier
+
+direct execution
+    -> stable typed source evidence is semantic support identity
+    -> sentence-local database crossings = 0
+    -> parser-token rows are not a mandatory execution bus
+```
+
+The temporal target is also stronger than this older tranche: parser
+observations should be consumed into current semantic authority as they become
+stable, with only unresolved outward frontier retained. A consumed prefix is
+not replayed at EOF.
+
+This older document remains useful for consumer sufficiency, sparse reverse
+dependencies, controlled-workload measurement, and cache-vs-authority rules.
+Those ideas should now be interpreted inside the direct/delta/streaming
+constitution rather than as reasons to restore parser-token persistence.
+
+---
+
 This stacked runtime tranche instantiates the Agda freeze-point from `dashi_agda`
 PRs #521, #530, #531 and #533 on top of SensibLaw's existing reopenable numeric
 PNF carrier.
 
 The implementation does not create a second resolver. PostgreSQL's existing
-candidate/demand/evidence/identity/factor relations remain semantic authority.
-The new structures are typed evidence, consumer-indexed execution projections,
-and rebuildable physical caches around that authority.
+candidate/demand/evidence/identity/factor relations remain durable semantic
+relations. The new structures are typed evidence, consumer-indexed execution
+projections, and rebuildable physical caches around that authority. For the
+current direct path, stable typed source evidence rather than parser-token
+surrogate identity is the support boundary.
 
 ## Effective migration surface
 
@@ -91,7 +130,9 @@ withdrawn/superseded. Earlier receipts remain present.
 Consumer-specific reverse dependencies use the same sparse numeric source ids as
 the global incremental lane but add consumer/query/policy coordinates. New
 evidence can therefore wake only the affected consumer fibres rather than a
-whole document/corpus.
+whole document/corpus. This is directly compatible with the streaming Pac-Man
+kernel: newly available evidence should wake the affected frontier rather than
+cause replay of the consumed parser prefix.
 
 ## Controlled corpus learning
 
@@ -123,8 +164,12 @@ remaining `NOT VALID` for upgrade tolerance of any historical orphan.
 
 ## Numeric observation tape
 
-PostgreSQL parser rows remain authority. Codec v2 packs a rebuildable physical
-projection containing:
+The numeric observation tape is a rebuildable physical projection. In
+reference/parity execution its source may be PostgreSQL parser rows; direct
+production must not treat those parser-token surrogate ids as semantic support
+authority.
+
+Codec v2 packs a rebuildable projection containing:
 
 - token and sentence ids;
 - local token ordinal and character span;
@@ -154,7 +199,11 @@ frequency codes.
 
 ## Validation boundary
 
-No GitHub Actions or CodeRabbit run is part of this tranche. The migrations and
-Python have source/contract regressions in-tree, but a real PostgreSQL migration
-application and corpus benchmark are still required before claiming database or
-performance certification.
+The historical tranche below did not itself include a GitHub Actions or live
+PostgreSQL certification. Later direct Gate-A receipts supersede that old
+validation status for the direct packed-fibre mechanism; production G3 parity
+and production-default G4 certification remain separate gates.
+
+For new streaming work, validation must additionally measure stream work vs EOF
+tail work and retain the direct invariants: complete coverage, stable evidence,
+zero sentence-local DB crossings, and no mandatory parser-token rows.
