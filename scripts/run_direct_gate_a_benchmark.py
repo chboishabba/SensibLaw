@@ -8,8 +8,13 @@ from dataclasses import asdict
 import json
 import os
 from pathlib import Path
+import traceback
 from uuid import uuid4
 
+from src.runtime.diagnostic_bundle import (
+    bundle_artifact_directory,
+    write_json_receipt,
+)
 from src.runtime.parser_schedule_parity_preflight import run_schedule_parity_preflight
 from src.runtime.streaming_overlap_evidence import partition_aware_eof_overlap
 from src.runtime.streaming_partition_refinement import (
@@ -29,8 +34,6 @@ def _partition_sentence_counts(
     run_ref: str,
     document_ref: str,
 ) -> tuple[int, ...]:
-    """Read every executed partition's sentence count in scheduling order."""
-
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
@@ -57,8 +60,6 @@ def _structural_partition_intervals(
     run_ref: str,
     document_ref: str,
 ) -> tuple[tuple[int, int, int, int], ...]:
-    """Read structural owner/context geometry in canonical source order."""
-
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
@@ -85,8 +86,6 @@ def _physical_parser_context_chars(
     run_ref: str,
     document_ref: str,
 ) -> int:
-    """Count context characters parsed across structural and repair partitions."""
-
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
@@ -106,54 +105,7 @@ def _physical_parser_context_chars(
         connection.close()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
-    parser.add_argument("--text-file", type=Path, required=True)
-    parser.add_argument("--parser-contract-ref", required=True)
-    parser.add_argument("--document-ref", default="gate-a-direct-benchmark")
-    parser.add_argument("--run-ref")
-    parser.add_argument("--artifact-root", type=Path, default=Path(".artifacts/gate-a"))
-    parser.add_argument(
-        "--target-chars",
-        type=int,
-        default=_COARSE_TARGET_CHARS,
-        help="historical physical structural-partition target size",
-    )
-    parser.add_argument(
-        "--target-partitions",
-        type=int,
-        help=(
-            "benchmark-only refinement probe: derive --target-chars from source "
-            "length for approximately this many structural partitions; structural "
-            "boundaries still determine the actual cuts"
-        ),
-    )
-    parser.add_argument("--context-chars", type=int, default=2_048)
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=4,
-        help="leased parser partitions per scheduling batch",
-    )
-    parser.add_argument(
-        "--pipe-batch-size",
-        type=int,
-        help=(
-            "spaCy pipeline.pipe batch size for streaming probes; defaults to "
-            "--batch-size. Use 1 to test early partition yield while still leasing "
-            "multiple partitions."
-        ),
-    )
-    parser.add_argument("--lease-seconds", type=int, default=180)
-    args = parser.parse_args()
-    if not args.database_url:
-        parser.error("--database-url or DATABASE_URL is required")
-    if args.pipe_batch_size is not None and args.pipe_batch_size < 1:
-        parser.error("--pipe-batch-size must be positive")
-    if args.target_partitions is not None and args.target_partitions < 1:
-        parser.error("--target-partitions must be positive")
-
+def _run(args: argparse.Namespace) -> dict[str, object]:
     text = args.text_file.read_text(encoding="utf-8")
     target_chars = args.target_chars
     if args.target_partitions is not None:
@@ -162,8 +114,6 @@ def main() -> int:
             target_partitions=args.target_partitions,
         )
 
-    # Physical schedule refinements are performance-admissible only after the
-    # same source projects to the same stable G3 semantic observation language.
     schedule_parity = None
     if target_chars != _COARSE_TARGET_CHARS:
         schedule_parity = run_schedule_parity_preflight(
@@ -202,12 +152,11 @@ def main() -> int:
         else:
             os.environ["SENSIBLAW_STREAM_PIPE_BATCH_SIZE"] = prior_pipe_batch
 
-    payload = asdict(receipt)
+    payload: dict[str, object] = asdict(receipt)
     payload["schedule_authority_parity_preflight"] = (
-        asdict(schedule_parity) if schedule_parity is not None else {
-            "authority_equal": True,
-            "mode": "coarse_schedule_no_refinement",
-        }
+        asdict(schedule_parity)
+        if schedule_parity is not None
+        else {"authority_equal": True, "mode": "coarse_schedule_no_refinement"}
     )
 
     partition_counts = _partition_sentence_counts(
@@ -246,7 +195,6 @@ def main() -> int:
     payload["physical_parser_context_work_ratio"] = physical_context_chars / max(
         1, len(text)
     )
-
     payload["parser_policy"] = {
         "target_chars": policy.target_chars,
         "requested_target_partitions": args.target_partitions,
@@ -255,11 +203,76 @@ def main() -> int:
         "pipe_batch_size": args.pipe_batch_size or policy.batch_size,
         "lease_seconds": policy.lease_seconds,
         "partition_refinement_mode": (
-            "approximate_target_count" if args.target_partitions is not None else "historical"
+            "approximate_target_count"
+            if args.target_partitions is not None
+            else "historical"
         ),
     }
-    print(json.dumps(payload, sort_keys=True, indent=2))
-    return 0
+    return payload
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
+    parser.add_argument("--text-file", type=Path, required=True)
+    parser.add_argument("--parser-contract-ref", required=True)
+    parser.add_argument("--document-ref", default="gate-a-direct-benchmark")
+    parser.add_argument("--run-ref")
+    parser.add_argument("--artifact-root", type=Path, default=Path(".artifacts/gate-a"))
+    parser.add_argument("--target-chars", type=int, default=_COARSE_TARGET_CHARS)
+    parser.add_argument("--target-partitions", type=int)
+    parser.add_argument("--context-chars", type=int, default=2_048)
+    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--pipe-batch-size", type=int)
+    parser.add_argument("--lease-seconds", type=int, default=180)
+    args = parser.parse_args()
+
+    if not args.database_url:
+        parser.error("--database-url or DATABASE_URL is required")
+    if args.pipe_batch_size is not None and args.pipe_batch_size < 1:
+        parser.error("--pipe-batch-size must be positive")
+    if args.target_partitions is not None and args.target_partitions < 1:
+        parser.error("--target-partitions must be positive")
+
+    args.artifact_root.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, object] | None = None
+    try:
+        payload = _run(args)
+        archive = args.artifact_root.parent / f"{args.artifact_root.name}.tar.xz"
+        payload["diagnostic_artifact_root"] = str(args.artifact_root)
+        payload["diagnostic_bundle"] = str(archive)
+        write_json_receipt(
+            args.artifact_root,
+            payload,
+            filename="receipt-v2.json",
+        )
+        print(json.dumps(payload, sort_keys=True, indent=2))
+        return 0
+    except BaseException as error:
+        failure = {
+            "status": "failed",
+            "error_type": type(error).__name__,
+            "error": str(error),
+            "traceback": traceback.format_exc(),
+            "text_file": str(args.text_file),
+            "target_chars": args.target_chars,
+            "target_partitions": args.target_partitions,
+            "context_chars": args.context_chars,
+            "batch_size": args.batch_size,
+            "pipe_batch_size": args.pipe_batch_size,
+        }
+        write_json_receipt(
+            args.artifact_root,
+            failure,
+            filename="failure-v2.json",
+        )
+        raise
+    finally:
+        archive = bundle_artifact_directory(args.artifact_root)
+        # Keep this on stderr-like diagnostic visibility without changing the
+        # JSON stdout contract used by automation.
+        if payload is not None:
+            payload["diagnostic_bundle"] = str(archive)
 
 
 if __name__ == "__main__":
