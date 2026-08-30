@@ -61,12 +61,43 @@ class _Doc:
         return name == "SENT_START"
 
 
+class _TruncatedDoc:
+    def __init__(self) -> None:
+        self.text = "Alpha beta"
+        a = _Token(0, "Alpha")
+        b = _Token(6, "beta")
+        b.head = a
+        self.sents = (_Span(0, len(self.text), (a, b)),)
+        self.ents = ()
+
+    def has_annotation(self, name: str) -> bool:
+        return name == "SENT_START"
+
+
+class _CompletedDoc:
+    def __init__(self) -> None:
+        self.text = "Alpha beta. tail"
+        a = _Token(0, "Alpha")
+        b = _Token(6, "beta.")
+        b.head = a
+        tail = _Token(12, "tail")
+        self.sents = (
+            _Span(0, 11, (a, b)),
+            _Span(12, len(self.text), (tail,)),
+        )
+        self.ents = ()
+
+    def has_annotation(self, name: str) -> bool:
+        return name == "SENT_START"
+
+
 @dataclass(frozen=True)
 class _Partition:
     run_ref: str = "run"
     document_ref: str = "doc"
     partition_kind: str = "structural"
     context_start_char: int = 0
+    context_end_char: int = len(_Doc().text)
     context_start_byte: int = 0
     owner_start_char: int = 0
     owner_end_char: int = 1
@@ -110,6 +141,32 @@ def test_crossing_sentence_has_one_structural_start_anchor_owner() -> None:
     assert [f.start_char for f in left_packed.sentences] == [0]
     assert [f.start_char for f in right_packed.sentences] == [12]
     assert left_packed.boundary_obligations
+
+
+def test_context_edge_owned_sentence_defers_until_completion() -> None:
+    truncated = _Partition(
+        owner_start_char=0,
+        owner_end_char=7,
+        context_end_char=len(_TruncatedDoc().text),
+    )
+    packed = pack_spacy_partition(truncated, _TruncatedDoc())
+
+    assert packed.sentences == ()
+    assert packed.boundary_obligations
+    assert packed.observed_sentences[0].touches_context_end is True
+
+
+def test_completed_evidence_can_publish_under_same_start_anchor_owner() -> None:
+    completed = _Partition(
+        owner_start_char=0,
+        owner_end_char=7,
+        context_end_char=len(_CompletedDoc().text),
+    )
+    packed = pack_spacy_partition(completed, _CompletedDoc())
+
+    assert [f.start_char for f in packed.sentences] == [0]
+    assert packed.sentences[0].end_char == 11
+    assert packed.observed_sentences[0].touches_context_end is False
 
 
 def test_boundary_repair_is_observation_only() -> None:
