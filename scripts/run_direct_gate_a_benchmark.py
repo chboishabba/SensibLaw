@@ -11,6 +11,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.runtime.streaming_overlap_evidence import partition_aware_eof_overlap
+from src.runtime.streaming_partition_refinement import (
+    partition_geometry,
+    target_chars_for_partition_count,
+)
 from src.storage.postgres.direct_gate_a_benchmark import run_direct_gate_a_benchmark
 from src.storage.postgres.spacy_parser_model import ParserStreamingPolicy, connect
 
@@ -43,6 +47,61 @@ def _partition_sentence_counts(
         connection.close()
 
 
+def _structural_partition_intervals(
+    database_url: str,
+    *,
+    run_ref: str,
+    document_ref: str,
+) -> tuple[tuple[int, int, int, int], ...]:
+    """Read structural owner/context geometry in canonical source order."""
+
+    connection = connect(database_url)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT owner_start_char, owner_end_char,
+                       context_start_char, context_end_char
+                  FROM execution.semantic_parser_partition
+                 WHERE run_ref = %s
+                   AND document_ref = %s
+                   AND partition_kind = 'structural'
+                 ORDER BY owner_start_char, owner_end_char, partition_ref
+                """,
+                (run_ref, document_ref),
+            )
+            return tuple(tuple(int(value) for value in row) for row in cursor.fetchall())
+    finally:
+        connection.close()
+
+
+def _physical_parser_context_chars(
+    database_url: str,
+    *,
+    run_ref: str,
+    document_ref: str,
+) -> int:
+    """Count context characters parsed across structural and repair partitions."""
+
+    connection = connect(database_url)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT COALESCE(sum(context_end_char - context_start_char), 0)
+                  FROM execution.semantic_parser_partition
+                 WHERE run_ref = %s
+                   AND document_ref = %s
+                   AND state = 'completed'
+                """,
+                (run_ref, document_ref),
+            )
+            row = cursor.fetchone()
+            return int(row[0]) if row is not None else 0
+    finally:
+        connection.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
@@ -51,7 +110,21 @@ def main() -> int:
     parser.add_argument("--document-ref", default="gate-a-direct-benchmark")
     parser.add_argument("--run-ref")
     parser.add_argument("--artifact-root", type=Path, default=Path(".artifacts/gate-a"))
-    parser.add_argument("--target-chars", type=int, default=32_768)
+    parser.add_argument(
+        "--target-chars",
+        type=int,
+        default=32_768,
+        help="historical physical structural-partition target size",
+    )
+    parser.add_argument(
+        "--target-partitions",
+        type=int,
+        help=(
+            "benchmark-only refinement probe: derive --target-chars from source "
+            "length for approximately this many structural partitions; structural "
+            "boundaries still determine the actual cuts"
+        ),
+    )
     parser.add_argument("--context-chars", type=int, default=2_048)
     parser.add_argument(
         "--batch-size",
@@ -74,14 +147,23 @@ def main() -> int:
         parser.error("--database-url or DATABASE_URL is required")
     if args.pipe_batch_size is not None and args.pipe_batch_size < 1:
         parser.error("--pipe-batch-size must be positive")
+    if args.target_partitions is not None and args.target_partitions < 1:
+        parser.error("--target-partitions must be positive")
+
+    text = args.text_file.read_text(encoding="utf-8")
+    target_chars = args.target_chars
+    if args.target_partitions is not None:
+        target_chars = target_chars_for_partition_count(
+            source_chars=len(text),
+            target_partitions=args.target_partitions,
+        )
 
     policy = ParserStreamingPolicy(
-        target_chars=args.target_chars,
+        target_chars=target_chars,
         context_chars=args.context_chars,
         batch_size=args.batch_size,
         lease_seconds=args.lease_seconds,
     )
-    text = args.text_file.read_text(encoding="utf-8")
     run_ref = args.run_ref or f"gate-a-direct:{uuid4().hex}"
 
     prior_pipe_batch = os.environ.get("SENSIBLAW_STREAM_PIPE_BATCH_SIZE")
@@ -124,12 +206,35 @@ def main() -> int:
         payload["partition_sentence_counts"] = partition_counts
         payload["partition_aware_overlap_status"] = "unavailable_or_repair_partitioned"
 
+    structural_intervals = _structural_partition_intervals(
+        args.database_url,
+        run_ref=run_ref,
+        document_ref=args.document_ref,
+    )
+    if structural_intervals:
+        payload["structural_partition_geometry"] = asdict(
+            partition_geometry(structural_intervals)
+        )
+    physical_context_chars = _physical_parser_context_chars(
+        args.database_url,
+        run_ref=run_ref,
+        document_ref=args.document_ref,
+    )
+    payload["physical_parser_context_chars"] = physical_context_chars
+    payload["physical_parser_context_work_ratio"] = physical_context_chars / max(
+        1, len(text)
+    )
+
     payload["parser_policy"] = {
         "target_chars": policy.target_chars,
+        "requested_target_partitions": args.target_partitions,
         "context_chars": policy.context_chars,
         "lease_batch_size": policy.batch_size,
         "pipe_batch_size": args.pipe_batch_size or policy.batch_size,
         "lease_seconds": policy.lease_seconds,
+        "partition_refinement_mode": (
+            "approximate_target_count" if args.target_partitions is not None else "historical"
+        ),
     }
     print(json.dumps(payload, sort_keys=True, indent=2))
     return 0
