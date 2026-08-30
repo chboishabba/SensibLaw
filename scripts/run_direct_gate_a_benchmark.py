@@ -54,11 +54,27 @@ def main() -> int:
     parser.add_argument("--artifact-root", type=Path, default=Path(".artifacts/gate-a"))
     parser.add_argument("--target-chars", type=int, default=32_768)
     parser.add_argument("--context-chars", type=int, default=2_048)
-    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=4,
+        help="leased parser partitions per scheduling batch",
+    )
+    parser.add_argument(
+        "--pipe-batch-size",
+        type=int,
+        help=(
+            "spaCy pipeline.pipe batch size for streaming probes; defaults to "
+            "--batch-size. Use 1 to test early partition yield while still leasing "
+            "multiple partitions."
+        ),
+    )
     parser.add_argument("--lease-seconds", type=int, default=180)
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
+    if args.pipe_batch_size is not None and args.pipe_batch_size < 1:
+        parser.error("--pipe-batch-size must be positive")
 
     policy = ParserStreamingPolicy(
         target_chars=args.target_chars,
@@ -68,15 +84,27 @@ def main() -> int:
     )
     text = args.text_file.read_text(encoding="utf-8")
     run_ref = args.run_ref or f"gate-a-direct:{uuid4().hex}"
-    receipt = run_direct_gate_a_benchmark(
-        database_url=args.database_url,
-        run_ref=run_ref,
-        document_ref=args.document_ref,
-        canonical_text=text,
-        parser_contract_ref=args.parser_contract_ref,
-        artifact_root=args.artifact_root,
-        policy=policy,
-    )
+
+    prior_pipe_batch = os.environ.get("SENSIBLAW_STREAM_PIPE_BATCH_SIZE")
+    try:
+        if args.pipe_batch_size is None:
+            os.environ.pop("SENSIBLAW_STREAM_PIPE_BATCH_SIZE", None)
+        else:
+            os.environ["SENSIBLAW_STREAM_PIPE_BATCH_SIZE"] = str(args.pipe_batch_size)
+        receipt = run_direct_gate_a_benchmark(
+            database_url=args.database_url,
+            run_ref=run_ref,
+            document_ref=args.document_ref,
+            canonical_text=text,
+            parser_contract_ref=args.parser_contract_ref,
+            artifact_root=args.artifact_root,
+            policy=policy,
+        )
+    finally:
+        if prior_pipe_batch is None:
+            os.environ.pop("SENSIBLAW_STREAM_PIPE_BATCH_SIZE", None)
+        else:
+            os.environ["SENSIBLAW_STREAM_PIPE_BATCH_SIZE"] = prior_pipe_batch
 
     payload = asdict(receipt)
     partition_counts = _partition_sentence_counts(
@@ -100,7 +128,8 @@ def main() -> int:
     payload["parser_policy"] = {
         "target_chars": policy.target_chars,
         "context_chars": policy.context_chars,
-        "batch_size": policy.batch_size,
+        "lease_batch_size": policy.batch_size,
+        "pipe_batch_size": args.pipe_batch_size or policy.batch_size,
         "lease_seconds": policy.lease_seconds,
     }
     print(json.dumps(payload, sort_keys=True, indent=2))
