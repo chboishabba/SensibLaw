@@ -7,7 +7,8 @@ head addresses before any durable projection exists.
 Physical parser observation is not semantic authority. Structural partitions own
 sentence authority by canonical sentence-start coordinate; bilateral context and
 boundary-repair partitions are evidence-only. See
-``ExactlyOnceParserAuthorityProjectionExact.agda``.
+``ExactlyOnceParserAuthorityProjectionExact.agda`` and
+``ParserBoundaryCompletionExact.agda``.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ class PartitionView(Protocol):
     document_ref: str
     partition_kind: str
     context_start_char: int
+    context_end_char: int
     context_start_byte: int
     owner_start_char: int
     owner_end_char: int
@@ -66,6 +68,7 @@ class PackedObservedSentence:
     end_char: int
     start_byte: int
     end_byte: int
+    touches_context_end: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,10 +97,11 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
 
     A structural partition owns a sentence iff the sentence's canonical start
     coordinate lies in that partition's disjoint owner interval. A sentence may
-    extend beyond the physical owner boundary as long as the parser context
-    contains the complete span. Context-only and boundary-repair observations
-    never enter the semantic compiler; they are retained only as boundary
-    evidence.
+    extend beyond the physical owner boundary only when the parser context
+    contains a complete observation. If an owned sentence terminates exactly at
+    a non-owner context edge, publication is deferred until boundary-completion
+    evidence supplies a complete view. Context-only and repair observations
+    never independently enter the semantic compiler.
     """
 
     spans = tuple(doc.sents) if doc.has_annotation("SENT_START") else (doc[:],)
@@ -126,24 +130,39 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
         if not overlaps_owner:
             continue
 
+        touches_context_end = (
+            local_end == len(doc.text)
+            and end_char == int(partition.context_end_char)
+        )
         observed.append(
             PackedObservedSentence(
                 start_char=start_char,
                 end_char=end_char,
                 start_byte=start_byte,
                 end_byte=end_byte,
+                touches_context_end=touches_context_end,
             )
         )
         projection = project_sentence_authority(partition, start_char=start_char)
 
-        # Structural crossings remain explicit repair/validation obligations,
-        # but the canonical structural owner may still admit the full sentence.
-        if str(partition.partition_kind) == "structural" and (
-            start_char < partition.owner_start_char or end_char > partition.owner_end_char
-        ):
+        crossing_owner = (
+            start_char < partition.owner_start_char
+            or end_char > partition.owner_end_char
+        )
+        if str(partition.partition_kind) == "structural" and crossing_owner:
             boundary.append((start_char, end_char, start_byte, end_byte))
 
         if not projection.authority_bearing:
+            continue
+
+        # A start-owned sentence reaching the right parser-context edge while
+        # extending beyond its owner interval may be a truncated spaCy sentence.
+        # Keep the owner, but defer publication until a wider evidence-only
+        # observation completes it. The document-final owner does not trigger
+        # this condition because its owner/context ends coincide.
+        if touches_context_end and end_char > partition.owner_end_char:
+            if (start_char, end_char, start_byte, end_byte) not in boundary:
+                boundary.append((start_char, end_char, start_byte, end_byte))
             continue
 
         sentence_digest = numeric_digest(
@@ -181,9 +200,6 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
                     )
                 )
             )
-            # Durable direct evidence identity is source-coordinate based. Local
-            # token ordinal remains an execution address and must not leak into
-            # semantic identity when physical partitioning changes.
             evidence_digest = numeric_digest(
                 b"source-token-evidence:v2",
                 sentence_digest,
