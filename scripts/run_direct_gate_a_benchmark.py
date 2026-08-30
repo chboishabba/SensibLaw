@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
+from src.runtime.parser_schedule_parity_preflight import run_schedule_parity_preflight
 from src.runtime.streaming_overlap_evidence import partition_aware_eof_overlap
 from src.runtime.streaming_partition_refinement import (
     partition_geometry,
@@ -17,6 +18,9 @@ from src.runtime.streaming_partition_refinement import (
 )
 from src.storage.postgres.direct_gate_a_benchmark import run_direct_gate_a_benchmark
 from src.storage.postgres.spacy_parser_model import ParserStreamingPolicy, connect
+
+
+_COARSE_TARGET_CHARS = 32_768
 
 
 def _partition_sentence_counts(
@@ -113,7 +117,7 @@ def main() -> int:
     parser.add_argument(
         "--target-chars",
         type=int,
-        default=32_768,
+        default=_COARSE_TARGET_CHARS,
         help="historical physical structural-partition target size",
     )
     parser.add_argument(
@@ -158,6 +162,17 @@ def main() -> int:
             target_partitions=args.target_partitions,
         )
 
+    # Physical schedule refinements are performance-admissible only after the
+    # same source projects to the same stable G3 semantic observation language.
+    schedule_parity = None
+    if target_chars != _COARSE_TARGET_CHARS:
+        schedule_parity = run_schedule_parity_preflight(
+            text,
+            coarse_target_chars=_COARSE_TARGET_CHARS,
+            candidate_target_chars=target_chars,
+            context_chars=args.context_chars,
+        )
+
     policy = ParserStreamingPolicy(
         target_chars=target_chars,
         context_chars=args.context_chars,
@@ -188,6 +203,13 @@ def main() -> int:
             os.environ["SENSIBLAW_STREAM_PIPE_BATCH_SIZE"] = prior_pipe_batch
 
     payload = asdict(receipt)
+    payload["schedule_authority_parity_preflight"] = (
+        asdict(schedule_parity) if schedule_parity is not None else {
+            "authority_equal": True,
+            "mode": "coarse_schedule_no_refinement",
+        }
+    )
+
     partition_counts = _partition_sentence_counts(
         args.database_url,
         run_ref=run_ref,
