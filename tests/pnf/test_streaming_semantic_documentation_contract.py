@@ -12,7 +12,10 @@ CORE_FORMAL_OWNERS = (
     "DirectDeltaCompilerActivationExact.agda",
     "DirectStreamingRoadmapSynthesisExact.agda",
 )
-FORMAL_OWNERS = CORE_FORMAL_OWNERS + ("StreamingPhysicalOverlapReceiptExact.agda",)
+FORMAL_OWNERS = CORE_FORMAL_OWNERS + (
+    "StreamingPhysicalOverlapReceiptExact.agda",
+    "StreamingPhysicalPartitionRefinementExact.agda",
+)
 
 
 def test_agents_requires_streaming_agda_owners() -> None:
@@ -30,8 +33,14 @@ def test_streaming_architecture_names_formal_and_runtime_owners() -> None:
     assert "src/pnf/streaming_semantic_pacman.py" in architecture
     assert "src/runtime/overlapped_parser_semantic_stream.py" in architecture
     assert "End-of-stream must **not** mean \"start semantic compilation now\"" in architecture
-    for owner in FORMAL_OWNERS:
+    for owner in FORMAL_OWNERS[:-1]:
         assert owner in architecture
+
+    overlap_evidence = (
+        ROOT / "docs" / "architecture" / "STREAMING_OVERLAP_EVIDENCE.md"
+    ).read_text(encoding="utf-8")
+    for owner in FORMAL_OWNERS:
+        assert owner in overlap_evidence
 
 
 def test_roadmap_keeps_streaming_before_deeper_persistence_micro_optimization() -> None:
