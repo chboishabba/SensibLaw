@@ -3,6 +3,10 @@
 Parser partition/coverage rows remain the durable scheduling carrier, but sentence,
 token and entity observation rows are never materialised. Observed counts are kept
 in the partition receipt; semantic support is admitted through stable source evidence.
+
+Physical boundary-repair/context observations are evidence-only. Exactly-once
+sentence authority is projected by ``pack_spacy_partition`` before this module
+invokes the semantic compiler.
 """
 
 from __future__ import annotations
@@ -65,6 +69,21 @@ def _require_direct_capabilities(capabilities: dict[str, bool]) -> None:
         )
 
 
+def _repair_observation_resolves(
+    packed: Any,
+    *,
+    suspected_start: int,
+    suspected_end: int,
+) -> bool:
+    """Use evidence-only observed spans to close a boundary obligation."""
+
+    return any(
+        observation.start_char <= suspected_start
+        and observation.end_char >= suspected_end
+        for observation in packed.observed_sentences
+    )
+
+
 def commit_direct_partition(
     database_url: str,
     *,
@@ -75,7 +94,7 @@ def commit_direct_partition(
     pipeline: Any,
     elapsed_ns: int,
 ) -> int:
-    """Publish a leased partition and complete its durable scheduling fence."""
+    """Publish one leased partition through exactly-once direct authority."""
 
     capabilities = _capabilities(pipeline)
     _require_direct_capabilities(capabilities)
@@ -84,11 +103,15 @@ def commit_direct_partition(
     if any(receipt.database_crossings != 0 for receipt in compiled):
         raise RuntimeError("direct local sentence solve reported a database crossing")
     token_count = sum(len(fibre.tokens) for fibre in packed.sentences)
-    entity_count = sum(
-        1
-        for entity in getattr(doc, "ents", ())
-        if partition.context_start_char + int(entity.start_char) >= partition.owner_start_char
-        and partition.context_start_char + int(entity.end_char) <= partition.owner_end_char
+    entity_count = (
+        0
+        if partition.partition_kind == "boundary_repair"
+        else sum(
+            1
+            for entity in getattr(doc, "ents", ())
+            if partition.context_start_char + int(entity.start_char) >= partition.owner_start_char
+            and partition.context_start_char + int(entity.start_char) < partition.owner_end_char
+        )
     )
     artifact = (
         seal_docbin(doc, partition=partition, artifact_root=artifact_root)
@@ -161,6 +184,7 @@ def commit_direct_partition(
                         profile=profile,
                     )
 
+                # Only structural observations can open repair obligations.
                 for start_char, end_char, start_byte, end_byte in packed.boundary_obligations:
                     _create_boundary_repair(
                         cursor,
@@ -172,6 +196,8 @@ def commit_direct_partition(
                         policy=policy,
                     )
 
+                # A repair closes an obligation from its evidence-only observed
+                # sentence spans. It never needs an authority-bearing fibre.
                 if partition.resolves_obligation_ref:
                     cursor.execute(
                         """
@@ -184,10 +210,10 @@ def commit_direct_partition(
                     obligation = cursor.fetchone()
                     if obligation is not None:
                         suspected_start, suspected_end = map(int, obligation)
-                        if any(
-                            fibre.start_char <= suspected_start
-                            and fibre.end_char >= suspected_end
-                            for fibre in packed.sentences
+                        if _repair_observation_resolves(
+                            packed,
+                            suspected_start=suspected_start,
+                            suspected_end=suspected_end,
                         ):
                             cursor.execute(
                                 """
@@ -222,13 +248,14 @@ def commit_direct_partition(
                 cursor.execute("SELECT pg_backend_pid()")
                 backend_pid = int(cursor.fetchone()[0])
                 receipt_digest = numeric_digest(
-                    b"direct-partition-receipt:v1",
+                    b"direct-partition-receipt:v2",
                     partition.partition_ref.encode("utf-8"),
                     partition.lease_epoch,
                     len(packed.sentences),
                     token_count,
                     entity_count,
                     len(packed.boundary_obligations),
+                    len(packed.observed_sentences),
                     elapsed_ns,
                     artifact[2] if artifact is not None else b"",
                 )
