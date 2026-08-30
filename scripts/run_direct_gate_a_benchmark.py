@@ -21,7 +21,7 @@ def _partition_sentence_counts(
     run_ref: str,
     document_ref: str,
 ) -> tuple[int, ...]:
-    """Read structural partition sentence counts in canonical source order."""
+    """Read every executed partition's sentence count in scheduling order."""
 
     connection = connect(database_url)
     try:
@@ -34,8 +34,7 @@ def _partition_sentence_counts(
                     ON r.partition_ref = p.partition_ref
                  WHERE p.run_ref = %s
                    AND p.document_ref = %s
-                   AND p.partition_kind = 'structural'
-                 ORDER BY p.owner_start_char, p.owner_end_char, p.partition_ref
+                 ORDER BY p.sequence_no, p.partition_ref
                 """,
                 (run_ref, document_ref),
             )
