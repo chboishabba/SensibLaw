@@ -5,12 +5,14 @@ token and entity observation rows are never materialised. Observed counts are ke
 in the partition receipt; semantic support is admitted through stable source evidence.
 
 Physical boundary-repair/context observations are evidence-only. Exactly-once
-sentence authority is projected by ``pack_spacy_partition`` before this module
-invokes the semantic compiler.
+sentence authority is projected before this module invokes the semantic compiler.
+A repair may supply a completed parser observation on behalf of the original
+structural owner, but it never becomes a second owner.
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
 import os
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,9 @@ from src.pnf.direct_sentence_compiler import compile_packed_sentence
 from src.pnf.direct_sentence_publication import resolve_direct_publications
 from src.pnf.numeric_hyperfabric import numeric_digest
 from src.pnf.packed_sentence_fibre import pack_spacy_partition
+from src.storage.postgres.direct_boundary_completion import (
+    create_expanded_boundary_repair,
+)
 from src.storage.postgres.direct_sentence_admission import (
     register_and_lease_sentence_work_batch,
 )
@@ -34,11 +39,7 @@ from src.storage.postgres.spacy_parser_model import (
     connect,
     typed_ref,
 )
-from src.storage.postgres.spacy_parser_store import (
-    _create_boundary_repair,
-    refresh_coverage,
-    seal_docbin,
-)
+from src.storage.postgres.spacy_parser_store import refresh_coverage, seal_docbin
 
 
 def _capabilities(pipeline: Any) -> dict[str, bool]:
@@ -75,12 +76,47 @@ def _repair_observation_resolves(
     suspected_start: int,
     suspected_end: int,
 ) -> bool:
-    """Use evidence-only observed spans to close a boundary obligation."""
+    """Use observed spans to close a boundary obligation."""
 
     return any(
         observation.start_char <= suspected_start
         and observation.end_char >= suspected_end
+        and not observation.touches_context_end
         for observation in packed.observed_sentences
+    )
+
+
+def _authority_partition_for_completion(
+    database_url: str,
+    partition: ParserPartition,
+) -> ParserPartition:
+    """Project repair evidence through its original structural owner interval."""
+
+    if partition.partition_kind != "boundary_repair" or not partition.resolves_obligation_ref:
+        return partition
+    connection = connect(database_url)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT source.owner_start_char, source.owner_end_char
+                  FROM execution.semantic_parser_boundary_obligation AS obligation
+                  JOIN execution.semantic_parser_partition AS source
+                    ON source.partition_ref = obligation.source_partition_ref
+                 WHERE obligation.obligation_ref = %s
+                """,
+                (partition.resolves_obligation_ref,),
+            )
+            row = cursor.fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise RuntimeError("boundary completion lost its structural authority owner")
+    return replace(
+        partition,
+        partition_kind="structural",
+        owner_start_char=int(row[0]),
+        owner_end_char=int(row[1]),
     )
 
 
@@ -98,20 +134,19 @@ def commit_direct_partition(
 
     capabilities = _capabilities(pipeline)
     _require_direct_capabilities(capabilities)
-    packed = pack_spacy_partition(partition, doc)
+    authority_partition = _authority_partition_for_completion(database_url, partition)
+    packed = pack_spacy_partition(authority_partition, doc)
     compiled = tuple(compile_packed_sentence(fibre=fibre) for fibre in packed.sentences)
     if any(receipt.database_crossings != 0 for receipt in compiled):
         raise RuntimeError("direct local sentence solve reported a database crossing")
     token_count = sum(len(fibre.tokens) for fibre in packed.sentences)
-    entity_count = (
-        0
-        if partition.partition_kind == "boundary_repair"
-        else sum(
-            1
-            for entity in getattr(doc, "ents", ())
-            if partition.context_start_char + int(entity.start_char) >= partition.owner_start_char
-            and partition.context_start_char + int(entity.start_char) < partition.owner_end_char
-        )
+    entity_count = sum(
+        1
+        for entity in getattr(doc, "ents", ())
+        if authority_partition.context_start_char + int(entity.start_char)
+        >= authority_partition.owner_start_char
+        and authority_partition.context_start_char + int(entity.start_char)
+        < authority_partition.owner_end_char
     )
     artifact = (
         seal_docbin(doc, partition=partition, artifact_root=artifact_root)
@@ -184,20 +219,22 @@ def commit_direct_partition(
                         profile=profile,
                     )
 
-                # Only structural observations can open repair obligations.
-                for start_char, end_char, start_byte, end_byte in packed.boundary_obligations:
-                    _create_boundary_repair(
-                        cursor,
-                        partition=partition,
-                        start_char=start_char,
-                        end_char=end_char,
-                        start_byte=start_byte,
-                        end_byte=end_byte,
-                        policy=policy,
-                    )
+                # Only a physical structural partition can open a repair. A
+                # repair may publish completed evidence under the structural
+                # authority view above, but it can never recursively own/open
+                # another repair.
+                if partition.partition_kind == "structural":
+                    for start_char, end_char, start_byte, end_byte in packed.boundary_obligations:
+                        create_expanded_boundary_repair(
+                            cursor,
+                            partition=partition,
+                            start_char=start_char,
+                            end_char=end_char,
+                            start_byte=start_byte,
+                            end_byte=end_byte,
+                            policy=policy,
+                        )
 
-                # A repair closes an obligation from its evidence-only observed
-                # sentence spans. It never needs an authority-bearing fibre.
                 if partition.resolves_obligation_ref:
                     cursor.execute(
                         """
@@ -222,6 +259,11 @@ def commit_direct_partition(
                                  WHERE obligation_ref = %s
                                 """,
                                 (partition.resolves_obligation_ref,),
+                            )
+                        else:
+                            raise RuntimeError(
+                                "boundary completion repair did not produce a complete "
+                                "observation; timing is inadmissible"
                             )
 
                 artifact_ref: str | None = None
@@ -248,7 +290,7 @@ def commit_direct_partition(
                 cursor.execute("SELECT pg_backend_pid()")
                 backend_pid = int(cursor.fetchone()[0])
                 receipt_digest = numeric_digest(
-                    b"direct-partition-receipt:v2",
+                    b"direct-partition-receipt:v3",
                     partition.partition_ref.encode("utf-8"),
                     partition.lease_epoch,
                     len(packed.sentences),
