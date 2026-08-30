@@ -6,7 +6,6 @@ import pytest
 
 from src.pnf.direct_sentence_compiler import compile_packed_sentence
 from src.pnf.direct_sentence_parity import assert_sentence_parity, observe_sentence_closure
-from src.pnf.numeric_hyperfabric import SymbolKind
 from src.pnf.packed_sentence_fibre import PackedSentenceFibre, PackedSourceToken
 
 
@@ -137,7 +136,7 @@ def test_parity_fails_closed_on_semantic_difference() -> None:
         evidence_by_address=evidence,
         symbol_by_id=symbols,
     )
-    changed_symbol = next(iter(symbols))
+    changed_symbol = receipt.closure.objects[0].object_kind_symbol_id
     changed = dict(symbols)
     kind, text = changed[changed_symbol]
     changed[changed_symbol] = (kind, text + ":changed")
@@ -148,6 +147,43 @@ def test_parity_fails_closed_on_semantic_difference() -> None:
     )
     with pytest.raises(RuntimeError, match="publication is forbidden"):
         assert_sentence_parity(direct, reference)
+
+
+def test_parity_observation_orders_distinct_slot_fibres_structurally() -> None:
+    """Factor ordering must not depend on dataclass ordering or local addresses."""
+
+    receipt = _receipt()
+    factor = receipt.closure.factors[0]
+    assert factor.slots
+    replacement_token = next(
+        spec.source_token_id
+        for spec in receipt.closure.objects
+        if spec.source_token_id != factor.slots[0].source_token_id
+    )
+    alternate = replace(
+        factor,
+        slots=(
+            replace(factor.slots[0], source_token_id=replacement_token),
+            *factor.slots[1:],
+        ),
+    )
+    closure = replace(receipt.closure, factors=(alternate, factor))
+    observed = observe_sentence_closure(
+        closure,
+        evidence_by_address=dict(receipt.source_evidence_ids),
+        symbol_by_id={
+            symbol_id: (kind, text)
+            for kind, text, symbol_id in receipt.symbol_ids
+        },
+    )
+
+    assert len(observed.factors) == 2
+    assert observed.factors == tuple(
+        sorted(
+            observed.factors,
+            key=lambda row: row.slots[0].source_evidence_digest,
+        )
+    )
 
 
 def test_parity_rejects_missing_source_evidence() -> None:

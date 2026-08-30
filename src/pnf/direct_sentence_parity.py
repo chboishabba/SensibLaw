@@ -94,6 +94,48 @@ def _optional_symbol(
     return None if symbol_id is None else _require_symbol(symbol_by_id, symbol_id)
 
 
+def _slot_key(row: StableSlotObservation) -> tuple[int, str, bytes, int, bool]:
+    """Return an explicit total order for a consumer-stable slot observation."""
+
+    return (
+        int(row.role[0]),
+        row.role[1],
+        row.source_evidence_digest,
+        row.resolution_state,
+        row.required,
+    )
+
+
+def _factor_key(
+    row: StableFactorObservation,
+) -> tuple[
+    int,
+    str,
+    int,
+    str,
+    int,
+    int,
+    tuple[tuple[int, str, bytes, int, bool], ...],
+    tuple[bytes, ...],
+    tuple[tuple[int, str], ...],
+    float,
+]:
+    """Return an explicit total order without comparing dataclass instances."""
+
+    return (
+        int(row.factor_type[0]),
+        row.factor_type[1],
+        int(row.predicate[0]),
+        row.predicate[1],
+        row.modal_state,
+        row.temporal_state,
+        tuple(_slot_key(slot) for slot in row.slots),
+        row.support_evidence_digests,
+        tuple((int(residual[0]), residual[1]) for residual in row.residuals),
+        row.support_score,
+    )
+
+
 def observe_sentence_closure(
     closure: NumericSentenceClosure,
     *,
@@ -153,13 +195,7 @@ def observe_sentence_closure(
                                 )
                                 for slot in spec.slots
                             ),
-                            key=lambda row: (
-                                int(row.role[0]),
-                                row.role[1],
-                                row.source_evidence_digest,
-                                row.resolution_state,
-                                row.required,
-                            ),
+                            key=_slot_key,
                         )
                     ),
                     support_evidence_digests=tuple(
@@ -181,17 +217,7 @@ def observe_sentence_closure(
                 )
                 for spec in closure.factors
             ),
-            key=lambda row: (
-                int(row.factor_type[0]),
-                row.factor_type[1],
-                int(row.predicate[0]),
-                row.predicate[1],
-                row.modal_state,
-                row.temporal_state,
-                row.slots,
-                row.support_evidence_digests,
-                row.residuals,
-            ),
+            key=_factor_key,
         )
     )
     demands = tuple(
