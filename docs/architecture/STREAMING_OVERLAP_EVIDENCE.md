@@ -3,86 +3,88 @@
 Status: normative measurement companion to `STREAMING_SEMANTIC_PACMAN.md`.
 
 A high fraction of semantic work complete at parser EOF is **not** sufficient
-evidence of useful parser/semantic overlap.  Physical partition geometry and
-parser batching must be accounted for separately from semantic correctness.
+evidence of useful parser/semantic overlap. Physical partition geometry, parser
+batching, and authority parity must be checked separately.
 
 ## Formal owners
 
 Before changing this experiment inspect:
 
 - `DASHI/Cognition/PNF/StreamingSemanticPacmanKernelExact.agda`
+- `DASHI/Cognition/PNF/StreamingPhysicalOverlapReceiptExact.agda`
+- `DASHI/Cognition/PNF/StreamingPhysicalPartitionRefinementExact.agda`
+- `DASHI/Cognition/PNF/ExactlyOnceParserAuthorityProjectionExact.agda`
 - `DASHI/Cognition/PNF/DeltaNativePNFDreamFlowExact.agda`
 - `DASHI/Cognition/PNF/FibreSolverDeltaStreamExact.agda`
 - `DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda`
 - `DASHI/Cognition/PNF/DirectDeltaCompilerActivationExact.agda`
 - `DASHI/Cognition/PNF/DirectStreamingRoadmapSynthesisExact.agda`
-- `DASHI/Cognition/PNF/StreamingPhysicalOverlapReceiptExact.agda`
-- `DASHI/Cognition/PNF/StreamingPhysicalPartitionRefinementExact.agda`
 
-The semantic prefix/suffix theorem is unchanged by every experiment on this
-page.  Partition shape is physical scheduling only.
+The semantic prefix/suffix theorem is unchanged by every physical experiment on
+this page.
 
-## Why raw EOF completion can be misleading
+## Exactly-once authority law
 
-For ordered parser partitions with semantic sentence counts
+Physical parser observation is not semantic authority. Structural partitions,
+bilateral context, repairs, retries, and future finer streaming schedules may
+observe the same source material, but only one canonical structural owner may
+admit it to the semantic fold.
+
+For sentences the current canonical source anchor is the sentence start:
 
 ```text
-p1, p2, ..., pn
+owner_start <= sentence_start < owner_end
+    -> structural owner / authority-bearing
+otherwise
+    -> context observation / evidence-only
 ```
 
-a completely serial partition pipeline can finish all semantic work from
-`p1..p(n-1)` before parser EOF on the final partition `pn`.
+Boundary-repair partitions are always evidence-only. They may resolve a parser
+boundary obligation but do not directly mint sentence, stable-evidence, object,
+factor, demand, provenance, or hierarchy authority.
 
-Therefore the serial EOF floor is:
+The Python owner is:
+
+- `src/pnf/parser_authority_projection.py`
+
+The DB-free schedule parity owner is:
+
+- `src/pnf/parser_schedule_parity.py`
+- `scripts/check_direct_schedule_authority_parity.py`
+
+Schedule parity deliberately reuses `direct_sentence_parity.py`, so physical
+schedule parity and G3 direct/reference parity speak the same surrogate-free
+object/factor/demand observation language.
+
+## Raw EOF completion and serial floor
+
+For ordered parser partitions with semantic sentence counts `p1..pn`, a fully
+serial pipeline can finish all semantic work from `p1..p(n-1)` before parser EOF
+on the final partition. Therefore:
 
 ```text
 serial_eof_floor = sum(p1..p(n-1)) / sum(p1..pn)
-```
-
-Only semantic completion above that floor is evidence attributable to overlap:
-
-```text
 overlap_gain = max(0, semantic_complete_at_eof - sum(p1..p(n-1)))
 ```
 
-The Python owner is `src/runtime/streaming_overlap_evidence.py`.
+Do not cite raw EOF completion without the serial floor and overlap gain.
 
 ## Experiment A: coarse partitions, pipe batch 4
 
-The first fresh overlapped Gate-A workload reported partition sentence counts:
+The first fresh overlapped workload had sentence counts:
 
 ```text
 168, 73, 5, 1
 ```
 
-and approximately:
-
-```text
-semantic_sentences_at_parser_eof = 246 / 247
-parser_semantic_overlap_ns        = 6,225 ns
-```
-
-The raw EOF completion was about 99.6%, but the serial floor was also 246/247.
-Therefore:
-
-```text
-overlap completion gain = 0 / 247
-```
-
-This proved bounded/correct streaming execution but not material concurrency.
+with about 6 microseconds of active parser/semantic overlap. Raw EOF completion
+was 246/247, exactly equal to the serial floor, so overlap completion gain was
+zero.
 
 ## Experiment B: same partitions, pipe batch 1
 
-Experiment B kept the same physical partition ownership and changed only the
-spaCy `pipeline.pipe` batch:
-
-```text
-lease batch = 4
-pipe batch  = 1
-queue bound = 1
-```
-
-Result on the identical fresh workload:
+Keeping ownership fixed while using `pipe_batch_size=1` produced real active
+overlap:
 
 ```text
 parser/semantic active overlap  ~= 1.938 s
@@ -92,135 +94,80 @@ spaCy active work               ~= 4.036 s
 overlap completion gain          = 0 sentences
 ```
 
-Interpretation:
+This proved that the producer/consumer implementation genuinely overlaps, but
+the extra parser cost cancelled the concurrency benefit. Experiment B is closed.
 
-1. the producer/consumer implementation genuinely overlaps execution;
-2. reducing the spaCy pipe batch materially increases active overlap;
-3. the extra parser cost offsets that overlap, so end-to-end wall time is a wash;
-4. semantic completion at EOF remains exactly the serial partition floor.
+## Experiment C: rejected before performance interpretation
 
-Therefore Experiment B is closed.  Do not keep tuning `pipe_batch_size` as if
-active overlap alone were the objective.
+The ~12-partition refinement was semantically invalid. The planner predicted 13
+structural partitions, but live repair work produced 22 physical partitions and
+changed authority-bearing output:
 
-## Experiment C: admissible physical partition refinement
+```text
+sentences          247 -> 248
+tokens/evidence  12750 -> 13177
+PNF objects         147 -> 151
+PNF factors          69 -> 71
+PNF demands         183 -> 188
+```
 
-The next experiment changes only physical partition granularity while keeping:
+Physical parser-context work also rose to roughly 3.03x source and active overlap
+rose to roughly 3.406 s, but **none of those timing numbers are optimization
+evidence** because authority parity failed.
 
-- exact disjoint owned source coverage;
-- evidence-only bilateral context;
-- ordered parser observations;
-- the same packed-fibre/numeric PNF semantic authority;
-- stable source-evidence identity;
-- bounded queueing and zero prefix replay.
+This failure exposed the missing global law now implemented by
+`ExactlyOnceParserAuthorityProjectionExact.agda` and
+`parser_authority_projection.py`.
 
-This is exactly the gate formalized by
-`StreamingPhysicalPartitionRefinementExact.agda`.
+## Mandatory preflight before any future schedule timing
 
-The benchmark runner supports an approximate target partition count:
+Before a candidate partition/repair/streaming schedule is eligible for Gate-A
+performance interpretation, run the DB-free authority check:
 
 ```bash
-python scripts/run_direct_gate_a_benchmark.py \
-  --database-url "$DATABASE_URL" \
+python scripts/check_direct_schedule_authority_parity.py \
   --text-file README.md \
-  --parser-contract-ref parser-document-fibres:v0_2 \
-  --batch-size 4 \
-  --pipe-batch-size 1 \
-  --target-partitions 12
+  --coarse-target-chars 32768 \
+  --candidate-target-partitions 12 \
+  --context-chars 2048
 ```
 
-`--target-partitions` derives a physical `target_chars` from source length;
-structural boundaries still determine the actual cuts.  It is benchmark-only
-and does not change production defaults.
+The check parses both schedules, projects observations through exactly-once
+ownership, converts each owned sentence through the existing direct compiler,
+erases local/database surrogates using the G3 stable parity language, and fails
+closed unless the ordered final observations are identical.
 
-Before paying for a database/parser run, compare physical plans with:
+Only after this preflight passes may a candidate schedule be benchmarked.
 
-```bash
-python scripts/plan_streaming_partition_refinement.py \
-  --text-file README.md \
-  --target-partitions 8 \
-  --target-partitions 12 \
-  --target-partitions 16
-```
+## Current runtime repair
 
-The planner reports owner sizes, skew, context duplication, and actual structural
-partition count without invoking spaCy or PostgreSQL.
-
-For the current 65,536-character Gate-A source, the existing boundary rule gives
-roughly:
+The direct packed-fibre path now enforces:
 
 ```text
-requested ~8   ->  9 actual partitions, owner skew ~4.58x
-requested ~12  -> 13 actual partitions, owner skew ~1.62x
-requested ~16  -> 17 actual partitions, owner skew ~1.36x
+structural start-anchor owner -> packed sentence -> direct compiler -> PNF
+structural context            -> observation only
+boundary repair               -> observation only -> obligation resolution
 ```
 
-At the current 2,048-character bilateral context, physical context work grows
-substantially as partitions get finer.  The ~12 target is therefore the first
-high-alpha C probe: it removes most owner skew without immediately taking the
-largest context-duplication penalty.
+Stable token evidence identity is source-coordinate based and no longer includes
+a physical partition-local token ordinal in its digest. The ordinal remains a
+local packed execution address only.
 
-The benchmark now reports:
+## Decision rule from here
 
 ```text
-structural_partition_geometry
-physical_parser_context_chars
-physical_parser_context_work_ratio
+schedule parity fails
+    -> repair ownership/parser-observation projection; do not read timing
+
+schedule parity passes, overlap/tail improve net of parser/context work
+    -> keep the physical schedule
+
+schedule parity passes but completed-partition overlap remains uneconomic
+    -> stop partition tuning and expose an earlier stable parser prefix/event carrier
 ```
 
-alongside:
+Do not respond to another schedule-parity failure with downstream one-off fixes.
+Repair the exactly-once observation-to-authority projection instead.
 
-```text
-partition_sentence_counts
-serial_eof_floor_fraction
-observed_eof_completion_fraction
-overlap_completion_gain_sentences
-overlap_completion_gain_fraction
-parser_semantic_overlap_ns
-post_parser_tail_ns
-```
-
-A refined schedule is useful only if its overlap/tail benefit exceeds its extra
-parser/context cost.  More partitions are not intrinsically better.
-
-## What follows Experiment C
-
-Use this decision rule:
-
-```text
-C produces material overlap gain and/or lower wall time
-    -> keep the best physical schedule and continue toward finer stable events
-
-C produces more parser work but no semantic lead
-    -> stop partition tuning; expose an earlier stable parser prefix/event carrier
-
-C changes consumer-visible semantics
-    -> reject the refinement and repair the physical carrier/parity boundary
-```
-
-Do not move directly from a failed C probe into hierarchy micro-optimization.
-The purpose of C is to determine whether completed-partition granularity is
-sufficient to realize the Pac-Man architecture at all.
-
-## Formal interpretation
-
-`StreamingSemanticPacmanKernelExact.agda` owns:
-
-```text
-state(prefix ++ suffix) = continue(state(prefix), suffix)
-```
-
-`StreamingPhysicalOverlapReceiptExact.agda` owns:
-
-```text
-preFinal + finalPartition = total
-preFinal + overlapGain    = completeAtParserEOF
-```
-
-`StreamingPhysicalPartitionRefinementExact.agda` requires a finer physical
-schedule to preserve exact/disjoint ownership, evidence-only context, ordered
-observations, and final semantic authority.  Its performance receipt includes
-parser work, semantic work, overlap, duplicated context, post-parser tail, and
-end-to-end work.
-
-No benchmark threshold changes semantic correctness or production authority.
-Bounded G3 direct/reference parity remains the production cutover gate.
+No benchmark threshold changes production authority. Bounded G3 direct/reference
+parity remains the production cutover gate.
