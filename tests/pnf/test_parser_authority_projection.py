@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import pytest
+
 from src.pnf.packed_sentence_fibre import pack_spacy_partition
 from src.pnf.parser_authority_projection import (
     ObservationRole,
     project_sentence_authority,
+)
+from src.pnf.parser_schedule_parity import (
+    assert_schedule_authority_parity,
+    observe_owned_schedule,
 )
 
 
@@ -66,13 +72,16 @@ class _Partition:
     owner_end_char: int = 1
 
 
-def _owned_signature(partitions: tuple[_Partition, ...]) -> tuple[tuple[object, ...], ...]:
+def _owned_fibres(partitions: tuple[_Partition, ...]):
     doc = _Doc()
-    fibres = tuple(
+    return tuple(
         fibre
         for partition in partitions
         for fibre in pack_spacy_partition(partition, doc).sentences
     )
+
+
+def _owned_signature(partitions: tuple[_Partition, ...]) -> tuple[tuple[object, ...], ...]:
     return tuple(
         (
             fibre.start_char,
@@ -80,7 +89,7 @@ def _owned_signature(partitions: tuple[_Partition, ...]) -> tuple[tuple[object, 
             fibre.sentence_digest,
             tuple(token.evidence_digest for token in fibre.tokens),
         )
-        for fibre in sorted(fibres, key=lambda item: item.start_char)
+        for fibre in sorted(_owned_fibres(partitions), key=lambda item: item.start_char)
     )
 
 
@@ -131,6 +140,21 @@ def test_owned_semantic_stream_is_invariant_under_physical_partition_refinement(
     )
 
     assert _owned_signature(coarse) == _owned_signature(refined)
+    coarse_observation = observe_owned_schedule(_owned_fibres(coarse))
+    refined_observation = observe_owned_schedule(_owned_fibres(refined))
+    assert_schedule_authority_parity(coarse_observation, refined_observation)
+
+
+def test_schedule_parity_fails_closed_on_changed_owned_sentence_authority() -> None:
+    source_end = len(_Doc().text)
+    coarse = (
+        _Partition(owner_start_char=0, owner_end_char=12),
+        _Partition(owner_start_char=12, owner_end_char=source_end),
+    )
+    coarse_observation = observe_owned_schedule(_owned_fibres(coarse))
+
+    with pytest.raises(RuntimeError, match="performance comparison is forbidden"):
+        assert_schedule_authority_parity(coarse_observation, coarse_observation[:-1])
 
 
 def test_physical_partition_identity_does_not_enter_evidence_digest() -> None:
