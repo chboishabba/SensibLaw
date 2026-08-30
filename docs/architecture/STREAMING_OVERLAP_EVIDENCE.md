@@ -11,6 +11,11 @@ parser batching must be accounted for separately from semantic correctness.
 Before changing this experiment inspect:
 
 - `DASHI/Cognition/PNF/StreamingSemanticPacmanKernelExact.agda`
+- `DASHI/Cognition/PNF/DeltaNativePNFDreamFlowExact.agda`
+- `DASHI/Cognition/PNF/FibreSolverDeltaStreamExact.agda`
+- `DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda`
+- `DASHI/Cognition/PNF/DirectDeltaCompilerActivationExact.agda`
+- `DASHI/Cognition/PNF/DirectStreamingRoadmapSynthesisExact.agda`
 - `DASHI/Cognition/PNF/StreamingPhysicalOverlapReceiptExact.agda`
 - `DASHI/Cognition/PNF/StreamingPhysicalPartitionRefinementExact.agda`
 
