@@ -1,8 +1,13 @@
 """Database-neutral packed sentence fibres produced directly from spaCy output.
 
-This is the G1 carrier boundary.  It intentionally imports no PostgreSQL code:
+This is the G1 carrier boundary. It intentionally imports no PostgreSQL code:
 parser observations receive stable typed evidence identities and fibre-local
 head addresses before any durable projection exists.
+
+Physical parser observation is not semantic authority. Structural partitions own
+sentence authority by canonical sentence-start coordinate; bilateral context and
+boundary-repair partitions are evidence-only. See
+``ExactlyOnceParserAuthorityProjectionExact.agda``.
 """
 
 from __future__ import annotations
@@ -11,11 +16,13 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from src.pnf.numeric_hyperfabric import numeric_digest
+from src.pnf.parser_authority_projection import project_sentence_authority
 
 
 class PartitionView(Protocol):
     run_ref: str
     document_ref: str
+    partition_kind: str
     context_start_char: int
     context_start_byte: int
     owner_start_char: int
@@ -52,9 +59,20 @@ class PackedSentenceFibre:
 
 
 @dataclass(frozen=True, slots=True)
+class PackedObservedSentence:
+    """Non-authoritative parser observation used only for boundary resolution."""
+
+    start_char: int
+    end_char: int
+    start_byte: int
+    end_byte: int
+
+
+@dataclass(frozen=True, slots=True)
 class PackedPartitionFibres:
     sentences: tuple[PackedSentenceFibre, ...]
     boundary_obligations: tuple[tuple[int, int, int, int], ...]
+    observed_sentences: tuple[PackedObservedSentence, ...] = ()
 
 
 def _byte_offsets(text: str, offsets: set[int]) -> dict[int, int]:
@@ -72,7 +90,15 @@ def _byte_offsets(text: str, offsets: set[int]) -> dict[int, int]:
 
 
 def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionFibres:
-    """Pack owned spaCy sentences without persistence or global symbol ids."""
+    """Project spaCy observations to exactly-once owned sentence fibres.
+
+    A structural partition owns a sentence iff the sentence's canonical start
+    coordinate lies in that partition's disjoint owner interval. A sentence may
+    extend beyond the physical owner boundary as long as the parser context
+    contains the complete span. Context-only and boundary-repair observations
+    never enter the semantic compiler; they are retained only as boundary
+    evidence.
+    """
 
     spans = tuple(doc.sents) if doc.has_annotation("SENT_START") else (doc[:],)
     wanted: set[int] = {0, len(doc.text)}
@@ -84,6 +110,7 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
 
     fibres: list[PackedSentenceFibre] = []
     boundary: list[tuple[int, int, int, int]] = []
+    observed: list[PackedObservedSentence] = []
     owned_ordinal = 0
     for span in spans:
         local_start = int(span.start_char)
@@ -92,10 +119,31 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
         end_char = partition.context_start_char + local_end
         start_byte = partition.context_start_byte + local_bytes[local_start]
         end_byte = partition.context_start_byte + local_bytes[local_end]
-        if not (start_char < partition.owner_end_char and end_char > partition.owner_start_char):
+        overlaps_owner = (
+            start_char < partition.owner_end_char
+            and end_char > partition.owner_start_char
+        )
+        if not overlaps_owner:
             continue
-        if start_char < partition.owner_start_char or end_char > partition.owner_end_char:
+
+        observed.append(
+            PackedObservedSentence(
+                start_char=start_char,
+                end_char=end_char,
+                start_byte=start_byte,
+                end_byte=end_byte,
+            )
+        )
+        projection = project_sentence_authority(partition, start_char=start_char)
+
+        # Structural crossings remain explicit repair/validation obligations,
+        # but the canonical structural owner may still admit the full sentence.
+        if str(partition.partition_kind) == "structural" and (
+            start_char < partition.owner_start_char or end_char > partition.owner_end_char
+        ):
             boundary.append((start_char, end_char, start_byte, end_byte))
+
+        if not projection.authority_bearing:
             continue
 
         sentence_digest = numeric_digest(
@@ -133,12 +181,14 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
                     )
                 )
             )
+            # Durable direct evidence identity is source-coordinate based. Local
+            # token ordinal remains an execution address and must not leak into
+            # semantic identity when physical partitioning changes.
             evidence_digest = numeric_digest(
-                b"source-token-evidence:v1",
+                b"source-token-evidence:v2",
                 sentence_digest,
                 token_start,
                 token_end,
-                ordinal,
             )
             packed.append(
                 PackedSourceToken(
@@ -170,10 +220,15 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
             )
         )
         owned_ordinal += 1
-    return PackedPartitionFibres(tuple(fibres), tuple(boundary))
+    return PackedPartitionFibres(
+        tuple(fibres),
+        tuple(boundary),
+        tuple(observed),
+    )
 
 
 __all__ = [
+    "PackedObservedSentence",
     "PackedPartitionFibres",
     "PackedSentenceFibre",
     "PackedSourceToken",
