@@ -245,7 +245,6 @@ def main() -> int:
     try:
         payload = _run(args)
         archive = args.artifact_root.parent / f"{args.artifact_root.name}.tar.xz"
-        payload["diagnostic_artifact_root"] = str(args.artifact_root)
         payload["diagnostic_bundle"] = str(archive)
         write_json_receipt(
             args.artifact_root,
@@ -275,10 +274,6 @@ def main() -> int:
         raise
     finally:
         archive = bundle_artifact_directory(args.artifact_root)
-        # Keep this on stderr-like diagnostic visibility without changing the
-        # JSON stdout contract used by automation.
-        if payload is not None:
-            payload["diagnostic_bundle"] = str(archive)
 
 
 if __name__ == "__main__":

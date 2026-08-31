@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import tarfile
 from typing import Any, Mapping
 
@@ -27,7 +28,7 @@ def write_json_receipt(
 
 
 def bundle_artifact_directory(artifact_root: str | Path) -> Path:
-    """Create a sibling ``.tar.xz`` containing the complete artifact folder."""
+    """Atomically archive an artifact folder, then remove the unpacked copy."""
 
     root = Path(artifact_root)
     root.mkdir(parents=True, exist_ok=True)
@@ -38,6 +39,7 @@ def bundle_artifact_directory(artifact_root: str | Path) -> Path:
     with tarfile.open(temporary, mode="w:xz") as handle:
         handle.add(root, arcname=root.name, recursive=True)
     temporary.replace(archive)
+    shutil.rmtree(root)
     return archive
 
 
