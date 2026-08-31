@@ -108,7 +108,11 @@ def _owned_fibres(partitions: tuple[_Partition, ...]):
     return tuple(
         fibre
         for partition in partitions
-        for fibre in pack_spacy_partition(partition, doc).sentences
+        for fibre in pack_spacy_partition(
+            partition,
+            doc,
+            context_reaches_source_end=(partition.context_end_char == len(doc.text)),
+        ).sentences
     )
 
 

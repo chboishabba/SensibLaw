@@ -92,7 +92,12 @@ def _byte_offsets(text: str, offsets: set[int]) -> dict[int, int]:
     return result
 
 
-def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionFibres:
+def pack_spacy_partition(
+    partition: PartitionView,
+    doc: Any,
+    *,
+    context_reaches_source_end: bool = False,
+) -> PackedPartitionFibres:
     """Project spaCy observations to exactly-once owned sentence fibres.
 
     A structural partition owns a sentence iff the sentence's canonical start
@@ -160,7 +165,11 @@ def pack_spacy_partition(partition: PartitionView, doc: Any) -> PackedPartitionF
         # Keep the owner, but defer publication until a wider evidence-only
         # observation completes it. The document-final owner does not trigger
         # this condition because its owner/context ends coincide.
-        if touches_context_end and end_char > partition.owner_end_char:
+        if (
+            touches_context_end
+            and end_char > partition.owner_end_char
+            and not context_reaches_source_end
+        ):
             if (start_char, end_char, start_byte, end_byte) not in boundary:
                 boundary.append((start_char, end_char, start_byte, end_byte))
             continue

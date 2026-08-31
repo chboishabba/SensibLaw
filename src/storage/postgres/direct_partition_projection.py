@@ -89,17 +89,18 @@ def _repair_observation_resolves(
 def _authority_partition_for_completion(
     database_url: str,
     partition: ParserPartition,
-) -> ParserPartition:
+) -> tuple[ParserPartition, tuple[int, int] | None]:
     """Project repair evidence through its original structural owner interval."""
 
     if partition.partition_kind != "boundary_repair" or not partition.resolves_obligation_ref:
-        return partition
+        return partition, None
     connection = connect(database_url)
     try:
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT source.owner_start_char, source.owner_end_char
+                SELECT source.owner_start_char, source.owner_end_char,
+                       obligation.suspected_start_char, obligation.suspected_end_char
                   FROM execution.semantic_parser_boundary_obligation AS obligation
                   JOIN execution.semantic_parser_partition AS source
                     ON source.partition_ref = obligation.source_partition_ref
@@ -112,12 +113,21 @@ def _authority_partition_for_completion(
         connection.close()
     if row is None:
         raise RuntimeError("boundary completion lost its structural authority owner")
-    return replace(
-        partition,
-        partition_kind="structural",
-        owner_start_char=int(row[0]),
-        owner_end_char=int(row[1]),
+    return (
+        replace(
+            partition,
+            partition_kind="structural",
+            owner_start_char=int(row[0]),
+            owner_end_char=int(row[1]),
+        ),
+        (int(row[2]), int(row[3])),
     )
+
+
+def _context_reaches_source_end(partition: ParserPartition) -> bool:
+    """Whether this parser context includes canonical source EOF."""
+
+    return Path(partition.source_locator).stat().st_size == partition.context_end_byte
 
 
 def commit_direct_partition(
@@ -134,8 +144,25 @@ def commit_direct_partition(
 
     capabilities = _capabilities(pipeline)
     _require_direct_capabilities(capabilities)
-    authority_partition = _authority_partition_for_completion(database_url, partition)
-    packed = pack_spacy_partition(authority_partition, doc)
+    authority_partition, completion_obligation = _authority_partition_for_completion(
+        database_url,
+        partition,
+    )
+    packed = pack_spacy_partition(
+        authority_partition,
+        doc,
+        context_reaches_source_end=_context_reaches_source_end(partition),
+    )
+    if completion_obligation is not None:
+        suspected_start, _suspected_end = completion_obligation
+        packed = replace(
+            packed,
+            sentences=tuple(
+                fibre
+                for fibre in packed.sentences
+                if fibre.start_char == suspected_start
+            ),
+        )
     compiled = tuple(compile_packed_sentence(fibre=fibre) for fibre in packed.sentences)
     if any(receipt.database_crossings != 0 for receipt in compiled):
         raise RuntimeError("direct local sentence solve reported a database crossing")
@@ -224,7 +251,16 @@ def commit_direct_partition(
                 # authority view above, but it can never recursively own/open
                 # another repair.
                 if partition.partition_kind == "structural":
+                    owned_starts = {fibre.start_char for fibre in packed.sentences}
                     for start_char, end_char, start_byte, end_byte in packed.boundary_obligations:
+                        if not (
+                            partition.owner_start_char
+                            <= start_char
+                            < partition.owner_end_char
+                        ):
+                            continue
+                        if start_char in owned_starts:
+                            continue
                         create_expanded_boundary_repair(
                             cursor,
                             partition=partition,
@@ -236,17 +272,8 @@ def commit_direct_partition(
                         )
 
                 if partition.resolves_obligation_ref:
-                    cursor.execute(
-                        """
-                        SELECT suspected_start_char, suspected_end_char
-                          FROM execution.semantic_parser_boundary_obligation
-                         WHERE obligation_ref = %s
-                        """,
-                        (partition.resolves_obligation_ref,),
-                    )
-                    obligation = cursor.fetchone()
-                    if obligation is not None:
-                        suspected_start, suspected_end = map(int, obligation)
+                    if completion_obligation is not None:
+                        suspected_start, suspected_end = completion_obligation
                         if _repair_observation_resolves(
                             packed,
                             suspected_start=suspected_start,

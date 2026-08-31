@@ -7,6 +7,12 @@ import argparse
 from dataclasses import asdict
 import json
 from pathlib import Path
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.runtime.parser_schedule_parity_preflight import run_schedule_parity_preflight
 from src.runtime.streaming_partition_refinement import target_chars_for_partition_count

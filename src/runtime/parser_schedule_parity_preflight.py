@@ -79,7 +79,11 @@ def _owned_fibres(pipeline, text: str, partitions, *, context_chars: int):
     completed_boundaries = 0
     for partition in partitions:
         doc, partition = _parse_one(pipeline, text, partition)
-        packed = pack_spacy_partition(partition, doc)
+        packed = pack_spacy_partition(
+            partition,
+            doc,
+            context_reaches_source_end=(partition.context_end_char == len(text)),
+        )
         fibres.extend(packed.sentences)
         owned_starts = {fibre.start_char for fibre in packed.sentences}
 
@@ -103,7 +107,13 @@ def _owned_fibres(pipeline, text: str, partitions, *, context_chars: int):
                 text,
                 completion_partition,
             )
-            completed = pack_spacy_partition(completion_partition, completion_doc)
+            completed = pack_spacy_partition(
+                completion_partition,
+                completion_doc,
+                context_reaches_source_end=(
+                    completion_partition.context_end_char == len(text)
+                ),
+            )
             candidates = tuple(
                 fibre for fibre in completed.sentences if fibre.start_char == start
             )
