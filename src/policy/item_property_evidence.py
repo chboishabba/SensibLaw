@@ -1,16 +1,13 @@
 """Revision-bound Wikidata item/property evidence for governed peer comparison.
 
-The carrier is intentionally hierarchical:
+Carrier hierarchy:
 
-    item -> property family -> statement -> value/rank/qualifiers/references
+    item -> required/observed property family -> statement -> value/rank/qualifiers/references
 
-Peer features are projections of that observed surface, never detached labels.
-This module does not decide truth, migration safety, promotion, or edits.
-
-Aristotle parity matters at the property-family boundary: rank is intrinsic to a
-statement, but truthy visibility is computed over the full subject+property
-group. A partial Zelph slice therefore cannot safely decide truthiness for that
-property family.
+Peer features are conditioned projections of that carrier, never detached labels.
+Rank is intrinsic to a statement, while truthy visibility is computed over the
+subject+property family. Therefore property-family coverage is required before
+truthiness or property absence can be treated as observed.
 """
 
 from __future__ import annotations
@@ -21,11 +18,11 @@ from typing import Any, Mapping, Sequence
 
 from .domain_pressure import COVERAGE_STATES
 
-ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_1"
+ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_2"
 RANKS = frozenset({"preferred", "normal", "deprecated"})
+VISIBILITY_STATES = frozenset({"truthy", "non_truthy", "unresolved"})
 CONSTRAINT_STATES = frozenset({"valid", "invalid", "uninspected"})
 RELATION_ORIGINS = frozenset({"asserted", "derived", "unresolved"})
-VISIBILITY_STATES = frozenset({"truthy", "non_truthy", "unresolved"})
 
 
 def _text(value: Any) -> str:
@@ -86,12 +83,18 @@ def _statement_rows(statements: Sequence[Mapping[str, Any]], subject_qid: str) -
 def _property_coverage_map(
     *,
     rows: Sequence[Mapping[str, Any]],
+    required_property_ids: Sequence[str],
     item_coverage_state: str,
     property_coverage: Mapping[str, Any] | None,
 ) -> dict[str, str]:
     supplied = property_coverage or {}
+    property_ids = {
+        *(_text(row.get("property_id")) for row in rows),
+        *(_text(value) for value in required_property_ids),
+        *(_text(value) for value in supplied),
+    }
     result: dict[str, str] = {}
-    for property_id in sorted({_text(row.get("property_id")) for row in rows}):
+    for property_id in sorted(value for value in property_ids if value):
         state = _text(supplied.get(property_id)) or item_coverage_state
         if state not in COVERAGE_STATES:
             raise ValueError(f"unsupported property-family coverage state for {property_id}: {state}")
@@ -129,9 +132,7 @@ def _qualifier_constraint_state(
     return "valid" if observed <= allowed and mandatory <= observed else "invalid"
 
 
-def _scope_state(
-    *, property_id: str, slot: str, scope_specs: Mapping[str, Mapping[str, Any]]
-) -> str:
+def _scope_state(*, property_id: str, slot: str, scope_specs: Mapping[str, Mapping[str, Any]]) -> str:
     spec = scope_specs.get(property_id)
     if not isinstance(spec, Mapping):
         return "uninspected"
@@ -150,17 +151,18 @@ def build_item_property_evidence_surface(
     statements: Sequence[Mapping[str, Any]],
     coverage_state: str,
     coverage_policy_ref: str,
+    required_property_ids: Sequence[str] = (),
     property_coverage: Mapping[str, Any] | None = None,
     qualifier_specs: Mapping[str, Mapping[str, Sequence[str]]] | None = None,
     scope_specs: Mapping[str, Mapping[str, Any]] | None = None,
     derived_relations: Sequence[Mapping[str, Any]] = (),
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Build a property-aware item surface and its conditioned peer features.
+    """Build a property-aware item surface and conditioned peer features.
 
-    ``property_coverage[P] == observed`` means the declared bounded coverage
-    policy has enough of the subject's P-family to evaluate rank truthiness.
-    It is not a global completeness claim about Wikidata.
+    ``property_coverage[P] == observed`` means the declared bounded policy
+    covered enough of Q/P to decide rank truthiness and meaningful absence for
+    that property family. It never means Wikidata is globally complete.
     """
 
     qid = _text(subject_qid)
@@ -172,11 +174,15 @@ def build_item_property_evidence_surface(
     if coverage not in COVERAGE_STATES:
         raise ValueError(f"unsupported item-property coverage state: {coverage}")
 
+    required = _strings(required_property_ids)
     q_specs = qualifier_specs or {}
     s_specs = scope_specs or {}
     rows = _statement_rows(statements, qid)
     family_coverage = _property_coverage_map(
-        rows=rows, item_coverage_state=coverage, property_coverage=property_coverage
+        rows=rows,
+        required_property_ids=required,
+        item_coverage_state=coverage,
+        property_coverage=property_coverage,
     )
     truthy_refs = _truthy_statement_refs(rows, family_coverage)
 
@@ -184,14 +190,17 @@ def build_item_property_evidence_surface(
     normalized_statements: list[dict[str, Any]] = []
     feature_rows: list[dict[str, str]] = []
 
+    for property_id, state in family_coverage.items():
+        feature_rows.append(
+            {"feature": "property_family_coverage", "condition": property_id, "value": state}
+        )
+
     for row in rows:
         statement_ref = row["statement_ref"]
         property_id = row["property_id"]
         property_is_observed = family_coverage[property_id] == "observed"
         truthy = property_is_observed and statement_ref in truthy_refs
-        visibility = (
-            "truthy" if truthy else "non_truthy" if property_is_observed else "unresolved"
-        )
+        visibility = "truthy" if truthy else "non_truthy" if property_is_observed else "unresolved"
         qualifier_state = _qualifier_constraint_state(row, q_specs)
         main_scope_state = _scope_state(property_id=property_id, slot="main", scope_specs=s_specs)
         qualifier_scope = [
@@ -209,22 +218,22 @@ def build_item_property_evidence_surface(
             relation_origin = "asserted"
             asserted_relations.add(_relation_key(property_id, qid, row["value_ref"]))
 
-        normalized = {
-            **row,
-            "property_family_coverage": family_coverage[property_id],
-            "statement_visibility": visibility,
-            "truthy": truthy if property_is_observed else None,
-            "qualifier_constraint": qualifier_state,
-            "main_property_scope": main_scope_state,
-            "qualifier_property_scopes": qualifier_scope,
-            "property_relation": relation_origin,
-        }
-        normalized_statements.append(normalized)
+        normalized_statements.append(
+            {
+                **row,
+                "property_family_coverage": family_coverage[property_id],
+                "statement_visibility": visibility,
+                "truthy": truthy if property_is_observed else None,
+                "qualifier_constraint": qualifier_state,
+                "main_property_scope": main_scope_state,
+                "qualifier_property_scopes": qualifier_scope,
+                "property_relation": relation_origin,
+            }
+        )
 
         statement_condition = f"{property_id}|{statement_ref}"
         feature_rows.extend(
             [
-                {"feature": "property_family_coverage", "condition": property_id, "value": family_coverage[property_id]},
                 {"feature": "statement_rank", "condition": statement_condition, "value": row["rank"]},
                 {"feature": "statement_visibility", "condition": statement_condition, "value": visibility},
                 {"feature": "qualifier_constraint", "condition": statement_condition, "value": qualifier_state},
@@ -260,23 +269,38 @@ def build_item_property_evidence_surface(
         origin = "asserted" if key in asserted_relations else "derived"
         derived_rows.append({"property_id": property_id, "object_ref": object_ref, "origin": origin})
         feature_rows.append(
-            {
-                "feature": "property_relation",
-                "condition": f"{property_id}->{object_ref}",
-                "value": origin,
-            }
+            {"feature": "property_relation", "condition": f"{property_id}->{object_ref}", "value": origin}
         )
 
-    property_ids = sorted({row["property_id"] for row in normalized_statements})
+    observed_with_rows = sorted({row["property_id"] for row in normalized_statements})
     truthy_property_ids = sorted(
         {row["property_id"] for row in normalized_statements if row["truthy"] is True}
     )
-    feature_rows = sorted(
+    observed_absent = sorted(
+        property_id
+        for property_id in required
+        if family_coverage.get(property_id) == "observed" and property_id not in observed_with_rows
+    )
+    unresolved_required = sorted(
+        property_id
+        for property_id in required
+        if family_coverage.get(property_id) != "observed"
+    )
+    for property_id in observed_absent:
+        feature_rows.append(
+            {"feature": "property_presence", "condition": property_id, "value": "absent"}
+        )
+    for property_id in observed_with_rows:
+        feature_rows.append(
+            {"feature": "property_presence", "condition": property_id, "value": "present"}
+        )
+
+    unique_features = sorted(
         {(row["feature"], row.get("condition", ""), row["value"]) for row in feature_rows}
     )
     peer_features = [
         {"feature": feature, "condition": condition, "value": value}
-        for feature, condition, value in feature_rows
+        for feature, condition, value in unique_features
     ]
 
     return {
@@ -286,8 +310,11 @@ def build_item_property_evidence_surface(
         "coverage_state": coverage,
         "coverage_policy_ref": policy,
         "property_inventory": {
-            "observed_property_ids": property_ids,
+            "required_property_ids": required,
+            "observed_property_ids": observed_with_rows,
             "truthy_property_ids": truthy_property_ids,
+            "observed_absent_property_ids": observed_absent,
+            "unresolved_required_property_ids": unresolved_required,
             "coverage_by_property": family_coverage,
             "statement_count": len(normalized_statements),
         },
