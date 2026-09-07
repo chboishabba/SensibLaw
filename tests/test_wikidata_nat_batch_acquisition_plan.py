@@ -42,13 +42,34 @@ def test_plan_preserves_batch_counts_and_performs_no_dispatch() -> None:
     assert plan["schema_version"] == ACQUISITION_PLAN_SCHEMA_VERSION
     assert plan["source_batch_ref"] == batch["batch_ref"]
     assert plan["source_population"] == 37665
-    assert plan["materialized_row_count"] == batch["materialized_row_count"]
+    assert plan["materialized_row_count"] == 57
+    assert plan["planned_task_count"] == 4
+    assert plan["planned_member_count"] == 57
     assert plan["planned_task_count"] == batch["work_group_count"]
     assert plan["planned_member_count"] == batch["row_count"]
+    assert sorted(task["member_count"] for task in plan["tasks"]) == [3, 4, 16, 34]
     assert plan["network_performed"] is False
     assert plan["edits_performed"] is False
     assert plan["consumer_verification_performed"] is False
     assert plan["semantic_promotion_performed"] is False
+
+
+def test_current_four_signatures_match_observed_qualifier_reference_shapes() -> None:
+    plan = build_acquisition_plan(_real_batch())
+    observed = {
+        (
+            tuple(task["qualifier_properties"]),
+            tuple(task["reference_properties"]),
+            task["member_count"],
+        )
+        for task in plan["tasks"]
+    }
+    assert observed == {
+        (("P585", "P828"), ("P813", "P854"), 3),
+        (("P3831", "P459", "P518", "P580", "P582"), ("P854",), 34),
+        (("P459", "P580", "P582"), ("P854",), 4),
+        (("P3831", "P459", "P580", "P582"), ("P854",), 16),
+    }
 
 
 def test_every_current_task_is_bounded_source_support_look_work() -> None:
@@ -73,7 +94,7 @@ def test_p854_creates_external_source_obligation_not_payment() -> None:
     p854_tasks = [
         task for task in plan["tasks"] if "P854" in task["reference_properties"]
     ]
-    assert p854_tasks
+    assert len(p854_tasks) == 4
     for task in p854_tasks:
         obligations = task["external_reference_obligations"]
         assert any(
