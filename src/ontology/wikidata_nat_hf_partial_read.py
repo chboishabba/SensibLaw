@@ -20,7 +20,12 @@ from src.policy.carriers.canonical import canonical_sha256
 
 PARTIAL_READ_SCHEMA_VERSION = "sl.nat_zelph_hf_partial_read.v0_1"
 PROBE_MARKER_PATTERN = re.compile(r"SL_NAT_PROBE\|(Q\d+)\|")
-RESOLVED_NODE_PATTERN = re.compile(r"Resolved to node ID:\s*([0-9]+)")
+# `.node <name>` always prints `Node ID: N` for a successful single-node
+# result.  It prepends `Resolved to node ID: N` only when its forward
+# nameOfNode lookup can also prove that the argument was resolved by name.
+# Our bounded scan intentionally loads nodeOfName only, so the plain line is
+# the authoritative success surface in that partial view.
+NODE_ID_PATTERN = re.compile(r"(?:Resolved to node ID|Node ID):\s*([0-9]+)")
 
 
 def _text(value: Any) -> str:
@@ -63,14 +68,14 @@ def _resolve_probe_payload(
         f".lang {language}",
     ]
     for qid in qids:
-        # IMPORTANT: do not use zelph/resolve here.  Upstream documents resolve
-        # as creating a node when the name is absent.  `.node <name>` uses the
-        # non-destructive lookup path (resolve_single_node(..., false) followed
-        # by resolve_nodes_by_name), and prints `Resolved to node ID: N` only
-        # when the name is present in the currently loaded partial view.
+        # IMPORTANT: do not use zelph/resolve here. Upstream documents resolve
+        # as creating a node when the name is absent. `.node <name>` uses the
+        # non-destructive lookup path. In a reverse-map-only partial view it may
+        # print just `Node ID: N`, because nameOfNode was deliberately omitted.
         lines.append(f'%(print "SL_NAT_PROBE|{qid}|")')
         lines.append(f".node {qid}")
-    lines.append(".exit")
+    # Current upstream registers `.quit`; `.exit` is not a command in 0.9.9-dev.
+    lines.append(".quit")
     return "\n".join(lines) + "\n"
 
 
@@ -85,14 +90,14 @@ def _parse_probe_output(output: str, requested_qids: Sequence[str]) -> dict[str,
             continue
         if active_qid is None or active_qid not in requested:
             continue
-        node_match = RESOLVED_NODE_PATTERN.search(line)
+        node_match = NODE_ID_PATTERN.search(line)
         if node_match:
             resolved[active_qid] = int(node_match.group(1))
             active_qid = None
             continue
-        # An absent name is intentionally not a negative-evidence result.  The
+        # An absent name is intentionally not a negative-evidence result. The
         # command reports it as an error/diagnostic; the next marker starts the
-        # next probe.  No node is created by this path.
+        # next probe. No node is created by this path.
     return resolved
 
 
@@ -139,6 +144,8 @@ def resolve_qids_via_hosted_partial_scan(
             "status": "zelph_binary_unavailable",
             "requested_qids": requested,
             "resolved_qids": {},
+            "resolved_qid_chunks": {},
+            "qid_route_cache_seed": {},
             "unresolved_qids": requested,
             "chunks_scanned": [],
             "network_performed": False,
@@ -150,6 +157,7 @@ def resolve_qids_via_hosted_partial_scan(
 
     runner = repl_runner or _default_repl_runner
     resolved: dict[str, int] = {}
+    resolved_chunks: dict[str, int] = {}
     scanned: list[dict[str, Any]] = []
 
     with tempfile.TemporaryDirectory(prefix="sensiblaw-nat-hf-") as tmp:
@@ -192,23 +200,38 @@ def resolve_qids_via_hosted_partial_scan(
                     "exit_code": exit_code,
                 }
             )
-            resolved.update(_parse_probe_output(output, remaining))
+            chunk_resolved = _parse_probe_output(output, remaining)
+            for qid, node_id in chunk_resolved.items():
+                resolved[qid] = node_id
+                resolved_chunks[qid] = chunk_index
 
     unresolved = [qid for qid in requested if qid not in resolved]
+    cache_seed = {
+        qid: {
+            "zelph_node_id": resolved[qid],
+            "node_of_name_chunk": resolved_chunks[qid],
+        }
+        for qid in sorted(resolved)
+    }
     payload_without_ref = {
         "schema_version": PARTIAL_READ_SCHEMA_VERSION,
         "status": "complete" if not unresolved else "partial",
         "requested_qids": requested,
         "resolved_qids": dict(sorted(resolved.items())),
+        "resolved_qid_chunks": dict(sorted(resolved_chunks.items())),
+        "qid_route_cache_seed": cache_seed,
         "unresolved_qids": unresolved,
         "chunks_scanned": scanned,
         "chunk_count_scanned": len(scanned),
-        "available_node_of_name_chunk_count": len(node_of_name_chunks(manifest, language=language)),
+        "available_node_of_name_chunk_count": len(
+            node_of_name_chunks(manifest, language=language)
+        ),
         "language": language,
         "network_performed": bool(scanned),
         "route_index_required": False,
         "full_graph_loaded": False,
         "name_probe": "dot_node_non_creating",
+        "node_id_success_surface": "marker_scoped_Node_ID",
     }
     payload = dict(payload_without_ref)
     payload["partial_read_ref"] = "nat-zelph-hf-partial-read:" + canonical_sha256(
