@@ -11,15 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ontology.wikidata_nat_batch_prerequisite_runner import (  # noqa: E402
-    build_batch_dry_run,
-)
+from src.ontology.wikidata_nat_batch_prerequisite_runner import build_batch_dry_run  # noqa: E402
 
 
-DEFAULT_MANIFEST = ROOT / (
+DEFAULT_MANIFEST = Path(
     "tests/fixtures/wikidata/wikidata_nat_lane_review_manifests_20260401.json"
 )
-DEFAULT_PACK = ROOT / (
+DEFAULT_PACK = Path(
     "data/ontology/wikidata_migration_packs/"
     "p5991_p14143_climate_pilot_20260328/migration_pack.json"
 )
@@ -36,7 +34,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Dry-classify Nat Wikidata migration rows by first missing prerequisite. "
-            "Performs no network requests, edits, selector dispatch, or semantic promotion."
+            "Performs no network requests, edits, selector dispatch, or semantic promotion. "
+            "Use scripts/plan_nat_batch_acquisition.py on the emitted batch to compile "
+            "bounded acquisition tasks without dispatching them."
         )
     )
     parser.add_argument("--cohort-manifest", type=Path, default=DEFAULT_MANIFEST)
