@@ -62,6 +62,10 @@ def test_actual_item_properties_are_preserved_as_inventory() -> None:
     surface = _surface()
     assert surface["property_inventory"]["observed_property_ids"] == ["P31", "P5991"]
     assert surface["property_inventory"]["truthy_property_ids"] == ["P31", "P5991"]
+    assert surface["property_inventory"]["coverage_by_property"] == {
+        "P31": "observed",
+        "P5991": "observed",
+    }
     assert surface["property_inventory"]["statement_count"] == 4
 
 
@@ -91,6 +95,44 @@ def test_rank_and_truthy_visibility_are_separate_coordinates() -> None:
     assert ("statement_visibility", "P5991|QCOMPANY$P5991-preferred", "truthy") in features
     assert ("statement_rank", "P5991|QCOMPANY$P5991-normal", "normal") in features
     assert ("statement_visibility", "P5991|QCOMPANY$P5991-normal", "non_truthy") in features
+
+
+def test_incomplete_property_family_blocks_truthy_decision() -> None:
+    surface = build_item_property_evidence_surface(
+        subject_qid="QCOMPANY",
+        source_revision_ref="wikidata:QCOMPANY@43",
+        coverage_state="observed",
+        coverage_policy_ref="coverage:mixed-property-v1",
+        property_coverage={"P31": "observed", "P5991": "incomplete"},
+        statements=[
+            {
+                "statement_ref": "QCOMPANY$P31",
+                "property_id": "P31",
+                "value": "Q783794",
+                "value_ref": "Q783794",
+                "value_kind": "item",
+                "rank": "normal",
+            },
+            {
+                "statement_ref": "QCOMPANY$P5991-normal",
+                "property_id": "P5991",
+                "value": "1000",
+                "rank": "normal",
+            },
+        ],
+    )
+    statements = {row["statement_ref"]: row for row in surface["statements"]}
+    assert statements["QCOMPANY$P31"]["statement_visibility"] == "truthy"
+    assert statements["QCOMPANY$P5991-normal"]["statement_visibility"] == "unresolved"
+    assert statements["QCOMPANY$P5991-normal"]["truthy"] is None
+    assert surface["property_inventory"]["truthy_property_ids"] == ["P31"]
+    assert {
+        (row["feature"], row["condition"], row["value"])
+        for row in surface["peer_features"]
+    } >= {
+        ("property_family_coverage", "P5991", "incomplete"),
+        ("statement_visibility", "P5991|QCOMPANY$P5991-normal", "unresolved"),
+    }
 
 
 def test_qualifier_and_scope_receipts_remain_statement_conditioned() -> None:
