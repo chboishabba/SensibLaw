@@ -9,8 +9,8 @@ This module does not decide truth, migration safety, promotion, or edits.
 
 The rank/qualifier/scope distinctions mirror the executable contracts rechecked
 in the attached Aristotle RequestProject Ranks/Qualifiers/PropertyEngine modules:
-truthy/rank visibility, qualifier validity, property-scope validity, and
-property-layer relation origin remain separate receipts.
+rank is intrinsic to a statement, while truthy visibility is computed relative
+to the complete observed subject+property family.
 """
 
 from __future__ import annotations
@@ -158,7 +158,7 @@ def build_item_property_evidence_surface(
         statement_ref = row["statement_ref"]
         property_id = row["property_id"]
         truthy = statement_ref in truthy_refs
-        visibility = "truthy" if truthy else row["rank"]
+        visibility = "truthy" if truthy else "non_truthy"
         qualifier_state = _qualifier_constraint_state(row, q_specs)
         main_scope_state = _scope_state(property_id=property_id, slot="main", scope_specs=s_specs)
         qualifier_scope = [
@@ -190,6 +190,7 @@ def build_item_property_evidence_surface(
         statement_condition = f"{property_id}|{statement_ref}"
         feature_rows.extend(
             [
+                {"feature": "statement_rank", "condition": statement_condition, "value": row["rank"]},
                 {"feature": "statement_visibility", "condition": statement_condition, "value": visibility},
                 {"feature": "qualifier_constraint", "condition": statement_condition, "value": qualifier_state},
                 {"feature": "property_scope", "condition": f"{property_id}:main", "value": main_scope_state},
@@ -236,9 +237,7 @@ def build_item_property_evidence_surface(
         {row["property_id"] for row in normalized_statements if row["truthy"]}
     )
     feature_rows = sorted(
-        {(
-            row["feature"], row.get("condition", ""), row["value"]
-        ) for row in feature_rows}
+        {(row["feature"], row.get("condition", ""), row["value"]) for row in feature_rows}
     )
     peer_features = [
         {"feature": feature, "condition": condition, "value": value}
