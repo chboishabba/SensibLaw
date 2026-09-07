@@ -150,7 +150,7 @@ def _execute_selector(
             http_get=http_get,
             timeout_seconds=timeout_seconds,
         )
-    except Exception as exc:  # requests and JSON/contract failures remain receipt-visible
+    except Exception as exc:
         return {
             "executor_id": HF_SELECTOR_EXECUTOR_ID,
             "execution_outcome": "engine_unavailable",
@@ -264,10 +264,9 @@ def _evaluate_manifest(
 def hosted_hf_selector_executor(selector: Mapping[str, Any]) -> dict[str, Any]:
     """Preflight the canonical hosted Zelph/Wikidata HF manifest.
 
-    This is a real network-backed selector executor, but it intentionally fails
-    closed until the canonical manifest exposes the QID->shard routing needed by
-    Nat's bounded node-route requests and the downstream decode adapter exists.
-    It never invents statement/reference outputs from manifest metadata alone.
+    The executor is network-backed and uses the actual ``acrion/zelph`` canonical
+    v2 manifest. It fails closed at the current route/decode boundary and never
+    invents statement or reference outputs from manifest metadata alone.
     """
 
     operations = _text_list(selector.get("operations"))
