@@ -7,10 +7,10 @@ The carrier is intentionally hierarchical:
 Peer features are projections of that observed surface, never detached labels.
 This module does not decide truth, migration safety, promotion, or edits.
 
-The rank/qualifier/scope distinctions mirror the executable contracts rechecked
-in the attached Aristotle RequestProject Ranks/Qualifiers/PropertyEngine modules:
-rank is intrinsic to a statement, while truthy visibility is computed relative
-to the complete observed subject+property family.
+Aristotle parity matters at the property-family boundary: rank is intrinsic to a
+statement, but truthy visibility is computed over the full subject+property
+group. A partial Zelph slice therefore cannot safely decide truthiness for that
+property family.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_1
 RANKS = frozenset({"preferred", "normal", "deprecated"})
 CONSTRAINT_STATES = frozenset({"valid", "invalid", "uninspected"})
 RELATION_ORIGINS = frozenset({"asserted", "derived", "unresolved"})
+VISIBILITY_STATES = frozenset({"truthy", "non_truthy", "unresolved"})
 
 
 def _text(value: Any) -> str:
@@ -82,12 +83,32 @@ def _statement_rows(statements: Sequence[Mapping[str, Any]], subject_qid: str) -
     return rows
 
 
-def _truthy_statement_refs(rows: Sequence[Mapping[str, Any]]) -> set[str]:
+def _property_coverage_map(
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    item_coverage_state: str,
+    property_coverage: Mapping[str, Any] | None,
+) -> dict[str, str]:
+    supplied = property_coverage or {}
+    result: dict[str, str] = {}
+    for property_id in sorted({_text(row.get("property_id")) for row in rows}):
+        state = _text(supplied.get(property_id)) or item_coverage_state
+        if state not in COVERAGE_STATES:
+            raise ValueError(f"unsupported property-family coverage state for {property_id}: {state}")
+        result[property_id] = state
+    return result
+
+
+def _truthy_statement_refs(
+    rows: Sequence[Mapping[str, Any]], property_coverage: Mapping[str, str]
+) -> set[str]:
     grouped: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     for row in rows:
         grouped[_text(row.get("property_id"))].append(row)
     truthy: set[str] = set()
-    for group in grouped.values():
+    for property_id, group in grouped.items():
+        if property_coverage.get(property_id) != "observed":
+            continue
         preferred = [row for row in group if row.get("rank") == "preferred"]
         visible = preferred or [row for row in group if row.get("rank") == "normal"]
         truthy.update(_text(row.get("statement_ref")) for row in visible)
@@ -129,12 +150,18 @@ def build_item_property_evidence_surface(
     statements: Sequence[Mapping[str, Any]],
     coverage_state: str,
     coverage_policy_ref: str,
+    property_coverage: Mapping[str, Any] | None = None,
     qualifier_specs: Mapping[str, Mapping[str, Sequence[str]]] | None = None,
     scope_specs: Mapping[str, Mapping[str, Any]] | None = None,
     derived_relations: Sequence[Mapping[str, Any]] = (),
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Build a property-aware item surface and its conditioned peer features."""
+    """Build a property-aware item surface and its conditioned peer features.
+
+    ``property_coverage[P] == observed`` means the declared bounded coverage
+    policy has enough of the subject's P-family to evaluate rank truthiness.
+    It is not a global completeness claim about Wikidata.
+    """
 
     qid = _text(subject_qid)
     revision = _text(source_revision_ref)
@@ -148,7 +175,10 @@ def build_item_property_evidence_surface(
     q_specs = qualifier_specs or {}
     s_specs = scope_specs or {}
     rows = _statement_rows(statements, qid)
-    truthy_refs = _truthy_statement_refs(rows)
+    family_coverage = _property_coverage_map(
+        rows=rows, item_coverage_state=coverage, property_coverage=property_coverage
+    )
+    truthy_refs = _truthy_statement_refs(rows, family_coverage)
 
     asserted_relations: set[tuple[str, str, str]] = set()
     normalized_statements: list[dict[str, Any]] = []
@@ -157,8 +187,11 @@ def build_item_property_evidence_surface(
     for row in rows:
         statement_ref = row["statement_ref"]
         property_id = row["property_id"]
-        truthy = statement_ref in truthy_refs
-        visibility = "truthy" if truthy else "non_truthy"
+        property_is_observed = family_coverage[property_id] == "observed"
+        truthy = property_is_observed and statement_ref in truthy_refs
+        visibility = (
+            "truthy" if truthy else "non_truthy" if property_is_observed else "unresolved"
+        )
         qualifier_state = _qualifier_constraint_state(row, q_specs)
         main_scope_state = _scope_state(property_id=property_id, slot="main", scope_specs=s_specs)
         qualifier_scope = [
@@ -178,8 +211,9 @@ def build_item_property_evidence_surface(
 
         normalized = {
             **row,
+            "property_family_coverage": family_coverage[property_id],
             "statement_visibility": visibility,
-            "truthy": truthy,
+            "truthy": truthy if property_is_observed else None,
             "qualifier_constraint": qualifier_state,
             "main_property_scope": main_scope_state,
             "qualifier_property_scopes": qualifier_scope,
@@ -190,6 +224,7 @@ def build_item_property_evidence_surface(
         statement_condition = f"{property_id}|{statement_ref}"
         feature_rows.extend(
             [
+                {"feature": "property_family_coverage", "condition": property_id, "value": family_coverage[property_id]},
                 {"feature": "statement_rank", "condition": statement_condition, "value": row["rank"]},
                 {"feature": "statement_visibility", "condition": statement_condition, "value": visibility},
                 {"feature": "qualifier_constraint", "condition": statement_condition, "value": qualifier_state},
@@ -234,7 +269,7 @@ def build_item_property_evidence_surface(
 
     property_ids = sorted({row["property_id"] for row in normalized_statements})
     truthy_property_ids = sorted(
-        {row["property_id"] for row in normalized_statements if row["truthy"]}
+        {row["property_id"] for row in normalized_statements if row["truthy"] is True}
     )
     feature_rows = sorted(
         {(row["feature"], row.get("condition", ""), row["value"]) for row in feature_rows}
@@ -253,6 +288,7 @@ def build_item_property_evidence_surface(
         "property_inventory": {
             "observed_property_ids": property_ids,
             "truthy_property_ids": truthy_property_ids,
+            "coverage_by_property": family_coverage,
             "statement_count": len(normalized_statements),
         },
         "statements": normalized_statements,
