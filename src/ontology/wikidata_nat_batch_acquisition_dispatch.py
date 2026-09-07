@@ -103,7 +103,9 @@ def _normalize_executor_result(
     required_outputs = _text_list(selector.get("required_outputs"))
     output_payload = _as_mapping(raw_result.get("outputs"))
     emitted_outputs = sorted(
-        key for key in required_outputs if key in output_payload and output_payload[key] is not None
+        key
+        for key in required_outputs
+        if key in output_payload and output_payload[key] is not None
     )
     missing_outputs = sorted(set(required_outputs) - set(emitted_outputs))
 
@@ -119,6 +121,7 @@ def _normalize_executor_result(
     else:
         execution_outcome = "executed_no_match"
 
+    executor_receipt = dict(_as_mapping(raw_result.get("executor_receipt")))
     result_without_ref = {
         "schema_version": ACQUISITION_RESULT_SCHEMA_VERSION,
         "task_ref": _text(task.get("task_ref")),
@@ -127,14 +130,18 @@ def _normalize_executor_result(
         "target_prerequisite": _text(task.get("target_prerequisite")),
         "selector_class": _text(task.get("selector_class")),
         "selector_request_digest": canonical_sha256(selector),
-        "executor_id": _text(raw_result.get("executor_id")) or "unspecified_selector_executor",
+        "executor_id": _text(raw_result.get("executor_id"))
+        or "unspecified_selector_executor",
         "execution_outcome": execution_outcome,
         "required_outputs": required_outputs,
         "emitted_outputs": emitted_outputs,
         "missing_required_outputs": missing_outputs,
         "outputs": dict(output_payload),
-        "executor_receipt": dict(_as_mapping(raw_result.get("executor_receipt"))),
-        "external_reference_obligations": list(task.get("external_reference_obligations") or []),
+        "executor_receipt": executor_receipt,
+        "network_performed": bool(executor_receipt.get("network_performed", False)),
+        "external_reference_obligations": list(
+            task.get("external_reference_obligations") or []
+        ),
         "member_row_refs": _text_list(task.get("member_row_refs")),
         "candidate_only": True,
         "consumer_verification_performed": False,
@@ -143,7 +150,9 @@ def _normalize_executor_result(
         "edits_performed": False,
     }
     result = dict(result_without_ref)
-    result["result_ref"] = "nat-acquisition-result:" + canonical_sha256(result_without_ref)
+    result["result_ref"] = "nat-acquisition-result:" + canonical_sha256(
+        result_without_ref
+    )
     return result
 
 
@@ -155,9 +164,9 @@ def dispatch_acquisition_plan(
 ) -> dict[str, Any]:
     """Execute only the bounded selector tasks from a validated Nat plan.
 
-    The dispatcher normalizes transport results into execution receipts.  It does
+    The dispatcher normalizes transport results into execution receipts. It does
     not verify external P854/P248 sources, pay source_support, edit Wikidata, or
-    promote semantics.  Those remain downstream consumer obligations.
+    promote semantics. Those remain downstream consumer obligations.
     """
 
     tasks = _require_plan(plan, max_tasks=max_tasks)
@@ -188,7 +197,9 @@ def dispatch_acquisition_plan(
         "dispatched_task_count": len(results),
         "counts_by_execution_outcome": dict(sorted(counts.items())),
         "results": results,
-        "network_performed": True,
+        "network_performed": any(
+            bool(result.get("network_performed")) for result in results
+        ),
         "edits_performed": False,
         "consumer_verification_performed": False,
         "semantic_promotion_performed": False,
