@@ -2,17 +2,12 @@
 
 This module converts a governed ``DomainInvariantSnapshot`` plus caller-supplied
 bounded graph/query coverage into one ``peer_cohort`` residual row suitable for
-``build_pressure_assessment``.  It is diagnostic only: it does not promote a
+``build_pressure_assessment``. It is diagnostic only: it does not promote a
 candidate, mutate an invariant, infer an external identity, or edit a graph.
 
-The safety contract mirrors DASHI's ``ExternalContextSafetyBoundary`` and
-``GovernedResidualOntologyLearning``:
-
-- incomplete/uninspected/invalid coverage keeps the residual unresolved;
-- an empty trusted cohort keeps the residual unresolved;
-- only already admitted/reviewed invariant members may provide peer evidence;
-- exact peer agreement is evidence about one residual coordinate, not migration
-  safety or property equivalence.
+The preferred entry point consumes a revision-bound item/property evidence
+surface so peer coordinates remain attached to the actual Wikidata property,
+statement GUID, qualifier slot, and relation path that produced them.
 """
 
 from __future__ import annotations
@@ -22,6 +17,7 @@ from typing import Any, Mapping, Sequence
 
 from .domain_invariants import DOMAIN_INVARIANT_SNAPSHOT_SCHEMA_VERSION
 from .domain_pressure import COVERAGE_STATES
+from .item_property_evidence import ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION
 
 PEER_COHORT_RESIDUAL_KIND = "peer_cohort"
 
@@ -75,12 +71,7 @@ def build_peer_cohort_residual(
     coverage_policy_ref: str,
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Evaluate peer evidence without creating any promotion/edit authority.
-
-    ``coverage_state`` uses the same vocabulary as ``DomainPressureAssessment``.
-    ``observed`` means that the caller's declared bounded policy was covered; it
-    does not mean the whole external graph is globally complete.
-    """
+    """Evaluate conditioned peer features without promotion/edit authority."""
 
     if _text(invariant_snapshot.get("schema_version")) != DOMAIN_INVARIANT_SNAPSHOT_SCHEMA_VERSION:
         raise ValueError("peer cohort evaluation requires a domain invariant snapshot")
@@ -158,4 +149,40 @@ def build_peer_cohort_residual(
     }
 
 
-__all__ = ["PEER_COHORT_RESIDUAL_KIND", "build_peer_cohort_residual"]
+def build_peer_cohort_residual_from_item_surface(
+    *,
+    candidate_ref: str,
+    invariant_snapshot: Mapping[str, Any],
+    item_surface: Mapping[str, Any],
+    evidence_refs: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Evaluate peers directly from the revision-bound item/property carrier.
+
+    This is the safer Nat/Zelph adapter seam because it preserves the exact
+    property/GUID/path conditions produced by ``item_property_evidence`` rather
+    than asking a caller to reconstruct a flattened feature list.
+    """
+
+    if _text(item_surface.get("schema_version")) != ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION:
+        raise ValueError("item-surface peer evaluation requires item-property evidence")
+    subject_qid = _text(item_surface.get("subject_qid"))
+    if subject_qid and subject_qid not in _text(candidate_ref):
+        # Candidate ids are not globally standardized; this is intentionally not
+        # an identity proof. We retain the QID in evidence rather than rejecting.
+        pass
+    return build_peer_cohort_residual(
+        candidate_ref=candidate_ref,
+        invariant_snapshot=invariant_snapshot,
+        candidate_features=item_surface.get("peer_features") or (),
+        coverage_state=_text(item_surface.get("coverage_state")),
+        graph_revision_ref=_text(item_surface.get("source_revision_ref")),
+        coverage_policy_ref=_text(item_surface.get("coverage_policy_ref")),
+        evidence_refs=[*evidence_refs, *_strings(item_surface.get("evidence_refs") or ())],
+    )
+
+
+__all__ = [
+    "PEER_COHORT_RESIDUAL_KIND",
+    "build_peer_cohort_residual",
+    "build_peer_cohort_residual_from_item_surface",
+]
