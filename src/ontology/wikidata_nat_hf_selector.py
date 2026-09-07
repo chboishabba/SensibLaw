@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from functools import lru_cache
 from typing import Any
 
 import requests
@@ -88,6 +89,12 @@ def _fetch_manifest(*, http_get: HttpGet, timeout_seconds: float) -> tuple[dict[
     return dict(payload), dict(getattr(response, "headers", {}) or {})
 
 
+@lru_cache(maxsize=1)
+def _fetch_manifest_cached() -> tuple[dict[str, Any], dict[str, Any]]:
+    manifest, headers = _fetch_manifest(http_get=requests.get, timeout_seconds=30.0)
+    return dict(manifest), dict(headers)
+
+
 def _execute_selector(
     selector: Mapping[str, Any],
     *,
@@ -157,6 +164,16 @@ def _execute_selector(
             "outputs": {},
         }
 
+    return _evaluate_manifest(selector, manifest=manifest, headers=headers)
+
+
+def _evaluate_manifest(
+    selector: Mapping[str, Any],
+    *,
+    manifest: Mapping[str, Any],
+    headers: Mapping[str, Any],
+) -> dict[str, Any]:
+    operations = _text_list(selector.get("operations"))
     capabilities = manifest.get("capabilities")
     capabilities = capabilities if isinstance(capabilities, Mapping) else {}
     layout = manifest.get("layoutPlan")
@@ -253,7 +270,30 @@ def hosted_hf_selector_executor(selector: Mapping[str, Any]) -> dict[str, Any]:
     It never invents statement/reference outputs from manifest metadata alone.
     """
 
-    return _execute_selector(selector, http_get=requests.get, timeout_seconds=30.0)
+    operations = _text_list(selector.get("operations"))
+    qids = _text_list(selector.get("qids"))
+    properties = _text_list(selector.get("properties"))
+    if not bool(selector.get("candidate_only")) or bool(
+        selector.get("full_reasoning_required")
+    ) or not operations or not qids or not properties:
+        return _execute_selector(selector, http_get=requests.get, timeout_seconds=30.0)
+
+    try:
+        manifest, headers = _fetch_manifest_cached()
+    except Exception as exc:
+        return {
+            "executor_id": HF_SELECTOR_EXECUTOR_ID,
+            "execution_outcome": "engine_unavailable",
+            "executor_receipt": _executor_receipt(
+                transport_status="manifest_fetch_failed",
+                manifest=None,
+                headers=None,
+                network_performed=True,
+                detail=f"{type(exc).__name__}: {exc}",
+            ),
+            "outputs": {},
+        }
+    return _evaluate_manifest(selector, manifest=manifest, headers=headers)
 
 
 __all__ = [
