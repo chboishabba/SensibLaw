@@ -55,6 +55,33 @@ def _selector() -> dict:
     }
 
 
+def test_strict_plain_node_id_resolves_and_retains_chunk_cache_seed() -> None:
+    calls = 0
+
+    def found(_binary: str, _payload: str, *, timeout_seconds: float):
+        nonlocal calls
+        assert timeout_seconds == 5.0
+        calls += 1
+        return 0, "SL_NAT_PROBE|Q1|\nNode ID: 123\n"
+
+    receipt = resolve_qids_via_hosted_partial_scan_strict(
+        _manifest(),
+        ["Q1"],
+        zelph_bin="/fixture/zelph",
+        timeout_seconds=5.0,
+        repl_runner=found,
+    )
+    assert calls == 1
+    assert receipt["status"] == "complete"
+    assert receipt["resolved_qids"] == {"Q1": 123}
+    assert receipt["resolved_qid_chunks"] == {"Q1": 0}
+    assert receipt["qid_route_cache_seed"] == {
+        "Q1": {"zelph_node_id": 123, "node_of_name_chunk": 0}
+    }
+    assert receipt["unresolved_qids"] == []
+    assert receipt["node_id_success_surface"] == "marker_scoped_Node_ID"
+
+
 def test_sigsegv_stops_after_first_chunk_and_is_not_no_match() -> None:
     calls = 0
 
@@ -100,6 +127,7 @@ def test_clean_exhaustion_remains_partial_not_engine_failure() -> None:
     assert receipt["chunk_count_scanned"] == 2
     assert receipt["clean_chunk_count"] == 2
     assert receipt["failure"] is None
+    assert receipt["qid_route_cache_seed"] == {}
 
 
 def test_selector_maps_crash_to_engine_failed() -> None:
