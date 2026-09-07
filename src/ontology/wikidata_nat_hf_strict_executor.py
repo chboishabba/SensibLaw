@@ -15,7 +15,6 @@ from src.ontology.wikidata_nat_hf_partial_read import (
     node_of_name_chunks,
 )
 from src.ontology.wikidata_nat_hf_selector import (
-    HF_SELECTOR_EXECUTOR_ID,
     _evaluate_manifest,
     _fetch_manifest_cached,
     _preflight_selector,
@@ -64,9 +63,9 @@ def resolve_qids_via_hosted_partial_scan_strict(
 ) -> dict[str, Any]:
     """Hosted nodeOfName scan with fail-closed process semantics.
 
-    Clean exhaustion is the only route to ``status=partial``.  Any runner
+    Clean exhaustion is the only route to ``status=partial``. Any runner
     exception is ``engine_unavailable``; any non-zero Zelph exit is
-    ``engine_failed`` and stops the scan immediately.  In particular a SIGSEGV
+    ``engine_failed`` and stops the scan immediately. In particular a SIGSEGV
     can never be reinterpreted as a QID no-match.
     """
 
@@ -82,6 +81,8 @@ def resolve_qids_via_hosted_partial_scan_strict(
             "failure_kind": "zelph_binary_unavailable",
             "requested_qids": requested,
             "resolved_qids": {},
+            "resolved_qid_chunks": {},
+            "qid_route_cache_seed": {},
             "unresolved_qids": requested,
             "chunks_scanned": [],
             "chunk_count_scanned": 0,
@@ -89,6 +90,7 @@ def resolve_qids_via_hosted_partial_scan_strict(
             "route_index_required": False,
             "full_graph_loaded": False,
             "name_probe": "dot_node_non_creating",
+            "nonzero_exit_means_no_match": False,
         }
 
     chunks = node_of_name_chunks(manifest, language=language)
@@ -97,6 +99,7 @@ def resolve_qids_via_hosted_partial_scan_strict(
 
     runner = repl_runner or _default_repl_runner
     resolved: dict[str, int] = {}
+    resolved_chunks: dict[str, int] = {}
     scanned: list[dict[str, Any]] = []
     failure: dict[str, Any] | None = None
 
@@ -161,7 +164,10 @@ def resolve_qids_via_hosted_partial_scan_strict(
                 }
                 break
 
-            resolved.update(_parse_probe_output(output, remaining))
+            chunk_resolved = _parse_probe_output(output, remaining)
+            for qid, node_id in chunk_resolved.items():
+                resolved[qid] = node_id
+                resolved_chunks[qid] = chunk_index
 
     unresolved = [qid for qid in requested if qid not in resolved]
     if failure is not None:
@@ -173,11 +179,20 @@ def resolve_qids_via_hosted_partial_scan_strict(
     else:
         status = "complete" if not unresolved else "partial"
 
+    cache_seed = {
+        qid: {
+            "zelph_node_id": resolved[qid],
+            "node_of_name_chunk": resolved_chunks[qid],
+        }
+        for qid in sorted(resolved)
+    }
     payload_without_ref = {
         "schema_version": STRICT_PARTIAL_READ_SCHEMA_VERSION,
         "status": status,
         "requested_qids": requested,
         "resolved_qids": dict(sorted(resolved.items())),
+        "resolved_qid_chunks": dict(sorted(resolved_chunks.items())),
+        "qid_route_cache_seed": cache_seed,
         "unresolved_qids": unresolved,
         "chunks_scanned": scanned,
         "chunk_count_scanned": len(scanned),
@@ -191,6 +206,7 @@ def resolve_qids_via_hosted_partial_scan_strict(
         "route_index_required": False,
         "full_graph_loaded": False,
         "name_probe": "dot_node_non_creating",
+        "node_id_success_surface": "marker_scoped_Node_ID",
         "nonzero_exit_means_no_match": False,
     }
     payload = dict(payload_without_ref)
@@ -238,8 +254,8 @@ def _strict_evaluate(
             "outputs": {},
         }
 
-    # Delegate the successful / clean-no-match semantics to the existing
-    # selector, but inject the already strict scan so it cannot rescan.
+    # Delegate successful / clean-no-match semantics to the existing selector,
+    # but inject the already strict scan so it cannot rescan.
     return _evaluate_manifest(
         selector,
         manifest=manifest,
