@@ -65,14 +65,32 @@ def test_actual_item_properties_are_preserved_as_inventory() -> None:
     assert surface["property_inventory"]["statement_count"] == 4
 
 
-def test_rank_visibility_is_computed_within_actual_property_family() -> None:
+def test_rank_and_truthy_visibility_are_separate_coordinates() -> None:
     statements = {row["statement_ref"]: row for row in _surface()["statements"]}
-    assert statements["QCOMPANY$P5991-preferred"]["statement_visibility"] == "truthy"
-    assert statements["QCOMPANY$P5991-preferred"]["truthy"] is True
-    assert statements["QCOMPANY$P5991-normal"]["statement_visibility"] == "normal"
-    assert statements["QCOMPANY$P5991-normal"]["truthy"] is False
-    assert statements["QCOMPANY$P5991-deprecated"]["statement_visibility"] == "deprecated"
-    assert statements["QCOMPANY$P5991-deprecated"]["truthy"] is False
+    preferred = statements["QCOMPANY$P5991-preferred"]
+    normal = statements["QCOMPANY$P5991-normal"]
+    deprecated = statements["QCOMPANY$P5991-deprecated"]
+
+    assert preferred["rank"] == "preferred"
+    assert preferred["statement_visibility"] == "truthy"
+    assert preferred["truthy"] is True
+
+    assert normal["rank"] == "normal"
+    assert normal["statement_visibility"] == "non_truthy"
+    assert normal["truthy"] is False
+
+    assert deprecated["rank"] == "deprecated"
+    assert deprecated["statement_visibility"] == "non_truthy"
+    assert deprecated["truthy"] is False
+
+    features = {
+        (row["feature"], row["condition"], row["value"])
+        for row in _surface()["peer_features"]
+    }
+    assert ("statement_rank", "P5991|QCOMPANY$P5991-preferred", "preferred") in features
+    assert ("statement_visibility", "P5991|QCOMPANY$P5991-preferred", "truthy") in features
+    assert ("statement_rank", "P5991|QCOMPANY$P5991-normal", "normal") in features
+    assert ("statement_visibility", "P5991|QCOMPANY$P5991-normal", "non_truthy") in features
 
 
 def test_qualifier_and_scope_receipts_remain_statement_conditioned() -> None:
@@ -86,15 +104,6 @@ def test_qualifier_and_scope_receipts_remain_statement_conditioned() -> None:
         {"property_id": "P459", "state": "valid"},
         {"property_id": "P585", "state": "valid"},
     ]
-    assert {
-        (row["feature"], row["condition"], row["value"])
-        for row in surface["peer_features"]
-        if row["feature"] == "statement_visibility"
-    } >= {
-        ("statement_visibility", "P5991|QCOMPANY$P5991-preferred", "truthy"),
-        ("statement_visibility", "P5991|QCOMPANY$P5991-normal", "normal"),
-        ("statement_visibility", "P5991|QCOMPANY$P5991-deprecated", "deprecated"),
-    }
 
 
 def test_asserted_and_derived_property_relations_do_not_collapse() -> None:
