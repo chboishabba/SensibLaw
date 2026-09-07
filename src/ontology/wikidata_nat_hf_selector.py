@@ -6,10 +6,14 @@ from typing import Any
 
 import requests
 
+from src.ontology.wikidata_nat_hf_partial_read import (
+    fetch_live_wikidata_statement_payload,
+    resolve_qids_via_hosted_partial_scan,
+)
 from src.policy.carriers.canonical import canonical_sha256
 
 
-HF_SELECTOR_EXECUTOR_ID = "sensiblaw.nat_hf_selector.v0_1"
+HF_SELECTOR_EXECUTOR_ID = "sensiblaw.nat_hf_selector.v0_2"
 HF_DATASET = "acrion/zelph"
 HF_MANIFEST_PATH = "wikidata-20260309-all/wikidata-20260309-all.hf-v2.json"
 HF_MANIFEST_URL = (
@@ -20,6 +24,8 @@ HF_MANIFEST_URL = (
 )
 
 HttpGet = Callable[..., Any]
+PartialScanResolver = Callable[[Mapping[str, Any], Sequence[str]], Mapping[str, Any]]
+StatementFetcher = Callable[[Sequence[str], Sequence[str]], Mapping[str, Any]]
 
 
 def _text(value: Any) -> str:
@@ -39,10 +45,11 @@ def _executor_receipt(
     headers: Mapping[str, Any] | None,
     network_performed: bool,
     detail: str,
+    partial_read: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     manifest_payload = dict(manifest or {})
     response_headers = dict(headers or {})
-    return {
+    receipt = {
         "network_performed": network_performed,
         "transport": "hf-object-fetch",
         "dataset": HF_DATASET,
@@ -78,6 +85,9 @@ def _executor_receipt(
             (manifest_payload.get("layoutPlan") or {}).get("isCanonical", False)
         ),
     }
+    if partial_read is not None:
+        receipt["partial_read"] = dict(partial_read)
+    return receipt
 
 
 def _fetch_manifest(*, http_get: HttpGet, timeout_seconds: float) -> tuple[dict[str, Any], Mapping[str, Any]]:
@@ -95,12 +105,7 @@ def _fetch_manifest_cached() -> tuple[dict[str, Any], dict[str, Any]]:
     return dict(manifest), dict(headers)
 
 
-def _execute_selector(
-    selector: Mapping[str, Any],
-    *,
-    http_get: HttpGet,
-    timeout_seconds: float,
-) -> dict[str, Any]:
+def _preflight_selector(selector: Mapping[str, Any]) -> tuple[list[str], list[str], list[str]] | dict[str, Any]:
     operations = _text_list(selector.get("operations"))
     qids = _text_list(selector.get("qids"))
     properties = _text_list(selector.get("properties"))
@@ -131,7 +136,7 @@ def _execute_selector(
             ),
             "outputs": {},
         }
-    if not qids or not properties:
+    if not qids or not properties or not operations:
         return {
             "executor_id": HF_SELECTOR_EXECUTOR_ID,
             "execution_outcome": "engine_failed",
@@ -140,31 +145,11 @@ def _execute_selector(
                 manifest=None,
                 headers=None,
                 network_performed=False,
-                detail="Selector must name bounded QIDs and properties.",
+                detail="Selector must name bounded QIDs, properties, and operations.",
             ),
             "outputs": {},
         }
-
-    try:
-        manifest, headers = _fetch_manifest(
-            http_get=http_get,
-            timeout_seconds=timeout_seconds,
-        )
-    except Exception as exc:
-        return {
-            "executor_id": HF_SELECTOR_EXECUTOR_ID,
-            "execution_outcome": "engine_unavailable",
-            "executor_receipt": _executor_receipt(
-                transport_status="manifest_fetch_failed",
-                manifest=None,
-                headers=None,
-                network_performed=True,
-                detail=f"{type(exc).__name__}: {exc}",
-            ),
-            "outputs": {},
-        }
-
-    return _evaluate_manifest(selector, manifest=manifest, headers=headers)
+    return operations, qids, properties
 
 
 def _evaluate_manifest(
@@ -172,8 +157,14 @@ def _evaluate_manifest(
     *,
     manifest: Mapping[str, Any],
     headers: Mapping[str, Any],
+    partial_scan_resolver: PartialScanResolver | None,
+    statement_fetcher: StatementFetcher | None,
 ) -> dict[str, Any]:
-    operations = _text_list(selector.get("operations"))
+    preflight = _preflight_selector(selector)
+    if isinstance(preflight, dict):
+        return preflight
+    operations, qids, properties = preflight
+
     capabilities = manifest.get("capabilities")
     capabilities = capabilities if isinstance(capabilities, Mapping) else {}
     layout = manifest.get("layoutPlan")
@@ -226,21 +217,90 @@ def _evaluate_manifest(
             "execution_outcome": "engine_unavailable",
             "executor_receipt": _executor_receipt(
                 transport_status="selected_chunk_read_unavailable",
-                detail="Canonical manifest cannot satisfy bounded partial-loading requests.",
+                detail="Canonical manifest cannot satisfy partial-loading requests.",
                 **common_receipt,
             ),
             "outputs": {},
         }
-    if "node_route_selection" in operations and not bool(capabilities.get("nodeRouteIndex")):
+
+    partial_read: Mapping[str, Any] | None = None
+    needs_unrouted_scan = (
+        "node_route_selection" in operations
+        and not bool(capabilities.get("nodeRouteIndex"))
+    )
+    if needs_unrouted_scan:
+        if partial_scan_resolver is None:
+            return {
+                "executor_id": HF_SELECTOR_EXECUTOR_ID,
+                "execution_outcome": "engine_unavailable",
+                "executor_receipt": _executor_receipt(
+                    transport_status="online_partial_scan_adapter_unavailable",
+                    detail=(
+                        "nodeRouteIndex=false, but selectedChunkRead=true. "
+                        "Progress is allowed through an online nodeOfName shard scan; "
+                        "no partial-scan adapter was supplied to this invocation."
+                    ),
+                    **common_receipt,
+                ),
+                "outputs": {},
+            }
+        try:
+            partial_read = partial_scan_resolver(manifest, qids)
+        except Exception as exc:
+            return {
+                "executor_id": HF_SELECTOR_EXECUTOR_ID,
+                "execution_outcome": "engine_unavailable",
+                "executor_receipt": _executor_receipt(
+                    transport_status="online_partial_scan_failed",
+                    detail=f"{type(exc).__name__}: {exc}",
+                    partial_read=None,
+                    **common_receipt,
+                ),
+                "outputs": {},
+            }
+        unresolved = _text_list(partial_read.get("unresolved_qids"))
+        if unresolved:
+            return {
+                "executor_id": HF_SELECTOR_EXECUTOR_ID,
+                "execution_outcome": "executed_no_match",
+                "executor_receipt": _executor_receipt(
+                    transport_status="online_partial_scan_incomplete",
+                    detail=(
+                        "Hosted nodeOfName partial scan completed without resolving "
+                        "every requested QID. No negative-evidence claim is made."
+                    ),
+                    partial_read=partial_read,
+                    **common_receipt,
+                ),
+                "outputs": {},
+            }
+
+    if statement_fetcher is None:
         return {
             "executor_id": HF_SELECTOR_EXECUTOR_ID,
             "execution_outcome": "engine_unavailable",
             "executor_receipt": _executor_receipt(
-                transport_status="blocked_missing_node_route_index",
+                transport_status="wikidata_statement_fetcher_unavailable",
                 detail=(
-                    "Canonical HF v2 manifest is available, but QID-directed bounded "
-                    "dispatch is blocked because nodeRouteIndex=false."
+                    "HF partial discovery succeeded, but exact Wikidata statement/"
+                    "qualifier/reference source retrieval is not configured."
                 ),
+                partial_read=partial_read,
+                **common_receipt,
+            ),
+            "outputs": {},
+        }
+
+    try:
+        outputs = dict(statement_fetcher(qids, properties))
+    except Exception as exc:
+        return {
+            "executor_id": HF_SELECTOR_EXECUTOR_ID,
+            "execution_outcome": "engine_unavailable",
+            "executor_receipt": _executor_receipt(
+                transport_status="wikidata_statement_fetch_failed",
+                detail=f"{type(exc).__name__}: {exc}",
+                partial_read=partial_read,
                 **common_receipt,
             ),
             "outputs": {},
@@ -248,35 +308,76 @@ def _evaluate_manifest(
 
     return {
         "executor_id": HF_SELECTOR_EXECUTOR_ID,
-        "execution_outcome": "engine_unavailable",
+        "execution_outcome": "executed_with_output",
         "executor_receipt": _executor_receipt(
-            transport_status="selector_decode_adapter_not_implemented",
-            detail=(
-                "Manifest preflight passed, but SensibLaw does not yet own the "
-                "QID/property-to-statement decode adapter required for the requested outputs."
+            transport_status=(
+                "executed_via_unrouted_hf_partial_scan_plus_wikidata_entity_export"
+                if needs_unrouted_scan
+                else "executed_via_routed_hf_plus_wikidata_entity_export"
             ),
+            detail=(
+                "Zelph/HF supplies bounded graph discovery/identity confirmation; "
+                "Wikidata entity export supplies exact statement, qualifier, reference, "
+                "and revision source data. P854 verification remains downstream."
+            ),
+            partial_read=partial_read,
             **common_receipt,
         ),
-        "outputs": {},
+        "outputs": outputs,
     }
 
 
-def hosted_hf_selector_executor(selector: Mapping[str, Any]) -> dict[str, Any]:
-    """Preflight the canonical hosted Zelph/Wikidata HF manifest.
+def _execute_selector(
+    selector: Mapping[str, Any],
+    *,
+    http_get: HttpGet,
+    timeout_seconds: float,
+    partial_scan_resolver: PartialScanResolver | None = None,
+    statement_fetcher: StatementFetcher | None = None,
+) -> dict[str, Any]:
+    preflight = _preflight_selector(selector)
+    if isinstance(preflight, dict):
+        return preflight
+    try:
+        manifest, headers = _fetch_manifest(
+            http_get=http_get,
+            timeout_seconds=timeout_seconds,
+        )
+    except Exception as exc:
+        return {
+            "executor_id": HF_SELECTOR_EXECUTOR_ID,
+            "execution_outcome": "engine_unavailable",
+            "executor_receipt": _executor_receipt(
+                transport_status="manifest_fetch_failed",
+                manifest=None,
+                headers=None,
+                network_performed=True,
+                detail=f"{type(exc).__name__}: {exc}",
+            ),
+            "outputs": {},
+        }
+    return _evaluate_manifest(
+        selector,
+        manifest=manifest,
+        headers=headers,
+        partial_scan_resolver=partial_scan_resolver,
+        statement_fetcher=statement_fetcher,
+    )
 
-    The executor is network-backed and uses the actual ``acrion/zelph`` canonical
-    v2 manifest. It fails closed at the current route/decode boundary and never
-    invents statement or reference outputs from manifest metadata alone.
+
+def hosted_hf_selector_executor(selector: Mapping[str, Any]) -> dict[str, Any]:
+    """Run the live Nat acquisition path over hosted Zelph/HF partial reads.
+
+    Missing node-route metadata is an optimization gap, not a correctness wall:
+    this executor may scan hosted ``nodeOfName`` shards until the bounded QIDs
+    resolve.  Exact qualifier/reference/revision payloads are then fetched from
+    the existing live Wikidata entity-export path.  The dispatcher still keeps
+    ``prerequisite_paid=false`` and external P854 verification downstream.
     """
 
-    operations = _text_list(selector.get("operations"))
-    qids = _text_list(selector.get("qids"))
-    properties = _text_list(selector.get("properties"))
-    if not bool(selector.get("candidate_only")) or bool(
-        selector.get("full_reasoning_required")
-    ) or not operations or not qids or not properties:
-        return _execute_selector(selector, http_get=requests.get, timeout_seconds=30.0)
-
+    preflight = _preflight_selector(selector)
+    if isinstance(preflight, dict):
+        return preflight
     try:
         manifest, headers = _fetch_manifest_cached()
     except Exception as exc:
@@ -292,7 +393,18 @@ def hosted_hf_selector_executor(selector: Mapping[str, Any]) -> dict[str, Any]:
             ),
             "outputs": {},
         }
-    return _evaluate_manifest(selector, manifest=manifest, headers=headers)
+
+    return _evaluate_manifest(
+        selector,
+        manifest=manifest,
+        headers=headers,
+        partial_scan_resolver=lambda current_manifest, qids: resolve_qids_via_hosted_partial_scan(
+            current_manifest, qids
+        ),
+        statement_fetcher=lambda qids, properties: fetch_live_wikidata_statement_payload(
+            qids, properties
+        ),
+    )
 
 
 __all__ = [
