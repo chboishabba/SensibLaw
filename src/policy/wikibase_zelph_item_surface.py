@@ -18,10 +18,11 @@ from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
 from .domain_pressure import COVERAGE_STATES
+from .evidence_surface_identity import build_evidence_surface_identity
 from .external_graph_bridge import EXTERNAL_GRAPH_BRIDGE_SCHEMA_VERSION, normalize_graph_view
 from .item_property_evidence import build_item_property_evidence_surface
 
-WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION = "sl.wikibase_zelph_item_surface.v0_2"
+WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION = "sl.wikibase_zelph_item_surface.v0_3"
 
 
 def _text(value: Any) -> str:
@@ -172,12 +173,7 @@ def build_wikibase_zelph_item_surface(
     revision_alignment_ref: str | None = None,
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Build the preferred Nat item surface from native + graph evidence.
-
-    ``revision_alignment_ref`` is required when the graph artifact revision and
-    entity revision are different identifiers. It is a correspondence receipt,
-    not a claim that the identifiers are definitionally equal.
-    """
+    """Build the preferred Nat item surface from native + graph evidence."""
 
     qid = _text(subject_qid)
     entity_revision = _text(entity_revision_ref)
@@ -203,9 +199,6 @@ def build_wikibase_zelph_item_surface(
         required_property_ids=required,
         property_coverage=property_coverage,
     )
-
-    # Item-wide coverage is deliberately conservative. Required Q/P families
-    # control whether statement presence and truthy rank visibility are decidable.
     item_coverage = (
         "observed"
         if required and all(family_coverage.get(p) == "observed" for p in required)
@@ -236,7 +229,7 @@ def build_wikibase_zelph_item_surface(
         derived_relations=derived_relations,
         evidence_refs=joined_evidence,
     )
-    return {
+    payload = {
         "schema_version": WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION,
         "subject_qid": qid,
         "native_entity_revision_ref": entity_revision,
@@ -258,6 +251,8 @@ def build_wikibase_zelph_item_surface(
         "promotion_effect": "not_evaluated",
         "edit_effect": "none",
     }
+    payload["content_identity"] = build_evidence_surface_identity(payload)
+    return payload
 
 
 __all__ = [
