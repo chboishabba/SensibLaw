@@ -10,6 +10,7 @@ This adapter keeps two evidence planes separate:
 The join is diagnostic. A complete Zelph graph view does not by itself certify
 that a native Q/P statement family was completely inspected, and a missing
 native statement is never rewritten as an explicit Wikidata ``novalue`` snak.
+Derived graph relations require a sound query-family preservation receipt.
 """
 
 from __future__ import annotations
@@ -21,8 +22,9 @@ from .domain_pressure import COVERAGE_STATES
 from .evidence_surface_identity import build_evidence_surface_identity
 from .external_graph_bridge import EXTERNAL_GRAPH_BRIDGE_SCHEMA_VERSION, normalize_graph_view
 from .item_property_evidence import build_item_property_evidence_surface
+from .pruned_graph_preservation import PRUNED_GRAPH_PRESERVATION_SCHEMA_VERSION
 
-WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION = "sl.wikibase_zelph_item_surface.v0_3"
+WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION = "sl.wikibase_zelph_item_surface.v0_4"
 
 
 def _text(value: Any) -> str:
@@ -156,6 +158,25 @@ def _normalize_property_coverage(
     return result
 
 
+def _validate_derived_relation_preservation(
+    *,
+    derived_relations: Sequence[Mapping[str, Any]],
+    receipt: Mapping[str, Any] | None,
+    query_family_ref: str,
+) -> dict[str, Any] | None:
+    if not derived_relations:
+        return deepcopy(dict(receipt)) if isinstance(receipt, Mapping) else None
+    if not isinstance(receipt, Mapping):
+        raise ValueError("derived_relations require query_preservation_receipt")
+    if _text(receipt.get("schema_version")) != PRUNED_GRAPH_PRESERVATION_SCHEMA_VERSION:
+        raise ValueError("derived relations require a pruned graph preservation receipt")
+    if _text(receipt.get("query_family_ref")) != _text(query_family_ref):
+        raise ValueError("derived relation query family does not match preservation receipt")
+    if receipt.get("sound_for_positive_answers") is not True:
+        raise ValueError("derived relations require sound preservation for positive answers")
+    return deepcopy(dict(receipt))
+
+
 def build_wikibase_zelph_item_surface(
     *,
     entity_document: Mapping[str, Any],
@@ -166,6 +187,8 @@ def build_wikibase_zelph_item_surface(
     required_property_ids: Sequence[str],
     property_coverage: Mapping[str, Any] | None = None,
     derived_relations: Sequence[Mapping[str, Any]] = (),
+    derived_relation_query_family_ref: str = "query:p31-p279-type-closure",
+    query_preservation_receipt: Mapping[str, Any] | None = None,
     qualifier_specs: Mapping[str, Mapping[str, Sequence[str]]] | None = None,
     qualifier_profile_coverage_state: str = "uninspected",
     scope_specs: Mapping[str, Mapping[str, Any]] | None = None,
@@ -189,6 +212,11 @@ def build_wikibase_zelph_item_surface(
     if graph_revision and graph_revision != entity_revision and not alignment_ref:
         raise ValueError("different graph/entity revisions require revision_alignment_ref")
 
+    preservation = _validate_derived_relation_preservation(
+        derived_relations=derived_relations,
+        receipt=query_preservation_receipt,
+        query_family_ref=derived_relation_query_family_ref,
+    )
     statements = native_statement_rows_from_entity_export(
         entity_document,
         subject_qid=qid,
@@ -205,11 +233,13 @@ def build_wikibase_zelph_item_surface(
         else "uninspected"
     )
     graph_ref = _text(normalized_graph.get("graph_view_id"))
+    preservation_ref = _text((preservation or {}).get("soundness_receipt_ref"))
     joined_evidence = sorted(
         {
             *(_text(value) for value in evidence_refs if _text(value)),
             *([graph_ref] if graph_ref else []),
             *([alignment_ref] if alignment_ref else []),
+            *([preservation_ref] if preservation_ref else []),
             f"wikibase:{qid}@{entity_revision}",
         }
     )
@@ -244,6 +274,8 @@ def build_wikibase_zelph_item_surface(
             "provider_id": "zelph_bounded_graph",
             "graph_view_ref": graph_ref,
             "coverage_state": _text(normalized_graph.get("coverage_state")),
+            "derived_relation_query_family_ref": _text(derived_relation_query_family_ref),
+            "query_preservation_receipt": preservation,
             "owns": ["bounded_adjacency", "graph_relation_context", "derived_relations"],
         },
         "item_surface": surface,
