@@ -147,10 +147,14 @@ def test_real_nat_artifacts_preserve_manifest_population_and_materialized_rows()
     )
     assert batch["schema_version"] == BATCH_RESULT_SCHEMA_VERSION
     assert batch["source_population"] == 37665
+    assert batch["materialized_row_count"] == 57
     assert batch["materialized_row_count"] == len(migration_pack["candidates"])
     assert batch["population_fully_materialized"] is False
-    assert batch["row_count"] > 0
-    assert batch["work_group_count"] > 0
+    assert batch["row_count"] == 57
+    assert batch["work_group_count"] == 4
+    assert batch["counts_by_first_missing_prerequisite"] == {"source_support": 57}
+    assert batch["counts_by_routing_family"] == {"full_auto": 57}
+    assert batch["counts_by_selector_class"] == {"zelph_hf_selector": 57}
     assert batch["network_performed"] is False
     assert batch["edits_performed"] is False
     assert batch["consumer_verification_performed"] is False
