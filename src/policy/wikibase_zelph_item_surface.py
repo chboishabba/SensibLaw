@@ -15,14 +15,13 @@ native statement is never rewritten as an explicit Wikidata ``novalue`` snak.
 from __future__ import annotations
 
 from copy import deepcopy
-import json
 from typing import Any, Mapping, Sequence
 
 from .domain_pressure import COVERAGE_STATES
 from .external_graph_bridge import EXTERNAL_GRAPH_BRIDGE_SCHEMA_VERSION, normalize_graph_view
 from .item_property_evidence import build_item_property_evidence_surface
 
-WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION = "sl.wikibase_zelph_item_surface.v0_1"
+WIKIBASE_ZELPH_ITEM_SURFACE_SCHEMA_VERSION = "sl.wikibase_zelph_item_surface.v0_2"
 
 
 def _text(value: Any) -> str:
@@ -167,7 +166,9 @@ def build_wikibase_zelph_item_surface(
     property_coverage: Mapping[str, Any] | None = None,
     derived_relations: Sequence[Mapping[str, Any]] = (),
     qualifier_specs: Mapping[str, Mapping[str, Sequence[str]]] | None = None,
+    qualifier_profile_coverage_state: str = "uninspected",
     scope_specs: Mapping[str, Mapping[str, Any]] | None = None,
+    scope_profile_coverage_state: str = "uninspected",
     revision_alignment_ref: str | None = None,
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
@@ -190,9 +191,7 @@ def build_wikibase_zelph_item_surface(
     graph_revision = _text(normalized_graph.get("artifact_revision"))
     alignment_ref = _text(revision_alignment_ref)
     if graph_revision and graph_revision != entity_revision and not alignment_ref:
-        raise ValueError(
-            "different graph/entity revisions require revision_alignment_ref"
-        )
+        raise ValueError("different graph/entity revisions require revision_alignment_ref")
 
     statements = native_statement_rows_from_entity_export(
         entity_document,
@@ -231,7 +230,9 @@ def build_wikibase_zelph_item_surface(
         required_property_ids=required,
         property_coverage=family_coverage,
         qualifier_specs=qualifier_specs,
+        qualifier_profile_coverage_state=qualifier_profile_coverage_state,
         scope_specs=scope_specs,
+        scope_profile_coverage_state=scope_profile_coverage_state,
         derived_relations=derived_relations,
         evidence_refs=joined_evidence,
     )
