@@ -2,12 +2,17 @@
 
 Carrier hierarchy:
 
-    item -> required/observed property family -> statement -> value/rank/qualifiers/references
+    item -> required/observed property family -> statement -> snak/value/rank/qualifiers/references
 
 Peer features are conditioned projections of that carrier, never detached labels.
 Rank is intrinsic to a statement, while truthy visibility is computed over the
 subject+property family. Therefore property-family coverage is required before
-truthiness or property absence can be treated as observed.
+truthiness or statement absence can be treated as observed.
+
+Native Wikibase snak semantics are separate from statement presence. A covered
+Q/P with no returned statement is *not* the same thing as an explicit ``novalue``
+snak. This mirrors RequestProject.Snaks: in a consistent snak base, ``novalue`` is
+entailed exactly when it is asserted.
 """
 
 from __future__ import annotations
@@ -18,11 +23,13 @@ from typing import Any, Mapping, Sequence
 
 from .domain_pressure import COVERAGE_STATES
 
-ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_2"
+ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_3"
 RANKS = frozenset({"preferred", "normal", "deprecated"})
 VISIBILITY_STATES = frozenset({"truthy", "non_truthy", "unresolved"})
 CONSTRAINT_STATES = frozenset({"valid", "invalid", "uninspected"})
 RELATION_ORIGINS = frozenset({"asserted", "derived", "unresolved"})
+SNAK_TYPES = frozenset({"value", "somevalue", "novalue"})
+STATEMENT_PRESENCE_STATES = frozenset({"statement_present", "no_statement_observed", "unresolved"})
 
 
 def _text(value: Any) -> str:
@@ -61,6 +68,9 @@ def _statement_rows(statements: Sequence[Mapping[str, Any]], subject_qid: str) -
         rank = _text(raw.get("rank")) or "normal"
         if rank not in RANKS:
             raise ValueError(f"unsupported Wikidata statement rank: {rank}")
+        snak_type = _text(raw.get("snak_type") or raw.get("snaktype")) or "value"
+        if snak_type not in SNAK_TYPES:
+            raise ValueError(f"unsupported Wikidata snak type: {snak_type}")
         statement_ref = _text(raw.get("statement_ref") or raw.get("statement_id"))
         if not statement_ref:
             statement_ref = f"{subject_qid}|{property_id}|{index}"
@@ -68,8 +78,9 @@ def _statement_rows(statements: Sequence[Mapping[str, Any]], subject_qid: str) -
             {
                 "statement_ref": statement_ref,
                 "property_id": property_id,
-                "value": deepcopy(raw.get("value")),
-                "value_ref": _text(raw.get("value_ref") or raw.get("value")),
+                "snak_type": snak_type,
+                "value": deepcopy(raw.get("value")) if snak_type == "value" else None,
+                "value_ref": _text(raw.get("value_ref") or raw.get("value")) if snak_type == "value" else "",
                 "value_kind": _text(raw.get("value_kind")) or "unknown",
                 "rank": rank,
                 "qualifiers": _qualifier_rows(raw.get("qualifiers") or ()),
@@ -161,8 +172,9 @@ def build_item_property_evidence_surface(
     """Build a property-aware item surface and conditioned peer features.
 
     ``property_coverage[P] == observed`` means the declared bounded policy
-    covered enough of Q/P to decide rank truthiness and meaningful absence for
-    that property family. It never means Wikidata is globally complete.
+    covered enough of Q/P to decide rank truthiness and whether a statement is
+    present. It never means Wikidata is globally complete, and an observed lack
+    of statements never becomes a native ``novalue`` assertion.
     """
 
     qid = _text(subject_qid)
@@ -214,7 +226,12 @@ def build_item_property_evidence_surface(
         ]
 
         relation_origin = "unresolved"
-        if truthy and row["value_kind"] == "item" and row["value_ref"]:
+        if (
+            truthy
+            and row["snak_type"] == "value"
+            and row["value_kind"] == "item"
+            and row["value_ref"]
+        ):
             relation_origin = "asserted"
             asserted_relations.add(_relation_key(property_id, qid, row["value_ref"]))
 
@@ -234,6 +251,7 @@ def build_item_property_evidence_surface(
         statement_condition = f"{property_id}|{statement_ref}"
         feature_rows.extend(
             [
+                {"feature": "statement_snak_type", "condition": statement_condition, "value": row["snak_type"]},
                 {"feature": "statement_rank", "condition": statement_condition, "value": row["rank"]},
                 {"feature": "statement_visibility", "condition": statement_condition, "value": visibility},
                 {"feature": "qualifier_constraint", "condition": statement_condition, "value": qualifier_state},
@@ -248,7 +266,7 @@ def build_item_property_evidence_surface(
                     "value": qualifier["state"],
                 }
             )
-        if row["value_kind"] == "item" and row["value_ref"]:
+        if row["snak_type"] == "value" and row["value_kind"] == "item" and row["value_ref"]:
             feature_rows.append(
                 {
                     "feature": "property_relation",
@@ -276,7 +294,7 @@ def build_item_property_evidence_surface(
     truthy_property_ids = sorted(
         {row["property_id"] for row in normalized_statements if row["truthy"] is True}
     )
-    observed_absent = sorted(
+    no_statement_observed = sorted(
         property_id
         for property_id in required
         if family_coverage.get(property_id) == "observed" and property_id not in observed_with_rows
@@ -286,13 +304,24 @@ def build_item_property_evidence_surface(
         for property_id in required
         if family_coverage.get(property_id) != "observed"
     )
-    for property_id in observed_absent:
+    explicit_novalue_properties = sorted(
+        {row["property_id"] for row in normalized_statements if row["snak_type"] == "novalue"}
+    )
+    explicit_somevalue_properties = sorted(
+        {row["property_id"] for row in normalized_statements if row["snak_type"] == "somevalue"}
+    )
+
+    for property_id in no_statement_observed:
         feature_rows.append(
-            {"feature": "property_presence", "condition": property_id, "value": "absent"}
+            {"feature": "property_statement_presence", "condition": property_id, "value": "no_statement_observed"}
         )
     for property_id in observed_with_rows:
         feature_rows.append(
-            {"feature": "property_presence", "condition": property_id, "value": "present"}
+            {"feature": "property_statement_presence", "condition": property_id, "value": "statement_present"}
+        )
+    for property_id in unresolved_required:
+        feature_rows.append(
+            {"feature": "property_statement_presence", "condition": property_id, "value": "unresolved"}
         )
 
     unique_features = sorted(
@@ -313,8 +342,10 @@ def build_item_property_evidence_surface(
             "required_property_ids": required,
             "observed_property_ids": observed_with_rows,
             "truthy_property_ids": truthy_property_ids,
-            "observed_absent_property_ids": observed_absent,
+            "no_statement_observed_property_ids": no_statement_observed,
             "unresolved_required_property_ids": unresolved_required,
+            "explicit_novalue_property_ids": explicit_novalue_properties,
+            "explicit_somevalue_property_ids": explicit_somevalue_properties,
             "coverage_by_property": family_coverage,
             "statement_count": len(normalized_statements),
         },
@@ -330,4 +361,9 @@ def build_item_property_evidence_surface(
     }
 
 
-__all__ = ["ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION", "build_item_property_evidence_surface"]
+__all__ = [
+    "ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION",
+    "SNAK_TYPES",
+    "STATEMENT_PRESENCE_STATES",
+    "build_item_property_evidence_surface",
+]
