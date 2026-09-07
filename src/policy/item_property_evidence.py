@@ -13,6 +13,10 @@ Native Wikibase snak semantics are separate from statement presence. A covered
 Q/P with no returned statement is *not* the same thing as an explicit ``novalue``
 snak. This mirrors RequestProject.Snaks: in a consistent snak base, ``novalue`` is
 entailed exactly when it is asserted.
+
+Constraint-table absence is coverage-sensitive too. When a qualifier/scope table
+is known complete and contains no entry for P, Aristotle treats P as unconstrained;
+when the table was not inspected, SensibLaw keeps the state uninspected.
 """
 
 from __future__ import annotations
@@ -23,10 +27,10 @@ from typing import Any, Mapping, Sequence
 
 from .domain_pressure import COVERAGE_STATES
 
-ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_3"
+ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION = "sl.wikidata_item_property_evidence.v0_4"
 RANKS = frozenset({"preferred", "normal", "deprecated"})
 VISIBILITY_STATES = frozenset({"truthy", "non_truthy", "unresolved"})
-CONSTRAINT_STATES = frozenset({"valid", "invalid", "uninspected"})
+CONSTRAINT_STATES = frozenset({"valid", "invalid", "unconstrained", "uninspected"})
 RELATION_ORIGINS = frozenset({"asserted", "derived", "unresolved"})
 SNAK_TYPES = frozenset({"value", "somevalue", "novalue"})
 STATEMENT_PRESENCE_STATES = frozenset({"statement_present", "no_statement_observed", "unresolved"})
@@ -129,24 +133,38 @@ def _truthy_statement_refs(
     return truthy
 
 
+def _constraint_profile_state(value: str, *, field: str) -> str:
+    state = _text(value) or "uninspected"
+    if state not in COVERAGE_STATES:
+        raise ValueError(f"unsupported {field}: {state}")
+    return state
+
+
 def _qualifier_constraint_state(
     statement: Mapping[str, Any],
     qualifier_specs: Mapping[str, Mapping[str, Sequence[str]]],
+    profile_coverage_state: str,
 ) -> str:
     property_id = _text(statement.get("property_id"))
     spec = qualifier_specs.get(property_id)
     if not isinstance(spec, Mapping):
-        return "uninspected"
+        return "unconstrained" if profile_coverage_state == "observed" else "uninspected"
     observed = {_text(row.get("property_id")) for row in statement.get("qualifiers", ())}
     allowed = {_text(value) for value in spec.get("allowed", ())}
     mandatory = {_text(value) for value in spec.get("mandatory", ())}
     return "valid" if observed <= allowed and mandatory <= observed else "invalid"
 
 
-def _scope_state(*, property_id: str, slot: str, scope_specs: Mapping[str, Mapping[str, Any]]) -> str:
+def _scope_state(
+    *,
+    property_id: str,
+    slot: str,
+    scope_specs: Mapping[str, Mapping[str, Any]],
+    profile_coverage_state: str,
+) -> str:
     spec = scope_specs.get(property_id)
     if not isinstance(spec, Mapping):
-        return "uninspected"
+        return "unconstrained" if profile_coverage_state == "observed" else "uninspected"
     allowed = spec.get("as_main", True) if slot == "main" else spec.get("as_qualifier", True)
     return "valid" if allowed is True else "invalid"
 
@@ -165,7 +183,9 @@ def build_item_property_evidence_surface(
     required_property_ids: Sequence[str] = (),
     property_coverage: Mapping[str, Any] | None = None,
     qualifier_specs: Mapping[str, Mapping[str, Sequence[str]]] | None = None,
+    qualifier_profile_coverage_state: str = "uninspected",
     scope_specs: Mapping[str, Mapping[str, Any]] | None = None,
+    scope_profile_coverage_state: str = "uninspected",
     derived_relations: Sequence[Mapping[str, Any]] = (),
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
@@ -175,6 +195,10 @@ def build_item_property_evidence_surface(
     covered enough of Q/P to decide rank truthiness and whether a statement is
     present. It never means Wikidata is globally complete, and an observed lack
     of statements never becomes a native ``novalue`` assertion.
+
+    A property absent from a constraint table is ``unconstrained`` only when the
+    corresponding profile coverage is itself ``observed``. Otherwise it remains
+    ``uninspected``.
     """
 
     qid = _text(subject_qid)
@@ -186,6 +210,12 @@ def build_item_property_evidence_surface(
     if coverage not in COVERAGE_STATES:
         raise ValueError(f"unsupported item-property coverage state: {coverage}")
 
+    qualifier_profile_coverage = _constraint_profile_state(
+        qualifier_profile_coverage_state, field="qualifier_profile_coverage_state"
+    )
+    scope_profile_coverage = _constraint_profile_state(
+        scope_profile_coverage_state, field="scope_profile_coverage_state"
+    )
     required = _strings(required_property_ids)
     q_specs = qualifier_specs or {}
     s_specs = scope_specs or {}
@@ -200,7 +230,10 @@ def build_item_property_evidence_surface(
 
     asserted_relations: set[tuple[str, str, str]] = set()
     normalized_statements: list[dict[str, Any]] = []
-    feature_rows: list[dict[str, str]] = []
+    feature_rows: list[dict[str, str]] = [
+        {"feature": "qualifier_profile_coverage", "condition": "constraint_table", "value": qualifier_profile_coverage},
+        {"feature": "scope_profile_coverage", "condition": "constraint_table", "value": scope_profile_coverage},
+    ]
 
     for property_id, state in family_coverage.items():
         feature_rows.append(
@@ -213,13 +246,23 @@ def build_item_property_evidence_surface(
         property_is_observed = family_coverage[property_id] == "observed"
         truthy = property_is_observed and statement_ref in truthy_refs
         visibility = "truthy" if truthy else "non_truthy" if property_is_observed else "unresolved"
-        qualifier_state = _qualifier_constraint_state(row, q_specs)
-        main_scope_state = _scope_state(property_id=property_id, slot="main", scope_specs=s_specs)
+        qualifier_state = _qualifier_constraint_state(
+            row, q_specs, qualifier_profile_coverage
+        )
+        main_scope_state = _scope_state(
+            property_id=property_id,
+            slot="main",
+            scope_specs=s_specs,
+            profile_coverage_state=scope_profile_coverage,
+        )
         qualifier_scope = [
             {
                 "property_id": qualifier["property_id"],
                 "state": _scope_state(
-                    property_id=qualifier["property_id"], slot="qualifier", scope_specs=s_specs
+                    property_id=qualifier["property_id"],
+                    slot="qualifier",
+                    scope_specs=s_specs,
+                    profile_coverage_state=scope_profile_coverage,
                 ),
             }
             for qualifier in row["qualifiers"]
@@ -338,6 +381,10 @@ def build_item_property_evidence_surface(
         "source_revision_ref": revision,
         "coverage_state": coverage,
         "coverage_policy_ref": policy,
+        "constraint_profile_coverage": {
+            "qualifier": qualifier_profile_coverage,
+            "scope": scope_profile_coverage,
+        },
         "property_inventory": {
             "required_property_ids": required,
             "observed_property_ids": observed_with_rows,
@@ -363,6 +410,7 @@ def build_item_property_evidence_surface(
 
 __all__ = [
     "ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION",
+    "CONSTRAINT_STATES",
     "SNAK_TYPES",
     "STATEMENT_PRESENCE_STATES",
     "build_item_property_evidence_surface",
