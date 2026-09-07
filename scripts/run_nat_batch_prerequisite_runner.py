@@ -1,17 +1,25 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
+import sys
 from typing import Any, Mapping
 
-from src.ontology.wikidata_nat_batch_prerequisite_runner import build_batch_dry_run
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.ontology.wikidata_nat_batch_prerequisite_runner import (  # noqa: E402
+    build_batch_dry_run,
+)
 
 
-DEFAULT_MANIFEST = Path(
+DEFAULT_MANIFEST = ROOT / (
     "tests/fixtures/wikidata/wikidata_nat_lane_review_manifests_20260401.json"
 )
-DEFAULT_PACK = Path(
+DEFAULT_PACK = ROOT / (
     "data/ontology/wikidata_migration_packs/"
     "p5991_p14143_climate_pilot_20260328/migration_pack.json"
 )
