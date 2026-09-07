@@ -1,10 +1,5 @@
 """Coverage-qualified peer-cohort residual evaluation.
 
-This module converts a governed ``DomainInvariantSnapshot`` plus caller-supplied
-bounded graph/query coverage into one ``peer_cohort`` residual row suitable for
-``build_pressure_assessment``. It is diagnostic only: it does not promote a
-candidate, mutate an invariant, infer an external identity, or edit a graph.
-
 The preferred entry point consumes a revision-bound item/property evidence
 surface so peer coordinates remain attached to the actual Wikidata property,
 statement GUID, qualifier slot, and relation path that produced them.
@@ -61,6 +56,24 @@ def _empirical_index(snapshot: Mapping[str, Any]) -> dict[tuple[str, str], set[s
     return dict(index)
 
 
+def _effective_surface_coverage(item_surface: Mapping[str, Any]) -> str:
+    """Collapse required property-family coverage conservatively for peer admission."""
+    inventory = item_surface.get("property_inventory") or {}
+    coverage_by_property = inventory.get("coverage_by_property") or {}
+    required = _strings(inventory.get("required_property_ids") or ())
+    states = [_text(coverage_by_property.get(property_id)) for property_id in required]
+    states = [state for state in states if state]
+    if "invalid" in states:
+        return "invalid"
+    if "uninspected" in states:
+        return "uninspected"
+    if "incomplete" in states:
+        return "incomplete"
+    if states and all(state == "observed" for state in states):
+        return "observed"
+    return _text(item_surface.get("coverage_state")) or "uninspected"
+
+
 def build_peer_cohort_residual(
     *,
     candidate_ref: str,
@@ -110,7 +123,7 @@ def build_peer_cohort_residual(
         state = "unresolved"
         summary = (
             "peer evidence remains unresolved until declared bounded coverage is observed "
-            "and independently reviewed conforming members exist"
+            "for required property families and independently reviewed conforming members exist"
         )
     elif contradicted:
         state = "contradictory"
@@ -123,7 +136,7 @@ def build_peer_cohort_residual(
         summary = "peer cohort covers some candidate features but leaves others unmodelled"
     else:
         state = "exact"
-        summary = "all supplied candidate features are represented in the admitted peer-cohort empirical surface"
+        summary = "all supplied conditioned candidate features are represented in the admitted peer-cohort empirical surface"
 
     snapshot_ref = _text(invariant_snapshot.get("snapshot_id"))
     return {
@@ -156,25 +169,15 @@ def build_peer_cohort_residual_from_item_surface(
     item_surface: Mapping[str, Any],
     evidence_refs: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Evaluate peers directly from the revision-bound item/property carrier.
-
-    This is the safer Nat/Zelph adapter seam because it preserves the exact
-    property/GUID/path conditions produced by ``item_property_evidence`` rather
-    than asking a caller to reconstruct a flattened feature list.
-    """
+    """Evaluate peers directly from the revision-bound item/property carrier."""
 
     if _text(item_surface.get("schema_version")) != ITEM_PROPERTY_EVIDENCE_SCHEMA_VERSION:
-        raise ValueError("item-surface peer evaluation requires item-property evidence")
-    subject_qid = _text(item_surface.get("subject_qid"))
-    if subject_qid and subject_qid not in _text(candidate_ref):
-        # Candidate ids are not globally standardized; this is intentionally not
-        # an identity proof. We retain the QID in evidence rather than rejecting.
-        pass
+        raise ValueError("item-surface peer evaluation requires current item-property evidence")
     return build_peer_cohort_residual(
         candidate_ref=candidate_ref,
         invariant_snapshot=invariant_snapshot,
         candidate_features=item_surface.get("peer_features") or (),
-        coverage_state=_text(item_surface.get("coverage_state")),
+        coverage_state=_effective_surface_coverage(item_surface),
         graph_revision_ref=_text(item_surface.get("source_revision_ref")),
         coverage_policy_ref=_text(item_surface.get("coverage_policy_ref")),
         evidence_refs=[*evidence_refs, *_strings(item_surface.get("evidence_refs") or ())],
