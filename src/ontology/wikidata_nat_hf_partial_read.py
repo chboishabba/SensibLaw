@@ -19,7 +19,8 @@ from src.policy.carriers.canonical import canonical_sha256
 
 
 PARTIAL_READ_SCHEMA_VERSION = "sl.nat_zelph_hf_partial_read.v0_1"
-RESOLVE_PATTERN = re.compile(r"SL_NAT_RESOLVE\|(Q\d+)\|\s*([0-9]+|nil|None|null)")
+PROBE_MARKER_PATTERN = re.compile(r"SL_NAT_PROBE\|(Q\d+)\|")
+RESOLVED_NODE_PATTERN = re.compile(r"Resolved to node ID:\s*([0-9]+)")
 
 
 def _text(value: Any) -> str:
@@ -62,13 +63,37 @@ def _resolve_probe_payload(
         f".lang {language}",
     ]
     for qid in qids:
-        # zelph/resolve is the public Janet resolver.  The sentinel keeps parsing
-        # independent of ordinary REPL diagnostics and graph display output.
-        lines.append(
-            f'%(print "SL_NAT_RESOLVE|{qid}|" (zelph/resolve "{qid}"))'
-        )
+        # IMPORTANT: do not use zelph/resolve here.  Upstream documents resolve
+        # as creating a node when the name is absent.  `.node <name>` uses the
+        # non-destructive lookup path (resolve_single_node(..., false) followed
+        # by resolve_nodes_by_name), and prints `Resolved to node ID: N` only
+        # when the name is present in the currently loaded partial view.
+        lines.append(f'%(print "SL_NAT_PROBE|{qid}|")')
+        lines.append(f".node {qid}")
     lines.append(".exit")
     return "\n".join(lines) + "\n"
+
+
+def _parse_probe_output(output: str, requested_qids: Sequence[str]) -> dict[str, int]:
+    requested = set(requested_qids)
+    resolved: dict[str, int] = {}
+    active_qid: str | None = None
+    for line in output.splitlines():
+        marker = PROBE_MARKER_PATTERN.search(line)
+        if marker:
+            active_qid = marker.group(1)
+            continue
+        if active_qid is None or active_qid not in requested:
+            continue
+        node_match = RESOLVED_NODE_PATTERN.search(line)
+        if node_match:
+            resolved[active_qid] = int(node_match.group(1))
+            active_qid = None
+            continue
+        # An absent name is intentionally not a negative-evidence result.  The
+        # command reports it as an error/diagnostic; the next marker starts the
+        # next probe.  No node is created by this path.
+    return resolved
 
 
 def _default_repl_runner(
@@ -85,9 +110,6 @@ def _default_repl_runner(
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
-ReplRunner = Callable[[str, str], tuple[int, str]]
-
-
 def resolve_qids_via_hosted_partial_scan(
     manifest: Mapping[str, Any],
     qids: Sequence[str],
@@ -100,9 +122,10 @@ def resolve_qids_via_hosted_partial_scan(
 ) -> dict[str, Any]:
     """Resolve QID strings by scanning hosted v2 nodeOfName shards.
 
-    This intentionally does not require a node-route sidecar.  It trades network
+    This intentionally does not require a node-route sidecar. It trades network
     bandwidth for progress while keeping the graph view partial: one nodeOfName
     shard is loaded at a time and the scan stops once every requested QID resolves.
+    Name existence is tested through upstream `.node`, which is non-creating.
     """
 
     requested = _text_list(qids)
@@ -169,10 +192,7 @@ def resolve_qids_via_hosted_partial_scan(
                     "exit_code": exit_code,
                 }
             )
-            for match in RESOLVE_PATTERN.finditer(output):
-                qid, raw_node = match.groups()
-                if raw_node.isdigit():
-                    resolved[qid] = int(raw_node)
+            resolved.update(_parse_probe_output(output, remaining))
 
     unresolved = [qid for qid in requested if qid not in resolved]
     payload_without_ref = {
@@ -188,6 +208,7 @@ def resolve_qids_via_hosted_partial_scan(
         "network_performed": bool(scanned),
         "route_index_required": False,
         "full_graph_loaded": False,
+        "name_probe": "dot_node_non_creating",
     }
     payload = dict(payload_without_ref)
     payload["partial_read_ref"] = "nat-zelph-hf-partial-read:" + canonical_sha256(
@@ -208,7 +229,7 @@ def fetch_live_wikidata_statement_payload(
 ) -> dict[str, Any]:
     """Fetch the rich Wikidata statement layer for already-bounded QIDs.
 
-    Zelph's base graph is used for partial graph discovery/confirmation.  Exact
+    Zelph's graph is used for partial graph discovery/confirmation. Exact
     qualifier/reference snaks and revision lineage remain source-owned by the
     Wikidata entity export and are fetched from SensibLaw's existing live path.
     """
