@@ -224,6 +224,8 @@ def _evaluate_manifest(
         }
 
     partial_read: Mapping[str, Any] | None = None
+    unresolved: list[str] = []
+    qids_for_statement_fetch = list(qids)
     needs_unrouted_scan = (
         "node_route_selection" in operations
         and not bool(capabilities.get("nodeRouteIndex"))
@@ -258,16 +260,19 @@ def _evaluate_manifest(
                 ),
                 "outputs": {},
             }
+
         unresolved = _text_list(partial_read.get("unresolved_qids"))
-        if unresolved:
+        unresolved_set = set(unresolved)
+        qids_for_statement_fetch = [qid for qid in qids if qid not in unresolved_set]
+        if unresolved and not qids_for_statement_fetch:
             return {
                 "executor_id": HF_SELECTOR_EXECUTOR_ID,
                 "execution_outcome": "executed_no_match",
                 "executor_receipt": _executor_receipt(
-                    transport_status="online_partial_scan_incomplete",
+                    transport_status="online_partial_scan_incomplete_no_resolved_subset",
                     detail=(
-                        "Hosted nodeOfName partial scan completed without resolving "
-                        "every requested QID. No negative-evidence claim is made."
+                        "Hosted nodeOfName partial scan resolved none of the requested QIDs. "
+                        "No negative-evidence claim is made."
                     ),
                     partial_read=partial_read,
                     **common_receipt,
@@ -292,7 +297,7 @@ def _evaluate_manifest(
         }
 
     try:
-        outputs = dict(statement_fetcher(qids, properties))
+        outputs = dict(statement_fetcher(qids_for_statement_fetch, properties))
     except Exception as exc:
         return {
             "executor_id": HF_SELECTOR_EXECUTOR_ID,
@@ -306,23 +311,43 @@ def _evaluate_manifest(
             "outputs": {},
         }
 
-    return {
-        "executor_id": HF_SELECTOR_EXECUTOR_ID,
-        "execution_outcome": "executed_with_output",
-        "executor_receipt": _executor_receipt(
-            transport_status=(
+    partial_subset = bool(unresolved)
+    receipt = _executor_receipt(
+        transport_status=(
+            "executed_via_partial_identity_subset_plus_wikidata_entity_export"
+            if partial_subset
+            else (
                 "executed_via_unrouted_hf_partial_scan_plus_wikidata_entity_export"
                 if needs_unrouted_scan
                 else "executed_via_routed_hf_plus_wikidata_entity_export"
-            ),
-            detail=(
+            )
+        ),
+        detail=(
+            (
+                "Zelph/HF resolved only a subset of requested QIDs; exact Wikidata "
+                "statement acquisition continued for that resolved subset. Unresolved "
+                "QIDs remain live residuals and no absence claim is made."
+            )
+            if partial_subset
+            else (
                 "Zelph/HF supplies bounded graph discovery/identity confirmation; "
                 "Wikidata entity export supplies exact statement, qualifier, reference, "
                 "and revision source data. P854 verification remains downstream."
-            ),
-            partial_read=partial_read,
-            **common_receipt,
+            )
         ),
+        partial_read=partial_read,
+        **common_receipt,
+    )
+    receipt["requested_qids"] = list(qids)
+    receipt["statement_fetch_qids"] = list(qids_for_statement_fetch)
+    receipt["unresolved_qids"] = list(unresolved)
+    receipt["partial_identity_subset"] = partial_subset
+    receipt["all_requested_qids_resolved"] = not partial_subset
+
+    return {
+        "executor_id": HF_SELECTOR_EXECUTOR_ID,
+        "execution_outcome": "executed_with_output",
+        "executor_receipt": receipt,
         "outputs": outputs,
     }
 
@@ -370,9 +395,10 @@ def hosted_hf_selector_executor(selector: Mapping[str, Any]) -> dict[str, Any]:
 
     Missing node-route metadata is an optimization gap, not a correctness wall:
     this executor may scan hosted ``nodeOfName`` shards until the bounded QIDs
-    resolve.  Exact qualifier/reference/revision payloads are then fetched from
-    the existing live Wikidata entity-export path.  The dispatcher still keeps
-    ``prerequisite_paid=false`` and external P854 verification downstream.
+    resolve. Exact qualifier/reference/revision payloads are fetched for every
+    QID that does resolve; one unresolved member no longer blocks progress for
+    unrelated residuals in the same shared transport union. The dispatcher still
+    keeps ``prerequisite_paid=false`` and external P854 verification downstream.
     """
 
     preflight = _preflight_selector(selector)
