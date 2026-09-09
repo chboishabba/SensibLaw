@@ -25,7 +25,7 @@ def build_target_property_coverage_residual(row: Mapping[str, Any]) -> dict[str,
     """Build the exact Nat Q/property coverage residual represented by one row.
 
     This is the runtime counterpart of
-    DASHI.Interop.SensibLawNatCoverageAcquisitionDemandExact.  A grouped network
+    DASHI.Interop.SensibLawNatCoverageAcquisitionDemandExact. A grouped network
     request may carry many of these residuals, but sharing transport never merges
     their semantic/payment identity.
     """
@@ -60,7 +60,7 @@ def build_bound_coverage_demand(
 ) -> dict[str, Any]:
     """Bind one acquisition demand to exactly one live residual.
 
-    This is binding only.  It creates no coverage payment, consumer closure,
+    This is binding only. It creates no coverage payment, consumer closure,
     migration authority, edit authority, or semantic promotion authority.
     """
 
@@ -102,34 +102,55 @@ def build_bound_coverage_demand(
 def assess_acquisition_for_recomputation(
     residual: Mapping[str, Any], acquisition_result: Mapping[str, Any]
 ) -> dict[str, Any]:
-    """Return the post-acquisition state without confusing retrieval with payment."""
+    """Return the QID-local post-acquisition state without confusing retrieval with payment."""
 
     residual_ref = _text(residual.get("residual_ref"))
-    if not residual_ref:
-        raise ValueError("coverage recomputation assessment requires residual_ref")
+    subject_qid = _text(residual.get("subject_qid"))
+    if not residual_ref or not subject_qid:
+        raise ValueError("coverage recomputation assessment requires residual_ref and subject_qid")
 
     execution_outcome = _text(acquisition_result.get("execution_outcome"))
     outputs = acquisition_result.get("outputs")
     outputs = outputs if isinstance(outputs, Mapping) else {}
     statement_snapshot = outputs.get("statement_snapshot")
-    snapshot_present = isinstance(statement_snapshot, Mapping)
+    statement_snapshot = statement_snapshot if isinstance(statement_snapshot, Mapping) else {}
 
-    if execution_outcome == "executed_with_output" and snapshot_present:
-        observation_state = "candidate_evidence_observed_pending_recompute"
-    elif execution_outcome == "executed_no_match":
-        observation_state = "still_open_clean_transport_exhaustion_or_unresolved_identity"
+    executor_receipt = acquisition_result.get("executor_receipt")
+    executor_receipt = executor_receipt if isinstance(executor_receipt, Mapping) else {}
+    partial_read = executor_receipt.get("partial_read")
+    partial_read = partial_read if isinstance(partial_read, Mapping) else {}
+    unresolved_qids = set(_text_list(partial_read.get("unresolved_qids")))
+    resolved_qids = partial_read.get("resolved_qids")
+    resolved_qids = resolved_qids if isinstance(resolved_qids, Mapping) else {}
+
+    qid_identity_resolved = subject_qid in resolved_qids or subject_qid in statement_snapshot
+    qid_identity_unresolved = subject_qid in unresolved_qids
+    qid_statement_snapshot_present = subject_qid in statement_snapshot
+
+    if qid_identity_unresolved:
+        observation_state = "still_open_subject_identity_unresolved"
+    elif qid_statement_snapshot_present:
+        observation_state = "candidate_qp_evidence_observed_pending_coverage_recompute"
     elif execution_outcome in {"engine_failed", "engine_unavailable"}:
         observation_state = "still_open_engine_failure"
+    elif qid_identity_resolved:
+        observation_state = "identity_resolved_statement_family_not_observed"
+    elif execution_outcome == "executed_no_match":
+        observation_state = "still_open_clean_transport_exhaustion"
     else:
         observation_state = "still_open_unclassified_acquisition_result"
 
     payload_without_ref = {
         "schema_version": NAT_COVERAGE_RECOMPUTATION_SCHEMA_VERSION,
         "live_residual_ref": residual_ref,
+        "subject_qid": subject_qid,
+        "property": _text(residual.get("property")),
         "acquisition_result_ref": _text(acquisition_result.get("result_ref")),
         "execution_outcome": execution_outcome,
         "observation_state": observation_state,
-        "statement_snapshot_present": snapshot_present,
+        "qid_identity_resolved": qid_identity_resolved,
+        "qid_identity_unresolved": qid_identity_unresolved,
+        "qid_statement_snapshot_present": qid_statement_snapshot_present,
         "coverage_recomputation_required": True,
         "coverage_payment_claimed": False,
         "consumer_verification_performed": False,
