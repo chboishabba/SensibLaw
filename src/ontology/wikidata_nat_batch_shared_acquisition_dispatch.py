@@ -95,9 +95,9 @@ def dispatch_shared_acquisition_plan(
     The union execution is an I/O optimisation only. Each planned task receives
     a deterministic QID-scoped projection which is normalized by the existing
     per-task result contract. The result is then projected again to each exact
-    live Nat coverage residual carried by that task. Retrieval never directly
-    pays a residual: every residual-local projection requires coverage
-    recomputation before any consumer/payment claim.
+    live Nat coverage residual carried by that task. Retrieval alone never pays
+    a residual; payment of the narrow Q/property coverage coordinate can occur
+    only in the explicit residual-local recomputation step.
     """
 
     tasks = _require_plan(plan, max_tasks=max_tasks)
@@ -138,6 +138,7 @@ def dispatch_shared_acquisition_plan(
     residual_recomputations: list[dict[str, Any]] = []
     for task, selector in zip(tasks, selectors):
         task_qids = _text_list(selector.get("qids"))
+        task_properties = _text_list(selector.get("properties"))
         projected_outputs = _project_outputs(shared_outputs, task_qids) if shared_outputs else {}
         task_residuals = _task_residuals(task)
         task_residual_refs = [
@@ -157,7 +158,7 @@ def dispatch_shared_acquisition_plan(
             "task_ref": _text(task.get("task_ref")),
             "shared_execution_ref": shared_execution["shared_execution_ref"],
             "projection_qids": task_qids,
-            "projection_properties": _text_list(selector.get("properties")),
+            "projection_properties": task_properties,
             "shared_union_qids": _text_list(shared_selector.get("qids")),
             "qids_covered_by_shared_union": set(task_qids).issubset(
                 set(_text_list(shared_selector.get("qids")))
@@ -183,6 +184,7 @@ def dispatch_shared_acquisition_plan(
                 "shared_projection_ref": projection["projection_ref"],
                 "shared_union_qids": _text_list(shared_selector.get("qids")),
                 "projection_qids": task_qids,
+                "projection_properties": task_properties,
                 "live_coverage_residual_refs": task_residual_refs,
                 "consumer_verification_performed": False,
                 "source_support_paid": False,
@@ -209,9 +211,16 @@ def dispatch_shared_acquisition_plan(
             for residual in task_residuals
         ]
         task_recomputations.sort(key=lambda item: _text(item.get("recomputation_ref")))
+        task_paid_count = sum(
+            1 for item in task_recomputations if bool(item.get("coverage_coordinate_paid"))
+        )
         normalized["live_coverage_residual_refs"] = task_residual_refs
         normalized["coverage_recomputations"] = task_recomputations
-        normalized["coverage_recomputation_required_count"] = len(task_recomputations)
+        normalized["coverage_recomputation_count"] = len(task_recomputations)
+        normalized["coverage_coordinate_paid_count"] = task_paid_count
+        normalized["coverage_coordinate_still_open_count"] = (
+            len(task_recomputations) - task_paid_count
+        )
         normalized["retrieval_result_alone_pays_live_residual"] = False
         residual_recomputations.extend(task_recomputations)
         results.append(normalized)
@@ -220,6 +229,9 @@ def dispatch_shared_acquisition_plan(
     projections.sort(key=lambda item: _text(item.get("projection_ref")))
     residual_recomputations.sort(key=lambda item: _text(item.get("recomputation_ref")))
     counts = Counter(_text(result.get("execution_outcome")) for result in results)
+    coverage_paid_count = sum(
+        1 for item in residual_recomputations if bool(item.get("coverage_coordinate_paid"))
+    )
 
     payload_without_ref = {
         "schema_version": SHARED_DISPATCH_SCHEMA_VERSION,
@@ -243,7 +255,10 @@ def dispatch_shared_acquisition_plan(
         "network_performed": bool(shared_execution.get("network_performed")),
         "consumer_verification_performed": False,
         "source_support_paid_count": 0,
-        "coverage_residual_paid_count": 0,
+        "coverage_residual_paid_count": coverage_paid_count,
+        "coverage_residual_still_open_count": (
+            len(residual_recomputations) - coverage_paid_count
+        ),
         "semantic_promotion_performed": False,
         "edits_performed": False,
     }
