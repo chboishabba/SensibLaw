@@ -1,0 +1,9 @@
+Solomon Islands 2026 treaty-funding / no-confidence integration fixture.
+
+This text is a bounded runtime fixture derived from attributed public reporting. It is not a primary WhatsApp artifact and does not establish legal truth.
+
+ABC reporting verified an Australian High Commission communication to Deputy Prime Minister Francis Sade concerning treaty negotiations and funding, including language about holding steady and locking the agreement in ahead of the November budget session.
+
+AAP reporting described Sade as forwarding an Australian High Commission update and separately sending his own message directed toward coalition colleagues. Opposition reporting quoted downstream language calling for political unity to defeat the no-confidence motion. The Opposition characterised the communications as foreign interference. Sade rejected that characterisation and said the communications were routine treaty updates rather than political expediency.
+
+The publicly inspectable evidence used by this fixture does not include the complete original WhatsApp thread or screenshot with sender, recipient, timestamp, forwarding markers, and full message ordering. Therefore this fixture does not establish that Australia requested defeat of the motion, conditioned treaty or funding benefits on the motion's outcome, shared a political intent with Sade, or satisfied any bribery, corruption, diplomatic-interference, or coercion element.
