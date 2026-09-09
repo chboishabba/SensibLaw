@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Any
 
 from src.ontology.wikidata_nat_source_support import (
@@ -35,12 +36,14 @@ def dispatch_source_fetch_plan(
     worker_budget: int = 4,
     max_fetches: int = 128,
     rate_limiter: Any | None = None,
+    artifact_store_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Execute each distinct external URL once and project back to source residuals.
 
     Physical source fetching is shared by URL. Semantic payment is never shared:
     each row receives its own source-support observation, and content acquisition
-    alone is insufficient to pay source support.
+    alone is insufficient to pay source support. When the default fetcher is used,
+    ``artifact_store_dir`` persists each successful body under its SHA-256 identity.
     """
 
     demands = [
@@ -65,7 +68,13 @@ def dispatch_source_fetch_plan(
 
     def run(demand: Mapping[str, Any]) -> dict[str, Any]:
         limiter.acquire()
-        receipt = fetcher(demand)
+        if fetcher is fetch_source_content:
+            receipt = fetch_source_content(
+                demand,
+                artifact_store_dir=artifact_store_dir,
+            )
+        else:
+            receipt = fetcher(demand)
         if not isinstance(receipt, Mapping):
             raise ValueError("source fetcher must return a mapping receipt")
         return dict(receipt)
@@ -105,6 +114,10 @@ def dispatch_source_fetch_plan(
             "rps": getattr(getattr(limiter, "cfg", None), "rps", None),
             "burst": getattr(getattr(limiter, "cfg", None), "burst", None),
         },
+        "artifact_store_enabled": artifact_store_dir is not None,
+        "artifact_persisted_count": sum(
+            1 for receipt in receipts if bool(receipt.get("artifact_persisted"))
+        ),
         "fetch_receipts": receipts,
         "counts_by_fetch_status": dict(sorted(status_counts.items())),
         "source_support_recomputations": recomputations,
@@ -115,17 +128,26 @@ def dispatch_source_fetch_plan(
         "content_acquired_residual_count": sum(
             1 for item in recomputations if bool(item.get("content_acquired"))
         ),
+        "content_artifact_persisted_residual_count": sum(
+            1 for item in recomputations if bool(item.get("content_artifact_persisted"))
+        ),
         "source_support_paid_count": 0,
         "source_support_still_open_count": len(recomputations),
         "network_performed": any(
             bool(receipt.get("network_performed")) for receipt in receipts
         ),
-        "bytes_received": sum(int(receipt.get("bytes_received", 0) or 0) for receipt in receipts),
+        "bytes_received": sum(
+            int(receipt.get("bytes_received", 0) or 0) for receipt in receipts
+        ),
         "http_request_count": sum(
             int(receipt.get("http_request_count", 0) or 0) for receipt in receipts
         ),
-        "cache_hits": sum(int(receipt.get("cache_hits", 0) or 0) for receipt in receipts),
-        "cache_misses": sum(int(receipt.get("cache_misses", 0) or 0) for receipt in receipts),
+        "cache_hits": sum(
+            int(receipt.get("cache_hits", 0) or 0) for receipt in receipts
+        ),
+        "cache_misses": sum(
+            int(receipt.get("cache_misses", 0) or 0) for receipt in receipts
+        ),
         "consumer_verification_performed": False,
         "semantic_promotion_performed": False,
         "edits_performed": False,
