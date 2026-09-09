@@ -6,7 +6,7 @@ import socket
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -28,7 +28,11 @@ def _mapping(value: Any) -> Mapping[str, Any]:
 
 
 def _sequence(value: Any) -> Sequence[Any]:
-    return value if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)) else ()
+    return (
+        value
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
+        else ()
+    )
 
 
 def _batch_rows(batch: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -37,15 +41,9 @@ def _batch_rows(batch: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return rows
 
 
-def _coverage_paid_refs(dispatch: Mapping[str, Any]) -> set[str]:
-    return {
-        _text(item.get("live_residual_ref"))
-        for item in _sequence(dispatch.get("residual_recomputations"))
-        if isinstance(item, Mapping) and bool(item.get("coverage_coordinate_paid"))
-    }
-
-
-def _reference_snaks(dispatch: Mapping[str, Any]) -> dict[str, dict[str, list[Mapping[str, Any]]]]:
+def _reference_snaks(
+    dispatch: Mapping[str, Any],
+) -> dict[str, dict[str, list[Mapping[str, Any]]]]:
     merged: dict[str, dict[str, list[Mapping[str, Any]]]] = defaultdict(dict)
     for result in _sequence(dispatch.get("results")):
         if not isinstance(result, Mapping):
@@ -55,7 +53,11 @@ def _reference_snaks(dispatch: Mapping[str, Any]) -> dict[str, dict[str, list[Ma
             if not isinstance(statements, Mapping):
                 continue
             for statement_id, reference_list in statements.items():
-                values = [ref for ref in _sequence(reference_list) if isinstance(ref, Mapping)]
+                values = [
+                    ref
+                    for ref in _sequence(reference_list)
+                    if isinstance(ref, Mapping)
+                ]
                 merged[_text(qid)][_text(statement_id)] = values
     return {qid: dict(statements) for qid, statements in merged.items()}
 
@@ -91,7 +93,9 @@ def _source_residual(row: Mapping[str, Any], urls: Sequence[str]) -> dict[str, A
         "source_support_paid": False,
     }
     payload = dict(payload_without_ref)
-    payload["residual_ref"] = "nat-source-support-residual:" + canonical_sha256(payload_without_ref)
+    payload["residual_ref"] = "nat-source-support-residual:" + canonical_sha256(
+        payload_without_ref
+    )
     return payload
 
 
@@ -100,14 +104,21 @@ def build_source_fetch_plan(
 ) -> dict[str, Any]:
     """Join exact Nat rows to revision-derived P854 references and deduplicate fetch work.
 
-    The plan is content-acquisition only. Merely having or fetching a URL never pays
-    source support, proposition correspondence, authority, or migration permission.
+    Source work may start only after the exact coverage tranche is closed. The plan
+    is content-acquisition only: merely having or fetching a URL never pays source
+    support, proposition correspondence, authority, or migration permission.
     """
+
+    rows = _batch_rows(batch)
+    if int(coverage_dispatch.get("coverage_residual_still_open_count", -1)) != 0:
+        raise ValueError("source-support planning requires zero open coverage residuals")
+    if int(coverage_dispatch.get("coverage_residual_paid_count", -1)) != len(rows):
+        raise ValueError("source-support planning requires one paid coverage residual per row")
 
     refs = _reference_snaks(coverage_dispatch)
     residuals: list[dict[str, Any]] = []
     url_consumers: dict[str, set[str]] = defaultdict(set)
-    for row in _batch_rows(batch):
+    for row in rows:
         qid = _text(row.get("qid"))
         statement_reference = _text(row.get("statement_reference"))
         row_refs = refs.get(qid, {}).get(statement_reference, [])
@@ -129,7 +140,9 @@ def build_source_fetch_plan(
             "semantic_promotion_authority": False,
         }
         payload = dict(payload_without_ref)
-        payload["fetch_ref"] = "nat-source-fetch-demand:" + canonical_sha256(payload_without_ref)
+        payload["fetch_ref"] = "nat-source-fetch-demand:" + canonical_sha256(
+            payload_without_ref
+        )
         fetches.append(payload)
 
     payload_without_ref = {
@@ -139,7 +152,9 @@ def build_source_fetch_plan(
         "row_count": len(residuals),
         "source_residual_count": len(residuals),
         "distinct_url_count": len(fetches),
-        "residuals_without_p854_count": sum(1 for residual in residuals if not residual["reference_presence"]),
+        "residuals_without_p854_count": sum(
+            1 for residual in residuals if not residual["reference_presence"]
+        ),
         "source_residuals": residuals,
         "fetch_demands": fetches,
         "network_performed": False,
@@ -149,7 +164,9 @@ def build_source_fetch_plan(
         "edits_performed": False,
     }
     payload = dict(payload_without_ref)
-    payload["plan_ref"] = "nat-source-fetch-plan:" + canonical_sha256(payload_without_ref)
+    payload["plan_ref"] = "nat-source-fetch-plan:" + canonical_sha256(
+        payload_without_ref
+    )
     return payload
 
 
@@ -159,7 +176,12 @@ def _public_http_url(url: str) -> tuple[bool, str]:
         return False, "unsupported_or_missing_http_origin"
     host = parsed.hostname
     try:
-        addresses = {item[4][0] for item in socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80))}
+        addresses = {
+            item[4][0]
+            for item in socket.getaddrinfo(
+                host, parsed.port or (443 if parsed.scheme == "https" else 80)
+            )
+        }
     except OSError:
         return False, "dns_resolution_failed"
     for address in addresses:
@@ -172,80 +194,144 @@ def _public_http_url(url: str) -> tuple[bool, str]:
     return True, "public_http_origin"
 
 
+def _bounded_body(response: Any, *, max_bytes: int) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    iterator = getattr(response, "iter_content", None)
+    if callable(iterator):
+        for raw in iterator(chunk_size=65536):
+            chunk = bytes(raw or b"")
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"source body exceeds max_bytes={max_bytes}")
+            chunks.append(chunk)
+        return b"".join(chunks)
+    body = bytes(getattr(response, "content", b""))
+    if len(body) > max_bytes:
+        raise ValueError(f"source body exceeds max_bytes={max_bytes}")
+    return body
+
+
 def fetch_source_content(
     demand: Mapping[str, Any],
     *,
     http_get: Callable[..., Any] = requests.get,
     timeout_seconds: float = 30.0,
     max_bytes: int = 25_000_000,
+    max_redirects: int = 5,
 ) -> dict[str, Any]:
-    """Acquire one external source artifact with explicit transport/integrity telemetry.
+    """Acquire one external source artifact with bounded, redirect-safe telemetry.
 
-    This deliberately does not parse or semantically verify the content. A successful
-    fetch can establish reachability/content acquisition/integrity only.
+    Every redirect target is independently checked against the public-network policy.
+    Bodies are streamed under ``max_bytes``. This transport receipt can establish
+    reachability/content acquisition/integrity only; it cannot establish that the
+    source supports the proposition for the Nat row.
     """
 
-    url = _text(demand.get("url"))
-    allowed, policy = _public_http_url(url)
-    if not allowed:
-        payload_without_ref = {
-            "schema_version": SOURCE_FETCH_RECEIPT_SCHEMA_VERSION,
-            "fetch_ref": _text(demand.get("fetch_ref")),
-            "url": url,
-            "status": "rejected_by_network_policy",
-            "network_policy": policy,
-            "network_performed": False,
-            "bytes_received": 0,
-            "content_digest": "",
-            "content_acquired": False,
-            "source_support_paid": False,
-        }
-    else:
-        try:
-            response = http_get(url, timeout=timeout_seconds)
+    original_url = _text(demand.get("url"))
+    current_url = original_url
+    request_count = 0
+    redirect_count = 0
+    try:
+        while True:
+            allowed, policy = _public_http_url(current_url)
+            if not allowed:
+                payload_without_ref = {
+                    "schema_version": SOURCE_FETCH_RECEIPT_SCHEMA_VERSION,
+                    "fetch_ref": _text(demand.get("fetch_ref")),
+                    "url": original_url,
+                    "final_url": current_url,
+                    "status": "rejected_by_network_policy",
+                    "network_policy": policy,
+                    "network_performed": request_count > 0,
+                    "http_request_count": request_count,
+                    "redirect_count": redirect_count,
+                    "bytes_received": 0,
+                    "cache_hits": 0,
+                    "cache_misses": 1,
+                    "content_digest": "",
+                    "content_acquired": False,
+                    "source_support_paid": False,
+                }
+                break
+
+            response = http_get(
+                current_url,
+                timeout=timeout_seconds,
+                allow_redirects=False,
+                stream=True,
+            )
+            request_count += 1
+            status_code = int(getattr(response, "status_code", 0) or 0)
+            headers = _mapping(getattr(response, "headers", {}))
+            if 300 <= status_code < 400:
+                location = _text(headers.get("Location") or headers.get("location"))
+                if not location:
+                    raise ValueError("redirect response missing Location header")
+                redirect_count += 1
+                if redirect_count > max_redirects:
+                    raise ValueError(f"source redirect count exceeds max_redirects={max_redirects}")
+                current_url = urljoin(current_url, location)
+                continue
+
             response.raise_for_status()
-            body = bytes(response.content)
-            if len(body) > max_bytes:
-                raise ValueError(f"source body exceeds max_bytes={max_bytes}")
+            body = _bounded_body(response, max_bytes=max_bytes)
             payload_without_ref = {
                 "schema_version": SOURCE_FETCH_RECEIPT_SCHEMA_VERSION,
                 "fetch_ref": _text(demand.get("fetch_ref")),
-                "url": url,
+                "url": original_url,
+                "final_url": current_url,
                 "status": "content_acquired",
                 "network_policy": policy,
                 "network_performed": True,
-                "http_status": int(getattr(response, "status_code", 200)),
-                "content_type": _text(_mapping(getattr(response, "headers", {})).get("Content-Type")),
-                "final_url": _text(getattr(response, "url", url)),
+                "http_status": status_code or 200,
+                "http_request_count": request_count,
+                "redirect_count": redirect_count,
+                "content_type": _text(headers.get("Content-Type") or headers.get("content-type")),
                 "bytes_received": len(body),
+                "cache_hits": 0,
+                "cache_misses": 1,
                 "content_digest": "sha256:" + hashlib.sha256(body).hexdigest(),
                 "content_acquired": True,
                 "source_support_paid": False,
             }
-        except Exception as exc:
-            payload_without_ref = {
-                "schema_version": SOURCE_FETCH_RECEIPT_SCHEMA_VERSION,
-                "fetch_ref": _text(demand.get("fetch_ref")),
-                "url": url,
-                "status": "fetch_failed",
-                "network_policy": policy,
-                "network_performed": True,
-                "failure_type": type(exc).__name__,
-                "failure_detail": str(exc),
-                "bytes_received": 0,
-                "content_digest": "",
-                "content_acquired": False,
-                "source_support_paid": False,
-            }
+            break
+    except Exception as exc:
+        payload_without_ref = {
+            "schema_version": SOURCE_FETCH_RECEIPT_SCHEMA_VERSION,
+            "fetch_ref": _text(demand.get("fetch_ref")),
+            "url": original_url,
+            "final_url": current_url,
+            "status": "fetch_failed",
+            "network_policy": "public_http_origin_checked_per_request",
+            "network_performed": request_count > 0,
+            "http_request_count": request_count,
+            "redirect_count": redirect_count,
+            "failure_type": type(exc).__name__,
+            "failure_detail": str(exc),
+            "bytes_received": 0,
+            "cache_hits": 0,
+            "cache_misses": 1,
+            "content_digest": "",
+            "content_acquired": False,
+            "source_support_paid": False,
+        }
+
     payload = dict(payload_without_ref)
-    payload["receipt_ref"] = "nat-source-fetch-receipt:" + canonical_sha256(payload_without_ref)
+    payload["receipt_ref"] = "nat-source-fetch-receipt:" + canonical_sha256(
+        payload_without_ref
+    )
     return payload
 
 
 def recompute_source_support_observation(
     residual: Mapping[str, Any], receipts_by_url: Mapping[str, Mapping[str, Any]]
 ) -> dict[str, Any]:
-    urls = [url for url in _sequence(residual.get("reference_urls")) if isinstance(url, str)]
+    urls = [
+        url
+        for url in _sequence(residual.get("reference_urls"))
+        if isinstance(url, str)
+    ]
     receipts = [receipts_by_url[url] for url in urls if url in receipts_by_url]
     any_acquired = any(bool(receipt.get("content_acquired")) for receipt in receipts)
     payload_without_ref = {
@@ -258,7 +344,9 @@ def recompute_source_support_observation(
         "reference_url_count": len(urls),
         "fetched_reference_count": len(receipts),
         "content_acquired": any_acquired,
-        "content_integrity_observed": any(bool(_text(receipt.get("content_digest"))) for receipt in receipts),
+        "content_integrity_observed": any(
+            bool(_text(receipt.get("content_digest"))) for receipt in receipts
+        ),
         "proposition_support_evaluated": False,
         "authority_evaluated": False,
         "source_support_paid": False,
@@ -268,7 +356,9 @@ def recompute_source_support_observation(
         "migration_authority": False,
     }
     payload = dict(payload_without_ref)
-    payload["recomputation_ref"] = "nat-source-support-recomputation:" + canonical_sha256(payload_without_ref)
+    payload["recomputation_ref"] = (
+        "nat-source-support-recomputation:" + canonical_sha256(payload_without_ref)
+    )
     return payload
 
 
