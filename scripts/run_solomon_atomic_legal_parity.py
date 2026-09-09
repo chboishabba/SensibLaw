@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Solomon Islands atomic legal parity against the SLR runtime contract."""
+"""Validate Solomon Islands atomic legal parity and residual projection."""
 
 from __future__ import annotations
 
@@ -12,7 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.pnf.atomic_legal_registry import AtomicLegalTest, build_atomic_registry  # noqa: E402
+from src.pnf.atomic_legal_registry import (  # noqa: E402
+    AtomicLegalTest,
+    attach_atomic_residuals_to_typed_meet,
+    build_atomic_registry,
+    project_unresolved_atomic_residuals,
+)
+from src.pnf.legal_adjunct import LegalTypedMeet  # noqa: E402
 
 EXPECTED = {
     "prop:SB:s92:benefit-influence-fact": 0,
@@ -77,6 +83,57 @@ def main() -> int:
         and availability.get("user_side_acquisition_debt") is False
     )
 
+    residuals = project_unresolved_atomic_residuals(
+        registry,
+        user_side_acquisition_debt=bool(availability.get("user_side_acquisition_debt")),
+        residual_reference=str(availability.get("residual_reference") or ""),
+        external_evidence_unavailable=(
+            availability.get("public_full_thread_or_screenshot_located") is False
+            and availability.get(
+                "public_reviewer_can_inspect_sender_recipient_timestamp_topology"
+            )
+            is False
+        ),
+    )
+    residual_props = {row.proposition_ref for row in residuals}
+    residual_projection_ok = (
+        residual_props == set(EXPECTED)
+        and all(
+            row.disposition == "blocked_external_evidence_unavailable"
+            and row.user_side_acquisition_debt is False
+            for row in residuals
+        )
+    )
+
+    meet = LegalTypedMeet(
+        world_pnf_ref="case:SB:2026:world-pnf",
+        legal_ir_ref="legal-ir:SB:2026:atomic-premises",
+        structural_state="same_fibre_candidate",
+        jurisdiction_state="matched",
+        temporal_state="matched",
+        actor_state="unresolved",
+        conduct_state="unresolved",
+        object_state="unresolved",
+        circumstance_state="unresolved",
+        exception_state="not_evaluated",
+        burden_state="not_evaluated",
+        residual_refs=(),
+    )
+    meet_with_atomic_residuals = attach_atomic_residuals_to_typed_meet(meet, residuals)
+    typed_meet_residual_weld_ok = (
+        set(meet_with_atomic_residuals.residual_refs)
+        == {row.residual_ref for row in residuals}
+        and meet_with_atomic_residuals.applicability_closed is False
+    )
+
+    parity_passed = (
+        not missing
+        and not unexpected
+        and not gate_mismatches
+        and artifact_boundary_ok
+        and residual_projection_ok
+        and typed_meet_residual_weld_ok
+    )
     receipt = {
         **registry.to_dict(),
         "expected_gates": EXPECTED,
@@ -85,11 +142,13 @@ def main() -> int:
         "gate_mismatches": gate_mismatches,
         "public_artifact_boundary_ok": artifact_boundary_ok,
         "public_artifact_availability": availability,
-        "parity_passed": not missing
-        and not unexpected
-        and not gate_mismatches
-        and artifact_boundary_ok,
+        "atomic_evidence_residuals": [row.to_dict() for row in residuals],
+        "residual_projection_ok": residual_projection_ok,
+        "typed_meet_with_atomic_residuals": meet_with_atomic_residuals.to_dict(),
+        "typed_meet_residual_weld_ok": typed_meet_residual_weld_ok,
+        "parity_passed": parity_passed,
         "agda_parity_target": "DASHI.Law.SolomonIslandsAtomicPremiseRegistryExact",
+        "legal_source_acquisition_router_reused_for_case_evidence": False,
     }
 
     encoded = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
@@ -97,7 +156,7 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(encoded, encoding="utf-8")
     print(encoded, end="")
-    return 0 if receipt["parity_passed"] else 1
+    return 0 if parity_passed else 1
 
 
 if __name__ == "__main__":
