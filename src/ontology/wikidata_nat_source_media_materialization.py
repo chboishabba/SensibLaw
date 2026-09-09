@@ -116,7 +116,7 @@ def _media_kind(body: bytes, content_type: str) -> str:
     normalized = content_type.casefold()
     if "application/pdf" in normalized or body.startswith(b"%PDF"):
         return "pdf"
-    stripped = body.lstrip()[:256].casefold()
+    stripped = body.lstrip()[:256].lower()
     if (
         "text/html" in normalized
         or stripped.startswith(b"<!doctype html")
