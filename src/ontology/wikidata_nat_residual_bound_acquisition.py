@@ -25,7 +25,7 @@ def _statement_snak_types(statements: Any) -> list[str]:
     """Read native Wikibase mainsnak kinds without interpreting them as coverage.
 
     Aristotle's snak model distinguishes ordinary value, somevalue, and novalue.
-    All three are statements in the property family.  In particular, novalue is
+    All three are statements in the property family. In particular, novalue is
     not the same proposition as the family being absent from the entity claims map.
     """
 
@@ -129,15 +129,16 @@ def assess_acquisition_for_recomputation(
     """Recompute the exact Q/property coverage coordinate from a projected result.
 
     Coverage is computed over the native full statement family, not Wikidata's
-    truthy projection.  A revision-locked entity snapshot for Q is complete for
-    property P only when the projection explicitly requested P.  Under that
+    truthy projection. A revision-locked entity snapshot for Q is complete for
+    property P only when the projection explicitly requested P. Under that
     condition the property family is present iff P is a key of the native claims
-    map and absent iff it is not a key.  A native ``novalue`` statement therefore
+    map and absent iff it is not a key. A native ``novalue`` statement therefore
     counts as family-present, never family-absent.
 
-    Exact family recomputation pays only the coverage coordinate.  It still does
-    not pay source support, semantic correspondence, migration safety, consumer
-    closure, or promotion.
+    Exact family recomputation pays only the coverage coordinate. Rank visibility,
+    qualifier constraints, property scope, property-engine derivability, source
+    support, semantic correspondence, migration safety, consumer closure and
+    promotion remain separate downstream coordinates.
     """
 
     residual_ref = _text(residual.get("residual_ref"))
@@ -213,6 +214,7 @@ def assess_acquisition_for_recomputation(
         "exact_property_was_requested": exact_property_was_requested,
         "coverage_basis": "native_full_statement_family",
         "truthy_projection_used_for_coverage": False,
+        "derived_property_engine_relation_used_for_coverage": False,
         "property_family_status": property_family_status,
         "property_family_present": property_family_present if coverage_coordinate_paid else False,
         "native_statement_count": (
@@ -230,6 +232,10 @@ def assess_acquisition_for_recomputation(
         "recomputed_coverage_status": recomputed_coverage_status,
         "coverage_coordinate_paid": coverage_coordinate_paid,
         "coverage_recomputation_required": not coverage_coordinate_paid,
+        "rank_visibility_evaluated": False,
+        "qualifier_constraints_evaluated": False,
+        "property_scope_evaluated": False,
+        "property_engine_derivability_evaluated": False,
         "source_support_paid": False,
         "reference_presence_alone_pays_source_support": False,
         "source_authority_evaluation_required": True,
