@@ -21,6 +21,31 @@ def _text_list(values: Any) -> list[str]:
     return sorted({_text(value) for value in values if _text(value)})
 
 
+def _statement_snak_types(statements: Any) -> list[str]:
+    """Read native Wikibase mainsnak kinds without interpreting them as coverage.
+
+    Aristotle's snak model distinguishes ordinary value, somevalue, and novalue.
+    All three are statements in the property family.  In particular, novalue is
+    not the same proposition as the family being absent from the entity claims map.
+    """
+
+    if not isinstance(statements, Sequence) or isinstance(
+        statements, (str, bytes, bytearray)
+    ):
+        return []
+    result: set[str] = set()
+    for statement in statements:
+        if not isinstance(statement, Mapping):
+            continue
+        mainsnak = statement.get("mainsnak")
+        if not isinstance(mainsnak, Mapping):
+            continue
+        snaktype = _text(mainsnak.get("snaktype"))
+        if snaktype:
+            result.add(snaktype)
+    return sorted(result)
+
+
 def build_target_property_coverage_residual(row: Mapping[str, Any]) -> dict[str, Any]:
     """Build the exact Nat Q/property coverage residual represented by one row."""
 
@@ -43,6 +68,8 @@ def build_target_property_coverage_residual(row: Mapping[str, Any]) -> dict[str,
         "formal_producer_class": "empiricalEvidenceProducer",
         "runtime_required_producer": _text(row.get("required_producer")),
         "selector_class": _text(row.get("selector_class")),
+        "required_coverage_basis": "native_full_statement_family",
+        "truthy_projection_sufficient_for_coverage": False,
     }
     payload = dict(payload_without_ref)
     payload["residual_ref"] = "nat-coverage-residual:" + canonical_sha256(payload_without_ref)
@@ -74,9 +101,12 @@ def build_bound_coverage_demand(
         "exact_subject_qid": qid,
         "exact_property": prop,
         "required_representation": (
-            "native statement-family coverage or another representation explicitly "
-            "certified complete for this exact Q/property query family"
+            "native full statement-family coverage, including every rank and native "
+            "snak kind, or another representation explicitly certified complete for "
+            "this exact Q/property query family"
         ),
+        "coverage_basis": "native_full_statement_family",
+        "truthy_projection_accepted_as_coverage_basis": False,
         "task_ref": _text(task_ref),
         "shared_execution_ref": _text(shared_execution_ref),
         "candidate_only": True,
@@ -98,11 +128,16 @@ def assess_acquisition_for_recomputation(
 ) -> dict[str, Any]:
     """Recompute the exact Q/property coverage coordinate from a projected result.
 
-    A revision-locked entity snapshot for Q is complete for property P only when
-    the projection explicitly requested P. Under that condition, presence or
-    absence of P in the selected claims map pays the coverage coordinate itself.
-    It still does not pay source support, semantic correspondence, migration
-    safety, consumer closure, or promotion.
+    Coverage is computed over the native full statement family, not Wikidata's
+    truthy projection.  A revision-locked entity snapshot for Q is complete for
+    property P only when the projection explicitly requested P.  Under that
+    condition the property family is present iff P is a key of the native claims
+    map and absent iff it is not a key.  A native ``novalue`` statement therefore
+    counts as family-present, never family-absent.
+
+    Exact family recomputation pays only the coverage coordinate.  It still does
+    not pay source support, semantic correspondence, migration safety, consumer
+    closure, or promotion.
     """
 
     residual_ref = _text(residual.get("residual_ref"))
@@ -137,17 +172,23 @@ def assess_acquisition_for_recomputation(
     qid_identity_unresolved = subject_qid in unresolved_qids
     qid_statement_snapshot_present = bool(qid_snapshot)
     exact_property_was_requested = prop in projection_properties
-    exact_property_present = prop in qid_claims and bool(qid_claims.get(prop))
+    property_family_present = prop in qid_claims
+    native_statements = qid_claims.get(prop) if property_family_present else []
+    observed_snak_types = _statement_snak_types(native_statements)
 
     coverage_coordinate_paid = False
     recomputed_coverage_status = "uninspected"
+    property_family_status = "uninspected"
     if qid_identity_unresolved:
         observation_state = "still_open_subject_identity_unresolved"
     elif qid_statement_snapshot_present and exact_property_was_requested:
         coverage_coordinate_paid = True
-        recomputed_coverage_status = "present" if exact_property_present else "absent"
+        recomputed_coverage_status = "complete"
+        property_family_status = "present" if property_family_present else "absent"
         observation_state = (
-            "coverage_recomputed_present" if exact_property_present else "coverage_recomputed_absent"
+            "coverage_recomputed_family_present"
+            if property_family_present
+            else "coverage_recomputed_family_absent"
         )
     elif execution_outcome in {"engine_failed", "engine_unavailable"}:
         observation_state = "still_open_engine_failure"
@@ -170,10 +211,28 @@ def assess_acquisition_for_recomputation(
         "qid_identity_unresolved": qid_identity_unresolved,
         "qid_statement_snapshot_present": qid_statement_snapshot_present,
         "exact_property_was_requested": exact_property_was_requested,
+        "coverage_basis": "native_full_statement_family",
+        "truthy_projection_used_for_coverage": False,
+        "property_family_status": property_family_status,
+        "property_family_present": property_family_present if coverage_coordinate_paid else False,
+        "native_statement_count": (
+            len(native_statements)
+            if coverage_coordinate_paid
+            and isinstance(native_statements, Sequence)
+            and not isinstance(native_statements, (str, bytes, bytearray))
+            else 0
+        ),
+        "observed_native_snak_types": observed_snak_types if coverage_coordinate_paid else [],
+        "explicit_novalue_observed": "novalue" in observed_snak_types,
+        "explicit_somevalue_observed": "somevalue" in observed_snak_types,
+        "concrete_value_observed": "value" in observed_snak_types,
+        "novalue_equals_family_absence": False,
         "recomputed_coverage_status": recomputed_coverage_status,
         "coverage_coordinate_paid": coverage_coordinate_paid,
         "coverage_recomputation_required": not coverage_coordinate_paid,
         "source_support_paid": False,
+        "reference_presence_alone_pays_source_support": False,
+        "source_authority_evaluation_required": True,
         "consumer_verification_performed": False,
         "consumer_closure_claimed": False,
         "semantic_promotion_performed": False,
