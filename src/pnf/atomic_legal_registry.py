@@ -1,7 +1,7 @@
 """Runtime parity carrier for source-conditioned atomic legal tests.
 
 This is a narrow SLR analogue of the Agda SourceConditionedAtomicLegalTest /
-AtomicCaseRegistry seam.  A statute or other legal source defines an exact
+AtomicCaseRegistry seam. A statute or other legal source defines an exact
 atomic proposition; evidence determines the ternary gate.
 
 Gate semantics:
@@ -14,12 +14,14 @@ A citation/source definition never manufactures a case outcome.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Iterable
 
 from src.policy.carriers.canonical import canonical_sha256
+from src.pnf.legal_adjunct import LegalTypedMeet
 
 ATOMIC_LEGAL_REGISTRY_CONTRACT = "source-conditioned-atomic-legal-registry:v0_1"
+ATOMIC_LEGAL_RESIDUAL_CONTRACT = "atomic-legal-evidence-residual:v0_1"
 _VALID_GATES = {-1, 0, 1}
 
 
@@ -129,15 +131,96 @@ class AtomicRegistryReceipt:
         }
 
 
+@dataclass(frozen=True)
+class AtomicEvidenceResidual:
+    case_ref: str
+    proposition_ref: str
+    evidence_fibre_ref: str
+    source_revision_ref: str
+    exact_locator: str
+    disposition: str
+    user_side_acquisition_debt: bool
+    residual_reference: str
+
+    @property
+    def residual_ref(self) -> str:
+        return "atomic-legal-residual:" + canonical_sha256(asdict(self))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "residual_ref": self.residual_ref,
+            "contract_ref": ATOMIC_LEGAL_RESIDUAL_CONTRACT,
+            **asdict(self),
+            "gate_state": "unresolved",
+            "legal_source_acquisition_required": False,
+            "legal_truth_closed": False,
+        }
+
+
 def build_atomic_registry(
     *, case_ref: str, tests: Iterable[AtomicLegalTest]
 ) -> AtomicRegistryReceipt:
     return AtomicRegistryReceipt(case_ref=case_ref, tests=tuple(tests))
 
 
+def project_unresolved_atomic_residuals(
+    registry: AtomicRegistryReceipt,
+    *,
+    user_side_acquisition_debt: bool,
+    residual_reference: str,
+    external_evidence_unavailable: bool,
+) -> tuple[AtomicEvidenceResidual, ...]:
+    """Project only unresolved case-evidence atoms into typed residuals.
+
+    This intentionally does not emit NormativeInteractionDemand: that owner is
+    for legal-source acquisition. Here the legal authority is already present;
+    the missing object is case evidence. Reporter-held evidence can therefore
+    remain a residual without becoming user-side acquisition work.
+    """
+
+    disposition = (
+        "blocked_external_evidence_unavailable"
+        if external_evidence_unavailable
+        else "case_evidence_review_required"
+    )
+    return tuple(
+        AtomicEvidenceResidual(
+            case_ref=test.case_ref,
+            proposition_ref=test.proposition_ref,
+            evidence_fibre_ref=test.evidence_fibre_ref,
+            source_revision_ref=test.source_revision_ref,
+            exact_locator=test.exact_locator,
+            disposition=disposition,
+            user_side_acquisition_debt=user_side_acquisition_debt,
+            residual_reference=residual_reference,
+        )
+        for test in registry.tests
+        if test.gate == 0
+    )
+
+
+def attach_atomic_residuals_to_typed_meet(
+    meet: LegalTypedMeet,
+    residuals: Iterable[AtomicEvidenceResidual],
+) -> LegalTypedMeet:
+    """Attach exact unresolved atomic evidence to the canonical typed meet."""
+
+    refs = tuple(
+        sorted(
+            set(meet.residual_refs)
+            | {residual.residual_ref for residual in residuals}
+        )
+    )
+    return replace(meet, residual_refs=refs)
+
+
 __all__ = [
     "ATOMIC_LEGAL_REGISTRY_CONTRACT",
+    "ATOMIC_LEGAL_RESIDUAL_CONTRACT",
+    "AtomicEvidenceResidual",
     "AtomicLegalTest",
     "AtomicRegistryReceipt",
+    "attach_atomic_residuals_to_typed_meet",
     "build_atomic_registry",
+    "project_unresolved_atomic_residuals",
 ]
