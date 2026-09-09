@@ -7,6 +7,7 @@ import pytest
 
 from src.ontology.wikidata_nat_batch_acquisition_plan import (
     ACQUISITION_PLAN_SCHEMA_VERSION,
+    _external_reference_obligations,
     build_acquisition_plan,
 )
 from src.ontology.wikidata_nat_batch_prerequisite_runner import build_batch_dry_run
@@ -89,7 +90,7 @@ def test_every_current_task_is_bounded_source_support_look_work() -> None:
         assert "source_revision_lineage" in selector["required_outputs"]
 
 
-def test_p854_creates_external_source_obligation_not_payment() -> None:
+def test_p854_creates_source_candidate_obligation_not_payment_or_authority() -> None:
     plan = build_acquisition_plan(_real_batch())
     p854_tasks = [
         task for task in plan["tasks"] if "P854" in task["reference_properties"]
@@ -97,17 +98,43 @@ def test_p854_creates_external_source_obligation_not_payment() -> None:
     assert len(p854_tasks) == 4
     for task in p854_tasks:
         obligations = task["external_reference_obligations"]
-        assert any(
-            item["reference_property"] == "P854"
-            and item["obligation"] == "fetch_and_verify_external_reference_url_content"
-            for item in obligations
-        )
+        p854 = next(item for item in obligations if item["reference_property"] == "P854")
+        assert p854["reference_role"] == "reference_url_source_candidate"
+        assert p854["obligation"] == "fetch_and_verify_external_reference_url_content"
+        assert p854["source_support_candidate"] is True
+        assert p854["provenance_only"] is False
+        assert p854["authority_evaluation_required"] is True
+        assert p854["primary_source_preferred_when_available"] is True
+        assert p854["presence_pays_source_support"] is False
+
         policy = task["payment_policy"]
         assert policy["wikidata_selector_output_alone_pays_source_support"] is False
         assert policy["external_reference_presence_alone_pays_source_support"] is False
+        assert policy["provenance_only_reference_pays_source_support"] is False
+        assert policy["source_candidate_requires_content_verification"] is True
+        assert policy["source_candidate_requires_authority_evaluation"] is True
+        assert policy["primary_source_preferred_when_available"] is True
         assert policy["consumer_verification_required"] is True
         assert policy["semantic_promotion_allowed"] is False
         assert policy["edit_authority"] is False
+
+
+def test_p143_is_provenance_only_not_source_support_candidate() -> None:
+    obligations = _external_reference_obligations(["P143"])
+    assert obligations == [
+        {
+            "reference_property": "P143",
+            "reference_role": "imported_from_provenance",
+            "obligation": "preserve_imported_from_provenance_only",
+            "mechanism": "provenance_preservation",
+            "source_support_candidate": False,
+            "provenance_only": True,
+            "authority_evaluation_required": False,
+            "primary_source_preferred_when_available": False,
+            "presence_pays_source_support": False,
+            "candidate_only": True,
+        }
+    ]
 
 
 def test_plan_is_content_addressed_and_deterministic() -> None:
