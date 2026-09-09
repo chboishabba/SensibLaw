@@ -16,6 +16,9 @@ from src.ontology.wikidata_nat_batch_acquisition_dispatch import (
 from src.ontology.wikidata_nat_residual_bound_acquisition import (
     assess_acquisition_for_recomputation,
 )
+from src.ontology.wikidata_nat_ternary_admissibility import (
+    build_nat_ternary_admissibility_projection,
+)
 from src.policy.carriers.canonical import canonical_sha256
 
 
@@ -98,6 +101,11 @@ def dispatch_shared_acquisition_plan(
     live Nat coverage residual carried by that task. Retrieval alone never pays
     a residual; payment of the narrow Q/property coverage coordinate can occur
     only in the explicit residual-local recomputation step.
+
+    Each recomputation additionally receives a balanced-ternary N-dimensional
+    admissibility projection. That is a representation/inspection surface only:
+    its selected nine-axis chart fits the existing Base369 T^9 carrier, but it
+    creates no Monster action, source authority, or semantic promotion.
     """
 
     tasks = _require_plan(plan, max_tasks=max_tasks)
@@ -136,6 +144,7 @@ def dispatch_shared_acquisition_plan(
     results: list[dict[str, Any]] = []
     projections: list[dict[str, Any]] = []
     residual_recomputations: list[dict[str, Any]] = []
+    ternary_admissibility_projections: list[dict[str, Any]] = []
     for task, selector in zip(tasks, selectors):
         task_qids = _text_list(selector.get("qids"))
         task_properties = _text_list(selector.get("properties"))
@@ -206,11 +215,19 @@ def dispatch_shared_acquisition_plan(
         normalized["shared_execution_ref"] = shared_execution["shared_execution_ref"]
         normalized["shared_projection_ref"] = projection["projection_ref"]
 
-        task_recomputations = [
-            assess_acquisition_for_recomputation(residual, normalized)
-            for residual in task_residuals
-        ]
+        task_recomputations: list[dict[str, Any]] = []
+        task_ternary_projections: list[dict[str, Any]] = []
+        for residual in task_residuals:
+            recomputation = assess_acquisition_for_recomputation(residual, normalized)
+            ternary_projection = build_nat_ternary_admissibility_projection(recomputation)
+            recomputation["ternary_admissibility_projection_ref"] = ternary_projection[
+                "projection_ref"
+            ]
+            task_recomputations.append(recomputation)
+            task_ternary_projections.append(ternary_projection)
+
         task_recomputations.sort(key=lambda item: _text(item.get("recomputation_ref")))
+        task_ternary_projections.sort(key=lambda item: _text(item.get("projection_ref")))
         task_paid_count = sum(
             1 for item in task_recomputations if bool(item.get("coverage_coordinate_paid"))
         )
@@ -221,13 +238,21 @@ def dispatch_shared_acquisition_plan(
         normalized["coverage_coordinate_still_open_count"] = (
             len(task_recomputations) - task_paid_count
         )
+        normalized["ternary_admissibility_projections"] = task_ternary_projections
+        normalized["ternary_admissibility_projection_count"] = len(
+            task_ternary_projections
+        )
         normalized["retrieval_result_alone_pays_live_residual"] = False
         residual_recomputations.extend(task_recomputations)
+        ternary_admissibility_projections.extend(task_ternary_projections)
         results.append(normalized)
 
     results.sort(key=lambda result: _text(result.get("result_ref")))
     projections.sort(key=lambda item: _text(item.get("projection_ref")))
     residual_recomputations.sort(key=lambda item: _text(item.get("recomputation_ref")))
+    ternary_admissibility_projections.sort(
+        key=lambda item: _text(item.get("projection_ref"))
+    )
     counts = Counter(_text(result.get("execution_outcome")) for result in results)
     coverage_paid_count = sum(
         1 for item in residual_recomputations if bool(item.get("coverage_coordinate_paid"))
@@ -251,6 +276,10 @@ def dispatch_shared_acquisition_plan(
         "results": results,
         "residual_recomputation_count": len(residual_recomputations),
         "residual_recomputations": residual_recomputations,
+        "ternary_admissibility_projection_count": len(
+            ternary_admissibility_projections
+        ),
+        "ternary_admissibility_projections": ternary_admissibility_projections,
         "counts_by_execution_outcome": dict(sorted(counts.items())),
         "network_performed": bool(shared_execution.get("network_performed")),
         "consumer_verification_performed": False,
