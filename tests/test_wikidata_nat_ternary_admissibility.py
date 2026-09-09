@@ -3,11 +3,34 @@ from __future__ import annotations
 import pytest
 
 from src.ontology.wikidata_nat_ternary_admissibility import (
+    BALANCED_TRUTHINESS_TRITS,
     BASE369_NINE_AXIS_ORDER,
+    UNBALANCED_TRUTHINESS_TRITS,
     build_nat_ternary_admissibility_projection,
     decode_snak_trit,
+    decode_truthiness,
     encode_snak_type,
+    encode_truthiness,
 )
+
+
+@pytest.mark.parametrize("truth", ["false", "unknown", "true"])
+def test_conventional_balanced_truthiness_round_trips(truth: str) -> None:
+    trit = encode_truthiness(truth)
+    assert trit in {-1, 0, 1}
+    assert decode_truthiness(trit) == truth
+
+
+@pytest.mark.parametrize("truth", ["false", "unknown", "true"])
+def test_conventional_unbalanced_truthiness_round_trips(truth: str) -> None:
+    digit = encode_truthiness(truth, balanced=False)
+    assert digit in {0, 1, 2}
+    assert decode_truthiness(digit, balanced=False) == truth
+
+
+def test_conventional_truthiness_tables_are_minus_zero_plus_and_zero_one_two() -> None:
+    assert BALANCED_TRUTHINESS_TRITS == {"false": -1, "unknown": 0, "true": 1}
+    assert UNBALANCED_TRUTHINESS_TRITS == {"false": 0, "unknown": 1, "true": 2}
 
 
 @pytest.mark.parametrize("snak_type", ["novalue", "somevalue", "value"])
@@ -86,6 +109,7 @@ def test_nine_axis_projection_is_exact_base369_shape_without_monster_promotion()
     assert projection["base369_nominal_state_count"] == 19683
     assert projection["same_carrier_implies_monster_action"] is False
     assert projection["snak_semantics_are_truth_values"] is False
+    assert projection["snak_truthiness_bridge_is_interpretive"] is True
 
 
 def test_snak_encodings_are_representation_views_not_admissibility_states() -> None:
@@ -100,4 +124,14 @@ def test_snak_encodings_are_representation_views_not_admissibility_states() -> N
 
     assert projection["epistemic_centred_snak_trits"] == [-1, 0, 1]
     assert projection["absence_centred_snak_trits"] == [0, -1, 1]
-    assert projection["unbalanced_snak_digits"] == [1, 2, 3]
+    assert projection["unbalanced_snak_digits"] == [0, 1, 2]
+    assert projection["conventional_balanced_truthiness"] == {
+        "false": -1,
+        "unknown": 0,
+        "true": 1,
+    }
+    assert projection["conventional_unbalanced_truthiness"] == {
+        "false": 0,
+        "unknown": 1,
+        "true": 2,
+    }
