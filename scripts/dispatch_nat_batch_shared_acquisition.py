@@ -33,7 +33,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Dispatch a bounded Nat acquisition plan as one shared union selector "
-            "execution followed by task-local projections."
+            "execution followed by task-local and residual-local projections."
         )
     )
     parser.add_argument("--plan", type=Path, required=True)
@@ -64,8 +64,29 @@ def main() -> int:
                 "projection_count": dispatch["projection_count"],
                 "shared_union_qids": dispatch["shared_execution"]["selector"]["qids"],
                 "counts_by_execution_outcome": dispatch["counts_by_execution_outcome"],
+                "planned_live_coverage_residual_count": dispatch.get(
+                    "planned_live_coverage_residual_count", 0
+                ),
+                "residual_recomputation_count": dispatch.get(
+                    "residual_recomputation_count", 0
+                ),
+                "coverage_residual_paid_count": dispatch.get(
+                    "coverage_residual_paid_count", 0
+                ),
+                "coverage_residual_still_open_count": dispatch.get(
+                    "coverage_residual_still_open_count", 0
+                ),
+                "ternary_admissibility_projection_count": dispatch.get(
+                    "ternary_admissibility_projection_count", 0
+                ),
                 "network_performed": dispatch["network_performed"],
                 "source_support_paid_count": dispatch["source_support_paid_count"],
+                "consumer_verification_performed": dispatch.get(
+                    "consumer_verification_performed", False
+                ),
+                "semantic_promotion_performed": dispatch.get(
+                    "semantic_promotion_performed", False
+                ),
             },
             sort_keys=True,
         )
