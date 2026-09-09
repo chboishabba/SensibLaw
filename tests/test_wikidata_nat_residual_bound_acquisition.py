@@ -133,11 +133,7 @@ def test_recomputation_is_qid_local_and_can_pay_only_coverage_coordinate() -> No
                 "unresolved_qids": ["Q2"],
             },
         },
-        "outputs": {
-            "statement_snapshot": {
-                "Q1": {"revid": 1, "claims": {}}
-            }
-        },
+        "outputs": {"statement_snapshot": {"Q1": {"revid": 1, "claims": {}}}},
     }
     q1 = build_target_property_coverage_residual(_row("Q1", "row:1"))
     q2 = build_target_property_coverage_residual(_row("Q2", "row:2"))
@@ -150,9 +146,14 @@ def test_recomputation_is_qid_local_and_can_pay_only_coverage_coordinate() -> No
     assert q1_assessment["exact_property_was_requested"] is True
     assert q1_assessment["coverage_basis"] == "native_full_statement_family"
     assert q1_assessment["truthy_projection_used_for_coverage"] is False
+    assert q1_assessment["derived_property_engine_relation_used_for_coverage"] is False
     assert q1_assessment["property_family_status"] == "absent"
     assert q1_assessment["recomputed_coverage_status"] == "complete"
     assert q1_assessment["coverage_coordinate_paid"] is True
+    assert q1_assessment["rank_visibility_evaluated"] is False
+    assert q1_assessment["qualifier_constraints_evaluated"] is False
+    assert q1_assessment["property_scope_evaluated"] is False
+    assert q1_assessment["property_engine_derivability_evaluated"] is False
     assert q1_assessment["source_support_paid"] is False
     assert q1_assessment["source_authority_evaluation_required"] is True
     assert q1_assessment["consumer_closure_claimed"] is False
@@ -194,6 +195,9 @@ def test_present_property_also_pays_only_exact_coverage_coordinate() -> None:
     assert assessment["observed_native_snak_types"] == ["value"]
     assert assessment["concrete_value_observed"] is True
     assert assessment["coverage_coordinate_paid"] is True
+    assert assessment["rank_visibility_evaluated"] is False
+    assert assessment["qualifier_constraints_evaluated"] is False
+    assert assessment["property_scope_evaluated"] is False
     assert assessment["source_support_paid"] is False
     assert assessment["semantic_promotion_performed"] is False
 
