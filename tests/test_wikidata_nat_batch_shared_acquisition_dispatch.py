@@ -9,7 +9,25 @@ from src.ontology.wikidata_nat_batch_shared_acquisition_dispatch import (
 )
 
 
-def _task(task_ref: str, qids: list[str]) -> dict:
+def _coverage_residual(index: int, qid: str) -> dict:
+    return {
+        "residual_ref": f"nat-coverage-residual:test:{index:02d}",
+        "subject_qid": qid,
+        "property": "P14143",
+        "coverage_status": "uninspected",
+        "missing_coordinate": "targetPropertyFamily",
+        "graph_revision_reference": "revision:test",
+        "consumer_reference": f"row:test:{index:02d}",
+        "formal_producer_class": "empiricalEvidenceProducer",
+    }
+
+
+def _task(
+    task_ref: str,
+    qids: list[str],
+    *,
+    residuals: list[dict] | None = None,
+) -> dict:
     return {
         "schema_version": ACQUISITION_TASK_SCHEMA_VERSION,
         "task_ref": task_ref,
@@ -20,6 +38,7 @@ def _task(task_ref: str, qids: list[str]) -> dict:
         "mechanism": "look",
         "selector_class": "zelph_hf_selector",
         "member_row_refs": ["row:" + task_ref],
+        "live_coverage_residuals": list(residuals or []),
         "external_reference_obligations": [
             {
                 "reference_property": "P854",
@@ -58,6 +77,46 @@ def _plan() -> dict:
         "tasks": [
             _task("task:a", ["Q10403939", "Q10422059"]),
             _task("task:b", ["Q10416948", "Q10651551", "Q56404383"]),
+        ],
+        "network_performed": False,
+        "edits_performed": False,
+        "consumer_verification_performed": False,
+        "semantic_promotion_performed": False,
+    }
+
+
+def _plan_with_57_residuals() -> dict:
+    qids_a = ["Q10403939", "Q10422059"]
+    qids_b = ["Q10416948", "Q10651551", "Q56404383"]
+    residuals = [
+        _coverage_residual(
+            index,
+            (qids_a + qids_b)[index % 5],
+        )
+        for index in range(57)
+    ]
+    task_a_residuals = [
+        residual
+        for residual in residuals
+        if residual["subject_qid"] in set(qids_a)
+    ]
+    task_b_residuals = [
+        residual
+        for residual in residuals
+        if residual["subject_qid"] in set(qids_b)
+    ]
+    return {
+        "schema_version": ACQUISITION_PLAN_SCHEMA_VERSION,
+        "plan_ref": "plan:57-residuals",
+        "source_batch_ref": "batch:57-residuals",
+        "lane_id": "wikidata_nat_wdu_p5991_p14143",
+        "source_cohort": "business_family_reconciled",
+        "materialized_row_count": 57,
+        "planned_task_count": 2,
+        "planned_live_coverage_residual_count": 57,
+        "tasks": [
+            _task("task:a", qids_a, residuals=task_a_residuals),
+            _task("task:b", qids_b, residuals=task_b_residuals),
         ],
         "network_performed": False,
         "edits_performed": False,
@@ -121,6 +180,84 @@ def test_shared_dispatch_calls_executor_once_for_union_and_projects_per_task() -
         "Q10651551",
         "Q56404383",
     ]
+
+
+def test_shared_dispatch_fans_one_execution_back_to_57_exact_residuals() -> None:
+    calls: list[dict] = []
+
+    def executor(selector: dict) -> dict:
+        calls.append(selector)
+        qids = list(selector["qids"])
+        return {
+            "executor_id": "fixture.57-residuals",
+            "execution_outcome": "executed_with_output",
+            "executor_receipt": {"network_performed": True},
+            "outputs": _shared_outputs(qids),
+        }
+
+    result = dispatch_shared_acquisition_plan(
+        _plan_with_57_residuals(), selector_executor=executor, max_tasks=4
+    )
+
+    assert len(calls) == 1
+    assert result["executor_call_count"] == 1
+    assert result["materialized_row_count"] == 57
+    assert result["planned_live_coverage_residual_count"] == 57
+    assert result["residual_recomputation_count"] == 57
+    assert result["ternary_admissibility_projection_count"] == 57
+    assert result["coverage_residual_paid_count"] == 57
+    assert result["coverage_residual_still_open_count"] == 0
+    assert result["source_support_paid_count"] == 0
+    assert result["consumer_verification_performed"] is False
+    assert result["semantic_promotion_performed"] is False
+
+    recomputation_by_ref = {
+        item["live_residual_ref"]: item
+        for item in result["residual_recomputations"]
+    }
+    assert len(recomputation_by_ref) == 57
+    assert all(
+        item["coverage_coordinate_paid"] is True
+        for item in recomputation_by_ref.values()
+    )
+    assert all(
+        item["property_family_status"] == "absent"
+        for item in recomputation_by_ref.values()
+    )
+    assert all(
+        item["source_support_paid"] is False
+        for item in recomputation_by_ref.values()
+    )
+    assert all(
+        item["rank_visibility_evaluated"] is False
+        and item["qualifier_constraints_evaluated"] is False
+        and item["property_scope_evaluated"] is False
+        and item["property_engine_derivability_evaluated"] is False
+        for item in recomputation_by_ref.values()
+    )
+
+    ternary_by_source = {
+        item["source_recomputation_ref"]: item
+        for item in result["ternary_admissibility_projections"]
+    }
+    assert len(ternary_by_source) == 57
+    assert all(item["dimension"] == 10 for item in ternary_by_source.values())
+    assert all(
+        item["axis_trits"]["native_family_coverage"] == 1
+        and item["axis_trits"]["rank_visibility"] == 0
+        and item["axis_trits"]["qualifier_constraints"] == 0
+        and item["axis_trits"]["property_scope"] == 0
+        and item["axis_trits"]["property_derivability"] == 0
+        and item["axis_trits"]["source_support"] == 0
+        and item["axis_trits"]["authority"] == 0
+        and item["axis_trits"]["semantic_correspondence"] == 0
+        for item in ternary_by_source.values()
+    )
+    assert all(
+        len(item["base369_nine_trits"]) == 9
+        and set(item["base369_nine_trits"]) <= {-1, 0, 1}
+        for item in ternary_by_source.values()
+    )
 
 
 def test_shared_engine_failure_projects_failure_without_payment() -> None:
