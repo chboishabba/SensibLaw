@@ -66,7 +66,7 @@ def build_source_verification_plan(
 
     The exact proposition comes from the original migration-pack candidate selected
     by the dry row's content digest. The source verifier is not allowed to reconstruct
-    a proposition from labels, QIDs, or URL text.
+    a proposition from labels, QIDs, URL text, or candidate ordering.
     """
 
     rows = _rows_by_ref(batch)
@@ -91,14 +91,19 @@ def build_source_verification_plan(
             before = _mapping(candidate.get("claim_bundle_before"))
             after = _mapping(candidate.get("claim_bundle_after"))
             expected_statement = _text(row.get("statement_reference"))
-            observed_statement = _text(before.get("statement_id")) or _text(
-                candidate.get("candidate_id")
-            )
-            if expected_statement and observed_statement and expected_statement != observed_statement:
+            observed_statement = _text(before.get("statement_id"))
+            # Older migration-pack fixtures may omit statement_id inside the bundle.
+            # In that case the dry row's input_digest is the same-object authority;
+            # candidate_id is a row label and must not be substituted for a GUID.
+            if (
+                expected_statement
+                and observed_statement
+                and expected_statement != observed_statement
+            ):
                 raise ValueError(
                     f"migration candidate statement mismatch: {expected_statement} != {observed_statement}"
                 )
-            state = "ready" if candidate else "blocked_missing_exact_migration_candidate"
+            state = "ready"
 
         source_urls = [
             _text(url)
@@ -199,7 +204,9 @@ def build_source_verification_receipt(
         if isinstance(item, Mapping)
     }
     if source_artifact_receipt_ref not in artifact_refs:
-        raise ValueError("verification receipt must name an acquired artifact from the demand")
+        raise ValueError(
+            "verification receipt must name an acquired artifact from the demand"
+        )
     if disposition in {"supported", "contradicted"} and not evidence_locator.strip():
         raise ValueError("terminal source disposition requires an evidence locator")
 
