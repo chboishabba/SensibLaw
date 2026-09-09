@@ -22,13 +22,7 @@ def _text_list(values: Any) -> list[str]:
 
 
 def build_target_property_coverage_residual(row: Mapping[str, Any]) -> dict[str, Any]:
-    """Build the exact Nat Q/property coverage residual represented by one row.
-
-    This is the runtime counterpart of
-    DASHI.Interop.SensibLawNatCoverageAcquisitionDemandExact. A grouped network
-    request may carry many of these residuals, but sharing transport never merges
-    their semantic/payment identity.
-    """
+    """Build the exact Nat Q/property coverage residual represented by one row."""
 
     qid = _text(row.get("qid"))
     target_property = _text(row.get("target_property"))
@@ -60,8 +54,8 @@ def build_bound_coverage_demand(
 ) -> dict[str, Any]:
     """Bind one acquisition demand to exactly one live residual.
 
-    This is binding only. It creates no coverage payment, consumer closure,
-    migration authority, edit authority, or semantic promotion authority.
+    Binding creates no coverage payment, consumer closure, migration authority,
+    edit authority, or semantic promotion authority.
     """
 
     residual_ref = _text(residual.get("residual_ref"))
@@ -102,12 +96,22 @@ def build_bound_coverage_demand(
 def assess_acquisition_for_recomputation(
     residual: Mapping[str, Any], acquisition_result: Mapping[str, Any]
 ) -> dict[str, Any]:
-    """Return the QID-local post-acquisition state without confusing retrieval with payment."""
+    """Recompute the exact Q/property coverage coordinate from a projected result.
+
+    A revision-locked entity snapshot for Q is complete for property P only when
+    the projection explicitly requested P. Under that condition, presence or
+    absence of P in the selected claims map pays the coverage coordinate itself.
+    It still does not pay source support, semantic correspondence, migration
+    safety, consumer closure, or promotion.
+    """
 
     residual_ref = _text(residual.get("residual_ref"))
     subject_qid = _text(residual.get("subject_qid"))
-    if not residual_ref or not subject_qid:
-        raise ValueError("coverage recomputation assessment requires residual_ref and subject_qid")
+    prop = _text(residual.get("property"))
+    if not residual_ref or not subject_qid or not prop:
+        raise ValueError(
+            "coverage recomputation assessment requires residual_ref, subject_qid, property"
+        )
 
     execution_outcome = _text(acquisition_result.get("execution_outcome"))
     outputs = acquisition_result.get("outputs")
@@ -122,19 +126,33 @@ def assess_acquisition_for_recomputation(
     unresolved_qids = set(_text_list(partial_read.get("unresolved_qids")))
     resolved_qids = partial_read.get("resolved_qids")
     resolved_qids = resolved_qids if isinstance(resolved_qids, Mapping) else {}
+    projection_properties = set(_text_list(executor_receipt.get("projection_properties")))
 
-    qid_identity_resolved = subject_qid in resolved_qids or subject_qid in statement_snapshot
+    qid_snapshot = statement_snapshot.get(subject_qid)
+    qid_snapshot = qid_snapshot if isinstance(qid_snapshot, Mapping) else {}
+    qid_claims = qid_snapshot.get("claims")
+    qid_claims = qid_claims if isinstance(qid_claims, Mapping) else {}
+
+    qid_identity_resolved = subject_qid in resolved_qids or bool(qid_snapshot)
     qid_identity_unresolved = subject_qid in unresolved_qids
-    qid_statement_snapshot_present = subject_qid in statement_snapshot
+    qid_statement_snapshot_present = bool(qid_snapshot)
+    exact_property_was_requested = prop in projection_properties
+    exact_property_present = prop in qid_claims and bool(qid_claims.get(prop))
 
+    coverage_coordinate_paid = False
+    recomputed_coverage_status = "uninspected"
     if qid_identity_unresolved:
         observation_state = "still_open_subject_identity_unresolved"
-    elif qid_statement_snapshot_present:
-        observation_state = "candidate_qp_evidence_observed_pending_coverage_recompute"
+    elif qid_statement_snapshot_present and exact_property_was_requested:
+        coverage_coordinate_paid = True
+        recomputed_coverage_status = "present" if exact_property_present else "absent"
+        observation_state = (
+            "coverage_recomputed_present" if exact_property_present else "coverage_recomputed_absent"
+        )
     elif execution_outcome in {"engine_failed", "engine_unavailable"}:
         observation_state = "still_open_engine_failure"
     elif qid_identity_resolved:
-        observation_state = "identity_resolved_statement_family_not_observed"
+        observation_state = "identity_resolved_exact_property_family_not_observed"
     elif execution_outcome == "executed_no_match":
         observation_state = "still_open_clean_transport_exhaustion"
     else:
@@ -144,16 +162,20 @@ def assess_acquisition_for_recomputation(
         "schema_version": NAT_COVERAGE_RECOMPUTATION_SCHEMA_VERSION,
         "live_residual_ref": residual_ref,
         "subject_qid": subject_qid,
-        "property": _text(residual.get("property")),
+        "property": prop,
         "acquisition_result_ref": _text(acquisition_result.get("result_ref")),
         "execution_outcome": execution_outcome,
         "observation_state": observation_state,
         "qid_identity_resolved": qid_identity_resolved,
         "qid_identity_unresolved": qid_identity_unresolved,
         "qid_statement_snapshot_present": qid_statement_snapshot_present,
-        "coverage_recomputation_required": True,
-        "coverage_payment_claimed": False,
+        "exact_property_was_requested": exact_property_was_requested,
+        "recomputed_coverage_status": recomputed_coverage_status,
+        "coverage_coordinate_paid": coverage_coordinate_paid,
+        "coverage_recomputation_required": not coverage_coordinate_paid,
+        "source_support_paid": False,
         "consumer_verification_performed": False,
+        "consumer_closure_claimed": False,
         "semantic_promotion_performed": False,
         "migration_authority": False,
     }
