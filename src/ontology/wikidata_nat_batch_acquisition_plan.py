@@ -52,14 +52,30 @@ def _rows_by_ref(batch: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
 
 
 def _external_reference_obligations(reference_properties: Sequence[str]) -> list[dict[str, Any]]:
+    """Classify Wikidata reference properties without granting evidential payment.
+
+    Cross-pollinated from the attached Aristotle provenance model: P854 and P248
+    are source-bearing candidates, while P143 is provenance-only.  The attached
+    Senate-law corpus independently shows that even a genuine cited source can
+    have a separate authority/enforceability question.  Accordingly every
+    source-bearing candidate still requires content verification and consumer-
+    specific authority/admissibility evaluation before source support can be paid.
+    """
+
     obligations: list[dict[str, Any]] = []
     for property_id in sorted(set(reference_properties)):
         if property_id == "P854":
             obligations.append(
                 {
                     "reference_property": "P854",
+                    "reference_role": "reference_url_source_candidate",
                     "obligation": "fetch_and_verify_external_reference_url_content",
                     "mechanism": "external_source_acquisition",
+                    "source_support_candidate": True,
+                    "provenance_only": False,
+                    "authority_evaluation_required": True,
+                    "primary_source_preferred_when_available": True,
+                    "presence_pays_source_support": False,
                     "candidate_only": True,
                 }
             )
@@ -67,8 +83,14 @@ def _external_reference_obligations(reference_properties: Sequence[str]) -> list
             obligations.append(
                 {
                     "reference_property": "P248",
+                    "reference_role": "stated_in_source_candidate",
                     "obligation": "resolve_and_verify_stated_in_source",
                     "mechanism": "external_source_acquisition",
+                    "source_support_candidate": True,
+                    "provenance_only": False,
+                    "authority_evaluation_required": True,
+                    "primary_source_preferred_when_available": True,
+                    "presence_pays_source_support": False,
                     "candidate_only": True,
                 }
             )
@@ -76,8 +98,14 @@ def _external_reference_obligations(reference_properties: Sequence[str]) -> list
             obligations.append(
                 {
                     "reference_property": "P143",
+                    "reference_role": "imported_from_provenance",
                     "obligation": "preserve_imported_from_provenance_only",
                     "mechanism": "provenance_preservation",
+                    "source_support_candidate": False,
+                    "provenance_only": True,
+                    "authority_evaluation_required": False,
+                    "primary_source_preferred_when_available": False,
+                    "presence_pays_source_support": False,
                     "candidate_only": True,
                 }
             )
@@ -85,8 +113,14 @@ def _external_reference_obligations(reference_properties: Sequence[str]) -> list
             obligations.append(
                 {
                     "reference_property": property_id,
+                    "reference_role": "unclassified_reference_role",
                     "obligation": "review_reference_role",
                     "mechanism": "review",
+                    "source_support_candidate": False,
+                    "provenance_only": False,
+                    "authority_evaluation_required": True,
+                    "primary_source_preferred_when_available": True,
+                    "presence_pays_source_support": False,
                     "candidate_only": True,
                 }
             )
@@ -175,6 +209,10 @@ def _build_task(
         "payment_policy": {
             "wikidata_selector_output_alone_pays_source_support": False,
             "external_reference_presence_alone_pays_source_support": False,
+            "provenance_only_reference_pays_source_support": False,
+            "source_candidate_requires_content_verification": True,
+            "source_candidate_requires_authority_evaluation": True,
+            "primary_source_preferred_when_available": True,
             "consumer_verification_required": True,
             "semantic_promotion_allowed": False,
             "edit_authority": False,
@@ -182,9 +220,6 @@ def _build_task(
         "dispatch_status": "planned_not_dispatched",
     }
     task = dict(task_without_ref)
-    # task_ref identifies the coalesced physical transport request.  Residual
-    # bindings are attached afterwards so many exact semantic obligations can
-    # intentionally share that one transport identity without being merged.
     task["task_ref"] = "nat-acquisition-task:" + canonical_sha256(task_without_ref)
     residuals, demands = bind_task_residuals(task, rows_by_ref)
     task["live_coverage_residuals"] = residuals
@@ -201,14 +236,7 @@ def _build_task(
 
 
 def build_acquisition_plan(batch: Mapping[str, Any]) -> dict[str, Any]:
-    """Compile a dry Nat prerequisite batch into bounded acquisition tasks.
-
-    This function performs no network requests or edits.  It only plans bounded
-    selector work for source-support groups and preserves the distinction between
-    retrieving Wikidata reference metadata and verifying the external source named
-    by that metadata. Every planned acquisition also retains the exact row-local
-    Nat Q/property coverage residuals it is intended to refine.
-    """
+    """Compile a dry Nat prerequisite batch into bounded acquisition tasks."""
 
     _require_dry_batch(batch)
     rows_by_ref = _rows_by_ref(batch)
