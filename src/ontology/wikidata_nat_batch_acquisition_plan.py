@@ -5,6 +5,7 @@ from typing import Any, Mapping, Sequence
 
 from src.policy.carriers.canonical import canonical_sha256
 from src.ontology.wikidata_nat_batch_prerequisite_runner import BATCH_RESULT_SCHEMA_VERSION
+from src.ontology.wikidata_nat_residual_bound_acquisition import bind_task_residuals
 
 
 ACQUISITION_PLAN_SCHEMA_VERSION = "sl.nat_batch_acquisition_plan.v0_1"
@@ -181,7 +182,21 @@ def _build_task(
         "dispatch_status": "planned_not_dispatched",
     }
     task = dict(task_without_ref)
+    # task_ref identifies the coalesced physical transport request.  Residual
+    # bindings are attached afterwards so many exact semantic obligations can
+    # intentionally share that one transport identity without being merged.
     task["task_ref"] = "nat-acquisition-task:" + canonical_sha256(task_without_ref)
+    residuals, demands = bind_task_residuals(task, rows_by_ref)
+    task["live_coverage_residuals"] = residuals
+    task["bound_acquisition_demands"] = demands
+    task["live_coverage_residual_count"] = len(residuals)
+    task["residual_binding_policy"] = {
+        "every_demand_names_live_residual": True,
+        "shared_transport_merges_residual_identity": False,
+        "retrieval_result_alone_pays_residual": False,
+        "coverage_recomputation_required": True,
+        "migration_authority": False,
+    }
     return task
 
 
@@ -191,7 +206,8 @@ def build_acquisition_plan(batch: Mapping[str, Any]) -> dict[str, Any]:
     This function performs no network requests or edits.  It only plans bounded
     selector work for source-support groups and preserves the distinction between
     retrieving Wikidata reference metadata and verifying the external source named
-    by that metadata.
+    by that metadata. Every planned acquisition also retains the exact row-local
+    Nat Q/property coverage residuals it is intended to refine.
     """
 
     _require_dry_batch(batch)
@@ -218,6 +234,9 @@ def build_acquisition_plan(batch: Mapping[str, Any]) -> dict[str, Any]:
         "source_work_group_count": batch.get("work_group_count"),
         "planned_task_count": len(tasks),
         "planned_member_count": sum(int(task.get("member_count", 0) or 0) for task in tasks),
+        "planned_live_coverage_residual_count": sum(
+            int(task.get("live_coverage_residual_count", 0) or 0) for task in tasks
+        ),
         "counts_by_target_prerequisite": dict(sorted(task_counts.items())),
         "tasks": tasks,
         "network_performed": False,
@@ -225,6 +244,10 @@ def build_acquisition_plan(batch: Mapping[str, Any]) -> dict[str, Any]:
         "consumer_verification_performed": False,
         "semantic_promotion_performed": False,
         "formal_contract_reference": _text(batch.get("formal_contract_reference")),
+        "residual_bound_contract_reference": (
+            "dashi_agda #822 SensibLawNatCoverageAcquisitionDemandExact; "
+            "#823 DASHI.Core.BoundAcquisitionDemandExact"
+        ),
     }
     payload = dict(payload_without_ref)
     payload["plan_ref"] = "nat-acquisition-plan:" + canonical_sha256(payload_without_ref)
