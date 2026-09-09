@@ -6,10 +6,24 @@ from typing import Any
 from src.policy.carriers.canonical import canonical_sha256
 
 
-TERNARY_ADMISSIBILITY_SCHEMA_VERSION = "sl.nat_ternary_admissibility.v0_1"
+TERNARY_ADMISSIBILITY_SCHEMA_VERSION = "sl.nat_ternary_admissibility.v0_2"
 
-# Wikibase does not assign numeric truth values to snak types.  These are
-# explicit lossless presentation codecs only.
+# Conventional three-valued logical/numeric presentations used by the bridge.
+# Balanced Kleene-style ordering: false < unknown < true.
+BALANCED_TRUTHINESS_TRITS = {
+    "false": -1,
+    "unknown": 0,
+    "true": 1,
+}
+# Ordinary unsigned/unbalanced ternary uses digits 0, 1, 2.
+UNBALANCED_TRUTHINESS_TRITS = {
+    "false": 0,
+    "unknown": 1,
+    "true": 2,
+}
+
+# Wikibase does not itself assign these numeric truth values to snak types.
+# These are explicit lossless presentation/interpretation codecs only.
 EPISTEMIC_CENTRED_SNAK_TRITS = {
     "novalue": -1,
     "somevalue": 0,
@@ -20,10 +34,12 @@ ABSENCE_CENTRED_SNAK_TRITS = {
     "somevalue": -1,
     "value": 1,
 }
+# Conventional unsigned ternary digit labels for the same ordered three-symbol
+# presentation.  This is 0/1/2, not 1/2/3.
 UNBALANCED_SNAK_DIGITS = {
-    "novalue": 1,
-    "somevalue": 2,
-    "value": 3,
+    "novalue": 0,
+    "somevalue": 1,
+    "value": 2,
 }
 
 ADMISSIBILITY_TRITS = {
@@ -49,10 +65,34 @@ def _text(value: Any) -> str:
     return "" if value is None else str(value).strip()
 
 
+def encode_truthiness(value: str, *, balanced: bool = True) -> int:
+    """Encode conventional three-valued truthiness.
+
+    Balanced: false/unknown/true -> -1/0/+1.
+    Unsigned: false/unknown/true -> 0/1/2.
+    """
+
+    key = _text(value).lower()
+    table = BALANCED_TRUTHINESS_TRITS if balanced else UNBALANCED_TRUTHINESS_TRITS
+    if key not in table:
+        raise ValueError(f"unsupported three-valued truthiness value: {value}")
+    return table[key]
+
+
+def decode_truthiness(value: int, *, balanced: bool = True) -> str:
+    table = BALANCED_TRUTHINESS_TRITS if balanced else UNBALANCED_TRUTHINESS_TRITS
+    inverse = {digit: key for key, digit in table.items()}
+    if value not in inverse:
+        kind = "balanced trit" if balanced else "unsigned ternary digit"
+        raise ValueError(f"not a conventional {kind}: {value}")
+    return inverse[value]
+
+
 def encode_snak_type(snak_type: str, *, orientation: str = "epistemic_centred") -> int:
     """Encode one native Wikibase snak type as a balanced trit.
 
-    The result is a representation coordinate, never a Boolean/truth claim.
+    The result is an explicit representation/interpretation coordinate, not a
+    claim that Wikibase defines the snak constructors as truth values.
     """
 
     key = _text(snak_type).lower()
@@ -97,10 +137,10 @@ def build_nat_ternary_admissibility_projection(
 ) -> dict[str, Any]:
     """Project a Nat residual state onto an N-dimensional balanced-trit fibre.
 
-    The full state remains N-dimensional.  A selected nine-axis projection is
+    The full state remains N-dimensional. A selected nine-axis projection is
     additionally emitted in the exact axis order used to chart the state onto
-    the existing Base369 T^9 / 19683 carrier.  This does not assert Monster
-    action/equivariance or identify the axis semantics with Base369 semantics.
+    the existing Base369 T^9 / 19683 carrier. This does not assert Monster
+    action/equivariance or identify Wikibase snak semantics with logical truth.
     """
 
     outcome = _text(recomputation.get("execution_outcome"))
@@ -158,7 +198,10 @@ def build_nat_ternary_admissibility_projection(
         "base369_nine_trits": base369_nine_trits,
         "base369_nominal_state_count": 3**9,
         "same_carrier_implies_monster_action": False,
+        "conventional_balanced_truthiness": dict(BALANCED_TRUTHINESS_TRITS),
+        "conventional_unbalanced_truthiness": dict(UNBALANCED_TRUTHINESS_TRITS),
         "snak_semantics_are_truth_values": False,
+        "snak_truthiness_bridge_is_interpretive": True,
         "binary_zero_means_semantic_false": False,
         "native_snak_types": native_snak_types,
         "epistemic_centred_snak_trits": encode_snak_types(native_snak_types),
@@ -177,12 +220,16 @@ def build_nat_ternary_admissibility_projection(
 __all__ = [
     "ABSENCE_CENTRED_SNAK_TRITS",
     "ADMISSIBILITY_TRITS",
+    "BALANCED_TRUTHINESS_TRITS",
     "BASE369_NINE_AXIS_ORDER",
     "EPISTEMIC_CENTRED_SNAK_TRITS",
     "TERNARY_ADMISSIBILITY_SCHEMA_VERSION",
     "UNBALANCED_SNAK_DIGITS",
+    "UNBALANCED_TRUTHINESS_TRITS",
     "build_nat_ternary_admissibility_projection",
     "decode_snak_trit",
+    "decode_truthiness",
     "encode_snak_type",
     "encode_snak_types",
+    "encode_truthiness",
 ]
