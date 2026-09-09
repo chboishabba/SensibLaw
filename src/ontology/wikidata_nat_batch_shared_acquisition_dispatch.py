@@ -13,6 +13,9 @@ from src.ontology.wikidata_nat_batch_acquisition_dispatch import (
     _text,
     _text_list,
 )
+from src.ontology.wikidata_nat_residual_bound_acquisition import (
+    assess_acquisition_for_recomputation,
+)
 from src.policy.carriers.canonical import canonical_sha256
 
 
@@ -72,6 +75,15 @@ def _project_outputs(
     return projected
 
 
+def _task_residuals(task: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    values = task.get("live_coverage_residuals")
+    if not isinstance(values, Sequence) or isinstance(values, (str, bytes, bytearray)):
+        return []
+    residuals = [value for value in values if isinstance(value, Mapping)]
+    residuals.sort(key=lambda item: _text(item.get("residual_ref")))
+    return residuals
+
+
 def dispatch_shared_acquisition_plan(
     plan: Mapping[str, Any],
     *,
@@ -82,8 +94,10 @@ def dispatch_shared_acquisition_plan(
 
     The union execution is an I/O optimisation only. Each planned task receives
     a deterministic QID-scoped projection which is normalized by the existing
-    per-task result contract. No projection pays source_support or performs
-    consumer verification, edits, or semantic promotion.
+    per-task result contract. The result is then projected again to each exact
+    live Nat coverage residual carried by that task. Retrieval never directly
+    pays a residual: every residual-local projection requires coverage
+    recomputation before any consumer/payment claim.
     """
 
     tasks = _require_plan(plan, max_tasks=max_tasks)
@@ -121,9 +135,23 @@ def dispatch_shared_acquisition_plan(
 
     results: list[dict[str, Any]] = []
     projections: list[dict[str, Any]] = []
+    residual_recomputations: list[dict[str, Any]] = []
     for task, selector in zip(tasks, selectors):
         task_qids = _text_list(selector.get("qids"))
         projected_outputs = _project_outputs(shared_outputs, task_qids) if shared_outputs else {}
+        task_residuals = _task_residuals(task)
+        task_residual_refs = [
+            _text(residual.get("residual_ref"))
+            for residual in task_residuals
+            if _text(residual.get("residual_ref"))
+        ]
+        task_demand_refs = sorted(
+            {
+                _text(demand.get("demand_ref"))
+                for demand in (task.get("bound_acquisition_demands") or [])
+                if isinstance(demand, Mapping) and _text(demand.get("demand_ref"))
+            }
+        )
         projection_without_ref = {
             "schema_version": SHARED_PROJECTION_SCHEMA_VERSION,
             "task_ref": _text(task.get("task_ref")),
@@ -134,7 +162,10 @@ def dispatch_shared_acquisition_plan(
             "qids_covered_by_shared_union": set(task_qids).issubset(
                 set(_text_list(shared_selector.get("qids")))
             ),
+            "live_coverage_residual_refs": task_residual_refs,
+            "bound_acquisition_demand_refs": task_demand_refs,
             "consumer_verification_required": True,
+            "coverage_recomputation_required": bool(task_residual_refs),
             "source_support_paid": False,
             "semantic_promotion_performed": False,
         }
@@ -152,6 +183,7 @@ def dispatch_shared_acquisition_plan(
                 "shared_projection_ref": projection["projection_ref"],
                 "shared_union_qids": _text_list(shared_selector.get("qids")),
                 "projection_qids": task_qids,
+                "live_coverage_residual_refs": task_residual_refs,
                 "consumer_verification_performed": False,
                 "source_support_paid": False,
                 "semantic_promotion_performed": False,
@@ -171,10 +203,22 @@ def dispatch_shared_acquisition_plan(
         )
         normalized["shared_execution_ref"] = shared_execution["shared_execution_ref"]
         normalized["shared_projection_ref"] = projection["projection_ref"]
+
+        task_recomputations = [
+            assess_acquisition_for_recomputation(residual, normalized)
+            for residual in task_residuals
+        ]
+        task_recomputations.sort(key=lambda item: _text(item.get("recomputation_ref")))
+        normalized["live_coverage_residual_refs"] = task_residual_refs
+        normalized["coverage_recomputations"] = task_recomputations
+        normalized["coverage_recomputation_required_count"] = len(task_recomputations)
+        normalized["retrieval_result_alone_pays_live_residual"] = False
+        residual_recomputations.extend(task_recomputations)
         results.append(normalized)
 
     results.sort(key=lambda result: _text(result.get("result_ref")))
     projections.sort(key=lambda item: _text(item.get("projection_ref")))
+    residual_recomputations.sort(key=lambda item: _text(item.get("recomputation_ref")))
     counts = Counter(_text(result.get("execution_outcome")) for result in results)
 
     payload_without_ref = {
@@ -185,15 +229,21 @@ def dispatch_shared_acquisition_plan(
         "source_cohort": _text(plan.get("source_cohort")),
         "materialized_row_count": plan.get("materialized_row_count"),
         "planned_task_count": plan.get("planned_task_count"),
+        "planned_live_coverage_residual_count": plan.get(
+            "planned_live_coverage_residual_count", 0
+        ),
         "executor_call_count": 1,
         "shared_execution": shared_execution,
         "projection_count": len(projections),
         "projections": projections,
         "results": results,
+        "residual_recomputation_count": len(residual_recomputations),
+        "residual_recomputations": residual_recomputations,
         "counts_by_execution_outcome": dict(sorted(counts.items())),
         "network_performed": bool(shared_execution.get("network_performed")),
         "consumer_verification_performed": False,
         "source_support_paid_count": 0,
+        "coverage_residual_paid_count": 0,
         "semantic_promotion_performed": False,
         "edits_performed": False,
     }
