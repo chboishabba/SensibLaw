@@ -110,18 +110,21 @@ def test_partial_union_identity_scan_progresses_resolved_subset_only() -> None:
     assert result["outputs"]["statement_snapshot"].keys() == {"Q1"}
 
 
-def test_recomputation_is_qid_local_after_shared_partial_progress() -> None:
+def test_recomputation_is_qid_local_and_can_pay_only_coverage_coordinate() -> None:
     result = {
         "result_ref": "result:shared",
         "execution_outcome": "executed_with_output",
         "executor_receipt": {
+            "projection_properties": ["P14143", "P854"],
             "partial_read": {
                 "resolved_qids": {"Q1": 101},
                 "unresolved_qids": ["Q2"],
-            }
+            },
         },
         "outputs": {
-            "statement_snapshot": {"Q1": {"claims": {"P14143": []}}}
+            "statement_snapshot": {
+                "Q1": {"revid": 1, "claims": {}}
+            }
         },
     }
     q1 = build_target_property_coverage_residual(_row("Q1", "row:1"))
@@ -130,12 +133,42 @@ def test_recomputation_is_qid_local_after_shared_partial_progress() -> None:
     q1_assessment = assess_acquisition_for_recomputation(q1, result)
     q2_assessment = assess_acquisition_for_recomputation(q2, result)
 
-    assert q1_assessment["observation_state"] == (
-        "candidate_qp_evidence_observed_pending_coverage_recompute"
-    )
+    assert q1_assessment["observation_state"] == "coverage_recomputed_absent"
     assert q1_assessment["qid_identity_resolved"] is True
-    assert q1_assessment["coverage_payment_claimed"] is False
+    assert q1_assessment["exact_property_was_requested"] is True
+    assert q1_assessment["recomputed_coverage_status"] == "absent"
+    assert q1_assessment["coverage_coordinate_paid"] is True
+    assert q1_assessment["source_support_paid"] is False
+    assert q1_assessment["consumer_closure_claimed"] is False
 
     assert q2_assessment["observation_state"] == "still_open_subject_identity_unresolved"
     assert q2_assessment["qid_identity_unresolved"] is True
-    assert q2_assessment["coverage_payment_claimed"] is False
+    assert q2_assessment["coverage_coordinate_paid"] is False
+    assert q2_assessment["source_support_paid"] is False
+
+
+def test_present_property_also_pays_only_exact_coverage_coordinate() -> None:
+    residual = build_target_property_coverage_residual(_row("Q1", "row:1"))
+    result = {
+        "result_ref": "result:present",
+        "execution_outcome": "executed_with_output",
+        "executor_receipt": {
+            "projection_properties": ["P14143"],
+            "partial_read": {"resolved_qids": {"Q1": 101}, "unresolved_qids": []},
+        },
+        "outputs": {
+            "statement_snapshot": {
+                "Q1": {
+                    "revid": 2,
+                    "claims": {"P14143": [{"id": "statement:1"}]},
+                }
+            }
+        },
+    }
+
+    assessment = assess_acquisition_for_recomputation(residual, result)
+    assert assessment["observation_state"] == "coverage_recomputed_present"
+    assert assessment["recomputed_coverage_status"] == "present"
+    assert assessment["coverage_coordinate_paid"] is True
+    assert assessment["source_support_paid"] is False
+    assert assessment["semantic_promotion_performed"] is False
