@@ -7,8 +7,10 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from pathlib import Path
-from typing import Any
+from threading import Lock
+from typing import Any, Protocol
 
 from src.ontology.wikidata import (
     ENTITY_EXPORT_TEMPLATE,
@@ -16,9 +18,10 @@ from src.ontology.wikidata import (
     _fetch_recent_revisions,
 )
 from src.policy.carriers.canonical import canonical_sha256
+from src.sources.rate_limit import RateLimit, TokenBucketRateLimiter
 
 
-PARTIAL_READ_SCHEMA_VERSION = "sl.nat_zelph_hf_partial_read.v0_1"
+PARTIAL_READ_SCHEMA_VERSION = "sl.nat_zelph_hf_partial_read.v0_2"
 PROBE_MARKER_PATTERN = re.compile(r"SL_NAT_PROBE\|(Q\d+)\|")
 # `.node <name>` always prints `Node ID: N` for a successful single-node
 # result.  It prepends `Resolved to node ID: N` only when its forward
@@ -26,6 +29,12 @@ PROBE_MARKER_PATTERN = re.compile(r"SL_NAT_PROBE\|(Q\d+)\|")
 # Our bounded scan intentionally loads nodeOfName only, so the plain line is
 # the authoritative success surface in that partial view.
 NODE_ID_PATTERN = re.compile(r"(?:Resolved to node ID|Node ID):\s*([0-9]+)")
+
+
+class RateLimiter(Protocol):
+    """Minimal admission interface shared with SensibLaw source adapters."""
+
+    def acquire(self, tokens: float = 1.0) -> None: ...
 
 
 def _text(value: Any) -> str:
@@ -124,13 +133,24 @@ def resolve_qids_via_hosted_partial_scan(
     max_chunks: int | None = None,
     timeout_seconds: float = 120.0,
     repl_runner: Callable[..., tuple[int, str]] | None = None,
+    worker_budget: int = 4,
+    rate_limiter: RateLimiter | None = None,
 ) -> dict[str, Any]:
     """Resolve QID strings by scanning hosted v2 nodeOfName shards.
 
+    The scan uses a bounded sliding window of chunk subprocesses. Every worker
+    must acquire from one shared SensibLaw token-bucket authority before the
+    subprocess starts, so increasing worker count cannot multiply request rate.
+
+    Semantic reduction remains equivalent to the old sorted serial scan: for a
+    QID observed in more than one admitted chunk, the lowest chunk index wins.
+    Once all QIDs resolve, we still wait for any already-running chunk at or
+    below the current serial stopping frontier; only higher-index work may be
+    cancelled/ignored for semantic reduction. Thus completion order never owns
+    QID identity.
+
     This intentionally does not require a node-route sidecar. It trades network
-    bandwidth for progress while keeping the graph view partial: one nodeOfName
-    shard is loaded at a time and the scan stops once every requested QID resolves.
-    Name existence is tested through upstream `.node`, which is non-creating.
+    bandwidth for progress while keeping the graph view partial and read-only.
     """
 
     requested = _text_list(qids)
@@ -148,6 +168,8 @@ def resolve_qids_via_hosted_partial_scan(
             "qid_route_cache_seed": {},
             "unresolved_qids": requested,
             "chunks_scanned": [],
+            "execution_strategy": "bounded_rate_limited_parallel",
+            "worker_budget": max(1, int(worker_budget)),
             "network_performed": False,
         }
 
@@ -155,10 +177,19 @@ def resolve_qids_via_hosted_partial_scan(
     if max_chunks is not None:
         chunks = chunks[: max(0, int(max_chunks))]
 
+    workers = max(1, int(worker_budget))
+    limiter = rate_limiter or TokenBucketRateLimiter(RateLimit(rps=1.0, burst=1))
+    limiter_cfg = getattr(limiter, "cfg", None)
     runner = repl_runner or _default_repl_runner
+
     resolved: dict[str, int] = {}
     resolved_chunks: dict[str, int] = {}
     scanned: list[dict[str, Any]] = []
+
+    stats_lock = Lock()
+    active_runner_count = 0
+    peak_in_flight = 0
+    chunks_launched = 0
 
     with tempfile.TemporaryDirectory(prefix="sensiblaw-nat-hf-") as tmp:
         manifest_path = Path(tmp) / "wikidata.hf-v2.json"
@@ -166,45 +197,114 @@ def resolve_qids_via_hosted_partial_scan(
             json.dumps(dict(manifest), indent=2, sort_keys=True), encoding="utf-8"
         )
 
-        for chunk in chunks:
-            remaining = [qid for qid in requested if qid not in resolved]
-            if not remaining:
-                break
+        def run_chunk(
+            chunk: Mapping[str, Any], probe_qids: tuple[str, ...]
+        ) -> tuple[dict[str, Any], dict[str, int]]:
+            nonlocal active_runner_count, peak_in_flight, chunks_launched
             chunk_index = int(chunk["chunkIndex"])
+            try:
+                limiter.acquire()
+            except Exception as exc:
+                return (
+                    {
+                        "chunk_index": chunk_index,
+                        "object_path": _text(chunk.get("objectPath")),
+                        "exit_code": None,
+                        "error": f"rate admission failed: {type(exc).__name__}: {exc}",
+                    },
+                    {},
+                )
+
+            with stats_lock:
+                active_runner_count += 1
+                chunks_launched += 1
+                peak_in_flight = max(peak_in_flight, active_runner_count)
+
             payload = _resolve_probe_payload(
                 manifest_path=manifest_path,
                 chunk_index=chunk_index,
-                qids=remaining,
+                qids=probe_qids,
                 language=language,
             )
             try:
                 exit_code, output = runner(
                     binary, payload, timeout_seconds=timeout_seconds
                 )
-            except Exception as exc:
-                scanned.append(
-                    {
-                        "chunk_index": chunk_index,
-                        "object_path": _text(chunk.get("objectPath")),
-                        "exit_code": None,
-                        "error": f"{type(exc).__name__}: {exc}",
-                    }
-                )
-                continue
-
-            scanned.append(
-                {
+                row = {
                     "chunk_index": chunk_index,
                     "object_path": _text(chunk.get("objectPath")),
                     "size_bytes": chunk.get("length"),
                     "exit_code": exit_code,
                 }
-            )
-            chunk_resolved = _parse_probe_output(output, remaining)
-            for qid, node_id in chunk_resolved.items():
-                resolved[qid] = node_id
-                resolved_chunks[qid] = chunk_index
+                return row, _parse_probe_output(output, probe_qids)
+            except Exception as exc:
+                return (
+                    {
+                        "chunk_index": chunk_index,
+                        "object_path": _text(chunk.get("objectPath")),
+                        "exit_code": None,
+                        "error": f"{type(exc).__name__}: {exc}",
+                    },
+                    {},
+                )
+            finally:
+                with stats_lock:
+                    active_runner_count -= 1
 
+        next_chunk = 0
+        stopped_submitting = False
+        chunks_cancelled_before_start = 0
+        pending: dict[Future[tuple[dict[str, Any], dict[str, int]]], int] = {}
+
+        with ThreadPoolExecutor(
+            max_workers=workers, thread_name_prefix="sensiblaw-nat-hf"
+        ) as pool:
+
+            def submit_available() -> None:
+                nonlocal next_chunk
+                while (
+                    not stopped_submitting
+                    and len(pending) < workers
+                    and next_chunk < len(chunks)
+                ):
+                    remaining = tuple(qid for qid in requested if qid not in resolved)
+                    if not remaining:
+                        return
+                    chunk = chunks[next_chunk]
+                    next_chunk += 1
+                    chunk_index = int(chunk["chunkIndex"])
+                    pending[pool.submit(run_chunk, chunk, remaining)] = chunk_index
+
+            submit_available()
+            while pending:
+                completed, _ = wait(tuple(pending), return_when=FIRST_COMPLETED)
+                # Completion timing must not become semantic authority. Reduce a
+                # simultaneous completion batch in canonical chunk-index order.
+                completed_ordered = sorted(completed, key=lambda future: pending[future])
+                for future in completed_ordered:
+                    chunk_index = pending.pop(future)
+                    row, chunk_resolved = future.result()
+                    scanned.append(row)
+                    for qid, node_id in chunk_resolved.items():
+                        previous_chunk = resolved_chunks.get(qid)
+                        if previous_chunk is None or chunk_index < previous_chunk:
+                            resolved[qid] = node_id
+                            resolved_chunks[qid] = chunk_index
+
+                all_resolved = all(qid in resolved for qid in requested)
+                if all_resolved:
+                    stopped_submitting = True
+                    serial_frontier = max(resolved_chunks[qid] for qid in requested)
+                    # A task above the current serial frontier can no longer
+                    # affect the canonical result. Cancel it if it has not begun.
+                    for future, chunk_index in list(pending.items()):
+                        if chunk_index > serial_frontier and future.cancel():
+                            pending.pop(future)
+                            chunks_cancelled_before_start += 1
+                else:
+                    submit_available()
+
+    scanned.sort(key=lambda row: int(row.get("chunk_index", 0)))
     unresolved = [qid for qid in requested if qid not in resolved]
     cache_seed = {
         qid: {
@@ -213,25 +313,65 @@ def resolve_qids_via_hosted_partial_scan(
         }
         for qid in sorted(resolved)
     }
-    payload_without_ref = {
-        "schema_version": PARTIAL_READ_SCHEMA_VERSION,
-        "status": "complete" if not unresolved else "partial",
+
+    serial_frontier = (
+        max(resolved_chunks[qid] for qid in requested) if not unresolved else None
+    )
+    late_completions = (
+        sum(
+            1
+            for row in scanned
+            if int(row.get("chunk_index", 0)) > int(serial_frontier)
+        )
+        if serial_frontier is not None
+        else 0
+    )
+    chunks_not_launched_after_resolution = (
+        max(0, len(chunks) - next_chunk) if stopped_submitting else 0
+    )
+
+    canonical_surface = {
         "requested_qids": requested,
         "resolved_qids": dict(sorted(resolved.items())),
         "resolved_qid_chunks": dict(sorted(resolved_chunks.items())),
         "qid_route_cache_seed": cache_seed,
         "unresolved_qids": unresolved,
+        "language": language,
+        "name_probe": "dot_node_non_creating",
+        "node_id_success_surface": "marker_scoped_Node_ID",
+    }
+    canonical_resolution_ref = "nat-zelph-hf-canonical-resolution:" + canonical_sha256(
+        canonical_surface
+    )
+
+    payload_without_ref = {
+        "schema_version": PARTIAL_READ_SCHEMA_VERSION,
+        "status": "complete" if not unresolved else "partial",
+        **canonical_surface,
+        "canonical_resolution_ref": canonical_resolution_ref,
         "chunks_scanned": scanned,
         "chunk_count_scanned": len(scanned),
         "available_node_of_name_chunk_count": len(
             node_of_name_chunks(manifest, language=language)
         ),
-        "language": language,
-        "network_performed": bool(scanned),
+        "execution_strategy": "bounded_rate_limited_parallel",
+        "worker_budget": workers,
+        "rate_limit_policy": {
+            "shared_across_workers": True,
+            "rps": getattr(limiter_cfg, "rps", None),
+            "burst": getattr(limiter_cfg, "burst", None),
+        },
+        "peak_in_flight": peak_in_flight,
+        "chunks_submitted": next_chunk,
+        "chunks_launched": chunks_launched,
+        "chunks_completed": len(scanned),
+        "chunks_cancelled_before_start": chunks_cancelled_before_start,
+        "chunks_not_launched_after_resolution": chunks_not_launched_after_resolution,
+        "late_completions": late_completions,
+        "serial_stopping_frontier_chunk": serial_frontier,
+        "network_performed": bool(chunks_launched),
         "route_index_required": False,
         "full_graph_loaded": False,
-        "name_probe": "dot_node_non_creating",
-        "node_id_success_surface": "marker_scoped_Node_ID",
     }
     payload = dict(payload_without_ref)
     payload["partial_read_ref"] = "nat-zelph-hf-partial-read:" + canonical_sha256(
