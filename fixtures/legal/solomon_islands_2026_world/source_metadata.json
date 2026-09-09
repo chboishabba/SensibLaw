@@ -1,0 +1,13 @@
+{
+  "reporting_summary.txt": {
+    "source_revision_ref": "fixture:SB:2026:public-reporting-world:v0_1",
+    "source_role": "public_case_evidence",
+    "semantic_scope": "reported_case_evidence_fixture",
+    "provenance_boundary": "derived integration fixture; external reporting remains separately attributed and this row carries no legal or factual promotion authority"
+  },
+  "source_metadata.json": {
+    "source_revision_ref": "fixture:SB:2026:source-metadata:v0_1",
+    "source_role": "support_material",
+    "semantic_scope": "fixture_metadata_only"
+  }
+}
