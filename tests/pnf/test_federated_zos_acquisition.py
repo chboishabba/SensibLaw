@@ -56,6 +56,21 @@ def test_restricted_legal_policy_does_not_disclose_private_corpus_to_federation(
     assert all(row.receives_corpus_content is False for row in chosen)
 
 
+def test_medical_policy_keeps_patient_content_local_but_allows_public_ontology_discovery() -> None:
+    policy = AcquisitionPolicy.medical_strict(corpus_ref="patient:local:episode")
+    peers = (
+        FederatedPeer("peer:compute", frozenset({FederatedCapability.PARSE_COMPUTE}), True),
+        FederatedPeer("peer:ontology", frozenset({FederatedCapability.ONTOLOGY_CANDIDATES}), True),
+    )
+
+    assert policy.privacy is CorpusPrivacy.RESTRICTED
+    assert choose_federated_peers(policy, peers, RemoteCapability.COMPUTE) == ()
+    ontology = choose_federated_peers(policy, peers, RemoteCapability.ONTOLOGY)
+    assert [row.peer_ref for row in ontology] == ["peer:ontology"]
+    assert ontology[0].receives_corpus_content is False
+    assert ontology[0].receives_private_corpus_identity is False
+
+
 def test_capability_specialisation_allows_storage_compute_and_routing_to_be_separate() -> None:
     policy = AcquisitionPolicy.public_research(corpus_ref="public:mabo")
     peers = (
