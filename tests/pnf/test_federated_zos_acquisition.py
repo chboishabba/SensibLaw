@@ -8,6 +8,7 @@ from src.pnf.federated_zos_acquisition import (
     PublicOntologyPeer,
     RemoteCapability,
     SourceClass,
+    admit_distributed_compute,
     choose_federated_peers,
     federated_plan_for_lee_residual,
     object_from_semantic_export,
@@ -17,12 +18,8 @@ from src.pnf.legal_semantic_export import export_legal_semantic_build
 
 def test_ipfs_and_erdfa_are_transport_identity_not_semantic_authority() -> None:
     build = {"build": {"build_ref": "legal-semantic-build:mabo"}}
-    export = export_legal_semantic_build(
-        build,
-        locators=("ipfs://bafy-mabo", "https://mirror.example/mabo"),
-    )
+    export = export_legal_semantic_build(build, locators=("ipfs://bafy-mabo", "https://mirror.example/mabo"))
     obj = object_from_semantic_export(export)
-
     assert obj.object_id == "legal-semantic-build:mabo"
     assert obj.content_digest.startswith("sha256:")
     assert "ipfs://bafy-mabo" in obj.locators
@@ -33,23 +30,9 @@ def test_ipfs_and_erdfa_are_transport_identity_not_semantic_authority() -> None:
 
 def test_restricted_legal_policy_does_not_disclose_private_corpus_to_federation() -> None:
     policy = AcquisitionPolicy.legal_strict(corpus_ref="matter:private:mabo")
-    storage_peer = FederatedPeer(
-        peer_ref="peer:archive",
-        capabilities=frozenset({FederatedCapability.STORAGE_MIRROR}),
-        public_only=False,
-    )
-    router_peer = FederatedPeer(
-        peer_ref="peer:router",
-        capabilities=frozenset({FederatedCapability.ROUTING_DISCOVERY}),
-        public_only=True,
-    )
-
-    chosen = choose_federated_peers(
-        policy,
-        (storage_peer, router_peer),
-        required=RemoteCapability.DISCOVERY,
-    )
-
+    storage_peer = FederatedPeer("peer:archive", frozenset({FederatedCapability.STORAGE_MIRROR}), False)
+    router_peer = FederatedPeer("peer:router", frozenset({FederatedCapability.ROUTING_DISCOVERY}), True)
+    chosen = choose_federated_peers(policy, (storage_peer, router_peer), required=RemoteCapability.DISCOVERY)
     assert policy.privacy is CorpusPrivacy.RESTRICTED
     assert policy.advertise_private_corpus is False
     assert [row.peer_ref for row in chosen] == ["peer:router"]
@@ -62,7 +45,6 @@ def test_medical_policy_keeps_patient_content_local_but_allows_public_ontology_d
         FederatedPeer("peer:compute", frozenset({FederatedCapability.PARSE_COMPUTE}), True),
         FederatedPeer("peer:ontology", frozenset({FederatedCapability.ONTOLOGY_CANDIDATES}), True),
     )
-
     assert policy.privacy is CorpusPrivacy.RESTRICTED
     assert choose_federated_peers(policy, peers, RemoteCapability.COMPUTE) == ()
     ontology = choose_federated_peers(policy, peers, RemoteCapability.ONTOLOGY)
@@ -78,10 +60,28 @@ def test_capability_specialisation_allows_storage_compute_and_routing_to_be_sepa
         FederatedPeer("peer:compute", frozenset({FederatedCapability.PARSE_COMPUTE}), True),
         FederatedPeer("peer:route", frozenset({FederatedCapability.ROUTING_DISCOVERY}), True),
     )
-
     assert [row.peer_ref for row in choose_federated_peers(policy, peers, RemoteCapability.STORAGE)] == ["peer:store"]
     assert [row.peer_ref for row in choose_federated_peers(policy, peers, RemoteCapability.COMPUTE)] == ["peer:compute"]
     assert [row.peer_ref for row in choose_federated_peers(policy, peers, RemoteCapability.DISCOVERY)] == ["peer:route"]
+
+
+def test_existing_distributed_job_is_admitted_only_when_policy_and_peer_allow_compute() -> None:
+    peer = FederatedPeer("peer:compute", frozenset({FederatedCapability.PARSE_COMPUTE}), True)
+    public = admit_distributed_compute(
+        AcquisitionPolicy.public_research(corpus_ref="public:mabo"),
+        peer,
+        stable_input_ref="typed-job-input:abc",
+    )
+    restricted = admit_distributed_compute(
+        AcquisitionPolicy.legal_strict(corpus_ref="matter:mabo"),
+        peer,
+        stable_input_ref="typed-job-input:abc",
+    )
+    assert public.admitted is True
+    assert public.stable_input_ref == "typed-job-input:abc"
+    assert public.semantic_authority is False
+    assert restricted.admitted is False
+    assert restricted.payload_disclosed is False
 
 
 def test_public_ontology_peers_are_parallel_candidate_producers_not_truth_authorities() -> None:
@@ -91,7 +91,6 @@ def test_public_ontology_peers_are_parallel_candidate_producers_not_truth_author
         PublicOntologyPeer("medical-ontology", SourceClass.PUBLIC_ONTOLOGY),
         PublicOntologyPeer("oeis", SourceClass.PUBLIC_ONTOLOGY),
     )
-
     assert {row.provider_ref for row in peers} == {"wikidata", "dbpedia", "medical-ontology", "oeis"}
     assert all(row.candidate_only for row in peers)
     assert all(not row.semantic_authority for row in peers)
@@ -100,12 +99,7 @@ def test_public_ontology_peers_are_parallel_candidate_producers_not_truth_author
 
 def test_mabo_exact_common_ground_generates_zero_federated_work() -> None:
     policy = AcquisitionPolicy.legal_strict(corpus_ref="matter:mabo")
-    plan = federated_plan_for_lee_residual(
-        residual={"level": "exact"},
-        policy=policy,
-        coordinate_ref="mabo:native-title",
-    )
-
+    plan = federated_plan_for_lee_residual(residual={"level": "exact"}, policy=policy, coordinate_ref="mabo:native-title")
     assert plan.evidence_search_authorised is False
     assert plan.requests == ()
     assert plan.world_truth_claimed is False
@@ -114,12 +108,7 @@ def test_mabo_exact_common_ground_generates_zero_federated_work() -> None:
 
 def test_live_mabo_residual_emits_bounded_primary_source_request_without_fact_creation() -> None:
     policy = AcquisitionPolicy.legal_strict(corpus_ref="matter:mabo")
-    plan = federated_plan_for_lee_residual(
-        residual={"level": "contradiction"},
-        policy=policy,
-        coordinate_ref="mabo:terra-nullius:authority",
-    )
-
+    plan = federated_plan_for_lee_residual(residual={"level": "contradiction"}, policy=policy, coordinate_ref="mabo:terra-nullius:authority")
     assert plan.evidence_search_authorised is True
     assert len(plan.requests) == 1
     request = plan.requests[0]
