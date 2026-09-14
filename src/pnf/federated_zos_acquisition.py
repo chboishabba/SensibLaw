@@ -100,6 +100,14 @@ class PeerAssignment:
     semantic_authority: bool = False
 
 @dataclass(frozen=True, slots=True)
+class DistributedComputeAdmission:
+    stable_input_ref: str
+    peer_ref: str
+    admitted: bool
+    payload_disclosed: bool
+    semantic_authority: bool = False
+
+@dataclass(frozen=True, slots=True)
 class PublicOntologyPeer:
     provider_ref: str
     source_class: SourceClass
@@ -168,6 +176,28 @@ def choose_federated_peers(policy: AcquisitionPolicy, peers: Iterable[FederatedP
         ))
     return tuple(sorted(rows, key=lambda row: row.peer_ref))
 
+def admit_distributed_compute(policy: AcquisitionPolicy, peer: FederatedPeer, *, stable_input_ref: str) -> DistributedComputeAdmission:
+    """Gate an existing typed ImmutableJobManifest stable input into federation.
+
+    This does not create or enqueue a second job type.  The returned receipt is
+    only an admission decision for the existing PostgreSQL distributed worker.
+    Restricted/local corpora fail closed without disclosing payload bytes.
+    """
+    if not stable_input_ref.startswith("typed-job-input:") or stable_input_ref == "typed-job-input:":
+        raise ValueError("distributed compute requires an existing typed-job-input stable ref")
+    admitted = (
+        policy.privacy is CorpusPrivacy.PUBLIC
+        and policy.allow_remote_compute
+        and FederatedCapability.PARSE_COMPUTE in peer.capabilities
+    )
+    return DistributedComputeAdmission(
+        stable_input_ref=stable_input_ref,
+        peer_ref=peer.peer_ref,
+        admitted=admitted,
+        payload_disclosed=admitted,
+        semantic_authority=False,
+    )
+
 def federated_plan_for_lee_residual(*, residual: dict[str, object], policy: AcquisitionPolicy, coordinate_ref: str) -> FederatedAcquisitionPlan:
     decision = lee_search_decision_for_residual(residual)
     if not decision.evidence_search_authorised:
@@ -184,8 +214,8 @@ def federated_plan_for_lee_residual(*, residual: dict[str, object], policy: Acqu
 
 __all__ = [
     "FEDERATED_ZOS_ACQUISITION_CONTRACT", "AcquisitionPolicy", "CorpusPrivacy",
-    "FederatedAcquisitionPlan", "FederatedAcquisitionRequest", "FederatedCapability",
-    "FederatedContentObject", "FederatedPeer", "PeerAssignment", "PublicOntologyPeer",
-    "RemoteCapability", "SourceClass", "choose_federated_peers",
-    "federated_plan_for_lee_residual", "object_from_semantic_export",
+    "DistributedComputeAdmission", "FederatedAcquisitionPlan", "FederatedAcquisitionRequest",
+    "FederatedCapability", "FederatedContentObject", "FederatedPeer", "PeerAssignment",
+    "PublicOntologyPeer", "RemoteCapability", "SourceClass", "admit_distributed_compute",
+    "choose_federated_peers", "federated_plan_for_lee_residual", "object_from_semantic_export",
 ]
