@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 
 from src.ontology.wikimedia_world_walk import (
@@ -72,8 +71,8 @@ def test_persist_world_bucket_uses_only_idempotent_inserts() -> None:
     assert connection.commits == 1
 
     sql = "\n".join(statement for statement, _ in connection.statements).lower()
-    assert sql.count("insert into") == 6
-    assert sql.count("on conflict do nothing") == 6
+    assert sql.count("insert into") == 7
+    assert sql.count("on conflict do nothing") == 7
     assert " update " not in f" {sql} "
     assert " delete " not in f" {sql} "
     assert "json" not in sql
