@@ -54,7 +54,7 @@ def test_multilingual_qid_identity_does_not_pay_semantic_equivalence() -> None:
     surface = MultilingualSurface(
         language="es",
         text="El tribunal rechazó la doctrina.",
-        qid="Q185134",
+        qid="Q1501525",
         qid_identity_paid=True,
         semantic_equivalence_paid=False,
         role_carrier_compatible=True,
