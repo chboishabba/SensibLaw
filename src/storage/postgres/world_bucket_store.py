@@ -37,6 +37,7 @@ class WorldBucketPersistenceReceipt:
     nodes_written: int
     growth_receipts_written: int
     projection_members_written: int
+    projection_parents_written: int
     candidate_only: bool = True
     semantic_promotion: bool = False
 
@@ -235,6 +236,16 @@ def persist_world_bucket(
                 """,
                 (projection_id, node_id, ordinal),
             )
+        for ordinal, parent_bucket_cid in enumerate(projection.parent_bucket_cids):
+            cursor.execute(
+                """
+                INSERT INTO sl_world_bucket_projection_parent (
+                    projection_id, parent_bucket_cid, ordinal
+                ) VALUES (%s, %s, %s)
+                ON CONFLICT DO NOTHING
+                """,
+                (projection_id, parent_bucket_cid, ordinal),
+            )
     connection.commit()
     return WorldBucketPersistenceReceipt(
         bucket_id=bucket_id,
@@ -242,6 +253,7 @@ def persist_world_bucket(
         nodes_written=len(result.nodes),
         growth_receipts_written=len(result.receipts),
         projection_members_written=len(projection.selected_node_ids),
+        projection_parents_written=len(projection.parent_bucket_cids),
     )
 
 
