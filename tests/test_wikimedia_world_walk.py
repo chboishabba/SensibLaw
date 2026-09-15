@@ -1,7 +1,9 @@
+from src.ontology.wikidata import StatementBundle
 from src.ontology.wikimedia_world_walk import (
     EdgeCandidate,
     WorldWalkPolicy,
     build_publishable_bucket_manifest,
+    edge_candidates_from_wikidata_bundles,
     walk_world,
 )
 
@@ -21,6 +23,29 @@ def _fixture_candidates(node_id: str) -> list[EdgeCandidate]:
         ],
     }
     return fixtures.get(node_id, [])
+
+
+def test_wikidata_statement_bundles_compile_to_typed_world_edges() -> None:
+    bundles = [
+        StatementBundle("Q1", "P31", "Q5", "normal", None, (), ()),
+        StatementBundle("Q1", "P361", "http://www.wikidata.org/entity/Q2", "normal", None, (), ()),
+        StatementBundle("Q1", "P50", "Q3", "normal", None, (), ()),
+        StatementBundle("Q1", "P279", "not-a-qid", "normal", None, (), ()),
+    ]
+
+    default_edges = edge_candidates_from_wikidata_bundles(bundles)
+    assert [(edge.relation, edge.target, edge.edge_family) for edge in default_edges] == [
+        ("P31", "Q5", "wikidata_ontology"),
+        ("P361", "Q2", "wikidata_ontology"),
+    ]
+
+    explicit_property_edges = edge_candidates_from_wikidata_bundles(
+        bundles,
+        property_filter=("P50",),
+    )
+    assert [(edge.relation, edge.target, edge.edge_family) for edge in explicit_property_edges] == [
+        ("P50", "Q3", "wikidata_property"),
+    ]
 
 
 def test_world_walk_is_bounded_append_only_and_preserves_typed_cycle_receipt() -> None:
