@@ -30,7 +30,7 @@ Schemas:
 
 ## Edge families
 
-The first runtime is intentionally producer-neutral. Existing producers may supply candidate edges from:
+The first runtime is producer-neutral above explicit adapters. Candidate edges may come from:
 
 - Wikidata ontology/property traversal;
 - Wikipedia navigation/revision links;
@@ -40,6 +40,19 @@ The first runtime is intentionally producer-neutral. Existing producers may supp
 - residual-driven inquiry.
 
 The world walk does not decide that any candidate is true or authoritative.
+
+### First real producer adapter
+
+`edge_candidates_from_wikidata_bundles(...)` now consumes the existing retained `StatementBundle` shape from `src/ontology/wikidata.py`; it does not parse Wikidata again.
+
+Default admitted properties are the existing structural profile:
+
+- `P31`;
+- `P279`;
+- `P361`;
+- `P527`.
+
+Only entity-valued/QID-resolvable statements are admitted. Non-entity values are ignored rather than guessed. Additional properties require an explicit property filter and are typed as `wikidata_property` rather than silently conflated with the structural ontology family.
 
 ## First executable contract
 
@@ -107,20 +120,26 @@ Reuse, do not replace:
 
 ## Current status
 
-Implemented and focused-test GREEN:
+Source-written and focused contract mirror GREEN:
 
 - bounded deterministic world walk;
 - append-only typed growth receipts;
 - cycle preservation;
 - 100-hop default budget;
+- real adapter from existing Wikidata `StatementBundle` rows;
 - candidate-only selected publication projection;
 - browsing-history exclusion;
 - deterministic SHA-256 content digest;
 - Kant/eRDFa-shaped logical packaging metadata.
 
-Not yet paid:
+Observed focused mirror receipt:
 
-- live adapter from real Wikidata statement candidates into `EdgeCandidate`;
+- RED: missing `src.ontology.wikimedia_world_walk` / missing Wikidata adapter;
+- GREEN: focused world-walk/publication/adapter contract passes in the local mirror.
+
+Not yet claimed:
+
+- exact repository CI receipt on the current branch;
 - live adapter from revision-locked Wikipedia navigation/reference candidates;
 - PNF branching-pressure adapter;
 - executed 100-hop Mabo world-growth receipt;
@@ -150,6 +169,8 @@ Run the first real Mabo `hybrid` world walk with a 100-hop budget from already-r
 - cycles/revisits/dead ends;
 - unresolved residuals;
 - selected candidate publication manifest.
+
+The missing P0 adapters are now only the non-Wikidata colours needed for that hybrid walk: revision-locked Wikipedia navigation/reference candidates and PNF/source/residual candidate projections.
 
 ### P1
 
