@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from typing import Callable, Iterable, Sequence
 
 
 WORLD_BUCKET_SCHEMA_VERSION = "sl.wikimedia_world_bucket.v0_1"
 WORLD_WALK_SCHEMA_VERSION = "sl.wikimedia_world_walk.v0_1"
+DEFAULT_WIKIDATA_WORLD_PROPERTIES = ("P31", "P279", "P361", "P527")
+ONTOLOGY_WORLD_PROPERTIES = frozenset(DEFAULT_WIKIDATA_WORLD_PROPERTIES)
+QID_PATTERN = re.compile(r"^Q\d+$")
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,63 @@ def _candidate_key(candidate: EdgeCandidate) -> tuple[int, str, str, str, str]:
         candidate.source,
         candidate.target,
     )
+
+
+def _extract_entity_qid(value: object) -> str | None:
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith("http://www.wikidata.org/entity/"):
+            text = text.rsplit("/", 1)[-1]
+        return text if QID_PATTERN.fullmatch(text) else None
+    if isinstance(value, dict):
+        for key in ("id", "value"):
+            candidate = value.get(key)
+            if isinstance(candidate, str):
+                qid = _extract_entity_qid(candidate)
+                if qid is not None:
+                    return qid
+    return None
+
+
+def edge_candidates_from_wikidata_bundles(
+    bundles: Iterable[object],
+    *,
+    property_filter: Sequence[str] = DEFAULT_WIKIDATA_WORLD_PROPERTIES,
+) -> list[EdgeCandidate]:
+    """Compile retained Wikidata StatementBundle-shaped rows into world edges.
+
+    This is deliberately narrower than parsing Wikidata again: callers pass the
+    existing retained bundle objects. Only entity-valued statements on the
+    explicit property filter become candidates. Non-entity values are ignored
+    rather than guessed into identities.
+    """
+
+    allowed = set(property_filter)
+    edges: list[EdgeCandidate] = []
+    for bundle in bundles:
+        subject = str(getattr(bundle, "subject", "")).strip()
+        property_id = str(getattr(bundle, "property", "")).strip()
+        if not subject or property_id not in allowed:
+            continue
+        target = _extract_entity_qid(getattr(bundle, "value", None))
+        if target is None:
+            continue
+        family = (
+            "wikidata_ontology"
+            if property_id in ONTOLOGY_WORLD_PROPERTIES
+            else "wikidata_property"
+        )
+        priority = 20 if family == "wikidata_ontology" else 10
+        edges.append(
+            EdgeCandidate(
+                source=subject,
+                target=target,
+                edge_family=family,
+                relation=property_id,
+                priority=priority,
+            )
+        )
+    return sorted(edges, key=lambda edge: (edge.relation, edge.target, edge.source))
 
 
 def _validated_candidates(source: str, candidates: Iterable[EdgeCandidate]) -> list[EdgeCandidate]:
