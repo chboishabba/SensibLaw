@@ -14,19 +14,22 @@ seed
   -> bounded deterministic selection
   -> append-only WorldGrowthReceipt
   -> local bucket
+  -> append-only Postgres materialisation
   -> selected publication projection
-  -> logical Kant/eRDFa shard envelope
+  -> later logical Kant/eRDFa shard envelope
   -> later reviewed publication adapter
 ```
 
-The runtime owner is:
+The runtime owners are:
 
 - `src/ontology/wikimedia_world_walk.py`
+- `src/storage/postgres/world_bucket_store.py`
 
 Schemas:
 
 - `sl.wikimedia_world_walk.v0_1`
 - `sl.wikimedia_world_bucket.v0_1`
+- Postgres migration `182_world_bucket_append_only_materialisation.sql`
 
 ## Edge families
 
@@ -43,7 +46,7 @@ The world walk does not decide that any candidate is true or authoritative.
 
 ### First real producer adapter
 
-`edge_candidates_from_wikidata_bundles(...)` now consumes the existing retained `StatementBundle` shape from `src/ontology/wikidata.py`; it does not parse Wikidata again.
+`edge_candidates_from_wikidata_bundles(...)` consumes the existing retained `StatementBundle` shape from `src/ontology/wikidata.py`; it does not parse Wikidata again.
 
 Default admitted properties are the existing structural profile:
 
@@ -53,6 +56,8 @@ Default admitted properties are the existing structural profile:
 - `P527`.
 
 Only entity-valued/QID-resolvable statements are admitted. Non-entity values are ignored rather than guessed. Additional properties require an explicit property filter and are typed as `wikidata_property` rather than silently conflated with the structural ontology family.
+
+The current production-shaped world-walk module no longer depends on JSON canonicalisation or regex QID parsing. QID admission is structural and projection identity is hashed from typed length-prefixed fields.
 
 ## First executable contract
 
@@ -70,24 +75,73 @@ Each selected extension produces a typed receipt containing:
 
 The runtime does not fetch or crawl. It consumes already-produced candidate edges so existing Wikidata, Wikipedia, source-follow and PNF machinery remain authoritative for acquisition/parsing semantics.
 
+## Postgres materialisation boundary
+
+The immediate physical implementation target is Postgres, not live eRDFa/IPFS publication.
+
+Migration `182_world_bucket_append_only_materialisation.sql` normalises the bucket into seven append-only families:
+
+1. bucket identity;
+2. bucket node membership;
+3. typed world-growth receipts;
+4. selected projection identity;
+5. selected projection members;
+6. projection parent/lineage refs;
+7. materialisation receipts.
+
+The materialisation states are:
+
+- `skeleton`;
+- `reference_only`;
+- `full_local`;
+- `cold_local`;
+- `federated_only`.
+
+These are possession/materialisation coordinates, not epistemic statuses.
+
+The database rejects `UPDATE`/`DELETE` on the world-bucket families. Runtime replay uses deterministic identities with `INSERT ... ON CONFLICT DO NOTHING`, so replay is idempotent without rewriting prior evidence.
+
+A materialisation transition is another append-only observation. For example:
+
+```text
+full_local -> skeleton
+```
+
+does not erase the earlier full-local receipt. A later consumer may derive current possession state while the historical transition remains available.
+
+Core firewall:
+
+```text
+materialised bytes != semantic authority != evidence payment
+```
+
+and query-indexed adequacy remains decisive:
+
+```text
+navigation may factor through skeleton/reference-only state
+exact quotation and strict primary-authority review do not
+```
+
 ## Publication boundary
 
-`build_publishable_bucket_manifest(...)` projects only explicitly selected nodes/edges into a candidate manifest.
+`build_publishable_bucket_manifest(...)` now returns a typed `WorldBucketProjection` rather than a generic mapping. It projects only explicitly selected nodes/edges into a candidate logical package.
 
-The manifest is deliberately:
+The projection is deliberately:
 
 - `candidate_only = true`;
 - `semantic_promotion = false`;
 - `live_ipfs_publication_performed = false`;
 - `publication_projection_is_browsing_history = false`.
 
-The logical packaging block currently declares:
+The logical packaging coordinates remain:
 
 - target: `kant-erdfa-shardset`;
 - envelope: `cbor-compatible-logical-envelope`;
 - addressing state: `sha256-now-cid-later`;
 - deterministic logical shard id;
 - empty sink refs.
+
+Parent bucket CIDs/refs are retained explicitly in Postgres projection lineage rather than existing only inside a digest.
 
 This is a compatibility target, not a claim that actual Kant CBOR/eRDFa serialization or IPFS publication occurred.
 
@@ -113,6 +167,7 @@ Reuse, do not replace:
 - revision-locked Wiki review packet machinery for Wikipedia/Wikidata source context;
 - `wikidata_review_packet_follow_depth.py` and source-follow receipts for bounded reference evidence;
 - SLR/PNF producers for semantic candidate relations;
+- Postgres world-bucket storage for durable local/skeletal state;
 - ITIR Reading Trail for human exploration;
 - Kant/eRDFa for later immutable shard packaging;
 - IPFS/HF sinks for later content-addressed publication;
@@ -120,7 +175,7 @@ Reuse, do not replace:
 
 ## Current status
 
-Source-written and focused contract mirror GREEN:
+Previously observed focused world-walk contract:
 
 - bounded deterministic world walk;
 - append-only typed growth receipts;
@@ -128,18 +183,25 @@ Source-written and focused contract mirror GREEN:
 - 100-hop default budget;
 - real adapter from existing Wikidata `StatementBundle` rows;
 - candidate-only selected publication projection;
-- browsing-history exclusion;
-- deterministic SHA-256 content digest;
-- Kant/eRDFa-shaped logical packaging metadata.
+- browsing-history exclusion.
 
-Observed focused mirror receipt:
+New Postgres tranche is source-written and awaiting local verification:
 
-- RED: missing `src.ontology.wikimedia_world_walk` / missing Wikidata adapter;
-- GREEN: focused world-walk/publication/adapter contract passes in the local mirror.
+- JSON/regex removed from the world-walk projection path;
+- typed `WorldBucketProjection`;
+- typed-field SHA-256 identity rather than JSON canonicalisation;
+- normalized append-only Postgres schema;
+- explicit projection lineage refs;
+- five materialisation states;
+- database UPDATE/DELETE rejection;
+- idempotent insert-only persistence adapter;
+- matching DASHI owner `SensibLawWorldBucketPostgresMaterialisationExact`.
 
 Not yet claimed:
 
-- exact repository CI receipt on the current branch;
+- focused Python tests for the new Postgres tranche on exact head;
+- migration execution against a live Postgres instance;
+- focused Agda type-check of the new materialisation owner;
 - live adapter from revision-locked Wikipedia navigation/reference candidates;
 - PNF branching-pressure adapter;
 - executed 100-hop Mabo world-growth receipt;
@@ -151,35 +213,57 @@ Not yet claimed:
 
 ## Roadmap consequence
 
-The architecture is now split into three distinct planes:
+The architecture is now four distinct planes:
 
 1. **Acquire / grow locally** — WikimediaWorldWalk and existing source/PNF producers.
-2. **Select / package** — candidate-only bucket projection with immutable logical identity.
-3. **Review / publish / query globally** — later Kant/eRDFa/IPFS publication and Zelph retrieval.
+2. **Materialise adequately** — Postgres full/skeletal/reference-only/federated possession state.
+3. **Select / package** — candidate-only bucket projection with immutable logical identity.
+4. **Review / publish / query globally** — later Kant/eRDFa/IPFS publication and Zelph retrieval.
 
-This moves the roadmap beyond UI-only Reading Trail work. The Reading Trail can now sit over a much larger precomputed local bucket without rendering or publishing the whole bucket.
+The key deployment law is:
 
-### P0 next
+```text
+self-populating != self-hoarding
+```
 
-Run the first real Mabo `hybrid` world walk with a 100-hop budget from already-retained/revision-pinned inputs. Produce:
+A large world may be representable/reopenable without every node storing every source byte locally.
+
+### P0 next — verify Postgres materialisation
+
+Run focused tests and apply migration 182 to a disposable/live development database. Persist a small Mabo bucket twice and verify:
+
+- second replay inserts no conflicting replacement state;
+- historical growth receipts remain unchanged;
+- a skeleton materialisation receipt can coexist with a prior/full-local receipt;
+- selected projection and parent refs reopen exactly;
+- no persistence event creates semantic promotion or evidence payment.
+
+### P1 — first bounded Mabo world specimen
+
+Run the first real Mabo `hybrid` world walk from already-retained/revision-pinned inputs. Start small enough to inspect manually, then raise the budget toward 100 only after PG receipts are stable. Produce:
 
 - world-growth receipts;
 - edge-family counts;
 - QID/PID/revision/source/PNF counts;
 - cycles/revisits/dead ends;
 - unresolved residuals;
-- selected candidate publication manifest.
+- selected candidate projection;
+- materialisation/storage metrics.
 
-The missing P0 adapters are now only the non-Wikidata colours needed for that hybrid walk: revision-locked Wikipedia navigation/reference candidates and PNF/source/residual candidate projections.
+The missing non-Wikidata colours remain revision-locked Wikipedia navigation/reference candidates and PNF/source/residual candidate projections.
 
-### P1
+### P2 — Reading/Review Workbench projection
 
-Run the same seed through separate traversal policies and compare typed overlap/world-growth fingerprints.
+Expose a bounded Mabo proof/reading trail over the persisted bucket. The displayed world remains much smaller than the available world; source/provenance and graph detail reopen on demand.
 
-### P2
+### P3 — policy comparison
 
-Bind the candidate manifest to the existing Kant/eRDFa shard emitter and produce a local immutable artifact without yet pushing it to a public sink.
+Run the same seed through separate traversal policies and compare typed overlap/world-growth fingerprints plus residual-contraction-per-byte/request.
 
-### P3
+### P4 — immutable publication artifact
 
-Only after local artifact parity: publish an explicitly selected bucket to IPFS/HF, ingest/query through Zelph, and keep semantic promotion as a separate review action.
+Bind an explicitly selected projection to the existing Kant/eRDFa shard emitter and produce a local immutable artifact without yet pushing it to a public sink.
+
+### P5 — optional federation/publication
+
+Only after local artifact parity: publish explicitly selected public buckets to IPFS/HF, ingest/query through Zelph, and keep semantic promotion as a separate review action.
