@@ -68,3 +68,10 @@ def test_publish_projection_is_candidate_only_and_excludes_browsing_history() ->
     assert "reading_trail" not in manifest
     assert "browsing_history" not in manifest
     assert manifest["content_digest"].startswith("sha256:")
+
+    packaging = manifest["packaging"]
+    assert packaging["target"] == "kant-erdfa-shardset"
+    assert packaging["manifest_format"] == "cbor-compatible-logical-envelope"
+    assert packaging["content_addressing"] == "sha256-now-cid-later"
+    assert packaging["sink_refs"] == []
+    assert packaging["logical_shard_id"].startswith("world-bucket:")
