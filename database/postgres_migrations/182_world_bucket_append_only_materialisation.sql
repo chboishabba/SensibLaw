@@ -62,6 +62,14 @@ CREATE TABLE IF NOT EXISTS sl_world_bucket_projection_member (
     UNIQUE (projection_id, ordinal)
 );
 
+CREATE TABLE IF NOT EXISTS sl_world_bucket_projection_parent (
+    projection_id TEXT NOT NULL REFERENCES sl_world_bucket_projection(projection_id),
+    parent_bucket_cid TEXT NOT NULL,
+    ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
+    PRIMARY KEY (projection_id, parent_bucket_cid),
+    UNIQUE (projection_id, ordinal)
+);
+
 CREATE TABLE IF NOT EXISTS sl_world_materialisation_receipt (
     receipt_id TEXT PRIMARY KEY,
     bucket_id TEXT NOT NULL REFERENCES sl_world_bucket(bucket_id),
@@ -122,6 +130,11 @@ CREATE TRIGGER sl_world_bucket_projection_append_only
 DROP TRIGGER IF EXISTS sl_world_bucket_projection_member_append_only ON sl_world_bucket_projection_member;
 CREATE TRIGGER sl_world_bucket_projection_member_append_only
     BEFORE UPDATE OR DELETE ON sl_world_bucket_projection_member
+    FOR EACH ROW EXECUTE FUNCTION sl_reject_world_bucket_mutation();
+
+DROP TRIGGER IF EXISTS sl_world_bucket_projection_parent_append_only ON sl_world_bucket_projection_parent;
+CREATE TRIGGER sl_world_bucket_projection_parent_append_only
+    BEFORE UPDATE OR DELETE ON sl_world_bucket_projection_parent
     FOR EACH ROW EXECUTE FUNCTION sl_reject_world_bucket_mutation();
 
 DROP TRIGGER IF EXISTS sl_world_materialisation_receipt_append_only ON sl_world_materialisation_receipt;
