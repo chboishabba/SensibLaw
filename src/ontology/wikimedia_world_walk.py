@@ -85,8 +85,8 @@ def _validated_candidates(source: str, candidates: Iterable[EdgeCandidate]) -> l
 def walk_world(*, seed: str, policy: WorldWalkPolicy, expand: ExpandFn) -> WorldWalkResult:
     """Grow a bounded, deterministic local inquiry bucket.
 
-    This runtime accepts already-produced candidate edges.  It does not fetch,
-    crawl, publish, or promote semantics.  Each selected extension is retained
+    This runtime accepts already-produced candidate edges. It does not fetch,
+    crawl, publish, or promote semantics. Each selected extension is retained
     as an append-only receipt, including revisits/cycles.
     """
 
@@ -121,10 +121,6 @@ def walk_world(*, seed: str, policy: WorldWalkPolicy, expand: ExpandFn) -> World
                 seen.add(candidate.target)
                 nodes.append(candidate.target)
                 frontier.append(candidate.target)
-            elif candidate.target == seed and len(receipts) < policy.hop_budget:
-                # A recorded cycle closes the current branch.  Do not re-expand
-                # the previously expanded seed under the same policy.
-                continue
 
     return WorldWalkResult(
         schema_version=WORLD_WALK_SCHEMA_VERSION,
@@ -148,14 +144,14 @@ def _receipt_dict(receipt: WorldGrowthReceipt) -> dict[str, object]:
     }
 
 
-def _digest_payload(payload: dict[str, object]) -> str:
+def _canonical_json_digest(payload: object) -> str:
     encoded = json.dumps(
         payload,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
     ).encode("utf-8")
-    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def build_publishable_bucket_manifest(
@@ -167,18 +163,26 @@ def build_publishable_bucket_manifest(
 ) -> dict[str, object]:
     """Project a local walk into a candidate-only immutable-package manifest.
 
-    The manifest deliberately contains no browsing/Reading-Trail history.  It
-    is a logical packaging target for a later Kant/eRDFa/IPFS adapter; this
-    function performs no external publication.
+    The manifest deliberately contains no browsing/Reading-Trail history. It is
+    a logical packaging target for a later Kant/eRDFa/IPFS adapter; this
+    function performs no external publication and does not manufacture a CID.
     """
 
-    selected = sorted(node for node in selected_node_ids if node in set(result.nodes))
+    result_nodes = set(result.nodes)
+    selected = sorted(node for node in selected_node_ids if node in result_nodes)
     selected_set = set(selected)
     selected_receipts = [
         _receipt_dict(receipt)
         for receipt in result.receipts
         if receipt.source in selected_set and receipt.target in selected_set
     ]
+    shard_identity_digest = _canonical_json_digest(
+        {
+            "seed": result.seed,
+            "selected_node_ids": selected,
+            "typed_edge_receipts": selected_receipts,
+        }
+    )
 
     payload: dict[str, object] = {
         "schema_version": WORLD_BUCKET_SCHEMA_VERSION,
@@ -194,6 +198,13 @@ def build_publishable_bucket_manifest(
         "semantic_promotion": False,
         "live_ipfs_publication_performed": False,
         "publication_projection_is_browsing_history": False,
+        "packaging": {
+            "target": "kant-erdfa-shardset",
+            "manifest_format": "cbor-compatible-logical-envelope",
+            "content_addressing": "sha256-now-cid-later",
+            "logical_shard_id": f"world-bucket:{shard_identity_digest[:24]}",
+            "sink_refs": [],
+        },
     }
-    payload["content_digest"] = _digest_payload(payload)
+    payload["content_digest"] = "sha256:" + _canonical_json_digest(payload)
     return payload
