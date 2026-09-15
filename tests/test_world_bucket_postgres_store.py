@@ -52,6 +52,7 @@ def _result_and_projection():
     projection = build_publishable_bucket_manifest(
         result,
         selected_node_ids={"mabo", "hca-1992"},
+        parent_bucket_cids=("bafy-parent",),
         compiler_version="world-walk-v0_1",
     )
     return result, projection
@@ -68,11 +69,13 @@ def test_persist_world_bucket_uses_only_idempotent_inserts() -> None:
     assert receipt.nodes_written == 2
     assert receipt.growth_receipts_written == 1
     assert receipt.projection_members_written == 2
+    assert receipt.projection_parents_written == 1
     assert connection.commits == 1
 
     sql = "\n".join(statement for statement, _ in connection.statements).lower()
-    assert sql.count("insert into") == 7
-    assert sql.count("on conflict do nothing") == 7
+    assert sql.count("insert into") == 8
+    assert sql.count("on conflict do nothing") == 8
+    assert "insert into sl_world_bucket_projection_parent" in sql
     assert " update " not in f" {sql} "
     assert " delete " not in f" {sql} "
     assert "json" not in sql
