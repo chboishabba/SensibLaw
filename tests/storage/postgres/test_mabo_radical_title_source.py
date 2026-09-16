@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+
 from src.storage.postgres.mabo_radical_title_source import (
     MABO_RADICAL_TITLE_COORDINATE,
+    build_mabo_radical_title_materialisation,
     load_mabo_radical_title_payment,
 )
 from src.storage.postgres.semantic_reader_projection import (
@@ -34,6 +37,38 @@ def test_radical_title_coordinate_is_source_manifestation_specific() -> None:
     assert coordinate.manifestation_ref != coordinate.authority_identity_ref
     assert coordinate.semantic_truth_paid is False
     assert coordinate.applicability_paid is False
+
+
+def test_materialisation_derives_digest_and_exact_span_from_acquired_text() -> None:
+    coordinate = MABO_RADICAL_TITLE_COORDINATE
+    canonical_text = (
+        "Context before. "
+        + coordinate.literal_anchor
+        + " Context after."
+    )
+
+    materialisation = build_mabo_radical_title_materialisation(canonical_text)
+
+    assert materialisation.document_ref == coordinate.document_ref
+    assert materialisation.source_revision_ref == coordinate.source_revision_ref
+    assert materialisation.span_ref == coordinate.span_ref
+    assert canonical_text[materialisation.start_char : materialisation.end_char] == coordinate.literal_anchor
+    assert materialisation.canonical_text_sha256 == hashlib.sha256(
+        canonical_text.encode("utf-8")
+    ).hexdigest()
+    assert materialisation.source_role == "judgment"
+    assert materialisation.authority_level == "primary"
+    assert materialisation.semantic_truth_paid is False
+    assert materialisation.applicability_paid is False
+
+
+def test_materialisation_fails_closed_when_exact_anchor_is_absent() -> None:
+    try:
+        build_mabo_radical_title_materialisation("Other judgment text")
+    except ValueError as error:
+        assert "radical-title literal anchor" in str(error)
+    else:
+        raise AssertionError("missing exact Mabo anchor must fail closed")
 
 
 def test_persisted_exact_span_executes_source_but_not_whole_proof_chain() -> None:
