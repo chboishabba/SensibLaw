@@ -1,8 +1,9 @@
 """Exact Mabo radical-title source coordinate for the Semantic Reader.
 
-The coordinate names one narrow passage in Brennan J's reasons.  PostgreSQL
-remains the persistence/source-of-bytes owner; this module only binds stable
-reader coordinates to the existing PG source-payment projection.
+The coordinate names one narrow passage in Brennan J's reasons. PostgreSQL
+remains the persistence/source-of-bytes owner; this module binds stable reader
+coordinates to the existing PG source-payment projection and derives the exact
+span/digest from acquired canonical text.
 
 The archived manifestation is kept distinct from the legal authority identity.
 Opening this exact span does not by itself pay applicability, the wider Mabo
@@ -12,6 +13,7 @@ proof chain, or legal truth.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
 from typing import Any
 
 from src.storage.postgres.semantic_reader_projection import (
@@ -39,6 +41,22 @@ class MaboRadicalTitleCoordinate:
     semantic_truth_paid: bool = False
     applicability_paid: bool = False
     proposition_chain_paid: bool = False
+
+
+@dataclass(frozen=True)
+class MaboRadicalTitleMaterialisation:
+    source_revision_ref: str
+    document_ref: str
+    span_ref: str
+    canonical_text_sha256: str
+    start_char: int
+    end_char: int
+    source_role: str
+    authority_level: str
+    manifestation_ref: str
+    authority_identity_ref: str
+    semantic_truth_paid: bool = False
+    applicability_paid: bool = False
 
 
 MABO_RADICAL_TITLE_COORDINATE = MaboRadicalTitleCoordinate(
@@ -69,11 +87,43 @@ MABO_RADICAL_TITLE_COORDINATE = MaboRadicalTitleCoordinate(
 )
 
 
+def build_mabo_radical_title_materialisation(
+    canonical_text: str,
+) -> MaboRadicalTitleMaterialisation:
+    """Derive the exact persisted reader coordinate from acquired source text.
+
+    Absence or multiplicity of the narrow anchor fails closed. This builder does
+    not acquire the source, promote identity, determine applicability, or pay
+    the wider proof chain.
+    """
+
+    coordinate = MABO_RADICAL_TITLE_COORDINATE
+    first = canonical_text.find(coordinate.literal_anchor)
+    if first < 0:
+        raise ValueError("Mabo radical-title literal anchor not found")
+    second = canonical_text.find(coordinate.literal_anchor, first + 1)
+    if second >= 0:
+        raise ValueError("Mabo radical-title literal anchor is not unique")
+    end = first + len(coordinate.literal_anchor)
+    return MaboRadicalTitleMaterialisation(
+        source_revision_ref=coordinate.source_revision_ref,
+        document_ref=coordinate.document_ref,
+        span_ref=coordinate.span_ref,
+        canonical_text_sha256=hashlib.sha256(canonical_text.encode("utf-8")).hexdigest(),
+        start_char=first,
+        end_char=end,
+        source_role=coordinate.source_role,
+        authority_level=coordinate.authority_level,
+        manifestation_ref=coordinate.manifestation_ref,
+        authority_identity_ref=coordinate.authority_identity_ref,
+    )
+
+
 def load_mabo_radical_title_payment(cursor: Any) -> ReaderSourcePayment:
     """Load and verify the one paid radical-title source span from PostgreSQL.
 
     The generic reader projection checks same-document coordinates and valid
-    character bounds.  This narrower owner also checks the expected literal
+    character bounds. This narrower owner also checks the expected literal
     anchor so a stale/wrong span row fails closed instead of paying the reader.
     """
 
@@ -97,5 +147,7 @@ def load_mabo_radical_title_payment(cursor: Any) -> ReaderSourcePayment:
 __all__ = [
     "MABO_RADICAL_TITLE_COORDINATE",
     "MaboRadicalTitleCoordinate",
+    "MaboRadicalTitleMaterialisation",
+    "build_mabo_radical_title_materialisation",
     "load_mabo_radical_title_payment",
 ]
