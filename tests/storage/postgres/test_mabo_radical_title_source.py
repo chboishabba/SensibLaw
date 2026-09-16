@@ -31,7 +31,8 @@ def test_radical_title_coordinate_is_source_manifestation_specific() -> None:
     assert coordinate.case_citation == "Mabo v Queensland (No 2) [1992] HCA 23"
     assert coordinate.clr_locator == "175 CLR 1, 48-49"
     assert coordinate.judge == "Brennan J"
-    assert coordinate.source_revision_ref.startswith("source-revision:mabo:1992:hca:23:")
+    assert coordinate.source_revision_ref.endswith("rev-16058297:2026-06-29")
+    assert coordinate.manifestation_url.endswith("?oldid=16058297")
     assert coordinate.span_ref.startswith("span:mabo:brennan:radical-title:")
     assert coordinate.authority_identity_ref == "authority:mabo:1992:hca:23"
     assert coordinate.manifestation_ref != coordinate.authority_identity_ref

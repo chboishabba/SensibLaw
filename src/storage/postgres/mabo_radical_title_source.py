@@ -66,7 +66,7 @@ MABO_RADICAL_TITLE_COORDINATE = MaboRadicalTitleCoordinate(
     authority_identity_ref="authority:mabo:1992:hca:23",
     manifestation_ref="manifestation:mabo:1992:hca:23:wikisource:page-39",
     source_revision_ref=(
-        "source-revision:mabo:1992:hca:23:wikisource:page-39:2026-06-22"
+        "source-revision:mabo:1992:hca:23:wikisource:page-39:rev-16058297:2026-06-29"
     ),
     document_ref="document:mabo:1992:hca:23:brennan:wikisource-page-39",
     span_ref="span:mabo:brennan:radical-title:no-automatic-beneficial-ownership",
@@ -76,7 +76,7 @@ MABO_RADICAL_TITLE_COORDINATE = MaboRadicalTitleCoordinate(
     ),
     manifestation_url=(
         "https://en.wikisource.org/wiki/"
-        "Page:Mabo_v_Queensland_(No_2)_(1992_HCA_23).pdf/39"
+        "Page:Mabo_v_Queensland_(No_2)_(1992_HCA_23).pdf/39?oldid=16058297"
     ),
     upstream_source_url=(
         "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCASCF/1992/116.html"
