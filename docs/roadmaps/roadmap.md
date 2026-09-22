@@ -2635,3 +2635,22 @@ rather than the observed accidental repeated-prefix pattern:
 That gives us a concrete criterion for every phase:
 
 > Each primitive object should be constructed once at its lowest sufficient carrier; each genuine cross-carrier relation should be handled once at its lowest common hierarchy node; and no parent should physically reconstruct settled descendant interiors.
+
+## Shared User/World programme update — 2026-09-22
+
+See `docs/planning/shared_user_world_runtime_20260922.md`.
+
+The product roadmap now treats the shared user/world runtime as the common
+substrate for personal journal/timeline, role-safe handoff, adversarial legal
+proof search, mission actual-vs-should, research and comparative projections.
+Legal reasoning remains a specialization rather than the world ontology.
+
+Immediate capability order:
+
+1. consumer dependency slices + shared-world reuse;
+2. affected-consumer recomputation;
+3. adversarial support/defeat/counter-defeat legal runner;
+4. personal-world/Smart-Journal projection and scoped handoff;
+5. heterogeneous real-case/user-story battery;
+6. unified Journal/Timeline/Matter/Claim/Proof/Mission/Research/Handoff
+   workbench.
