@@ -102,3 +102,21 @@ Promotion criteria for this slice:
   artifact
 - multi-user collaboration or cloud sync
 - role-specific UI surfaces
+
+## 2026-09-22 shared-world placement
+
+This bounded bundle remains a valid first implementation slice, but it now sits
+inside `docs/planning/shared_user_world_runtime_20260922.md`.
+
+The mature path is:
+
+```text
+personal journal/notes/chats/captures
+  -> reviewed personal-world coordinates
+  -> recipient dependency + scope slice
+  -> bounded lawyer/doctor/advocate/regulator/journalist projection
+```
+
+The handoff compiler must therefore reuse shared-world coordinates rather than
+creating a second personal-case store, and must preserve explicit exclusions,
+uncertainty and private/unready material.
