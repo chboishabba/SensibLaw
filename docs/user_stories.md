@@ -1212,3 +1212,59 @@ truth by default.
   the underlying evidence actually supports it.
 - Failure prevented: overpromising under pressure and mismatches between small
   operator reality and institutional intake expectations.
+
+## Shared User/World and Adversarial Consumer Stories (2026-09-22)
+
+Canonical design: `docs/planning/shared_user_world_runtime_20260922.md`.
+
+### SL-US-SW-01: Consumer-indexed shared-world lookup
+As an operator, I want every legal or non-legal consumer to check the reviewed
+shared world before acquiring new material.
+
+Acceptance criteria:
+- dependency and scope gates are explicit;
+- reusable coordinates are distinguished from missing, WrongType and
+  scope-blocked coordinates;
+- already-reviewed material does not create duplicate research work.
+
+### SL-US-SW-02: Adversarial legal proof search
+As a legal operator, I want the current argument graph to expose supporting,
+defeating, comparator, contradiction and counter-defeater routes so research is
+directed at the live proof gap rather than document volume.
+
+Acceptance criteria:
+- forward route reachability, backward missing atoms, defeaters and
+  counter-defeaters are distinct;
+- support does not equal truth and defeat does not equal falsity;
+- WrongType material routes to the correct missing legal atom;
+- route reachability is never presented as a prediction of judicial outcome.
+
+### SL-US-SW-03: Cross-matter reuse without doctrinal collapse
+As a legal researcher, I want a reviewed proposition/source/authority learned
+for one matter to be reusable by another consumer only where the second
+consumer's dependency slice actually requires it.
+
+Acceptance criteria:
+- citation/ontology similarity may propose a join but cannot establish one;
+- each matter retains its own elements, exceptions, burdens and applicability;
+- shared native-title material, for example, cannot automatically satisfy an
+  environmental/statutory element of another matter.
+
+### SL-US-SW-04: Personal-to-legal handoff
+As a private user or caseworker, I want selected reviewed chronology/evidence
+coordinates to be reusable in a legal matter while private hypotheses and
+unready material remain outside the legal consumer.
+
+Acceptance criteria:
+- recipient scope is enforced before legal reuse;
+- personal review alone does not create legal authority;
+- legal type/authority/applicability gates remain independently payable.
+
+### SL-US-SW-05: Affected-consumer recomputation
+As an operator, I want a reviewed world delta to recompute only the consumers
+that depend on the changed coordinate.
+
+Acceptance criteria:
+- recomputation is dependency-indexed;
+- revision/staleness uses the same mechanism;
+- recomputation itself creates neither truth nor legal authority.
