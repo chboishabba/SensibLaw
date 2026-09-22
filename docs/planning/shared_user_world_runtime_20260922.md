@@ -3,6 +3,15 @@
 Date: 2026-09-22
 Status: product/user-story convergence document
 
+## Repository identity
+
+This document describes the **same SensibLaw system** implemented in production
+by the Rust `slr` repository. This repository remains useful for Python
+prototypes, product/user-story documentation, historical implementations and
+cross-suite integration material; it is not a second SensibLaw product or an
+independent semantic authority.
+
+
 ## Product framing
 
 SensibLaw is a major semantic/review component in a broader ITIR smart-journal
