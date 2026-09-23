@@ -138,6 +138,7 @@ _FACT_INTAKE_MIGRATION_FILES = (
     "013_authority_ingest.sql",
     "014_feedback_receipts.sql",
     "015_contested_affidavit_relation_fields.sql",
+    "016_fact_run_semantic_context.sql",
 )
 
 REVIEW_REASON_LABELS: dict[str, str] = {
@@ -1016,6 +1017,76 @@ def build_fact_intake_payload_from_text_units(
         "fact_candidates": facts,
         "contestations": [],
         "reviews": [],
+    }
+
+
+def persist_fact_run_semantic_context(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    semantic_context: Mapping[str, Any],
+    context_kind: str = "review_bundle",
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    normalized_run_id = str(run_id or "").strip()
+    if not normalized_run_id:
+        raise ValueError("run_id is required")
+    run_exists = conn.execute(
+        "SELECT 1 FROM fact_intake_runs WHERE run_id = ?",
+        (normalized_run_id,),
+    ).fetchone()
+    if run_exists is None:
+        raise ValueError(f"Unknown fact intake run: {normalized_run_id}")
+    normalized_kind = str(context_kind or "").strip()
+    if not normalized_kind:
+        raise ValueError("context_kind is required")
+    payload = dict(semantic_context)
+    conn.execute(
+        """
+        INSERT INTO fact_run_semantic_context(
+          run_id, context_kind, semantic_context_json, updated_at
+        ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(run_id) DO UPDATE SET
+          context_kind = excluded.context_kind,
+          semantic_context_json = excluded.semantic_context_json,
+          updated_at = CURRENT_TIMESTAMP
+        """,
+        (
+            normalized_run_id,
+            normalized_kind,
+            _normalize_json(payload),
+        ),
+    )
+    conn.commit()
+    return {
+        "run_id": normalized_run_id,
+        "context_kind": normalized_kind,
+        "semantic_context": payload,
+    }
+
+
+def load_fact_run_semantic_context(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    row = conn.execute(
+        """
+        SELECT context_kind, semantic_context_json, updated_at
+        FROM fact_run_semantic_context
+        WHERE run_id = ?
+        """,
+        (run_id,),
+    ).fetchone()
+    if row is None:
+        return {}
+    return {
+        "context_kind": str(row["context_kind"]),
+        "semantic_context": _json_or_empty(row["semantic_context_json"]),
+        "updated_at": str(row["updated_at"]),
     }
 
 
@@ -3636,6 +3707,9 @@ def build_fact_intake_report(
         "events": events,
         "facts": facts,
         "rule_atoms": rule_atoms,
+        "semantic_context": load_fact_run_semantic_context(
+            conn, run_id=run_id
+        ).get("semantic_context", {}),
     }
 
 
