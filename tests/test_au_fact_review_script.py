@@ -144,7 +144,7 @@ def test_au_fact_review_script_bundle_emits_review_bundle(
         conn.row_factory = sqlite3.Row
         workbench = build_fact_review_workbench_payload(
             conn,
-            run_id=payload["run"]["run_id"],
+            run_id=payload["run"]["fact_run_id"],
             include_zelph=False,
         )
     assert (
@@ -158,7 +158,7 @@ def test_au_fact_review_script_bundle_emits_review_bundle(
             str(db_path),
             "refresh-au-context",
             "--run-id",
-            payload["run"]["run_id"],
+            payload["run"]["fact_run_id"],
         ]
     )
     refresh_payload = json.loads(capsys.readouterr().out)

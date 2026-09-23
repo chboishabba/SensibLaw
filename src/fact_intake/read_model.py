@@ -303,16 +303,34 @@ def _normalize_opt_text(value: Any) -> str | None:
     return text or None
 
 
+def _json_value(value: Any) -> Any:
+    """Return a deterministic JSON-native representation of derived values.
+
+    Semantic products are assembled from several producers.  A producer may
+    use a ``set`` internally for a deduplicated relation collection, but a
+    run-level persistence record is a JSON boundary.  Normalize at that
+    boundary rather than making every producer know about SQLite's carrier.
+    """
+    if isinstance(value, Mapping):
+        return {str(key): _json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_value(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        normalized = [_json_value(item) for item in value]
+        return sorted(normalized, key=_stable_json)
+    return value
+
+
 def _normalize_json(value: Any) -> str:
     if isinstance(value, str):
         try:
             loaded = json.loads(value)
         except Exception:
             loaded = {"raw": value}
-        return _stable_json(loaded)
+        return _stable_json(_json_value(loaded))
     if value is None:
         return "{}"
-    return _stable_json(value)
+    return _stable_json(_json_value(value))
 
 
 def _stable_id(prefix: str, payload: object) -> str:
@@ -1041,7 +1059,7 @@ def persist_fact_run_semantic_context(
     normalized_kind = str(context_kind or "").strip()
     if not normalized_kind:
         raise ValueError("context_kind is required")
-    payload = dict(semantic_context)
+    payload = _json_value(dict(semantic_context))
     conn.execute(
         """
         INSERT INTO fact_run_semantic_context(
