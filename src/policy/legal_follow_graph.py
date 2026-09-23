@@ -957,6 +957,40 @@ def build_au_legal_follow_graph(
     )
 
     event_map: dict[str, Mapping[str, Any]] = {}
+    event_source_refs: dict[str, list[str]] = {}
+    source_documents = (
+        semantic_report.get("source_documents")
+        if isinstance(semantic_report.get("source_documents"), list)
+        else []
+    )
+    for document in source_documents:
+        if not isinstance(document, Mapping):
+            continue
+        source_ref = str(document.get("sourceDocumentId") or "").strip()
+        if not source_ref:
+            continue
+        event_ids = (
+            document.get("eventIds")
+            if isinstance(document.get("eventIds"), list)
+            else []
+        )
+        for raw_event_id in event_ids:
+            event_id = str(raw_event_id or "").strip()
+            if not event_id:
+                continue
+            event_source_refs.setdefault(event_id, [])
+            if source_ref not in event_source_refs[event_id]:
+                event_source_refs[event_id].append(source_ref)
+
+    def event_lineage_metadata(event_id: str) -> dict[str, Any]:
+        normalized = str(event_id or "").strip()
+        if not normalized:
+            return {"source_refs": [], "provenance_refs": []}
+        return {
+            "source_refs": list(event_source_refs.get(normalized, [])),
+            "provenance_refs": [normalized],
+        }
+
     for row in (
         semantic_report.get("per_event", [])
         if isinstance(semantic_report.get("per_event"), list)
@@ -1151,6 +1185,7 @@ def build_au_legal_follow_graph(
             metadata={
                 "canonical_key": subject_key,
                 "entity_kind": str(subject.get("entity_kind") or "").strip() or None,
+                **event_lineage_metadata(event_id),
             },
         )
         add_node(
@@ -1160,6 +1195,7 @@ def build_au_legal_follow_graph(
             metadata={
                 "canonical_key": object_key,
                 "entity_kind": str(object_.get("entity_kind") or "").strip() or None,
+                **event_lineage_metadata(event_id),
             },
         )
         add_node(
@@ -1190,6 +1226,21 @@ def build_au_legal_follow_graph(
                 "route_target": route_target,
                 "subject_node_id": subject_node_id,
                 "object_node_id": object_node_id,
+                **event_lineage_metadata(event_id),
+                "provenance_refs": [
+                    *event_lineage_metadata(event_id)["provenance_refs"],
+                    *[
+                        value
+                        for value in (
+                            str(relation.get("candidate_id") or "").strip(),
+                            str(relation.get("record_ref") or "").strip(),
+                            str(relation.get("promoted_record_ref") or "").strip(),
+                            str(relation.get("fact_node_ref") or "").strip(),
+                            str(relation.get("claim_node_ref") or "").strip(),
+                        )
+                        if value
+                    ],
+                ],
                 **dict(metadata_extra or {}),
             },
         )
@@ -1245,6 +1296,7 @@ def build_au_legal_follow_graph(
                     row.get("text") or row.get("event_text") or ""
                 ).strip()[:240]
                 or None,
+                **event_lineage_metadata(event_id),
             },
         )
 
@@ -1273,6 +1325,7 @@ def build_au_legal_follow_graph(
                     ]
                     if str(row.get("event_section") or "").strip()
                     else [],
+                    **event_lineage_metadata(event_id),
                 },
             )
             add_edge(event_node_id, authority_node_id, kind="mentions_authority_title")
@@ -1396,6 +1449,14 @@ def build_au_legal_follow_graph(
                     structured_summary.get("detected_neutral_citations") or []
                 ),
                 "linked_event_ids": list(item.get("linked_event_ids") or []),
+                "source_refs": [
+                    value
+                    for value in (
+                        str(item.get("resolved_url") or "").strip(),
+                    )
+                    if value
+                ],
+                "provenance_refs": [ingest_run_id],
             },
         )
         for event_id in item.get("linked_event_ids", []):
@@ -1437,6 +1498,7 @@ def build_au_legal_follow_graph(
                 metadata={
                     **citation_detail,
                     "supporting_receipt_ids": [ingest_run_id],
+                    "provenance_refs": [ingest_run_id],
                     "supporting_authority_kinds": [
                         str(item.get("authority_kind") or "").strip()
                     ]
@@ -1505,6 +1567,8 @@ def build_au_legal_follow_graph(
                 "jurisdiction_hint": detail.get("jurisdiction_hint"),
                 "instrument_kind": detail.get("instrument_kind"),
                 "supporting_receipt_ids": [ingest_run_id],
+                "source_refs": [normalized],
+                "provenance_refs": [ingest_run_id],
                 "supporting_authority_kinds": [
                     str(item.get("authority_kind") or "").strip()
                 ]
