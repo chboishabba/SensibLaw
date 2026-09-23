@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 
 from scripts.au_fact_review import main
+from scripts.query_fact_review import main as query_fact_review_main
 from src.au_semantic.linkage import ensure_au_semantic_schema
 from src.fact_intake import (
     build_fact_review_workbench_payload,
@@ -150,6 +151,22 @@ def test_au_fact_review_script_bundle_emits_review_bundle(
         workbench["semantic_context"]["legal_follow_graph"]
         == persisted_graph
     )
+
+    refresh_exit_code = query_fact_review_main(
+        [
+            "--db-path",
+            str(db_path),
+            "refresh-au-context",
+            "--run-id",
+            payload["run"]["run_id"],
+        ]
+    )
+    refresh_payload = json.loads(capsys.readouterr().out)
+    assert refresh_exit_code == 0
+    assert refresh_payload["legal_follow_graph"]["node_count"] > 0
+    assert refresh_payload["legal_follow_graph"]["edge_count"] > 0
+    assert refresh_payload["legal_follow_graph"]["derived_only"] is True
+    assert refresh_payload["legal_follow_graph"]["challengeable"] is True
 
 
 def test_au_fact_review_script_can_disable_authority_receipts(
