@@ -31,6 +31,7 @@ from src.fact_intake import (  # noqa: E402
     build_au_fact_review_bundle,
     build_fact_intake_payload_from_au_semantic_report,
     persist_fact_intake_payload,
+    persist_fact_run_semantic_context,
     record_fact_workflow_link,
 )
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema  # noqa: E402
@@ -164,6 +165,17 @@ def _build_bundle_payload(
         semantic_report=semantic_report,
         source_events=source_events,
     )
+    semantic_context = (
+        bundle.get("semantic_context")
+        if isinstance(bundle.get("semantic_context"), dict)
+        else {}
+    )
+    semantic_context_persist = persist_fact_run_semantic_context(
+        conn,
+        run_id=fact_run_id,
+        semantic_context=semantic_context,
+        context_kind="au_fact_review_bundle",
+    )
     _emit_progress(
         progress_callback,
         "bundle_build_finished",
@@ -177,6 +189,7 @@ def _build_bundle_payload(
         "fact_persist": fact_persist,
         "workflow_link": workflow_link,
         "bundle": bundle,
+        "semantic_context_persist": semantic_context_persist,
     }
 
 
@@ -272,6 +285,7 @@ def main(argv: list[str] | None = None) -> int:
             "factRunId": payload["fact_payload"]["run"]["run_id"],
             "bundleSummary": payload["bundle"]["summary"],
             "operatorViews": payload["bundle"].get("operator_views"),
+            "semanticContextPersist": payload["semantic_context_persist"],
             "workflowLink": payload["workflow_link"],
             "reopenQuery": {
                 "workflowKind": "au_semantic",
@@ -302,6 +316,7 @@ def main(argv: list[str] | None = None) -> int:
                 "sourceLabel": payload["workflow_link"]["source_label"],
             },
             "bundleSummary": payload["bundle"]["summary"],
+            "semanticContextPersist": payload["semantic_context_persist"],
             "reviewQueueCount": len(payload["bundle"]["review_queue"]),
             "chronologyCount": len(payload["bundle"]["chronology"]),
         }
