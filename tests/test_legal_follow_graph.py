@@ -14,6 +14,16 @@ from tests.test_cross_system_phi_prototype import _build_au_report
 
 def _semantic_report() -> dict[str, object]:
     return {
+        "source_documents": [
+            {
+                "sourceDocumentId": "source:timeline:house",
+                "eventIds": ["ev-1"],
+            },
+            {
+                "sourceDocumentId": "source:timeline:native-title",
+                "eventIds": ["ev-2"],
+            },
+        ],
         "authority_receipts": {
             "items": [
                 {
@@ -305,6 +315,22 @@ def test_build_au_legal_follow_graph_merges_richer_receipt_and_citation_metadata
     )
     assert receipt_node["metadata"]["selected_paragraph_numbers"] == [1, 2]
     assert receipt_node["metadata"]["linked_event_sections"] == ["Appeal"]
+    assert receipt_node["metadata"]["source_refs"] == [
+        "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html"
+    ]
+    assert receipt_node["metadata"]["provenance_refs"] == ["ingest:1"]
+
+    event_node = next(node for node in graph["nodes"] if node["id"] == "event:ev-1")
+    assert event_node["metadata"]["source_refs"] == ["source:timeline:house"]
+    assert event_node["metadata"]["provenance_refs"] == ["ev-1"]
+
+    follow_event_node = next(
+        node for node in graph["nodes"] if node["id"] == "event:ev-2"
+    )
+    assert follow_event_node["metadata"]["source_refs"] == [
+        "source:timeline:native-title"
+    ]
+    assert follow_event_node["metadata"]["provenance_refs"] == ["ev-2"]
 
     support_edge = next(
         edge
