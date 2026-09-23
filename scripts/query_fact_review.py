@@ -14,6 +14,11 @@ _REPO_ROOT = _SENSIBLAW_ROOT.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
+from src.au_semantic.linkage import ensure_au_semantic_schema
+from src.au_semantic.semantic import build_au_semantic_report
+from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
+from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
+
 from src.fact_intake import (
     FEEDBACK_RECEIPT_VERSION,
     build_authority_ingest_summary,
@@ -27,6 +32,7 @@ from src.fact_intake import (
     build_fact_review_run_summary,
     build_fact_semantic_status_report,
     build_fact_review_workbench_payload,
+    build_au_fact_review_bundle,
     build_interrogative_view,
     find_latest_fact_workflow_link,
     list_fact_intake_runs,
@@ -316,6 +322,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Also persist the exact workbench JSON to this path.",
     )
+
+    refresh_au_context_p = sub.add_parser(
+        "refresh-au-context",
+        help="Rebuild and persist derived AU bundle semantic context for an existing linked fact run.",
+    )
+    _add_run_selector_args(refresh_au_context_p)
 
     acceptance_p = sub.add_parser(
         "acceptance", help="Show story-driven acceptance results for a persisted run"
@@ -845,6 +857,81 @@ def main(argv: list[str] | None = None) -> int:
                 "dbPath": str(db_path),
                 "output_path": str(args.output.resolve()) if args.output else None,
                 "workbench": workbench,
+            }
+        elif args.command == "refresh-au-context":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            )
+            report = build_fact_intake_report(conn, run_id=resolved_run_id)
+            workflow_link = (
+                report.get("run", {}).get("workflow_link", {})
+                if isinstance(report.get("run"), dict)
+                else {}
+            )
+            if str(workflow_link.get("workflow_kind") or "") != "au_semantic":
+                raise SystemExit(
+                    "refresh-au-context requires a fact run linked to workflow_kind=au_semantic"
+                )
+            semantic_run_id = str(workflow_link.get("workflow_run_id") or "").strip()
+            if not semantic_run_id:
+                raise SystemExit("linked AU semantic run id is missing")
+
+            ensure_gwb_semantic_schema(conn)
+            ensure_au_semantic_schema(conn)
+            semantic_report = build_au_semantic_report(
+                conn,
+                run_id=semantic_run_id,
+                include_authority_receipts=True,
+            )
+            source_payload = load_run_payload_from_normalized(conn, semantic_run_id) or {}
+            source_events = (
+                source_payload.get("events")
+                if isinstance(source_payload.get("events"), list)
+                else []
+            )
+            bundle = build_au_fact_review_bundle(
+                conn,
+                fact_run_id=resolved_run_id,
+                semantic_report=semantic_report,
+                source_events=source_events,
+            )
+            semantic_context = (
+                bundle.get("semantic_context")
+                if isinstance(bundle.get("semantic_context"), dict)
+                else {}
+            )
+            persisted = persist_fact_run_semantic_context(
+                conn,
+                run_id=resolved_run_id,
+                semantic_context=semantic_context,
+                context_kind="au_fact_review_bundle_refresh",
+            )
+            graph = (
+                semantic_context.get("legal_follow_graph")
+                if isinstance(semantic_context.get("legal_follow_graph"), dict)
+                else {}
+            )
+            payload = {
+                "ok": True,
+                "dbPath": str(db_path),
+                "run_id": resolved_run_id,
+                "semantic_run_id": semantic_run_id,
+                "semantic_context_persist": persisted,
+                "legal_follow_graph": {
+                    "version": graph.get("version"),
+                    "derived_only": graph.get("derived_only"),
+                    "challengeable": graph.get("challengeable"),
+                    "node_count": len(graph.get("nodes", []))
+                    if isinstance(graph.get("nodes"), list)
+                    else 0,
+                    "edge_count": len(graph.get("edges", []))
+                    if isinstance(graph.get("edges"), list)
+                    else 0,
+                },
             }
         elif args.command == "acceptance":
             resolved_run_id = resolve_fact_run_id(
