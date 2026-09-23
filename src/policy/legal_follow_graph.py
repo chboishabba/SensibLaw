@@ -1356,6 +1356,7 @@ def build_au_legal_follow_graph(
                 ]
                 if str(row.get("event_section") or "").strip()
                 else [],
+                **event_lineage_metadata(event_id),
             }
             if classification == "supporting_legislation":
                 roles = _supporting_legislation_roles_from_context(
@@ -1403,6 +1404,7 @@ def build_au_legal_follow_graph(
                     ]
                     if str(row.get("event_section") or "").strip()
                     else [],
+                    **event_lineage_metadata(event_id),
                 },
             )
             add_edge(
@@ -1533,6 +1535,7 @@ def build_au_legal_follow_graph(
                 label=normalized,
                 metadata={
                     "supporting_receipt_ids": [ingest_run_id],
+                    "provenance_refs": [ingest_run_id],
                     "supporting_authority_kinds": [
                         str(item.get("authority_kind") or "").strip()
                     ]
