@@ -7,7 +7,10 @@ import sqlite3
 
 from scripts.au_fact_review import main
 from src.au_semantic.linkage import ensure_au_semantic_schema
-from src.fact_intake import persist_authority_ingest_receipt
+from src.fact_intake import (
+    build_fact_review_workbench_payload,
+    persist_authority_ingest_receipt,
+)
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
@@ -131,6 +134,21 @@ def test_au_fact_review_script_bundle_emits_review_bundle(
         )
     assert any(
         row["event_type"] in {"appealed", "heard by"} for row in payload["events"]
+    )
+
+    persisted_graph = payload["semantic_context"]["legal_follow_graph"]
+    assert persisted_graph["nodes"]
+    assert persisted_graph["edges"]
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        workbench = build_fact_review_workbench_payload(
+            conn,
+            run_id=payload["run"]["run_id"],
+            include_zelph=False,
+        )
+    assert (
+        workbench["semantic_context"]["legal_follow_graph"]
+        == persisted_graph
     )
 
 
