@@ -457,6 +457,31 @@ def test_query_fact_review_script_zelph_export_resolves_workflow_selector_varian
     )
 
 
+def test_query_fact_review_script_persists_exact_workbench_json(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+    out_path = tmp_path / "workbench.json"
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "workbench",
+            "--run-id",
+            run_id,
+            "-o",
+            str(out_path),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["output_path"] == str(out_path.resolve())
+    persisted = json.loads(out_path.read_text(encoding="utf-8"))
+    assert persisted["workbench"] == payload["workbench"]
+    assert persisted["workbench"]["run"]["run_id"] == run_id
+
+
 def test_query_fact_review_script_reports_authority_ingest_runs(
     tmp_path, capsys
 ) -> None:
