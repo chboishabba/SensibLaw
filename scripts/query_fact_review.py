@@ -309,6 +309,13 @@ def main(argv: list[str] | None = None) -> int:
         "workbench", help="Show the bounded read-only fact-review workbench payload"
     )
     _add_run_selector_args(workbench_p)
+    workbench_p.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Also persist the exact workbench JSON to this path.",
+    )
 
     acceptance_p = sub.add_parser(
         "acceptance", help="Show story-driven acceptance results for a persisted run"
@@ -818,12 +825,26 @@ def main(argv: list[str] | None = None) -> int:
                 workflow_run_id=getattr(args, "workflow_run_id", None),
                 source_label=getattr(args, "source_label", None),
             )
+            workbench = build_fact_review_workbench_payload(
+                conn, run_id=resolved_run_id
+            )
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(
+                    json.dumps(
+                        {"workbench": workbench},
+                        ensure_ascii=False,
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
             payload = {
                 "ok": True,
                 "dbPath": str(db_path),
-                "workbench": build_fact_review_workbench_payload(
-                    conn, run_id=resolved_run_id
-                ),
+                "output_path": str(args.output.resolve()) if args.output else None,
+                "workbench": workbench,
             }
         elif args.command == "acceptance":
             resolved_run_id = resolve_fact_run_id(
