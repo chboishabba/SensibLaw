@@ -163,6 +163,28 @@ OFFLINE_HCA_REGRESSION_PROFILE = SourceAdmissionProfile(
     },
 )
 
+PUBLIC_CASE_EVIDENCE_PROFILE = SourceAdmissionProfile(
+    profile_ref="profile:public-case-evidence:v0_1",
+    admitted_roles=(
+        "news_report",
+        "official_statement",
+        "parliamentary_record",
+        "public_case_evidence",
+    ),
+    evidence_only_roles={
+        "navigation": "navigation_discovery_evidence_only",
+        "search": "search_discovery_evidence_only",
+        "database_page": "database_discovery_evidence_only",
+        "landing_page": "landing_discovery_evidence_only",
+        "social_post_pointer": "social_pointer_discovery_evidence_only",
+    },
+    excluded_roles={
+        "anonymous_republication": "unattributed_republication_not_compile_eligible",
+        "duplicate_caption": "derived_duplicate_caption",
+        "support_material": "unrelated_support_material",
+    },
+)
+
 AU_PRIMARY_LEGAL_SOURCE_PROFILE = SourceAdmissionProfile(
     profile_ref="profile:au-primary-legal-source:v0_1",
     admitted_roles=(
@@ -188,6 +210,7 @@ AU_PRIMARY_LEGAL_SOURCE_PROFILE = SourceAdmissionProfile(
 __all__ = [
     "AU_PRIMARY_LEGAL_SOURCE_PROFILE",
     "OFFLINE_HCA_REGRESSION_PROFILE",
+    "PUBLIC_CASE_EVIDENCE_PROFILE",
     "SOURCE_ADMISSION_CONTRACT",
     "SourceAdmissionProfile",
     "SourceAdmissionReceipt",

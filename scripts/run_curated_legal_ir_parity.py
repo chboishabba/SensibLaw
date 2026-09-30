@@ -16,6 +16,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.obligations import extract_obligations_from_text, obligation_to_dict  # noqa: E402
+from src.pnf.atomic_legal_registry import (  # noqa: E402
+    AtomicLegalTest,
+    build_atomic_registry,
+    project_unresolved_atomic_residuals,
+)
 from src.pnf.curated_legal_ir_flow import run_curated_legal_ir_flow  # noqa: E402
 from src.pnf.legal_ir_parity import SemanticIdentitySnapshot  # noqa: E402
 from src.pnf.legal_semantic_build import (  # noqa: E402
@@ -29,7 +34,12 @@ from src.policy.fibred_operational_corpus_compilation import (  # noqa: E402
     compile_document_fibred_operational,
 )
 from src.runtime.offline_network_guard import OfflineNetworkGuard  # noqa: E402
-from src.sources.admission import OFFLINE_HCA_REGRESSION_PROFILE, admit_source  # noqa: E402
+from src.sources.admission import (  # noqa: E402
+    OFFLINE_HCA_REGRESSION_PROFILE,
+    PUBLIC_CASE_EVIDENCE_PROFILE,
+    SourceAdmissionProfile,
+    admit_source,
+)
 from src.storage.postgres.batched_compiler_store import (  # noqa: E402
     BatchedPostgresCompilerStore,
 )
@@ -39,6 +49,11 @@ from src.storage.postgres.legal_source_store import (  # noqa: E402
     persist_legal_source_plans,
     persist_parity_receipt,
 )
+
+_ADMISSION_PROFILES: dict[str, SourceAdmissionProfile] = {
+    "offline-hca-regression": OFFLINE_HCA_REGRESSION_PROFILE,
+    "public-case-evidence": PUBLIC_CASE_EVIDENCE_PROFILE,
+}
 
 
 def _args() -> argparse.Namespace:
@@ -50,6 +65,20 @@ def _args() -> argparse.Namespace:
     parser.add_argument("--control-snapshot", type=Path)
     parser.add_argument("--closure-workers", type=int, default=4)
     parser.add_argument("--owner-partitions", type=int, default=8)
+    parser.add_argument(
+        "--admission-profile",
+        choices=tuple(sorted(_ADMISSION_PROFILES)),
+        default="offline-hca-regression",
+        help="source-admission profile; defaults to the historical HCA regression profile",
+    )
+    parser.add_argument(
+        "--atomic-registry-fixture",
+        type=Path,
+        help=(
+            "optional source-conditioned atomic case registry to validate and retain "
+            "alongside the curated Legal IR parity receipt"
+        ),
+    )
     args = parser.parse_args()
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -113,15 +142,72 @@ def _compile(
     return compilation.to_dict()
 
 
+def _load_atomic_fixture(path: Path | None) -> tuple[object | None, tuple[object, ...], dict[str, object] | None]:
+    if path is None:
+        return None, (), None
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    case_ref = str(raw["case_ref"])
+    tests = tuple(
+        AtomicLegalTest(
+            proposition_ref=str(row["proposition_ref"]),
+            case_ref=case_ref,
+            legal_system_ref=str(row["legal_system_ref"]),
+            source_revision_ref=str(row["source_revision_ref"]),
+            exact_locator=str(row["exact_locator"]),
+            authority_role=str(row["authority_role"]),
+            subject_ref=str(row["subject_ref"]),
+            gate=int(row["gate"]),
+            positive_witness_refs=tuple(row.get("positive_witness_refs") or ()),
+            negative_witness_refs=tuple(row.get("negative_witness_refs") or ()),
+            evidence_fibre_ref=str(row.get("evidence_fibre_ref") or ""),
+            test_reference=str(row.get("test_reference") or ""),
+        )
+        for row in raw.get("tests") or ()
+    )
+    registry = build_atomic_registry(case_ref=case_ref, tests=tests)
+    availability = dict(raw.get("public_artifact_availability") or {})
+    residual_reference = str(
+        availability.get("residual_reference")
+        or "additional case evidence required to refine unresolved atomic gate"
+    )
+    public_artifact_unavailable = (
+        availability.get("public_full_thread_or_screenshot_located") is False
+        and availability.get(
+            "public_reviewer_can_inspect_sender_recipient_timestamp_topology"
+        )
+        is False
+    )
+    residuals = project_unresolved_atomic_residuals(
+        registry,
+        user_side_acquisition_debt=bool(
+            availability.get("user_side_acquisition_debt", False)
+        ),
+        residual_reference=residual_reference,
+        external_evidence_unavailable=public_artifact_unavailable,
+    )
+    atomic_receipt = {
+        **registry.to_dict(),
+        "atomic_evidence_residuals": [row.to_dict() for row in residuals],
+        "public_artifact_availability": availability,
+        "legal_source_acquisition_router_reused_for_case_evidence": False,
+        "atomic_registry_validated": True,
+    }
+    return registry, residuals, atomic_receipt
+
+
 def main() -> int:
     args = _args()
     root = args.input_directory.resolve()
     metadata = json.loads(args.source_metadata.read_text(encoding="utf-8"))
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    profile = _ADMISSION_PROFILES[args.admission_profile]
     ordinary: list[dict[str, object]] = []
     legacy_builds: list[dict[str, object]] = []
     witness_refs: list[str] = []
+    _, atomic_residuals, atomic_receipt = _load_atomic_fixture(
+        args.atomic_registry_fixture
+    )
 
     store = BatchedPostgresCompilerStore.connect(args.database_url)
     guard = OfflineNetworkGuard(allowed_hosts=_allowed_hosts(args.database_url))
@@ -134,10 +220,7 @@ def main() -> int:
                 source_row.setdefault(
                     "source_revision_ref", f"source-revision:{digest}"
                 )
-                receipt = admit_source(
-                    source_row,
-                    profile=OFFLINE_HCA_REGRESSION_PROFILE,
-                )
+                receipt = admit_source(source_row, profile=profile)
                 if not receipt.compile_eligible:
                     continue
                 text = path.read_text(encoding="utf-8")
@@ -205,7 +288,7 @@ def main() -> int:
 
             result = run_curated_legal_ir_flow(
                 corpus_ref="corpus:curated-legal-ir-parity",
-                admission_profile_ref=OFFLINE_HCA_REGRESSION_PROFILE.profile_ref,
+                admission_profile_ref=profile.profile_ref,
                 compiler_contract_ref=FIBRED_OPERATIONAL_COMPILER_CONTRACT,
                 ordinary_compilations=ordinary,
                 source_lookup=source_lookup,
@@ -230,15 +313,35 @@ def main() -> int:
         )
         _write_json(output / "parity_receipt.json", result.parity_receipt.to_dict())
         _write_json(output / "network_absence_receipt.json", network_receipt)
-        print(json.dumps(result.parity_receipt.to_dict(), indent=2, sort_keys=True))
-        if result.parity_receipt.unexpected_failure_refs:
-            return 1
-        if (
-            result.parity_receipt.identity_parity is False
-            and args.control_snapshot is not None
-        ):
-            return 1
-        return 0
+        if atomic_receipt is not None:
+            _write_json(output / "atomic_legal_registry_receipt.json", atomic_receipt)
+
+        full_receipt = {
+            "contract_ref": "curated-legal-ir-plus-atomic-evidence-parity:v0_1",
+            "curated_legal_ir_parity_receipt_ref": result.parity_receipt.receipt_ref,
+            "admission_profile_ref": profile.profile_ref,
+            "atomic_registry_receipt_ref": (
+                atomic_receipt.get("receipt_ref") if atomic_receipt is not None else None
+            ),
+            "atomic_residual_refs": [row.residual_ref for row in atomic_residuals],
+            "atomic_case_evidence_reuses_legal_source_acquisition": False,
+            "network_absence_receipt": network_receipt,
+            "legal_truth_closed": False,
+            "full_parity_passed": (
+                not result.parity_receipt.unexpected_failure_refs
+                and (
+                    result.parity_receipt.identity_parity is not False
+                    or args.control_snapshot is None
+                )
+                and (
+                    atomic_receipt is None
+                    or bool(atomic_receipt.get("atomic_registry_validated"))
+                )
+            ),
+        }
+        _write_json(output / "full_legal_parity_receipt.json", full_receipt)
+        print(json.dumps(full_receipt, indent=2, sort_keys=True))
+        return 0 if full_receipt["full_parity_passed"] else 1
     finally:
         store.close()
 
