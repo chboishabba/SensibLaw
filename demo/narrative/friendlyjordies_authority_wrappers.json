@@ -15,6 +15,10 @@
         {
           "unit_id": "jordies_authority_case:u2",
           "text": "FriendlyJordies said that the Court held that Australia uses instant-runoff voting."
+        },
+        {
+          "unit_id": "jordies_authority_case:u3",
+          "text": "FriendlyJordies argued that Ross Garnaut reported that an imperfect ETS was better than delay."
         }
       ]
     },
@@ -31,6 +35,10 @@
         {
           "unit_id": "counter_authority_analysis:u2",
           "text": "The analysis reported that the Court held that Australia uses instant-runoff voting."
+        },
+        {
+          "unit_id": "counter_authority_analysis:u3",
+          "text": "The analysis reported that Ross Garnaut reported that an imperfect ETS was better than delay."
         }
       ]
     }
