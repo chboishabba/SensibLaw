@@ -57,11 +57,49 @@ def _clause_result(
     }
 
 
-def evaluate_clause(
-    *,
-    clause_id: str,
-    evidence_bundle: Mapping[str, Any],
-) -> dict[str, Any]:
+def _evaluate_gov1_clause(clause_id: str, evidence_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    evidence = evidence_bundle.get("gov_control_evidence")
+    row = evidence.get(clause_id) if isinstance(evidence, Mapping) else None
+    if row is None:
+        return _clause_result(
+            clause_id=clause_id,
+            status="insufficient_evidence",
+            reason="no GOV-1 evidence supplied for this control family",
+            missing_dimensions=[f"gov_control_evidence.{clause_id}"],
+        )
+    if not isinstance(row, Mapping):
+        return _clause_result(
+            clause_id=clause_id,
+            status="insufficient_evidence",
+            reason="GOV-1 evidence row is not structured",
+            missing_dimensions=[f"gov_control_evidence.{clause_id}"],
+        )
+    status = str(row.get("status") or "").strip()
+    if status not in CONTROL_ASSESSMENT_STATUSES:
+        return _clause_result(
+            clause_id=clause_id,
+            status="insufficient_evidence",
+            reason="GOV-1 evidence row has no supported assessment status",
+            missing_dimensions=[f"gov_control_evidence.{clause_id}.status"],
+        )
+    refs = [str(ref).strip() for ref in row.get("evidence_refs", []) if str(ref).strip()]
+    if status == "satisfied" and not refs:
+        return _clause_result(
+            clause_id=clause_id,
+            status="insufficient_evidence",
+            reason="satisfaction cannot be asserted without evidence refs",
+            missing_dimensions=[f"gov_control_evidence.{clause_id}.evidence_refs"],
+        )
+    return _clause_result(
+        clause_id=clause_id,
+        status=status,
+        reason=str(row.get("reason") or "caller supplied GOV-1 control evidence").strip(),
+        evidence_refs=refs,
+        missing_dimensions=[str(v) for v in row.get("missing_dimensions", []) if str(v).strip()],
+    )
+
+
+def evaluate_clause(*, clause_id: str, evidence_bundle: Mapping[str, Any]) -> dict[str, Any]:
     sb_payload = _sb_payload(evidence_bundle)
     semantic_evidence_refs = [
         str(value)
@@ -69,169 +107,62 @@ def evaluate_clause(
         if str(value).strip()
     ]
 
+    if clause_id.startswith("gov1_"):
+        return _evaluate_gov1_clause(clause_id, evidence_bundle)
+
     if clause_id == "provenance_traceability":
-        provenance_refs = [
-            str(value)
-            for value in sb_payload.get("provenance_refs", [])
-            if str(value).strip()
-        ]
-        lineage_refs = [
-            str(value)
-            for value in sb_payload.get("lineage_refs", [])
-            if str(value).strip()
-        ]
+        provenance_refs = [str(value) for value in sb_payload.get("provenance_refs", []) if str(value).strip()]
+        lineage_refs = [str(value) for value in sb_payload.get("lineage_refs", []) if str(value).strip()]
         if provenance_refs and lineage_refs:
-            return _clause_result(
-                clause_id=clause_id,
-                status="satisfied",
-                reason="provenance and lineage refs are present",
-                evidence_refs=provenance_refs + lineage_refs,
-            )
-        return _clause_result(
-            clause_id=clause_id,
-            status="insufficient_evidence",
-            reason="provenance or lineage refs are missing",
-            missing_dimensions=["provenance_refs", "lineage_refs"],
-        )
+            return _clause_result(clause_id=clause_id, status="satisfied", reason="provenance and lineage refs are present", evidence_refs=provenance_refs + lineage_refs)
+        return _clause_result(clause_id=clause_id, status="insufficient_evidence", reason="provenance or lineage refs are missing", missing_dimensions=["provenance_refs", "lineage_refs"])
 
     if clause_id == "follow_pressure_visibility":
         unresolved = _normalize_opt_text(sb_payload.get("unresolved_pressure_status"))
         legal_follow_pressure_refs = _legal_follow_pressure_evidence_refs(sb_payload)
         if not unresolved:
-            return _clause_result(
-                clause_id=clause_id,
-                status="insufficient_evidence",
-                reason="unresolved pressure status is missing",
-                missing_dimensions=["unresolved_pressure_status"],
-            )
+            return _clause_result(clause_id=clause_id, status="insufficient_evidence", reason="unresolved pressure status is missing", missing_dimensions=["unresolved_pressure_status"])
         if unresolved == "none":
-            return _clause_result(
-                clause_id=clause_id,
-                status="satisfied",
-                reason=(
-                    "no unresolved pressure remains"
-                    if not legal_follow_pressure_refs
-                    else "no unresolved pressure remains; legal follow pressure metadata preserved separately"
-                ),
-                evidence_refs=[
-                    "unresolved_pressure_status:none",
-                    *legal_follow_pressure_refs,
-                ],
-            )
+            return _clause_result(clause_id=clause_id, status="satisfied", reason="no unresolved pressure remains" if not legal_follow_pressure_refs else "no unresolved pressure remains; legal follow pressure metadata preserved separately", evidence_refs=["unresolved_pressure_status:none", *legal_follow_pressure_refs])
         if isinstance(sb_payload.get("follow_obligation"), Mapping):
-            return _clause_result(
-                clause_id=clause_id,
-                status="satisfied",
-                reason="follow obligation is present for unresolved pressure",
-                evidence_refs=["follow_obligation", *legal_follow_pressure_refs],
-            )
-        return _clause_result(
-            clause_id=clause_id,
-            status="not_satisfied",
-            reason="follow obligation is missing for unresolved pressure",
-            missing_dimensions=["follow_obligation"],
-        )
+            return _clause_result(clause_id=clause_id, status="satisfied", reason="follow obligation is present for unresolved pressure", evidence_refs=["follow_obligation", *legal_follow_pressure_refs])
+        return _clause_result(clause_id=clause_id, status="not_satisfied", reason="follow obligation is missing for unresolved pressure", missing_dimensions=["follow_obligation"])
 
     if clause_id == "semantic_grounding":
         if semantic_evidence_refs:
-            return _clause_result(
-                clause_id=clause_id,
-                status="satisfied",
-                reason="semantic grounding refs are present",
-                evidence_refs=semantic_evidence_refs,
-            )
-        return _clause_result(
-            clause_id=clause_id,
-            status="insufficient_evidence",
-            reason="semantic grounding refs are missing",
-            missing_dimensions=["semantic_evidence_refs"],
-        )
+            return _clause_result(clause_id=clause_id, status="satisfied", reason="semantic grounding refs are present", evidence_refs=semantic_evidence_refs)
+        return _clause_result(clause_id=clause_id, status="insufficient_evidence", reason="semantic grounding refs are missing", missing_dimensions=["semantic_evidence_refs"])
 
     if clause_id == "casey_execution_traceability":
-        casey_refs = [
-            ref
-            for ref in sb_payload.get("casey_observer_refs", [])
-            if isinstance(ref, Mapping)
-        ]
+        casey_refs = [ref for ref in sb_payload.get("casey_observer_refs", []) if isinstance(ref, Mapping)]
         if not casey_refs:
-            return _clause_result(
-                clause_id=clause_id,
-                status="not_applicable",
-                reason="no Casey observer refs supplied",
-            )
-        bad_refs = [
-            ref
-            for ref in casey_refs
-            if not _normalize_opt_text(ref.get("receipt_hash"))
-            or not any(
-                _normalize_opt_text(ref.get(field))
-                for field in ("workspace_id", "operation_id", "build_id")
-            )
-        ]
+            return _clause_result(clause_id=clause_id, status="not_applicable", reason="no Casey observer refs supplied")
+        bad_refs = [ref for ref in casey_refs if not _normalize_opt_text(ref.get("receipt_hash")) or not any(_normalize_opt_text(ref.get(field)) for field in ("workspace_id", "operation_id", "build_id"))]
         if bad_refs:
-            return _clause_result(
-                clause_id=clause_id,
-                status="not_satisfied",
-                reason="Casey refs are missing required identifiers or receipt hashes",
-                missing_dimensions=["casey_observer_refs"],
-            )
-        evidence_refs = [
-            _normalize_opt_text(ref.get("operation_id"))
-            or _normalize_opt_text(ref.get("build_id"))
-            or _normalize_opt_text(ref.get("workspace_id"))
-            for ref in casey_refs
-        ]
-        return _clause_result(
-            clause_id=clause_id,
-            status="satisfied",
-            reason="Casey execution refs are traceable",
-            evidence_refs=[value for value in evidence_refs if value],
-        )
+            return _clause_result(clause_id=clause_id, status="not_satisfied", reason="Casey refs are missing required identifiers or receipt hashes", missing_dimensions=["casey_observer_refs"])
+        evidence_refs = [_normalize_opt_text(ref.get("operation_id")) or _normalize_opt_text(ref.get("build_id")) or _normalize_opt_text(ref.get("workspace_id")) for ref in casey_refs]
+        return _clause_result(clause_id=clause_id, status="satisfied", reason="Casey execution refs are traceable", evidence_refs=[value for value in evidence_refs if value])
 
     raise KeyError(f"unsupported clause_id: {clause_id}")
 
 
-def evaluate_control_group(
-    *,
-    control_group: Mapping[str, Any],
-    evidence_bundle: Mapping[str, Any],
-) -> dict[str, Any]:
-    clause_results = [
-        evaluate_clause(clause_id=str(clause_id), evidence_bundle=evidence_bundle)
-        for clause_id in control_group.get("member_clause_ids", [])
-    ]
+def evaluate_control_group(*, control_group: Mapping[str, Any], evidence_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    clause_results = [evaluate_clause(clause_id=str(clause_id), evidence_bundle=evidence_bundle) for clause_id in control_group.get("member_clause_ids", [])]
     statuses = [row["status"] for row in clause_results]
     if statuses and all(status == "not_applicable" for status in statuses):
-        status = "not_applicable"
-        reason = "all member clauses are not applicable"
+        status, reason = "not_applicable", "all member clauses are not applicable"
     elif "not_satisfied" in statuses:
-        status = "not_satisfied"
-        reason = "at least one member clause is not satisfied"
+        status, reason = "not_satisfied", "at least one member clause is not satisfied"
     elif "insufficient_evidence" in statuses:
-        status = "insufficient_evidence"
-        reason = "at least one member clause lacks required evidence"
+        status, reason = "insufficient_evidence", "at least one member clause lacks required evidence"
     else:
-        status = "satisfied"
-        reason = "all applicable member clauses are satisfied"
-    return {
-        "control_group_id": str(control_group.get("control_group_id") or ""),
-        "title": str(control_group.get("title") or ""),
-        "status": status,
-        "reason": reason,
-        "member_clause_results": clause_results,
-    }
+        status, reason = "satisfied", "all applicable member clauses are satisfied"
+    return {"control_group_id": str(control_group.get("control_group_id") or ""), "title": str(control_group.get("title") or ""), "status": status, "reason": reason, "member_clause_results": clause_results}
 
 
-def evaluate_control_profile(
-    *,
-    profile: Mapping[str, Any] | str,
-    evidence_bundle: Mapping[str, Any],
-) -> dict[str, Any]:
+def evaluate_control_profile(*, profile: Mapping[str, Any] | str, evidence_bundle: Mapping[str, Any]) -> dict[str, Any]:
     normalized_profile = normalize_control_profile(profile)
-    group_results = [
-        evaluate_control_group(control_group=group, evidence_bundle=evidence_bundle)
-        for group in normalized_profile.get("control_groups", [])
-    ]
+    group_results = [evaluate_control_group(control_group=group, evidence_bundle=evidence_bundle) for group in normalized_profile.get("control_groups", [])]
     statuses = [row["status"] for row in group_results]
     if statuses and all(status == "not_applicable" for status in statuses):
         overall_status = "not_applicable"
@@ -250,13 +181,8 @@ def evaluate_control_profile(
         "subject_kind": str(evidence_bundle.get("subject_kind") or ""),
         "status": overall_status,
         "control_group_results": group_results,
+        "certification_claim": False,
     }
 
 
-__all__ = [
-    "CONTROL_ASSESSMENT_SCHEMA_VERSION",
-    "CONTROL_ASSESSMENT_STATUSES",
-    "evaluate_clause",
-    "evaluate_control_group",
-    "evaluate_control_profile",
-]
+__all__ = ["CONTROL_ASSESSMENT_SCHEMA_VERSION", "CONTROL_ASSESSMENT_STATUSES", "evaluate_clause", "evaluate_control_group", "evaluate_control_profile"]
