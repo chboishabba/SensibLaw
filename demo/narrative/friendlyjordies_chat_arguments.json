@@ -27,6 +27,14 @@
         {
           "unit_id": "jordies_case:u5",
           "text": "Court records showed that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "jordies_case:u6",
+          "text": "FriendlyJordies said that South Australia was producing 70% of its energy from renewable sources and was planned to reach 100% the following year."
+        },
+        {
+          "unit_id": "jordies_case:u7",
+          "text": "FriendlyJordies framed South Australia's renewable trajectory as what happens when you let Labor cook for a quarter of a century."
         }
       ]
     },
@@ -59,6 +67,10 @@
         {
           "unit_id": "counter_analysis:u6",
           "text": "Court records showed that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "counter_analysis:u7",
+          "text": "The analysis treated the claimed causal link between long-run Labor governance and South Australia's renewable trajectory as a causal or counterfactual claim requiring independent evidence."
         }
       ]
     }
