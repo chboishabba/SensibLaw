@@ -80,6 +80,16 @@ _FEEDBACK_SOURCE_KIND_CHOICES = [
 ]
 _FEEDBACK_SEVERITY_CHOICES = ["low", "medium", "high", "critical"]
 _FEEDBACK_SENTIMENT_CHOICES = ["negative", "neutral", "positive"]
+_ONE_RECEIPT_FORM_VERSION = "feedback.one-receipt-form.v1"
+_FEEDBACK_REQUIRED_FIELDS = (
+    "feedback_class",
+    "role_label",
+    "task_label",
+    "source_kind",
+    "summary",
+    "quote_text",
+    "severity",
+)
 
 
 def _add_run_selector_args(parser: argparse.ArgumentParser) -> None:
@@ -151,7 +161,84 @@ def _coerce_feedback_payload(
     return payload
 
 
+def _validate_one_feedback_receipt_payload(
+    payload: dict[str, object], *, label: str
+) -> dict[str, object]:
+    missing = [
+        field
+        for field in _FEEDBACK_REQUIRED_FIELDS
+        if not str(payload.get(field) or "").strip()
+    ]
+    if missing:
+        raise SystemExit(f"{label} is missing required fields: {', '.join(missing)}")
+
+    choice_fields = {
+        "feedback_class": _FEEDBACK_CLASS_CHOICES,
+        "source_kind": _FEEDBACK_SOURCE_KIND_CHOICES,
+        "severity": _FEEDBACK_SEVERITY_CHOICES,
+    }
+    for field, choices in choice_fields.items():
+        value = str(payload.get(field) or "")
+        if value not in choices:
+            raise SystemExit(
+                f"{label} field {field!r} must be one of: {', '.join(choices)}"
+            )
+
+    sentiment = payload.get("sentiment")
+    if sentiment is not None and str(sentiment) not in _FEEDBACK_SENTIMENT_CHOICES:
+        raise SystemExit(
+            f"{label} field 'sentiment' must be one of: "
+            f"{', '.join(_FEEDBACK_SENTIMENT_CHOICES)}"
+        )
+
+    tags = payload.get("tags")
+    if tags is not None:
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            raise SystemExit(f"{label} field 'tags' must be a JSON string array")
+
+    provenance = payload.get("provenance")
+    if provenance is not None and not isinstance(provenance, dict):
+        raise SystemExit(f"{label} field 'provenance' must be a JSON object")
+
+    return _coerce_feedback_payload(payload)
+
+
 def _build_feedback_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
+    form_json = getattr(args, "form_json", None)
+    if form_json is not None:
+        raw = _parse_json_arg(form_json, label="--form-json")
+        if not isinstance(raw, dict):
+            raise SystemExit("--form-json must decode to exactly one JSON object")
+        mixed_fields = [
+            field
+            for field in (
+                "feedback_class",
+                "role_label",
+                "task_label",
+                "source_kind",
+                "summary",
+                "quote_text",
+                "severity",
+                "captured_at",
+                "target_product",
+                "target_surface",
+                "workflow_label",
+                "desired_outcome",
+                "sentiment",
+                "provenance_collector",
+                "provenance_source_ref",
+                "provenance_json",
+            )
+            if getattr(args, field, None)
+        ]
+        if mixed_fields or getattr(args, "tag", None):
+            raise SystemExit(
+                "--form-json cannot be combined with feedback field flags"
+            )
+        return _validate_one_feedback_receipt_payload(
+            dict(raw), label="--form-json"
+        )
+
     provenance = _parse_json_arg(
         getattr(args, "provenance_json", None), label="--provenance-json", default={}
     )
@@ -166,13 +253,13 @@ def _build_feedback_payload_from_args(args: argparse.Namespace) -> dict[str, obj
 
     payload: dict[str, object] = {
         "schema_version": FEEDBACK_RECEIPT_VERSION,
-        "feedback_class": args.feedback_class,
-        "role_label": args.role_label,
-        "task_label": args.task_label,
-        "source_kind": args.source_kind,
-        "summary": args.summary,
-        "quote_text": args.quote_text,
-        "severity": args.severity,
+        "feedback_class": getattr(args, "feedback_class", None),
+        "role_label": getattr(args, "role_label", None),
+        "task_label": getattr(args, "task_label", None),
+        "source_kind": getattr(args, "source_kind", None),
+        "summary": getattr(args, "summary", None),
+        "quote_text": getattr(args, "quote_text", None),
+        "severity": getattr(args, "severity", None),
         "captured_at": getattr(args, "captured_at", None) or _utc_now_iso(),
     }
     for field in (
@@ -189,7 +276,7 @@ def _build_feedback_payload_from_args(args: argparse.Namespace) -> dict[str, obj
         payload["tags"] = list(args.tag)
     if provenance:
         payload["provenance"] = provenance
-    return payload
+    return _validate_one_feedback_receipt_payload(payload, label="feedback-add")
 
 
 def _load_feedback_import_payloads(path: Path) -> list[dict[str, object]]:
@@ -399,17 +486,25 @@ def main(argv: list[str] | None = None) -> int:
 
     feedback_add_p = sub.add_parser("feedback-add", help="Persist one feedback receipt")
     feedback_add_p.add_argument(
-        "--feedback-class", required=True, choices=_FEEDBACK_CLASS_CHOICES
+        "--form-json",
+        default=None,
+        help=(
+            "One-receipt form payload as exactly one JSON object. "
+            "Do not combine with individual feedback field flags."
+        ),
     )
-    feedback_add_p.add_argument("--role-label", required=True)
-    feedback_add_p.add_argument("--task-label", required=True)
     feedback_add_p.add_argument(
-        "--source-kind", required=True, choices=_FEEDBACK_SOURCE_KIND_CHOICES
+        "--feedback-class", default=None, choices=_FEEDBACK_CLASS_CHOICES
     )
-    feedback_add_p.add_argument("--summary", required=True)
-    feedback_add_p.add_argument("--quote-text", required=True)
+    feedback_add_p.add_argument("--role-label", default=None)
+    feedback_add_p.add_argument("--task-label", default=None)
     feedback_add_p.add_argument(
-        "--severity", required=True, choices=_FEEDBACK_SEVERITY_CHOICES
+        "--source-kind", default=None, choices=_FEEDBACK_SOURCE_KIND_CHOICES
+    )
+    feedback_add_p.add_argument("--summary", default=None)
+    feedback_add_p.add_argument("--quote-text", default=None)
+    feedback_add_p.add_argument(
+        "--severity", default=None, choices=_FEEDBACK_SEVERITY_CHOICES
     )
     feedback_add_p.add_argument("--captured-at", default=None)
     feedback_add_p.add_argument("--target-product", default=None)
@@ -776,6 +871,8 @@ def main(argv: list[str] | None = None) -> int:
             payload = {
                 "ok": True,
                 "dbPath": str(db_path),
+                "form_version": _ONE_RECEIPT_FORM_VERSION,
+                "receipt_count": 1,
                 "receipt": receipt,
             }
         elif args.command == "feedback-import":
