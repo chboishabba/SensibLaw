@@ -4,10 +4,16 @@ import json
 from pathlib import Path
 
 from src.reporting.notebooklm_observer import (
+    MAX_QUERY_ROWS,
+    build_bounded_notebooklm_observer_report,
     build_notebooklm_observer_report,
     list_notebooklm_observer_dates,
     load_notebooklm_units,
+    query_notebooklm_observer_artifacts,
+    query_notebooklm_observer_dates,
     query_notebooklm_observer_events,
+    query_notebooklm_observer_notebooks,
+    query_notebooklm_observer_sources,
 )
 
 
@@ -123,3 +129,60 @@ def test_load_notebooklm_units_projects_source_summaries_into_text_units(
     assert "[Notebook] Policy Notebook" in units[0].text
     assert "[Source] Vendor transition notes" in units[0].text
     assert "staged cutover" in units[0].text.casefold()
+
+
+
+def test_notebooklm_bounded_entity_queries_filter_canonical_report(
+    tmp_path: Path,
+) -> None:
+    runs_root = _seed_runs_root(tmp_path)
+
+    notebooks = query_notebooklm_observer_notebooks(
+        runs_root,
+        text_query="policy",
+        limit=9999,
+    )
+    assert [row["notebookIdHash"] for row in notebooks] == ["sha256:notebook123"]
+
+    sources = query_notebooklm_observer_sources(
+        runs_root,
+        source_type="sourceType.google_docs",
+        source_status="READY",
+        text_query="rollback",
+        limit=9999,
+    )
+    assert [row["noteIdHash"] for row in sources] == ["sha256:source456"]
+
+    artifacts = query_notebooklm_observer_artifacts(
+        runs_root,
+        artifact_type="REPORT",
+        artifact_status="ready",
+        text_query="executive",
+        limit=9999,
+    )
+    assert [row["artifactIdHash"] for row in artifacts] == ["sha256:artifact789"]
+
+
+def test_notebooklm_bounded_report_and_date_query_publish_effective_caps(
+    tmp_path: Path,
+) -> None:
+    runs_root = _seed_runs_root(tmp_path)
+
+    dates = query_notebooklm_observer_dates(runs_root, limit=9999)
+    assert [row["date"] for row in dates] == ["2026-02-11"]
+
+    report = build_bounded_notebooklm_observer_report(
+        runs_root,
+        event_limit=9999,
+        entity_limit=9999,
+    )
+    assert report["bounds"] == {
+        "entityLimit": MAX_QUERY_ROWS,
+        "eventLimit": MAX_QUERY_ROWS,
+        "maxQueryRows": MAX_QUERY_ROWS,
+    }
+    assert report["summary"]["eventCount"] == 4
+    assert len(report["recentEvents"]) == 4
+    assert len(report["notebooks"]) == 1
+    assert len(report["sources"]) == 1
+    assert len(report["artifacts"]) == 1
