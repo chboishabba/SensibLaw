@@ -258,6 +258,83 @@ def test_discovery_reconciliation_preserves_complete_source_family_context() -> 
     )
 
 
+def test_company_direct_reconciliation_fail_closed_outcomes() -> None:
+    """A bounded discovery page is review intake, never edit authority."""
+    row = {
+        "subject_qid": "Q10",
+        "statement_id": "Q10$selected",
+        "rank": "normal",
+        "direct_p31": ["Q4830453"],
+        "stratum": "company_direct",
+    }
+    missing_entity = _reconcile_discovery_row(
+        row,
+        {"_source_revision": 101, "entities": {}},
+        source_property="P5991",
+        target_property="P14143",
+    )
+    assert missing_entity["reconciliation_status"] == "entity_revision_unavailable"
+
+    missing_property = _reconcile_discovery_row(
+        row,
+        {"_source_revision": 101, "entities": {"Q10": {"claims": {}}}},
+        source_property="P5991",
+        target_property="P14143",
+    )
+    assert missing_property["reconciliation_status"] == "statement_missing"
+
+    changed_guid = _reconcile_discovery_row(
+        row,
+        {
+            "_source_revision": 101,
+            "entities": {
+                "Q10": {
+                    "claims": {"P5991": [{"id": "Q10$replacement"}]}
+                }
+            },
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    assert changed_guid["reconciliation_status"] == "statement_changed_since_discovery"
+    assert all(
+        outcome.get("entity_revision") is None
+        for outcome in (missing_entity, missing_property, changed_guid)
+    )
+
+    export = {
+        "_source_revision": 101,
+        "entities": {
+            "Q10": {"claims": {"P5991": [{"id": "Q10$replacement"}]}},
+            "Q11": {"claims": {"P5991": [{"id": "Q11$accepted"}]}},
+        },
+    }
+    accepted = _reconcile_discovery_row(
+        {
+            **row,
+            "subject_qid": "Q11",
+            "statement_id": "Q11$accepted",
+        },
+        export,
+        source_property="P5991",
+        target_property="P14143",
+    )
+    assert accepted["reconciliation_status"] == "statement_reconciled"
+    assert accepted["entity_revision"] == 101
+
+    result = _filter_export_to_discovery_rows(
+        export,
+        [missing_entity, missing_property, changed_guid, accepted],
+        source_property="P5991",
+    )
+    assert list(result["entities"]) == ["Q11"]
+    assert result["entities"]["Q11"]["claims"]["P5991"] == [
+        {"id": "Q11$accepted"}
+    ]
+    # The full pinned sibling context for an admitted subject survives.
+    assert list(export["entities"]) == ["Q10", "Q11"]
+
+
 def test_migration_pack_preserves_source_statement_identifier() -> None:
     payload = {
         "windows": [
