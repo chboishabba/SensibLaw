@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+"""Emit canonical artifact JSONL with deterministic identity and provenance."""
+
+import argparse
+import hashlib
+import json
+import os
+import sys
+import tempfile
+from collections.abc import Iterable, Mapping
+from pathlib import Path
+from typing import Any
+
+SCHEMA = "sensiblaw.canonical-artifact-record.v1"
+LANE = "ao.fleet.dynamic.1ced9e0b3d0f"
+ORCHESTRATOR_ID = "ao-fleet-conductor-leaf-1ced9e0b3d0f"
+
+
+def canonical_json(value: Any) -> str:
+    return json.dumps(
+        value,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+
+
+def sha256_ref(value: Any) -> str:
+    encoded = canonical_json(value).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def normalize_provenance(raw: Mapping[str, Any]) -> dict[str, Any]:
+    provenance = dict(raw)
+    provenance.setdefault("lane", LANE)
+    provenance.setdefault("orchestrator_id", ORCHESTRATOR_ID)
+    if not str(provenance.get("producer") or "").strip():
+        raise ValueError("provenance.producer is required")
+    return json.loads(canonical_json(provenance))
+
+
+def build_record(raw: Mapping[str, Any]) -> dict[str, Any]:
+    artifact_kind = str(raw.get("artifact_kind") or "").strip()
+    if not artifact_kind:
+        raise ValueError("artifact_kind is required")
+    if "payload" not in raw:
+        raise ValueError("payload is required")
+
+    provenance_raw = raw.get("provenance")
+    if not isinstance(provenance_raw, Mapping):
+        raise ValueError("provenance must be a JSON object")
+
+    payload = raw["payload"]
+    provenance = normalize_provenance(provenance_raw)
+    content_sha256 = sha256_ref(payload)
+    identity_seed = {
+        "schema": SCHEMA,
+        "artifact_kind": artifact_kind,
+        "content_sha256": content_sha256,
+        "provenance": provenance,
+    }
+    idempotency_key = sha256_ref(identity_seed)
+    artifact_id = "artifact:" + idempotency_key.removeprefix("sha256:")
+
+    expected = {
+        "artifact_id": artifact_id,
+        "content_sha256": content_sha256,
+        "idempotency_key": idempotency_key,
+    }
+    for field, value in expected.items():
+        supplied = raw.get(field)
+        if supplied not in (None, "") and str(supplied) != value:
+            raise ValueError(f"{field} does not match canonical value")
+
+    return {
+        "artifact_id": artifact_id,
+        "artifact_kind": artifact_kind,
+        "content_sha256": content_sha256,
+        "idempotency_key": idempotency_key,
+        "payload": payload,
+        "provenance": provenance,
+        "record_schema": SCHEMA,
+    }
+
+
+def canonicalize_records(values: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    by_key: dict[str, dict[str, Any]] = {}
+    by_artifact: dict[str, str] = {}
+
+    for raw in values:
+        record = build_record(raw)
+        key = record["idempotency_key"]
+        artifact_id = record["artifact_id"]
+        canonical = canonical_json(record)
+
+        previous = by_key.get(key)
+        if previous is not None and canonical_json(previous) != canonical:
+            raise ValueError(f"idempotency collision: {key}")
+
+        previous_key = by_artifact.get(artifact_id)
+        if previous_key is not None and previous_key != key:
+            raise ValueError(f"artifact identity collision: {artifact_id}")
+
+        by_key[key] = record
+        by_artifact[artifact_id] = key
+
+    return [by_key[key] for key in sorted(by_key)]
+
+
+def parse_jsonl(text: str) -> list[Mapping[str, Any]]:
+    rows: list[Mapping[str, Any]] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"line {line_number} is not valid JSON") from exc
+        if not isinstance(value, Mapping):
+            raise ValueError(f"line {line_number} must contain a JSON object")
+        rows.append(value)
+    return rows
+
+
+def encode_jsonl(records: Iterable[Mapping[str, Any]]) -> str:
+    lines = [canonical_json(record) for record in records]
+    return "".join(line + "\n" for line in lines)
+
+
+def write_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        text=True,
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, path)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def run_self_test() -> None:
+    first = {
+        "artifact_kind": "fixture",
+        "payload": {"b": 2, "a": 1},
+        "provenance": {
+            "producer": "self-test",
+            "source_refs": ["source:2", "source:1"],
+        },
+    }
+    same = {
+        "provenance": {
+            "source_refs": ["source:2", "source:1"],
+            "producer": "self-test",
+        },
+        "payload": {"a": 1, "b": 2},
+        "artifact_kind": "fixture",
+    }
+    other = {
+        "artifact_kind": "fixture",
+        "payload": {"a": 3},
+        "provenance": {"producer": "self-test", "source_refs": ["source:3"]},
+    }
+
+    one = canonicalize_records([first, same, other])
+    two = canonicalize_records([other, same, first])
+    assert one == two
+    assert len(one) == 2
+    assert encode_jsonl(one) == encode_jsonl(two)
+    assert all(record["record_schema"] == SCHEMA for record in one)
+    assert all(record["idempotency_key"].startswith("sha256:") for record in one)
+    assert all(record["content_sha256"].startswith("sha256:") for record in one)
+    assert all(record["provenance"]["lane"] == LANE for record in one)
+    assert all(
+        record["provenance"]["orchestrator_id"] == ORCHESTRATOR_ID for record in one
+    )
+
+    wrong = dict(first)
+    wrong["idempotency_key"] = "sha256:wrong"
+    try:
+        build_record(wrong)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("mismatched claimed idempotency key was accepted")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args(argv)
+
+    if args.self_test:
+        run_self_test()
+        print(canonical_json({"ok": True, "schema": SCHEMA}))
+        return 0
+
+    if args.input:
+        source = args.input.read_text(encoding="utf-8")
+    else:
+        source = sys.stdin.read()
+
+    records = canonicalize_records(parse_jsonl(source))
+    encoded = encode_jsonl(records)
+
+    if args.output:
+        write_atomic(args.output, encoded)
+    else:
+        sys.stdout.write(encoded)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
