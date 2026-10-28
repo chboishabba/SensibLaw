@@ -1,45 +1,50 @@
+"""Deterministic, fail-closed compilation of evidenced action frames."""
+
 from __future__ import annotations
 
-from typing import Dict, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+
+
+def _required_text(value: object, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"frame missing {field}")
+    return value.strip()
+
+
+def _receipts(items: Sequence[Mapping[str, object]], kind: str) -> list[str]:
+    found: list[str] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"frame invalid {kind}[{index}]")
+        raw = item.get("receipts", ())
+        if isinstance(raw, (str, bytes)) or not isinstance(raw, (list, tuple)):
+            raise ValueError(f"frame invalid {kind}[{index}].receipts")
+        for value in raw:
+            found.append(_required_text(value, "receipt"))
+    return found
 
 
 def compile_frame(
     node: Mapping[str, object],
     neighbors: Sequence[Mapping[str, object]],
     factors: Sequence[Mapping[str, object]],
-) -> Dict[str, str]:
-    """Build a deterministic textual summary for a node.
+) -> dict[str, str]:
+    """Compile only frames with explicit thesis, evidence receipts, and action.
 
-    Parameters
-    ----------
-    node:
-        Mapping containing at least an ``id`` or ``label``.
-    neighbors:
-        Sequence of neighbor mappings. Each may include ``receipts`` listing
-        associated receipt identifiers.
-    factors:
-        Sequence of factor mappings, potentially carrying ``receipts``.
-
-    Returns
-    -------
-    dict with ``thesis``, ``summary`` and ``brief`` text.
+    Raise ValueError on missing or malformed required fields. Never synthesize
+    evidence or decisions from a label or the number of neighbors.
     """
-
-    if not neighbors:
-        return {
-            "thesis": "No neighbors to summarise.",
-            "summary": "No receipts.",
-            "brief": "No receipts.",
-        }
-
-    receipts: list[str] = []
-    for neighbor in neighbors:
-        receipts.extend(str(r) for r in neighbor.get("receipts", []))
-    for factor in factors:
-        receipts.extend(str(r) for r in factor.get("receipts", []))
-
-    thesis = f"{node.get('label', 'node')} references {len(neighbors)} sources"
-    receipts_str = ", ".join(receipts)
-    summary = f"Receipts referenced: {receipts_str}"
-    brief = f"Receipts: {receipts_str}"
-    return {"thesis": thesis, "summary": summary, "brief": brief}
+    if not isinstance(node, Mapping):
+        raise ValueError("frame invalid node")
+    thesis = _required_text(node.get("thesis"), "thesis")
+    action = _required_text(node.get("action"), "action")
+    receipts = _receipts(neighbors, "neighbors") + _receipts(factors, "factors")
+    if not receipts:
+        raise ValueError("frame missing receipt")
+    joined = ", ".join(receipts)
+    return {
+        "thesis": thesis,
+        "summary": f"Receipts referenced: {joined}",
+        "brief": f"Receipts: {joined}",
+        "action": action,
+    }
