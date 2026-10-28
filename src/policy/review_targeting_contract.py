@@ -196,7 +196,7 @@ def build_targeting_alternatives_from_resolution_artifacts(
         candidates = {
             str(value).strip()
             for key in ("retained_alternatives", "added_alternatives")
-            for value in refinement.get(key, ())
+            for value in (refinement.get(key) or ())
             if str(value).strip()
         }
         for candidate_ref in sorted(candidates):
