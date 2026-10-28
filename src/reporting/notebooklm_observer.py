@@ -385,7 +385,6 @@ def build_notebooklm_observer_report(
     }
 
 
-
 def build_bounded_notebooklm_observer_report(
     runs_root: str | Path,
     *,
@@ -537,6 +536,7 @@ def query_notebooklm_observer_artifacts(
         rows.append(row)
     return rows[:_bounded_limit(limit)]
 
+
 def query_notebooklm_observer_events(
     runs_root: str | Path,
     *,
@@ -545,7 +545,7 @@ def query_notebooklm_observer_events(
     notebook_id_hash: str | None = None,
     event: str | None = None,
     text_query: str | None = None,
-    limit: int = 25,
+    limit: int = DEFAULT_QUERY_ROWS,
 ) -> list[dict[str, Any]]:
     rows = iter_notebooklm_observer_rows(
         runs_root,
