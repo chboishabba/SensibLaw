@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 
 SEMANTIC_SEPARABILITY_ASSESSMENT_SCHEMA_VERSION = (
@@ -11,6 +11,215 @@ _NORMALIZED_GWB_TARGET_SPLIT_KIND = {
     "matched_event": "event_split",
     "matched_source_family": "family_split",
 }
+
+
+TARGETING_AUTHORITY = "targeting_only"
+_ALLOWED_TARGETING_STATES = {"resolved", "explicitly_ambiguous"}
+
+
+@dataclass(frozen=True)
+class TargetingAlternative:
+    """One resolved or explicitly ambiguous upstream PNF/entity alternative."""
+
+    candidate_ref: str
+    candidate_kind: str
+    relation_kind: str
+    resolution_state: str
+    identity_ref: str | None = None
+    pnf_ref: str | None = None
+    slot_ref: str | None = None
+    assessment_refs: tuple[str, ...] = ()
+    refinement_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    anchor_refs: Mapping[str, Any] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        state = str(self.resolution_state or "").strip()
+        if state not in _ALLOWED_TARGETING_STATES:
+            raise ValueError(
+                "targeting alternatives must be resolved or explicitly_ambiguous"
+            )
+        candidate_ref = str(self.candidate_ref or "").strip()
+        candidate_kind = str(self.candidate_kind or "").strip()
+        relation_kind = str(self.relation_kind or "").strip()
+        if not candidate_ref or not candidate_kind or not relation_kind:
+            raise ValueError("targeting alternatives require candidate/ref/kind/relation")
+        identity_ref = str(self.identity_ref or "").strip() or None
+        if state == "resolved" and not identity_ref:
+            raise ValueError("resolved targeting alternatives require identity_ref")
+        return {
+            "candidate_ref": candidate_ref,
+            "candidate_kind": candidate_kind,
+            "relation_kind": relation_kind,
+            "resolution_state": state,
+            "identity_ref": identity_ref,
+            "pnf_ref": str(self.pnf_ref or "").strip() or None,
+            "slot_ref": str(self.slot_ref or "").strip() or None,
+            "assessment_refs": sorted(
+                {str(value).strip() for value in self.assessment_refs if str(value).strip()}
+            ),
+            "refinement_refs": sorted(
+                {str(value).strip() for value in self.refinement_refs if str(value).strip()}
+            ),
+            "evidence_refs": sorted(
+                {str(value).strip() for value in self.evidence_refs if str(value).strip()}
+            ),
+            "anchor_refs": dict(self.anchor_refs or {}),
+            "authority": TARGETING_AUTHORITY,
+        }
+
+
+@dataclass(frozen=True)
+class TargetingResult:
+    """Generic targeting result over explicit upstream semantic alternatives."""
+
+    claim_id: str
+    alternatives: tuple[TargetingAlternative, ...]
+    selected_target: TargetingAlternative | None
+    selection_mode: str
+    candidate_count: int
+    authority: str = TARGETING_AUTHORITY
+
+
+def build_targeting_result(
+    *,
+    claim_id: str,
+    alternatives: Sequence[TargetingAlternative],
+) -> TargetingResult:
+    normalized = tuple(
+        sorted(
+            alternatives,
+            key=lambda alternative: (
+                alternative.candidate_ref,
+                alternative.candidate_kind,
+                alternative.relation_kind,
+            ),
+        )
+    )
+    for alternative in normalized:
+        alternative.to_dict()
+    if not normalized:
+        return TargetingResult(
+            claim_id=str(claim_id or "").strip(),
+            alternatives=(),
+            selected_target=None,
+            selection_mode="no_target",
+            candidate_count=0,
+        )
+
+    resolved = tuple(
+        alternative
+        for alternative in normalized
+        if alternative.resolution_state == "resolved"
+    )
+    ambiguous = tuple(
+        alternative
+        for alternative in normalized
+        if alternative.resolution_state == "explicitly_ambiguous"
+    )
+    if len(resolved) == 1 and not ambiguous:
+        return TargetingResult(
+            claim_id=str(claim_id or "").strip(),
+            alternatives=normalized,
+            selected_target=resolved[0],
+            selection_mode="resolved",
+            candidate_count=1,
+        )
+    if resolved:
+        raise ValueError(
+            "targeting cannot mix a resolved target with competing alternatives"
+        )
+    return TargetingResult(
+        claim_id=str(claim_id or "").strip(),
+        alternatives=normalized,
+        selected_target=None,
+        selection_mode="explicitly_ambiguous",
+        candidate_count=len(normalized),
+    )
+
+
+def build_targeting_alternatives_from_resolution_artifacts(
+    *,
+    assessments: Sequence[Mapping[str, Any]] = (),
+    refinements: Sequence[Mapping[str, Any]] = (),
+    relation_kind: str = "addresses",
+) -> tuple[TargetingAlternative, ...]:
+    """Normalize upstream resolution/PNF artifacts without consulting review text."""
+
+    relation = str(relation_kind or "").strip()
+    if not relation:
+        raise ValueError("relation_kind is required")
+
+    resolved_by_identity: dict[str, TargetingAlternative] = {}
+    for assessment in assessments:
+        if not isinstance(assessment, Mapping):
+            continue
+        outcome = str(assessment.get("outcome") or "").strip()
+        if outcome != "resolved":
+            continue
+        identity_ref = str(assessment.get("selected_identity_ref") or "").strip()
+        assessment_ref = str(assessment.get("assessment_ref") or "").strip()
+        if not identity_ref:
+            raise ValueError("resolved assessment requires selected_identity_ref")
+        resolved_by_identity[identity_ref] = TargetingAlternative(
+            candidate_ref=identity_ref,
+            candidate_kind=str(assessment.get("subject_kind") or "entity").strip()
+            or "entity",
+            relation_kind=relation,
+            resolution_state="resolved",
+            identity_ref=identity_ref,
+            assessment_refs=(assessment_ref,) if assessment_ref else (),
+            evidence_refs=(
+                (str(assessment.get("right_ref")).strip(),)
+                if str(assessment.get("right_ref") or "").strip()
+                else ()
+            ),
+            anchor_refs={"subject_ref": str(assessment.get("subject_ref") or "").strip()},
+        )
+
+    if len(resolved_by_identity) > 1:
+        raise ValueError("multiple resolved identities must remain explicitly ambiguous")
+    if resolved_by_identity:
+        return tuple(resolved_by_identity.values())
+
+    ambiguous: dict[tuple[str, str, str], TargetingAlternative] = {}
+    for refinement in refinements:
+        if not isinstance(refinement, Mapping):
+            continue
+        pnf_ref = str(
+            refinement.get("partial_pnf_ref")
+            or refinement.get("pnf_ref")
+            or ""
+        ).strip()
+        slot_ref = str(refinement.get("slot_ref") or "").strip()
+        refinement_ref = str(refinement.get("refinement_ref") or "").strip()
+        candidates = {
+            str(value).strip()
+            for key in ("retained_alternatives", "added_alternatives")
+            for value in (refinement.get(key) or ())
+            if str(value).strip()
+        }
+        for candidate_ref in sorted(candidates):
+            key = (pnf_ref, slot_ref, candidate_ref)
+            ambiguous[key] = TargetingAlternative(
+                candidate_ref=candidate_ref,
+                candidate_kind="pnf_alternative",
+                relation_kind=relation,
+                resolution_state="explicitly_ambiguous",
+                pnf_ref=pnf_ref or None,
+                slot_ref=slot_ref or None,
+                refinement_refs=(refinement_ref,) if refinement_ref else (),
+                evidence_refs=tuple(
+                    str(value).strip()
+                    for value in refinement.get("evidence_refs", ())
+                    if str(value).strip()
+                ),
+                anchor_refs={
+                    "partial_pnf_ref": pnf_ref,
+                    "slot_ref": slot_ref,
+                },
+            )
+    return tuple(ambiguous[key] for key in sorted(ambiguous))
 
 
 @dataclass(frozen=True)
