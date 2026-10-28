@@ -48,10 +48,6 @@ def test_catalogue_admission_is_not_paid_source_revision_or_legal_truth():
     law = next(r for r in rows if r["key"] == "epbc-operative-law")
     assert law["admission"]["admission_state"] == "compile"
     assert law["exact_span_paid"] is False
-    assert all(
-        r["admission"]["admission_state"] == "evidence_only"
-        for r in rows if r["role"] in ()  # Roles not copied from constructor; see next test.
-    )
 
 
 def test_scenic_activity_can_be_standing_input_but_not_springview_merits():
