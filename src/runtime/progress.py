@@ -71,6 +71,38 @@ def _measure_snapshot(
     return result
 
 
+def _relayed_measure_rows(details: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Normalize callback-style inner progress without changing outer counters."""
+
+    rows: dict[str, dict[str, Any]] = {}
+    raw_measures = details.get("measures")
+    if isinstance(raw_measures, Mapping):
+        for name, value in raw_measures.items():
+            key = str(name)
+            if isinstance(value, Mapping):
+                rows[key] = dict(value)
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                rows[key] = {"completed": value, "unit": key}
+
+    completed = details.get("completed")
+    total = details.get("total")
+    if any(
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        for value in (completed, total)
+    ):
+        section = str(details.get("section") or details.get("measure") or "work")
+        unit = str(details.get("unit") or details.get("phase_unit") or "items")
+        row = rows.setdefault(section, {"unit": unit})
+        if isinstance(completed, (int, float)) and not isinstance(completed, bool):
+            row["completed"] = max(0, completed)
+        else:
+            row.setdefault("completed", 0)
+        if isinstance(total, (int, float)) and not isinstance(total, bool):
+            row["total"] = max(0, total)
+        row.setdefault("unit", unit)
+    return rows
+
+
 @dataclass(frozen=True)
 class ProgressEvent:
     phase: str
@@ -411,6 +443,42 @@ class PhaseHandle:
             )
         )
 
+    def relay_progress(
+        self,
+        stage: str,
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        """Relay callback-style inner progress into the durable phase ledger.
+
+        The relay is observational. It never advances the outer completion
+        counter and never opens or closes a managed stage. This lets deeper
+        producers report Wikidata scans, spectral/eigen-motif work, or other
+        inner loops without taking authority over the phase lifecycle.
+        """
+
+        if self._finished:
+            raise RuntimeError("cannot relay progress after phase completion")
+        payload = dict(details or {})
+        section = str(payload.get("section") or stage)
+        measures = _relayed_measure_rows(payload)
+        elapsed_ms = self.elapsed_ms
+        snapshot = _measure_snapshot(measures, elapsed_ms) if measures else None
+        merged_details = {
+            **self.details,
+            **payload,
+            "relayed_stage": stage,
+            "relayed_section": section,
+        }
+        self.recorder.emit(
+            self._event(
+                state="running",
+                elapsed_ms=elapsed_ms,
+                details=merged_details,
+                message=str(payload.get("message") or stage),
+                measures_override=snapshot,
+            )
+        )
+
     def advance(
         self,
         *,
@@ -513,13 +581,18 @@ class PhaseHandle:
         details: Mapping[str, Any] | None = None,
         reused: bool | None = None,
         message: str | None = None,
+        measures_override: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> ProgressEvent:
         token_rate = _rate(self.processed_tokens, elapsed_ms)
         stage_elapsed = self.stage_elapsed_ms if self.active_stage is not None else None
         measures = (
-            _measure_snapshot(self.measures, stage_elapsed or 0)
-            if self.active_stage is not None
-            else None
+            dict(measures_override)
+            if measures_override is not None
+            else (
+                _measure_snapshot(self.measures, stage_elapsed or 0)
+                if self.active_stage is not None
+                else None
+            )
         )
         return ProgressEvent(
             phase=self.phase,
