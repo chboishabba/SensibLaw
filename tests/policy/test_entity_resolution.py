@@ -25,6 +25,7 @@ from src.policy.entity_resolution import (
     build_form_derivation_carrier,
     build_local_typing_carrier,
     build_partial_pnf_carrier,
+    build_resolution_cache_key,
     build_resolution_demand_carrier,
     build_resolution_subject_carrier,
     build_resolution_schedule_carrier,
@@ -1554,9 +1555,20 @@ def test_resolution_schedule_is_cache_aware_and_identity_blind() -> None:
         ],
     )
     group = subjects["equivalence_groups"][0]
-    cache_key = f"resolution:{group['semantic_key_sha256']}"
+    content_sha256 = "a" * 64
+    profile_ref = "profile:entity-resolution"
+    profile_version = "v1"
+    cache_key = build_resolution_cache_key(
+        content_sha256=content_sha256,
+        profile_ref=profile_ref,
+        profile_version=profile_version,
+        semantic_key_sha256=group["semantic_key_sha256"],
+    )
     plan = build_resolution_schedule_carrier(
         resolution_subject_carrier=subjects,
+        content_sha256=content_sha256,
+        profile_ref=profile_ref,
+        profile_version=profile_version,
         cache_entries=[
             ResolutionCacheEntry(
                 cache_key=cache_key,
@@ -1577,6 +1589,52 @@ def test_resolution_schedule_is_cache_aware_and_identity_blind() -> None:
     assert plan["plans"][0]["state"] == "fresh_cache_hit"
     assert plan["backend_effect"] == "plan_only"
     assert plan["resolution_effect"] == "none"
+
+
+def test_resolution_cache_keys_bind_content_profile_and_version() -> None:
+    semantic_key_sha256 = "b" * 64
+    base = build_resolution_cache_key(
+        content_sha256="a" * 64,
+        profile_ref="profile:entity-resolution",
+        profile_version="v1",
+        semantic_key_sha256=semantic_key_sha256,
+    )
+    assert base == build_resolution_cache_key(
+        content_sha256="A" * 64,
+        profile_ref="profile:entity-resolution",
+        profile_version="v1",
+        semantic_key_sha256=semantic_key_sha256,
+    )
+    variants = {
+        base,
+        build_resolution_cache_key(
+            content_sha256="c" * 64,
+            profile_ref="profile:entity-resolution",
+            profile_version="v1",
+            semantic_key_sha256=semantic_key_sha256,
+        ),
+        build_resolution_cache_key(
+            content_sha256="a" * 64,
+            profile_ref="profile:other",
+            profile_version="v1",
+            semantic_key_sha256=semantic_key_sha256,
+        ),
+        build_resolution_cache_key(
+            content_sha256="a" * 64,
+            profile_ref="profile:entity-resolution",
+            profile_version="v2",
+            semantic_key_sha256=semantic_key_sha256,
+        ),
+    }
+    assert len(variants) == 4
+
+    with pytest.raises(ValueError, match="content_sha256"):
+        build_resolution_cache_key(
+            content_sha256="not-a-digest",
+            profile_ref="profile:entity-resolution",
+            profile_version="v1",
+            semantic_key_sha256=semantic_key_sha256,
+        )
 
 
 def test_resolution_schedule_reports_unavailable_and_batches_deterministically() -> (
