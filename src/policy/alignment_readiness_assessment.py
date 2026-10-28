@@ -8,6 +8,7 @@ from src.policy.review_claim_records import (
     build_gwb_targeting_results_from_review_claim_records,
 )
 from src.policy.review_targeting_contract import (
+    TargetingResult,
     assess_gwb_semantic_separability,
     normalize_gwb_target_split_kind,
 )
@@ -70,6 +71,22 @@ def review_alignment_emission_allowed(
 ) -> bool:
     """Gate any future shared emitted alignment surface on a promote verdict."""
     return str(equivalence_assessment.get("verdict") or "").strip() == "promote"
+
+
+def targeting_promotion_allowed(
+    *,
+    targeting_result: TargetingResult,
+    readiness_decision: Mapping[str, Any],
+) -> bool:
+    """Promote only one explicitly resolved target after the readiness oracle."""
+
+    if targeting_result.selection_mode != "resolved":
+        return False
+    if targeting_result.selected_target is None:
+        return False
+    if targeting_result.candidate_count != 1:
+        return False
+    return str(readiness_decision.get("outcome") or "").strip() == "promote"
 
 
 def _as_mapping(value: Any) -> Mapping[str, Any]:
