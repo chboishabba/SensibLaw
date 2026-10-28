@@ -11,6 +11,24 @@ from src.reporting.notebooklm_run_loader import iter_dated_artifacts, resolve_ru
 if False:  # pragma: no cover
     from src.reporting.structure_report import TextUnit
 
+DEFAULT_QUERY_ROWS = 50
+MAX_QUERY_ROWS = 500
+
+
+def _bounded_limit(limit: int, *, maximum: int = MAX_QUERY_ROWS) -> int:
+    return max(1, min(int(limit), maximum))
+
+
+def _text_matches(needle: str, *parts: Any) -> bool:
+    if not needle:
+        return True
+    haystack = "\n".join(
+        str(part)
+        for part in parts
+        if part is not None and str(part).strip()
+    ).casefold()
+    return needle in haystack
+
 
 @dataclass(frozen=True, slots=True)
 class NotebookLMObserverRow:
@@ -294,6 +312,7 @@ def build_notebooklm_observer_report(
                 bucket["firstTs"] = row.ts
             if bucket["lastTs"] is None or row.ts > bucket["lastTs"]:
                 bucket["lastTs"] = row.ts
+    recent_event_limit = _bounded_limit(event_limit)
     recent_events = [
         {
             "date": row.date,
@@ -308,7 +327,7 @@ def build_notebooklm_observer_report(
             "provenanceSource": row.provenance_source,
             "hasContext": row.has_context,
         }
-        for row in rows[-max(1, event_limit) :]
+        for row in rows[-recent_event_limit:]
     ]
     return {
         "scope": {
@@ -366,6 +385,158 @@ def build_notebooklm_observer_report(
     }
 
 
+def build_bounded_notebooklm_observer_report(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    notebook_id_hash: str | None = None,
+    event_limit: int = DEFAULT_QUERY_ROWS,
+    entity_limit: int = DEFAULT_QUERY_ROWS,
+) -> dict[str, Any]:
+    """Build the observer report while bounding every emitted row collection."""
+    event_cap = _bounded_limit(event_limit)
+    entity_cap = _bounded_limit(entity_limit)
+    report = build_notebooklm_observer_report(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+        notebook_id_hash=notebook_id_hash,
+        event_limit=event_cap,
+    )
+    bounded = dict(report)
+    for key in ("dates", "notebooks", "sources", "artifacts"):
+        rows = list(report.get(key) or [])
+        bounded[key] = rows[-entity_cap:] if key == "dates" else rows[:entity_cap]
+    bounded["recentEvents"] = list(report.get("recentEvents") or [])[-event_cap:]
+    bounded["bounds"] = {
+        "entityLimit": entity_cap,
+        "eventLimit": event_cap,
+        "maxQueryRows": MAX_QUERY_ROWS,
+    }
+    return bounded
+
+
+def query_notebooklm_observer_dates(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    limit: int = DEFAULT_QUERY_ROWS,
+) -> list[dict[str, Any]]:
+    """Return the most recent bounded date-coverage rows."""
+    rows = list_notebooklm_observer_dates(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    return rows[-_bounded_limit(limit):]
+
+
+def query_notebooklm_observer_notebooks(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    notebook_id_hash: str | None = None,
+    text_query: str | None = None,
+    limit: int = DEFAULT_QUERY_ROWS,
+) -> list[dict[str, Any]]:
+    """Return bounded notebook summary rows from the canonical observer report."""
+    report = build_notebooklm_observer_report(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+        notebook_id_hash=notebook_id_hash,
+        event_limit=1,
+    )
+    needle = (text_query or "").strip().casefold()
+    rows = [
+        row
+        for row in report["notebooks"]
+        if _text_matches(needle, row.get("title"), row.get("notebookIdHash"))
+    ]
+    return rows[:_bounded_limit(limit)]
+
+
+def query_notebooklm_observer_sources(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    notebook_id_hash: str | None = None,
+    source_type: str | None = None,
+    source_status: str | None = None,
+    text_query: str | None = None,
+    limit: int = DEFAULT_QUERY_ROWS,
+) -> list[dict[str, Any]]:
+    """Return bounded source summary rows with optional type/status/text filters."""
+    report = build_notebooklm_observer_report(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+        notebook_id_hash=notebook_id_hash,
+        event_limit=1,
+    )
+    needle = (text_query or "").strip().casefold()
+    type_filter = (source_type or "").strip().casefold()
+    status_filter = (source_status or "").strip().casefold()
+    rows = []
+    for row in report["sources"]:
+        if type_filter and str(row.get("type") or "").casefold() != type_filter:
+            continue
+        if status_filter and str(row.get("status") or "").casefold() != status_filter:
+            continue
+        if not _text_matches(
+            needle,
+            row.get("title"),
+            row.get("summary"),
+            " ".join(row.get("keywords") or []),
+            row.get("noteIdHash"),
+        ):
+            continue
+        rows.append(row)
+    return rows[:_bounded_limit(limit)]
+
+
+def query_notebooklm_observer_artifacts(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    notebook_id_hash: str | None = None,
+    artifact_type: str | None = None,
+    artifact_status: str | None = None,
+    text_query: str | None = None,
+    limit: int = DEFAULT_QUERY_ROWS,
+) -> list[dict[str, Any]]:
+    """Return bounded artifact summary rows with optional type/status/text filters."""
+    report = build_notebooklm_observer_report(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+        notebook_id_hash=notebook_id_hash,
+        event_limit=1,
+    )
+    needle = (text_query or "").strip().casefold()
+    type_filter = (artifact_type or "").strip().casefold()
+    status_filter = (artifact_status or "").strip().casefold()
+    rows = []
+    for row in report["artifacts"]:
+        if type_filter and str(row.get("type") or "").casefold() != type_filter:
+            continue
+        if status_filter and str(row.get("status") or "").casefold() != status_filter:
+            continue
+        if not _text_matches(
+            needle,
+            row.get("title"),
+            row.get("artifactIdHash"),
+        ):
+            continue
+        rows.append(row)
+    return rows[:_bounded_limit(limit)]
+
+
 def query_notebooklm_observer_events(
     runs_root: str | Path,
     *,
@@ -374,7 +545,7 @@ def query_notebooklm_observer_events(
     notebook_id_hash: str | None = None,
     event: str | None = None,
     text_query: str | None = None,
-    limit: int = 25,
+    limit: int = DEFAULT_QUERY_ROWS,
 ) -> list[dict[str, Any]]:
     rows = iter_notebooklm_observer_rows(
         runs_root,
@@ -423,7 +594,7 @@ def query_notebooklm_observer_events(
                 "hasContext": row.has_context,
             }
         )
-    return filtered[-max(1, limit) :]
+    return filtered[-_bounded_limit(limit):]
 
 
 def load_notebooklm_units(
