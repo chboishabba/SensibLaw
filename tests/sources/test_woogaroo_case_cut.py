@@ -38,6 +38,10 @@ def test_catalogue_admission_is_not_paid_source_revision_or_legal_truth():
     assert all(r["admission"]["source_revision_ref"].startswith("locator-only:") for r in rows)
     assert all(
         not r["persisted_revision_paid"]
+        and not r["source_bytes_materialised"]
+        and r["canonical_content_sha256"] is None
+        and r["exact_span_ref"] is None
+        and not r["parser_execution_authorised"]
         and not r["exact_span_paid"]
         and not r["case_fact_paid"]
         and not r["minister_delivery_paid"]
