@@ -32,7 +32,7 @@ LOCAL_TYPING_SCHEMA_VERSION = "sl.local_typing.v0_1"
 PARTIAL_PNF_SCHEMA_VERSION = "sl.partial_pnf.v0_1"
 RESOLUTION_DEMAND_SCHEMA_VERSION = "sl.resolution_demand.v0_1"
 RESOLUTION_SUBJECT_SCHEMA_VERSION = "sl.resolution_subject.v0_1"
-RESOLUTION_SCHEDULER_SCHEMA_VERSION = "sl.resolution_scheduler.v0_1"
+RESOLUTION_SCHEDULER_SCHEMA_VERSION = "sl.resolution_scheduler.v0_2"
 _CANDIDATE_KINDS = frozenset(
     {
         "instance",
@@ -173,6 +173,35 @@ def _canonical_digest(value: object) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _sha256_hex(value: Any, field: str) -> str:
+    normalized = _text(value, field).lower()
+    if len(normalized) != 64 or any(
+        character not in "0123456789abcdef" for character in normalized
+    ):
+        raise ValueError(f"{field} must be a 64-character SHA-256 hex digest")
+    return normalized
+
+
+def build_resolution_cache_key(
+    *,
+    content_sha256: str,
+    profile_ref: str,
+    profile_version: str,
+    semantic_key_sha256: str,
+) -> str:
+    """Bind resolution-cache identity to content, profile, version, and demand."""
+
+    identity = {
+        "content_sha256": _sha256_hex(content_sha256, "cache content_sha256"),
+        "profile_ref": _text(profile_ref, "cache profile_ref"),
+        "profile_version": _text(profile_version, "cache profile_version"),
+        "semantic_key_sha256": _sha256_hex(
+            semantic_key_sha256, "cache semantic_key_sha256"
+        ),
+    }
+    return f"resolution:{_canonical_digest(identity)}"
 
 
 def _json_mapping(value: Mapping[str, Any], field: str) -> dict[str, Any]:
@@ -3450,6 +3479,9 @@ def build_candidate_retrieval_carrier(
 def build_resolution_schedule_carrier(
     *,
     resolution_subject_carrier: Mapping[str, Any],
+    content_sha256: str,
+    profile_ref: str,
+    profile_version: str,
     cache_entries: Sequence[ResolutionCacheEntry | Mapping[str, Any]] = (),
     backend_capabilities: Sequence[
         ResolutionBackendCapability | Mapping[str, Any]
@@ -3477,6 +3509,12 @@ def build_resolution_schedule_carrier(
         raise ValueError("scheduling requires a resolution subject carrier")
     if resolution_subject_carrier.get("authority") != ENTITY_RESOLUTION_AUTHORITY:
         raise ValueError("scheduling inputs must remain candidate_only")
+
+    cache_namespace = {
+        "content_sha256": _sha256_hex(content_sha256, "cache content_sha256"),
+        "profile_ref": _text(profile_ref, "cache profile_ref"),
+        "profile_version": _text(profile_version, "cache profile_version"),
+    }
 
     cache_rows = sorted(
         (_coerce_cache_entry(entry).to_dict() for entry in cache_entries),
@@ -3539,7 +3577,12 @@ def build_resolution_schedule_carrier(
                 }
             )
             continue
-        cache_key = f"resolution:{group['semantic_key_sha256']}"
+        cache_key = build_resolution_cache_key(
+            content_sha256=cache_namespace["content_sha256"],
+            profile_ref=cache_namespace["profile_ref"],
+            profile_version=cache_namespace["profile_version"],
+            semantic_key_sha256=group["semantic_key_sha256"],
+        )
         cached = cache_by_key.get(cache_key, [])
         if cached:
             cache = cached[0]
@@ -3664,6 +3707,7 @@ def build_resolution_schedule_carrier(
         "input_resolution_subject_carrier_ref": _text(
             resolution_subject_carrier.get("carrier_ref"), "subject carrier_ref"
         ),
+        "cache_namespace": cache_namespace,
         "cache_entries": cache_rows,
         "backend_capabilities": capability_rows,
         "plans": sorted(plans, key=lambda row: row["equivalence_ref"]),
@@ -4061,6 +4105,7 @@ __all__ = [
     "build_form_derivation_carrier",
     "build_local_typing_carrier",
     "build_partial_pnf_carrier",
+    "build_resolution_cache_key",
     "build_resolution_demand_carrier",
     "build_resolution_subject_carrier",
     "build_resolution_schedule_carrier",
