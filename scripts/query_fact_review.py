@@ -525,6 +525,11 @@ def main(argv: list[str] | None = None) -> int:
     feedback_import_p.add_argument("--input", type=Path, required=True)
 
     args = parser.parse_args(argv)
+    feedback_add_payload = (
+        _build_feedback_payload_from_args(args)
+        if args.command == "feedback-add"
+        else None
+    )
     db_path = resolve_sqlite_db_path(args.db_path)
     with connect_sqlite(db_path) as conn:
         if args.command == "runs":
@@ -865,9 +870,9 @@ def main(argv: list[str] | None = None) -> int:
                 ),
             }
         elif args.command == "feedback-add":
-            receipt = persist_feedback_receipt(
-                conn, _build_feedback_payload_from_args(args)
-            )
+            if feedback_add_payload is None:
+                raise SystemExit("feedback-add payload normalization failed")
+            receipt = persist_feedback_receipt(conn, feedback_add_payload)
             payload = {
                 "ok": True,
                 "dbPath": str(db_path),
