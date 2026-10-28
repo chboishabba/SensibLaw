@@ -48,7 +48,10 @@ def main(argv: list[str] | None = None) -> int:
         "dates", help="List bounded NotebookLM observer date coverage"
     )
     dates_parser.add_argument(
-        "--limit", type=int, default=DEFAULT_QUERY_ROWS, help="Max date rows to return"
+        "--limit",
+        type=int,
+        default=DEFAULT_QUERY_ROWS,
+        help="Max date rows to return",
     )
 
     summary_parser = subparsers.add_parser(
@@ -64,7 +67,10 @@ def main(argv: list[str] | None = None) -> int:
         "--entity-limit",
         type=int,
         default=DEFAULT_QUERY_ROWS,
-        help=f"Max date/notebook/source/artifact rows per collection (hard-capped at {MAX_QUERY_ROWS})",
+        help=(
+            "Max date/notebook/source/artifact rows per collection "
+            f"(hard-capped at {MAX_QUERY_ROWS})"
+        ),
     )
 
     notebooks_parser = subparsers.add_parser(
