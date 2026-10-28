@@ -1,0 +1,86 @@
+# docs / UML / commit activation thresholds
+
+Lane: ao.fleet.dynamic.0f5da8ca8544
+Orchestrator: ao-fleet-conductor-leaf-0f5da8ca8544
+
+This file defines the fail-closed activation thresholds for the docs, UML, and
+commit sidecars.
+
+## Preconditions
+
+- The proposed action stays inside its declared typed support.
+- The action has a concrete state transition to describe.
+- The action does not create semantic, legal, proof, or promotion authority.
+- Protected ESD surfaces remain untouched.
+- Verification evidence exists for any state claimed as complete.
+
+## Thresholds
+
+### Docs
+
+Activate a docs update only when at least one of these state changes occurs:
+
+- a public contract changes;
+- a workflow state changes;
+- an operator-visible behavior changes;
+- a promotion or abstention boundary changes;
+- a verification result changes the documented state.
+
+Do not update docs for a refactor that preserves all documented behavior.
+
+### UML
+
+Activate UML only when system topology changes materially.
+
+A material topology change is one of:
+
+- a component or service is added or removed;
+- a dependency direction changes;
+- an authority boundary changes;
+- a persistent data-flow edge changes;
+- a runtime ownership boundary changes.
+
+Do not activate UML for text changes, local refactors, naming changes, or
+unchanged topology.
+
+### Commit
+
+Activate a publish/checkpoint commit sidecar only when all of these conditions
+hold:
+
+- the lane has a complete bounded result;
+- deterministic verification for that result has passed;
+- the result is ready to be consumed by another lane or reviewed as a stable
+  checkpoint;
+- no unresolved local edit is being hidden by the checkpoint.
+
+Do not create a publish/checkpoint commit merely because work occurred.
+
+## Invariants
+
+- Docs, UML, and commit activation are independent decisions.
+- One activated sidecar does not activate the others.
+- No sidecar can promote candidate state into authoritative state.
+- No sidecar can bypass review, verification, or promotion gates.
+- No threshold may be lowered by an unrelated lane.
+- noTypedMeet independence is preserved across all sidecars.
+
+## Current state
+
+The current SensibLaw normalization state does not justify UML activation.
+No material topology change is established by this leaf.
+
+The current leaf does justify this threshold contract because the repository
+already names "docs/UML/commit thresholds only when state justifies" as an
+active coordination obligation.
+
+This leaf does not authorize any additional docs, UML, or publish/checkpoint
+action.
+
+## Postconditions
+
+- Future docs updates have an explicit state-change gate.
+- Future UML updates have an explicit topology-change gate.
+- Future publish/checkpoint commits have an explicit completion and
+  verification gate.
+- Inactive sidecars remain inactive by default.
