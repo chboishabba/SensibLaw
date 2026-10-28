@@ -159,6 +159,11 @@ def source_admission_snapshot() -> tuple[dict[str, Any], ...]:
             "date_label": source.date_label,
             "admission": receipt.to_dict(),
             "persisted_revision_paid": False,
+            # Legal authority by role is NOT a retrieved or executable record.
+            "source_bytes_materialised": False,
+            "canonical_content_sha256": None,
+            "exact_span_ref": None,
+            "parser_execution_authorised": False,
             "exact_span_paid": False,
             "case_fact_paid": False,
             "minister_delivery_paid": False,
