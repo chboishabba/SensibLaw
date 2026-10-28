@@ -71,7 +71,6 @@ def _measure_snapshot(
     return result
 
 
-
 def _relayed_measure_rows(details: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     """Normalize callback-style inner progress without changing outer counters."""
 
