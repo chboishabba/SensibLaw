@@ -200,7 +200,7 @@ def case_cut_packet() -> dict[str, Any]:
         "secretary_95c_paid": False,
         "applicant_standing_paid": False,
         "actual_filing_paid": False,
-        "reviewed_srl_span_paid": False,
+        "reviewed_slr_span_paid": False,
         "creates_legal_authority": False,
     }
 
