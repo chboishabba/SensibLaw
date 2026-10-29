@@ -15,6 +15,45 @@ V = TypeVar("V")
 
 
 @dataclass(frozen=True, slots=True)
+class RelationDeltaOwnerRouting:
+    """Executable single-owner contract for one keyed relation."""
+
+    candidate_mutation_owner_count: int
+    private_candidate_mutation_bypass_count: int
+    hot_path_reconciler_owner_count: int
+    reconciliation_receipt_owner_count: int
+
+    def __post_init__(self) -> None:
+        if self.candidate_mutation_owner_count != 1:
+            raise ValueError("candidate relation must have exactly one mutation owner")
+        if self.private_candidate_mutation_bypass_count != 0:
+            raise ValueError("private candidate mutation bypasses are forbidden")
+        if self.hot_path_reconciler_owner_count != 1:
+            raise ValueError("hot path must have exactly one reconciler owner")
+        if self.reconciliation_receipt_owner_count != self.hot_path_reconciler_owner_count:
+            raise ValueError("reconciliation receipt owner must match the hot-path owner")
+
+    def receipt(self, *, owner_ref: str) -> dict[str, object]:
+        return {
+            "contract_ref": "sensiblaw.relation-delta-owner-routing.v0_1",
+            "owner_ref": str(owner_ref),
+            "candidate_mutation_owner_count": self.candidate_mutation_owner_count,
+            "private_candidate_mutation_bypass_count": self.private_candidate_mutation_bypass_count,
+            "hot_path_reconciler_owner_count": self.hot_path_reconciler_owner_count,
+            "reconciliation_receipt_owner_count": self.reconciliation_receipt_owner_count,
+            "semantic_authority_effect": "none",
+        }
+
+
+CANONICAL_CANDIDATE_RELATION_OWNER_ROUTING = RelationDeltaOwnerRouting(
+    candidate_mutation_owner_count=1,
+    private_candidate_mutation_bypass_count=0,
+    hot_path_reconciler_owner_count=1,
+    reconciliation_receipt_owner_count=1,
+)
+
+
+@dataclass(frozen=True, slots=True)
 class RelationDelta(Generic[K, V]):
     added: Mapping[K, V]
     removed: Mapping[K, V]
@@ -97,4 +136,9 @@ def relation_delta(
     )
 
 
-__all__ = ["RelationDelta", "relation_delta"]
+__all__ = [
+    "CANONICAL_CANDIDATE_RELATION_OWNER_ROUTING",
+    "RelationDelta",
+    "RelationDeltaOwnerRouting",
+    "relation_delta",
+]
