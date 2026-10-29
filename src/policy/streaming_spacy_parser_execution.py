@@ -16,6 +16,9 @@ from src.policy.numeric_pnf_compilation import (
     persist_numeric_pnf_document,
 )
 from src.storage.postgres.streaming_spacy_execution import (
+    AUDIT_DEBUG,
+    PARITY_REFERENCE,
+    PRODUCTION_DIRECT,
     STREAMING_SPACY_CONTRACT,
     ParserStreamingPolicy,
     run_streaming_spacy_execution,
@@ -38,12 +41,16 @@ def _postgres():
 
 _INSTALL_MARKER = "_streaming_spacy_parser_execution_installed"
 DEFAULT_NUMERIC_PRODUCTION_STRATEGY = "postgresql-typed-exact-execution:v2"
+PARITY_REFERENCE_STRATEGY = "postgresql-typed-exact-reference-execution:v1"
+AUDIT_DEBUG_STRATEGY = "postgresql-typed-exact-audit-execution:v1"
 COMPATIBILITY_REPLAY_STRATEGY = "local-compatibility-replay"
 _STRICT_STRATEGIES = frozenset(
     {
         "postgresql-leased-exact-execution:v1",
         "postgresql-leased-exact-execution:v2",
         DEFAULT_NUMERIC_PRODUCTION_STRATEGY,
+        PARITY_REFERENCE_STRATEGY,
+        AUDIT_DEBUG_STRATEGY,
     }
 )
 
@@ -53,6 +60,7 @@ class _ParserExecution:
     database_url: str
     run_ref: str
     parser_contract_ref: str
+    projection_mode: str
 
 
 _CURRENT: ContextVar[_ParserExecution | None] = ContextVar(
@@ -89,6 +97,14 @@ def _is_strict_strategy(strategy: str) -> bool:
     )
 
 
+def _projection_mode_for_strategy(strategy: str) -> str:
+    if strategy == PARITY_REFERENCE_STRATEGY:
+        return PARITY_REFERENCE
+    if strategy == AUDIT_DEBUG_STRATEGY:
+        return AUDIT_DEBUG
+    return PRODUCTION_DIRECT
+
+
 def _effective_strategy(
     *,
     arguments: Mapping[str, Any],
@@ -120,6 +136,7 @@ def _scoped_run_ref(
     document_ref: str,
     content_sha256: str,
     parser_contract_ref: str,
+    projection_mode: str,
 ) -> str:
     if requested_run_ref.startswith("typed-spacy-run:"):
         return requested_run_ref
@@ -129,6 +146,7 @@ def _scoped_run_ref(
         document_ref,
         content_sha256,
         parser_contract_ref,
+        projection_mode,
     )
 
 
@@ -137,6 +155,7 @@ def _execution_context(
     database_url: str,
     run_ref: str,
     compiler_context: Any,
+    projection_mode: str,
 ) -> _ParserExecution:
     return _ParserExecution(
         database_url=database_url,
@@ -144,6 +163,7 @@ def _execution_context(
         parser_contract_ref=str(
             getattr(compiler_context, "annotation_backend_ref", "parser:spacy")
         ),
+        projection_mode=projection_mode,
     )
 
 
@@ -248,6 +268,7 @@ def install_streaming_spacy_parser_execution() -> bool:
             ),
             worker_count=int(policy.workers),
             policy=_parser_policy(policy),
+            projection_mode=execution.projection_mode,
         )
         if progress is not None and hasattr(progress, "observe"):
             progress.observe(
@@ -307,6 +328,7 @@ def install_streaming_spacy_parser_execution() -> bool:
                 "numeric operational document identity disagrees with canonical text"
             )
         parser_contract_ref = str(context.annotation_backend_ref)
+        projection_mode = _projection_mode_for_strategy(strategy)
         effective_run_ref = _scoped_run_ref(
             requested_run_ref=str(
                 arguments.get("strict_run_ref") or f"strict-parser:{document_ref}"
@@ -314,11 +336,13 @@ def install_streaming_spacy_parser_execution() -> bool:
             document_ref=document_ref,
             content_sha256=content_sha256,
             parser_contract_ref=parser_contract_ref,
+            projection_mode=projection_mode,
         )
         execution = _execution_context(
             database_url=str(database_url),
             run_ref=effective_run_ref,
             compiler_context=context,
+            projection_mode=projection_mode,
         )
         token = _CURRENT.set(execution)
         try:
@@ -358,6 +382,7 @@ def install_streaming_spacy_parser_execution() -> bool:
                     arguments.get("parser_overlap_chars") or 8_192
                 ),
                 parser_checkpoint_dir=arguments.get("parser_checkpoint_dir"),
+                parser_projection_mode=projection_mode,
                 progress=arguments.get("progress"),
             )
         finally:
@@ -413,6 +438,7 @@ def install_streaming_spacy_parser_execution() -> bool:
         if str(entry.get("media_adapter_ref") or "") != adapter_ref:
             raise ValueError("manifest media adapter disagrees with numeric PNF")
         parser_contract_ref = str(context.annotation_backend_ref)
+        projection_mode = _projection_mode_for_strategy(strategy)
         effective_run_ref = _scoped_run_ref(
             requested_run_ref=str(
                 arguments.get("strict_run_ref") or f"strict-parser:{document_ref}"
@@ -420,11 +446,13 @@ def install_streaming_spacy_parser_execution() -> bool:
             document_ref=document_ref,
             content_sha256=content_sha256,
             parser_contract_ref=parser_contract_ref,
+            projection_mode=projection_mode,
         )
         execution = _execution_context(
             database_url=str(database_url),
             run_ref=effective_run_ref,
             compiler_context=context,
+            projection_mode=projection_mode,
         )
         token = _CURRENT.set(execution)
         try:
@@ -466,6 +494,7 @@ def install_streaming_spacy_parser_execution() -> bool:
                     arguments.get("parser_overlap_chars") or 8_192
                 ),
                 parser_checkpoint_dir=arguments.get("parser_checkpoint_dir"),
+                parser_projection_mode=projection_mode,
                 progress=arguments.get("progress"),
             )
         finally:
@@ -482,7 +511,9 @@ def install_streaming_spacy_parser_execution() -> bool:
 
 
 __all__ = [
+    "AUDIT_DEBUG_STRATEGY",
     "COMPATIBILITY_REPLAY_STRATEGY",
     "DEFAULT_NUMERIC_PRODUCTION_STRATEGY",
+    "PARITY_REFERENCE_STRATEGY",
     "install_streaming_spacy_parser_execution",
 ]
