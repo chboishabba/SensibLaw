@@ -2,8 +2,11 @@
 
 Status: current implementation roadmap for `agent/packed-a2-swar`.
 
-Formal companion: `chboishabba/dashi_agda`, currently
-`agent/delta-native-parent-frontier` until promoted.
+Formal companion: `chboishabba/dashi_agda` canonical PNF owners on `master`.
+The bounded runtime owner is
+`DASHI/Cognition/PNF/SensibLawGWBv01RuntimeCertificationExact.agda`.
+The direct runtime decision boundary is
+`DASHI/Cognition/PNF/SensibLawGWBv01PostCertificationRoadmapExact.agda`.
 
 Read this together with `STREAMING_SEMANTIC_PACMAN.md` and the Agda modules
 listed there before changing parser/direct-PNF execution.
@@ -14,9 +17,9 @@ listed there before changing parser/direct-PNF execution.
 | --- | --- | --- |
 | G1 packed parser fibre | closed | parser observations have DB-neutral typed/local carriers |
 | G2 direct semantic compiler | closed | existing numeric PNF composition runs with sentence-local DB crossings = 0 |
-| G3 direct/reference parity | executable, not production-certified | bounded consumer-observation parity corpus and fail-closed router promotion remain |
-| G4a stable evidence/provenance | closed for direct execution | stable evidence is durable semantic support; direct runs require no parser rows |
-| G4b production parser-token retirement | pending cutover | certify parser-token writes = 0 on the public production authority after G3 |
+| G3 direct/reference parity | closed for the certified GWB v0.1 profile | 41,044 of 41,044 sentence observations matched with zero parity failures; this does not claim universal parity |
+| G4a stable evidence/provenance | closed | stable evidence is durable semantic support; direct runs require no parser rows |
+| G4b parser-token retirement | cut over in the production strategy | production uses the packed-fibre path and rejects parser sentence, token, or entity rows; reference and audit projection remain explicit alternatives |
 | cold Gate-A functional | closed on pre-overlap head | complete direct end-to-end execution exists; revalidate after overlap changes |
 | parser/direct partition overlap | implemented, awaiting fresh receipt | completed partition `n` is consumed while spaCy parses partition `n+1` through a bounded one-item queue |
 | event-level Pac-Man feed | open | move feed point earlier only when canonical parser adapter exposes stable prefix/event semantics |
@@ -63,9 +66,9 @@ before implementing the mechanisms intended to overlap and avoid work.
 
 ```text
 bank G1/G2/G4a + measured partition publication win
-    -> bounded G3 direct/reference parity
-    -> direct production cutover
-    -> certify production G4b
+    -> retain the bounded GWB v0.1 G3 parity receipt
+    -> keep the production strategy on direct packed fibres
+    -> enforce G4b zero parser observation rows
     -> validate/expand implemented parser-semantic overlap
     -> expose stable earlier parser events/prefixes when canonical parser permits
     -> delta-native affected-boundary hierarchy/reconciliation

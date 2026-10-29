@@ -602,7 +602,7 @@ def run_streaming_spacy_execution(
         "parser_projection_mode": projection_mode,
         "production_parser_token_writes": 0 if projection_mode == PRODUCTION_DIRECT else None,
         "sentence_local_database_crossings": 0 if projection_mode == PRODUCTION_DIRECT else None,
-        "reference_projection_explicit_only": projection_mode != PRODUCTION_DIRECT,
+        "reference_projection_explicit_only": True,
         "source_ref": source_ref,
         "sentence_count": summary.sentence_count,
         "token_count": summary.token_count,
