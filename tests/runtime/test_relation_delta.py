@@ -22,6 +22,8 @@ def test_relation_delta_partitions_key_and_payload_changes() -> None:
     assert delta.physical_row_mutations == 4
     assert delta.unchanged_rows_skipped == 1
     assert delta.changed_key_count == 3
+    assert delta.affected_keys == frozenset({"add", "remove", "replace"})
+    assert len(delta.affected_keys) == delta.changed_key_count
 
 
 def test_identical_relation_is_a_zero_write_reconciliation() -> None:
@@ -31,6 +33,7 @@ def test_identical_relation_is_a_zero_write_reconciliation() -> None:
     assert delta.physical_row_mutations == 0
     receipt = delta.receipt(owner_ref="test")
     assert receipt["unchanged_rows_skipped"] == 1
+    assert receipt["affected_key_count"] == 0
     assert receipt["unchanged_rows_emit_transitions"] is False
 
 
