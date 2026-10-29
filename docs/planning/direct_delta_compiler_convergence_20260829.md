@@ -22,7 +22,7 @@ and the relational parser projection is no longer a mandatory semantic bus.
 
 The runtime architecture is constrained by DASHI. The big-picture formal owner is:
 
-- [`DirectDeltaCompilerArchitectureExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda)
+- [`DirectDeltaCompilerArchitectureExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda)
 
 Aggregate/formal dependencies include `DreamFlowExecutionEverything`, `FibreSolverDeltaStreamExact`, `FibreNaturalDeltaTransportExact`, `SentenceParagraphNaturalDeltaExact`, `FibreLocalTokenAddressExact`, `FibreLocalPackedStorageExact`, `PackedNormativeDeltaAuthorityBridgeExact`, `SparseFibredFrontier`, `AffectedBoundaryLocalReductionExact`, `RelationDeltaReconciliationExact` and `DreamFlowRuntimeComplexityExact`.
 
@@ -47,6 +47,20 @@ These are destination gates, not optional optimizations.
 | G10 reference parity | direct packed path and SQL-reference path are consumer-equivalent on the certification suite |
 | G11 observability | killed/rolled-back probes retain the same diagnostic dimensions as full runs and remain acceptance-ineligible |
 | G12 representative acceptance | completed representative workload satisfies semantic gate and accepted timing ledger |
+
+## G0/G6 single-owner reconciliation status
+
+The active parent candidate path now satisfies the structural routing target:
+
+- migration 209 delegates candidate membership mutation to one shared desired/current reconciler;
+- the active parent reducer has no private candidate mutation authority after composition;
+- unchanged keyed rows are retained;
+- reconciliation receipts identify the hot-path owner;
+- the Python executable contract fails closed for duplicate owners or private bypasses;
+- the Agda golden owner is `RelationDeltaReconciliationExact`, attached through `Unified/PNFHyperfabric` to both TOE roots;
+- execution ownership remains explicitly non-promoting.
+
+This closes the routing shape of G0/G6. It does not by itself certify G12 or the 1.5x runtime target.
 
 ## Current state after probes 211/212
 
