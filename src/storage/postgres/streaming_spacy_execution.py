@@ -12,6 +12,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 from src.runtime.durable_work_items import linux_parent_death_initializer
 from src.runtime.numeric_observability import numeric_authority_counts_enabled
+from src.storage.postgres.direct_partition_projection import commit_direct_partition
 from src.storage.postgres.numeric_adjacent_reconciliation import drain_adjacent_reconciliation
 from src.storage.postgres.numeric_hierarchy_planner import materialize_numeric_document_hierarchy
 from src.storage.postgres.numeric_hyperfabric_store import hyperfabric_counts, register_authored_hierarchy
@@ -34,6 +35,21 @@ from src.storage.postgres.spacy_parser_store import execution_state, fail_partit
 
 
 Interval = tuple[int, int]
+
+PRODUCTION_DIRECT = "production_direct"
+PARITY_REFERENCE = "parity_reference"
+AUDIT_DEBUG = "audit_debug"
+_PARSER_PROJECTION_MODES = frozenset({PRODUCTION_DIRECT, PARITY_REFERENCE, AUDIT_DEBUG})
+
+
+def _validate_projection_mode(mode: str) -> str:
+    normalized = str(mode).strip().lower()
+    if normalized not in _PARSER_PROJECTION_MODES:
+        raise ValueError(
+            "parser projection mode must be one of: "
+            + ", ".join(sorted(_PARSER_PROJECTION_MODES))
+        )
+    return normalized
 
 
 def _merge_intervals(intervals: Iterable[Interval]) -> tuple[Interval, ...]:
@@ -105,8 +121,11 @@ def _worker_drain(
     worker_ref: str,
     policy: ParserStreamingPolicy,
     artifact_root: str,
+    projection_mode: str,
 ) -> tuple[int, int, int, int, int, tuple[Interval, ...], tuple[Interval, ...]]:
-    """Load spaCy once and return explicit parser/numeric active-work kernels."""
+    """Load spaCy once and execute one declared physical projection strategy."""
+
+    projection_mode = _validate_projection_mode(projection_mode)
 
     from src.nlp.spacy_adapter import get_streaming_nlp
 
@@ -127,18 +146,19 @@ def _worker_drain(
             lease_seconds=policy.lease_seconds,
         )
         if not partitions:
-            closure_started = monotonic_ns()
-            closure_receipt = drain_sentence_closure_tranches(
-                database_url,
-                run_ref=run_ref,
-                worker_ref=f"{worker_ref}:pnf",
-                limit=max(1, policy.batch_size * 4),
-                tranche_size=max(1, policy.batch_size * 4),
-            )
-            completed_sentences += closure_receipt.sentence_count
-            closure_finished = monotonic_ns()
-            sentence_closure_work_ns += closure_finished - closure_started
-            post_intervals.append((closure_started, closure_finished))
+            if projection_mode != PRODUCTION_DIRECT:
+                closure_started = monotonic_ns()
+                closure_receipt = drain_sentence_closure_tranches(
+                    database_url,
+                    run_ref=run_ref,
+                    worker_ref=f"{worker_ref}:pnf",
+                    limit=max(1, policy.batch_size * 4),
+                    tranche_size=max(1, policy.batch_size * 4),
+                )
+                completed_sentences += closure_receipt.sentence_count
+                closure_finished = monotonic_ns()
+                sentence_closure_work_ns += closure_finished - closure_started
+                post_intervals.append((closure_started, closure_finished))
             return (
                 completed_partitions,
                 completed_sentences,
@@ -178,32 +198,44 @@ def _worker_drain(
                 parser_intervals.append((parser_started, parser_finished))
                 try:
                     projection_started = monotonic_ns()
-                    commit_numeric_doc(
-                        database_url,
-                        partition=partition,
-                        doc=doc,
-                        policy=policy,
-                        artifact_root=Path(artifact_root),
-                        pipeline=pipeline,
-                        elapsed_ns=parser_elapsed_ns,
-                    )
+                    if projection_mode == PRODUCTION_DIRECT:
+                        completed_sentences += commit_direct_partition(
+                            database_url,
+                            partition=partition,
+                            doc=doc,
+                            policy=policy,
+                            artifact_root=Path(artifact_root),
+                            pipeline=pipeline,
+                            elapsed_ns=parser_elapsed_ns,
+                        )
+                    else:
+                        commit_numeric_doc(
+                            database_url,
+                            partition=partition,
+                            doc=doc,
+                            policy=policy,
+                            artifact_root=Path(artifact_root),
+                            pipeline=pipeline,
+                            elapsed_ns=parser_elapsed_ns,
+                        )
                     projection_finished = monotonic_ns()
                     projection_work_ns += projection_finished - projection_started
                     post_intervals.append((projection_started, projection_finished))
                     completed_partitions += 1
 
-                    closure_started = monotonic_ns()
-                    closure_receipt = drain_sentence_closure_tranches(
-                        database_url,
-                        run_ref=run_ref,
-                        worker_ref=f"{worker_ref}:pnf",
-                        limit=max(1, policy.batch_size * 4),
-                        tranche_size=max(1, policy.batch_size * 4),
-                    )
-                    completed_sentences += closure_receipt.sentence_count
-                    closure_finished = monotonic_ns()
-                    sentence_closure_work_ns += closure_finished - closure_started
-                    post_intervals.append((closure_started, closure_finished))
+                    if projection_mode != PRODUCTION_DIRECT:
+                        closure_started = monotonic_ns()
+                        closure_receipt = drain_sentence_closure_tranches(
+                            database_url,
+                            run_ref=run_ref,
+                            worker_ref=f"{worker_ref}:pnf",
+                            limit=max(1, policy.batch_size * 4),
+                            tranche_size=max(1, policy.batch_size * 4),
+                        )
+                        completed_sentences += closure_receipt.sentence_count
+                        closure_finished = monotonic_ns()
+                        sentence_closure_work_ns += closure_finished - closure_started
+                        post_intervals.append((closure_started, closure_finished))
                 except BaseException as error:
                     fail_partition(database_url, partition=partition, error=error)
                     raise
@@ -274,6 +306,46 @@ def _drain_remaining_adjacent_reconciliation(database_url: str, *, run_ref: str,
             return total
 
 
+def _assert_direct_projection_zero(
+    database_url: str,
+    *,
+    run_ref: str,
+    document_ref: str,
+) -> None:
+    """Fail if production direct execution materialised parser observations."""
+
+    connection = connect(database_url)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    (SELECT count(*) FROM execution.semantic_parser_sentence
+                      WHERE run_ref = %s AND document_ref = %s),
+                    (SELECT count(*) FROM execution.semantic_parser_token
+                      WHERE run_ref = %s AND document_ref = %s),
+                    (SELECT count(*) FROM execution.semantic_parser_entity_span
+                      WHERE run_ref = %s AND document_ref = %s)
+                """,
+                (
+                    run_ref, document_ref,
+                    run_ref, document_ref,
+                    run_ref, document_ref,
+                ),
+            )
+            row = cursor.fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise RuntimeError("direct projection zero-write receipt is missing")
+    counts = tuple(int(value) for value in row)
+    if counts != (0, 0, 0):
+        raise RuntimeError(
+            "production direct execution materialised parser observation rows: "
+            f"sentences={counts[0]} tokens={counts[1]} entities={counts[2]}"
+        )
+
+
 def _refresh_final_numeric_lookup(database_url: str, *, run_ref: str, document_ref: str) -> int:
     connection = connect(database_url)
     try:
@@ -317,9 +389,15 @@ def run_streaming_spacy_execution(
     worker_count: int = 2,
     policy: ParserStreamingPolicy | None = None,
     progress_observer: Callable[[Mapping[str, Any]], None] | None = None,
+    projection_mode: str = PRODUCTION_DIRECT,
 ) -> PostgresSentenceCarrier:
-    """Parse once, close numeric PNF, reconcile adjacency, and close the DAG."""
+    """Parse once, close numeric PNF, reconcile adjacency, and close the DAG.
 
+    Production uses the packed-fibre direct projection. The SQL parser-token
+    projection remains available only through explicit reference or audit mode.
+    """
+
+    projection_mode = _validate_projection_mode(projection_mode)
     pipeline_wall_started = monotonic_ns()
     if not 1 <= worker_count <= 32:
         raise ValueError("parser worker_count must be between 1 and 32")
@@ -367,7 +445,14 @@ def run_streaming_spacy_execution(
     post_intervals: list[Interval] = []
     if state != "complete":
         if len(proposed_partitions) == 1:
-            result = _worker_drain(database_url, run_ref, f"parser-direct:{run_ref}", policy, str(root))
+            result = _worker_drain(
+                database_url,
+                run_ref,
+                f"parser-direct:{run_ref}",
+                policy,
+                str(root),
+                projection_mode,
+            )
             (_completed_partitions, _completed_sentences, worker_parser_ns, worker_projection_ns, worker_sentence_closure_ns) = _accumulate_worker_result(
                 result,
                 parser_intervals=parser_intervals,
@@ -399,6 +484,7 @@ def run_streaming_spacy_execution(
                             f"parser-worker:{run_ref}:{round_ordinal}:{index}",
                             policy,
                             str(root),
+                            projection_mode,
                         )
                         for index in range(worker_count)
                     ]
@@ -431,7 +517,13 @@ def run_streaming_spacy_execution(
 
     _emit_owner_progress(progress_observer, current_kernel="sentence_closure_coordinator", state="started")
     stage_started = monotonic_ns()
-    remaining_sentence_count = _drain_remaining_sentence_closure(database_url, run_ref=run_ref)
+    if projection_mode == PRODUCTION_DIRECT:
+        remaining_sentence_count = 0
+    else:
+        remaining_sentence_count = _drain_remaining_sentence_closure(
+            database_url,
+            run_ref=run_ref,
+        )
     sentence_closure_coordinator_ns = monotonic_ns() - stage_started
     _emit_owner_progress(progress_observer, current_kernel="sentence_closure_coordinator", state="completed", sentence_count=remaining_sentence_count)
 
@@ -497,10 +589,20 @@ def run_streaming_spacy_execution(
 
     if summary.coverage_state != "complete":
         raise RuntimeError("parser document coverage did not close")
+    if projection_mode == PRODUCTION_DIRECT:
+        _assert_direct_projection_zero(
+            database_url,
+            run_ref=run_ref,
+            document_ref=document_ref,
+        )
     parser_receipt: dict[str, Any] = {
         "backend_ref": "parser:spacy:numeric-postgresql",
         "parser_contract_ref": parser_contract_ref,
         "execution_contract_ref": STREAMING_SPACY_CONTRACT,
+        "parser_projection_mode": projection_mode,
+        "production_parser_token_writes": 0 if projection_mode == PRODUCTION_DIRECT else None,
+        "sentence_local_database_crossings": 0 if projection_mode == PRODUCTION_DIRECT else None,
+        "reference_projection_explicit_only": projection_mode != PRODUCTION_DIRECT,
         "source_ref": source_ref,
         "sentence_count": summary.sentence_count,
         "token_count": summary.token_count,
@@ -541,7 +643,12 @@ def run_streaming_spacy_execution(
         ),
         "pnf_diagnostic_counts_measured": False,
         "hierarchy_integrity": hierarchy_integrity,
-        "authority": "postgresql_numeric_parser_and_pnf_hyperfabric",
+        "authority": "numeric_pnf_hyperfabric",
+        "parser_observation_role": (
+            "execution_only_stable_evidence"
+            if projection_mode == PRODUCTION_DIRECT
+            else "explicit_reference_audit_projection"
+        ),
     }
     if numeric_authority_counts_enabled():
         counts = hyperfabric_counts(database_url, run_ref=run_ref, document_ref=document_ref)
@@ -568,6 +675,9 @@ install_execution_strategies()
 
 
 __all__ = [
+    "AUDIT_DEBUG",
+    "PARITY_REFERENCE",
+    "PRODUCTION_DIRECT",
     "ParserStreamingPolicy",
     "PostgresSentenceCarrier",
     "STREAMING_SPACY_CONTRACT",
