@@ -5,8 +5,17 @@ import subprocess
 import sys
 
 from src.policy.streaming_spacy_parser_execution import (
+    AUDIT_DEBUG_STRATEGY,
+    DEFAULT_NUMERIC_PRODUCTION_STRATEGY,
+    PARITY_REFERENCE_STRATEGY,
     _is_strict_strategy,
+    _projection_mode_for_strategy,
     _scoped_run_ref,
+)
+from src.storage.postgres.streaming_spacy_execution import (
+    AUDIT_DEBUG,
+    PARITY_REFERENCE,
+    PRODUCTION_DIRECT,
 )
 
 
@@ -14,6 +23,15 @@ def test_postgresql_exact_strategies_select_typed_parser() -> None:
     assert _is_strict_strategy("postgresql-leased-exact-execution:v1")
     assert _is_strict_strategy("postgresql-typed-exact-execution:v2")
     assert _is_strict_strategy("postgresql-future-exact-parser:v7")
+
+
+
+def test_named_strict_strategies_select_declared_projection_modes() -> None:
+    assert _projection_mode_for_strategy(DEFAULT_NUMERIC_PRODUCTION_STRATEGY) == PRODUCTION_DIRECT
+    assert _projection_mode_for_strategy(PARITY_REFERENCE_STRATEGY) == PARITY_REFERENCE
+    assert _projection_mode_for_strategy(AUDIT_DEBUG_STRATEGY) == AUDIT_DEBUG
+    assert _is_strict_strategy(PARITY_REFERENCE_STRATEGY)
+    assert _is_strict_strategy(AUDIT_DEBUG_STRATEGY)
 
 
 def test_compatibility_strategy_does_not_select_typed_parser() -> None:
@@ -27,6 +45,7 @@ def test_parser_run_ref_is_stable_and_semantically_scoped() -> None:
         "document_ref": "document:1",
         "content_sha256": "abc",
         "parser_contract_ref": "parser:spacy:v1",
+        "projection_mode": PRODUCTION_DIRECT,
     }
     first = _scoped_run_ref(**values)
     second = _scoped_run_ref(**values)
@@ -47,6 +66,16 @@ def test_parser_run_ref_is_stable_and_semantically_scoped() -> None:
         == first
     )
 
+    reference = _scoped_run_ref(
+        **{**values, "projection_mode": PARITY_REFERENCE}
+    )
+    audit = _scoped_run_ref(
+        **{**values, "projection_mode": AUDIT_DEBUG}
+    )
+    assert reference != first
+    assert audit != first
+    assert audit != reference
+
 
 def test_wrappers_bind_signatures_and_bypass_legacy_strict_materialization() -> None:
     import src.policy.streaming_spacy_parser_execution as execution
@@ -63,6 +92,8 @@ def test_wrappers_bind_signatures_and_bypass_legacy_strict_materialization() -> 
     assert source.count("compile_numeric_pnf_document(") == 1
     assert source.count("persist_numeric_pnf_document(") == 1
     assert 'kernel_key="strict.numeric_pnf"' in source
+    assert source.count("parser_projection_mode=projection_mode") == 2
+    assert "projection_mode=execution.projection_mode" in source
 
 
 def test_policy_installs_in_a_fresh_interpreter_without_import_cycle() -> None:
