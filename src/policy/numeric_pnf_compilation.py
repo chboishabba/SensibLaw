@@ -27,6 +27,7 @@ from src.storage.postgres.operational_build_store import (
 )
 from src.storage.postgres.spacy_parser_model import ParserStreamingPolicy, connect
 from src.storage.postgres.streaming_spacy_execution import (
+    PRODUCTION_DIRECT,
     STREAMING_SPACY_CONTRACT,
     run_streaming_spacy_execution,
 )
@@ -218,6 +219,7 @@ def compile_numeric_pnf_document(
     parser_target_chars: int,
     parser_overlap_chars: int,
     parser_checkpoint_dir: str | None,
+    parser_projection_mode: str = PRODUCTION_DIRECT,
     progress: Any | None = None,
 ) -> DocumentCompilation:
     # The shared progress surface has two compatible observers: the durable
@@ -245,6 +247,7 @@ def compile_numeric_pnf_document(
             overlap_chars=parser_overlap_chars,
         ),
         progress_observer=progress_observer,
+        projection_mode=parser_projection_mode,
     )
     parser_receipt = dict(carrier["parser_receipt"])
     timing_details = {
@@ -281,6 +284,7 @@ def compile_numeric_pnf_document(
         "numeric_pnf_authority": {
             "compiler_contract_ref": NUMERIC_PNF_COMPILER_CONTRACT,
             "parser_execution_contract_ref": STREAMING_SPACY_CONTRACT,
+            "parser_projection_mode": parser_projection_mode,
             "run_ref": run_ref,
             "document_ref": document_ref,
             "graph_ref": graph_ref,
@@ -346,6 +350,7 @@ def persist_numeric_pnf_document(
     parser_target_chars: int,
     parser_overlap_chars: int,
     parser_checkpoint_dir: str | None,
+    parser_projection_mode: str = PRODUCTION_DIRECT,
     progress: Any | None = None,
 ) -> tuple[str, ...]:
     document_ref = str(entry["document_ref"])
@@ -404,6 +409,7 @@ def persist_numeric_pnf_document(
             parser_target_chars=parser_target_chars,
             parser_overlap_chars=parser_overlap_chars,
             parser_checkpoint_dir=parser_checkpoint_dir,
+            parser_projection_mode=parser_projection_mode,
             progress=progress,
         )
     authority = compilation.artifacts["numeric_pnf_authority"]
