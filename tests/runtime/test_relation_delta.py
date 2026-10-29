@@ -1,4 +1,10 @@
-from src.runtime.relation_delta import relation_delta
+import pytest
+
+from src.runtime.relation_delta import (
+    CANONICAL_CANDIDATE_RELATION_OWNER_ROUTING,
+    RelationDeltaOwnerRouting,
+    relation_delta,
+)
 
 
 def test_relation_delta_partitions_key_and_payload_changes() -> None:
@@ -26,3 +32,38 @@ def test_identical_relation_is_a_zero_write_reconciliation() -> None:
     receipt = delta.receipt(owner_ref="test")
     assert receipt["unchanged_rows_skipped"] == 1
     assert receipt["unchanged_rows_emit_transitions"] is False
+
+
+
+def test_candidate_relation_owner_routing_is_single_and_non_authoritative() -> None:
+    routing = CANONICAL_CANDIDATE_RELATION_OWNER_ROUTING
+
+    assert routing.candidate_mutation_owner_count == 1
+    assert routing.private_candidate_mutation_bypass_count == 0
+    assert routing.hot_path_reconciler_owner_count == 1
+    assert routing.reconciliation_receipt_owner_count == 1
+    assert routing.receipt(owner_ref="candidate")["semantic_authority_effect"] == "none"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"candidate_mutation_owner_count": 2},
+        {"private_candidate_mutation_bypass_count": 1},
+        {"hot_path_reconciler_owner_count": 2},
+        {"reconciliation_receipt_owner_count": 0},
+    ],
+)
+def test_candidate_relation_owner_routing_fails_closed(
+    kwargs: dict[str, int],
+) -> None:
+    values = {
+        "candidate_mutation_owner_count": 1,
+        "private_candidate_mutation_bypass_count": 0,
+        "hot_path_reconciler_owner_count": 1,
+        "reconciliation_receipt_owner_count": 1,
+    }
+    values.update(kwargs)
+
+    with pytest.raises(ValueError):
+        RelationDeltaOwnerRouting(**values)
