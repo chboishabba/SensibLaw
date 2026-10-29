@@ -1,8 +1,15 @@
 """Generic desired/current keyed-relation reconciliation.
 
 This module owns the reusable execution contract shared by SQL-backed and
-in-memory reducers.  It deliberately separates semantic identity (the key),
+in-memory reducers. It deliberately separates semantic identity (the key),
 mutable execution payload, and physical write count.
+
+Golden formal owners live in dashi_agda:
+- DASHI.Cognition.PNF.SetwiseGroupedFibreProjectionExact.DeltaFedProjection
+- DASHI.Cognition.PNF.AffectedBoundaryLocalReductionExact.AffectedLocalReducer
+
+The Python carrier is an execution instance. It does not create semantic or
+proof authority.
 """
 
 from __future__ import annotations
@@ -83,6 +90,12 @@ class RelationDelta(Generic[K, V]):
         return len(self.added) + len(self.removed) + len(self.replaced)
 
     @property
+    def affected_keys(self) -> frozenset[K]:
+        """Keys whose authoritative relation value changed."""
+
+        return frozenset(self.added) | frozenset(self.removed) | frozenset(self.replaced)
+
+    @property
     def is_noop(self) -> bool:
         return self.changed_key_count == 0
 
@@ -97,6 +110,7 @@ class RelationDelta(Generic[K, V]):
             "replaced_rows": len(self.replaced),
             "unchanged_rows_skipped": self.unchanged_rows_skipped,
             "changed_key_count": self.changed_key_count,
+            "affected_key_count": len(self.affected_keys),
             "physical_row_mutations": self.physical_row_mutations,
             "semantic_authority_effect": "owner-defined",
             "unchanged_rows_emit_transitions": False,
