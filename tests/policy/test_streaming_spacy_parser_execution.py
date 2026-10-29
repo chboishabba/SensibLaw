@@ -25,10 +25,15 @@ def test_postgresql_exact_strategies_select_typed_parser() -> None:
     assert _is_strict_strategy("postgresql-future-exact-parser:v7")
 
 
-
 def test_named_strict_strategies_select_declared_projection_modes() -> None:
-    assert _projection_mode_for_strategy(DEFAULT_NUMERIC_PRODUCTION_STRATEGY) == PRODUCTION_DIRECT
-    assert _projection_mode_for_strategy(PARITY_REFERENCE_STRATEGY) == PARITY_REFERENCE
+    assert (
+        _projection_mode_for_strategy(DEFAULT_NUMERIC_PRODUCTION_STRATEGY)
+        == PRODUCTION_DIRECT
+    )
+    assert (
+        _projection_mode_for_strategy(PARITY_REFERENCE_STRATEGY)
+        == PARITY_REFERENCE
+    )
     assert _projection_mode_for_strategy(AUDIT_DEBUG_STRATEGY) == AUDIT_DEBUG
     assert _is_strict_strategy(PARITY_REFERENCE_STRATEGY)
     assert _is_strict_strategy(AUDIT_DEBUG_STRATEGY)
@@ -62,6 +67,7 @@ def test_parser_run_ref_is_stable_and_semantically_scoped() -> None:
             document_ref="document:other",
             content_sha256="different",
             parser_contract_ref="parser:other",
+            projection_mode=PRODUCTION_DIRECT,
         )
         == first
     )
