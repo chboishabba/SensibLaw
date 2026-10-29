@@ -280,3 +280,69 @@ only for migration compatibility/comparison; its trigger is removed.
 - SIMD/native integer kernels for measured intersections, masks, packed address
   decode, and frontier propagation;
 - partitioning only when measured table/index working sets justify it.
+
+
+## Migration 209 exact-work admission and durable reconciliation
+
+Migration `209` wires `reconcile_numeric_pnf_parent_candidates` into the
+active affected-key parent reducer. The active database function no longer
+contains the legacy candidate delete block.
+
+The first large-parent replay reached the live reducer path and then failed
+closed on the existing exact interface-key budget:
+
+```text
+parent region          = 25003
+observed object keys   = 8206
+configured key budget = 8192
+positive excess        = 14
+```
+
+The database transaction rolled back. Reconciliation receipts therefore did not
+survive commit. This means the wiring is structurally verified but the runtime
+mutation-reduction claim is not yet certified.
+
+The golden formal owner is in `dashi_agda`:
+
+- `DASHI.Cognition.PNF.BoundedInterfaceSketch` owns the explicit per-family
+  exact-key budget;
+- `DASHI.Cognition.PNF.DeltaNativeParentRuntimeBridgeExact` owns runtime
+  budget admission and the 8206/8192 rejection witness;
+- `DASHI.Cognition.PNF.RelationDeltaReconciliationExact` owns exact desired /
+  current / mutation conservation and durable receipt certification;
+- `DASHI.Core.AuthorityNonPromotionCore` keeps execution policy separate from
+  semantic, empirical, theorem, runtime, and legal authority.
+
+The Lean repository mirrors this boundary for independent parity checking. Agda
+remains the golden theorem owner.
+
+### Runtime certification gate
+
+A migration-209 runtime claim requires both:
+
+1. exact parent-key admission under the declared execution budget; and
+2. a reconciliation receipt that survives transaction commit.
+
+A rejected exact-work admission cannot authorize semantic key truncation.
+Increasing the execution budget does not create semantic authority.
+A transaction-local receipt that is lost on rollback does not certify runtime
+mutation reduction.
+
+The controlled certification run should record nonzero reconciler invocation and
+durable reconciliation receipts. A second replay of unchanged state should keep
+logical comparison visible while physical row mutations fall to zero.
+
+### Current status
+
+```text
+209 installed              yes
+209 active-path wiring     yes
+legacy candidate delete    absent
+exact 8206/8192 admission  rejected
+durable 209 receipts       not yet observed
+physical mutation claim    not yet certified
+```
+
+No C4/PlantUML topology update is required. The runtime component graph did not
+change in this formalisation tranche. The change makes the existing execution
+admission and certification boundary explicit.
