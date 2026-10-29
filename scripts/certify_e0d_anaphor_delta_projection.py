@@ -33,6 +33,30 @@ from src.storage.postgres.spacy_parser_model import connect
 
 CONTRACT = "sensiblaw.e0d-anaphor-delta-certification.v0_2"
 
+FORMAL_OWNER_REFS = (
+    "DASHI.Cognition.PNF.SetwiseGroupedFibreProjectionExact.DeltaFedProjection",
+    "DASHI.Cognition.PNF.AffectedBoundaryLocalReductionExact.AffectedLocalReducer",
+    "DASHI.Cognition.PNF.SentenceAnaphorSetwiseProjectionExact.SentenceAnaphorProjectionZKPFrame",
+)
+
+TOE_ATTACHMENT_REFS = (
+    "DASHI.Unified.PNFHyperfabric",
+    "DASHI.EverythingTOESymmetryResolved369",
+    "DASHI.Unifier",
+    "DASHI.Unified.Everything",
+)
+
+ZKP_FRAME = {
+    "O": "legacy and delta-fed final authority are equal",
+    "R": "projection is relation-valued and set-based",
+    "C": "recursive semantic self-update is forbidden",
+    "S": "only affected consumer keys enter local reduction",
+    "L": "surface spelling is evidence, not witness identity",
+    "P": "candidate evidence does not promote to resolution",
+    "G": "source interiors are not rescanned after delta materialization",
+    "F": "projected anaphor demands remain open until explicit resolution",
+}
+
 LAYERS = (
     DeltaCertificationLayer("source_delta", ("source_pronouns",)),
     DeltaCertificationLayer(
@@ -931,6 +955,9 @@ def certify_e0d(
 
     return {
         "contract": CONTRACT,
+        "formal_owners": list(FORMAL_OWNER_REFS),
+        "toe_attachment": list(TOE_ATTACHMENT_REFS),
+        "zkp_frame": dict(ZKP_FRAME),
         "comparison": {
             "legacy_schema": "through migration 179",
             "projected_schema": "through migration 180",
