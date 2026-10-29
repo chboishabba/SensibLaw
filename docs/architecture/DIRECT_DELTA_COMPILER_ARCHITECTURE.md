@@ -192,6 +192,69 @@ Reconsideration is not a transition. Reducer invocation is not semantic change. 
 
 This applies by default to candidate relations, parent exports, lookup projections, actor summaries, demand state, adjacency products, resolution state and derived current-state caches.
 
+### Single mutation-owner law
+
+Each keyed current-state relation has exactly one active mutation owner.
+
+For candidate membership, the active strict numeric parent path delegates to
+`execution.reconcile_numeric_pnf_parent_candidates`. Migration 209 removes
+the private candidate delete/reinsert block from
+`reduce_numeric_pnf_parent_frontier_affected` and fails closed if the expected
+canonical block is absent.
+
+The executable contract is `src/runtime/relation_delta.py`.
+The golden formal owner is
+`DASHI/Cognition/PNF/RelationDeltaReconciliationExact.agda`.
+
+Required invariants:
+
+- mutation owner count is exactly one;
+- private bypass count is zero;
+- hot-path reconciler count is exactly one;
+- the reconciliation receipt owner is the hot-path owner;
+- unchanged rows cause zero candidate writes;
+- execution ownership does not promote semantic authority.
+
+### ZKP frame
+
+The normalized O/R/C/S/L/P/G/F frame is:
+
+- O: strict numeric PNF candidate reconciliation.
+- R: route active candidate membership mutation through one desired/current reconciler.
+- C: migration 209 plus the relation-delta and affected-boundary formal owners.
+- S: affected demand keys, current candidate fibre, desired candidate fibre, reconciliation receipt.
+- L: exact relation-delta partition plus sparse affected-key lattice.
+- P: one mutation owner; retain unchanged rows; emit only real relation deltas.
+- G: preserve semantic authority with zero private bypass and zero manufactured unchanged transitions.
+- F: duplicate owners + private bypasses + unchanged rewrites + missing hot-path reconciliation receipts.
+
+### C4 execution view
+
+```plantuml
+@startuml
+skinparam componentStyle rectangle
+
+component "Parser + local solver" as Parser
+component "Affected-key transport" as Transport
+component "Parent reducer" as Parent
+component "Candidate reconciler\n(single mutation owner)" as Reconciler
+database "PostgreSQL\ndurable authority boundary" as PG
+component "Reconciliation receipt\nnon-authoritative evidence" as Receipt
+
+Parser --> Transport : typed delta / residual
+Transport --> Parent : affected keys
+Parent --> Reconciler : desired candidate fibre
+Reconciler --> PG : add / remove / replace only
+Reconciler --> Receipt : work / transition evidence
+PG --> Transport : changed parent boundary only
+
+note right of Reconciler
+Unchanged rows stay untouched.
+Reconsideration is not transition.
+end note
+@enduml
+```
+
 ## PostgreSQL's five production jobs
 
 PostgreSQL remains central, but its role is deliberately narrower:
@@ -303,26 +366,26 @@ The conclusion is architectural: making the relational parser projection cheaper
 
 ## Formal owners in DASHI
 
-The architecture is not a new semantic compiler. It assembles existing formal owners into one execution constitution. The current DASHI branch is `agent/delta-native-parent-frontier`.
+The architecture is not a new semantic compiler. It assembles existing formal owners into one execution constitution. The canonical formal paths are on `dashi_agda` master. The current single-owner reconciliation alignment is staged on `agent/sensiblaw-reconciliation-toe` pending merge.
 
 Primary formal entry point:
 
-- [`DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda)
+- [`DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/DirectDeltaCompilerArchitectureExact.agda)
 
 Existing owners that constrain the runtime include:
 
-- [`DreamFlowExecutionEverything.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/DreamFlowExecutionEverything.agda)
-- [`DeltaNativePNFDreamFlowExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/DeltaNativePNFDreamFlowExact.agda)
-- [`FibreSolverDeltaStreamExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/FibreSolverDeltaStreamExact.agda)
-- [`FibreNaturalDeltaTransportExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/FibreNaturalDeltaTransportExact.agda)
-- [`SentenceParagraphNaturalDeltaExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/SentenceParagraphNaturalDeltaExact.agda)
-- [`FibreLocalTokenAddressExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/FibreLocalTokenAddressExact.agda)
-- [`FibreLocalPackedStorageExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/FibreLocalPackedStorageExact.agda)
-- [`PackedNormativeDeltaAuthorityBridgeExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/PackedNormativeDeltaAuthorityBridgeExact.agda)
-- [`SparseFibredFrontier.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/SparseFibredFrontier.agda)
-- [`AffectedBoundaryLocalReductionExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/AffectedBoundaryLocalReductionExact.agda)
-- [`RelationDeltaReconciliationExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/RelationDeltaReconciliationExact.agda)
-- [`DreamFlowRuntimeComplexityExact.agda`](https://github.com/chboishabba/dashi_agda/blob/agent/delta-native-parent-frontier/DASHI/Cognition/PNF/DreamFlowRuntimeComplexityExact.agda)
+- [`DreamFlowExecutionEverything.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/DreamFlowExecutionEverything.agda)
+- [`DeltaNativePNFDreamFlowExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/DeltaNativePNFDreamFlowExact.agda)
+- [`FibreSolverDeltaStreamExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/FibreSolverDeltaStreamExact.agda)
+- [`FibreNaturalDeltaTransportExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/FibreNaturalDeltaTransportExact.agda)
+- [`SentenceParagraphNaturalDeltaExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/SentenceParagraphNaturalDeltaExact.agda)
+- [`FibreLocalTokenAddressExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/FibreLocalTokenAddressExact.agda)
+- [`FibreLocalPackedStorageExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/FibreLocalPackedStorageExact.agda)
+- [`PackedNormativeDeltaAuthorityBridgeExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/PackedNormativeDeltaAuthorityBridgeExact.agda)
+- [`SparseFibredFrontier.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/SparseFibredFrontier.agda)
+- [`AffectedBoundaryLocalReductionExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/AffectedBoundaryLocalReductionExact.agda)
+- [`RelationDeltaReconciliationExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/RelationDeltaReconciliationExact.agda)
+- [`DreamFlowRuntimeComplexityExact.agda`](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Cognition/PNF/DreamFlowRuntimeComplexityExact.agda)
 
 If runtime code contradicts these formal boundaries, the default interpretation is an implementation/architecture gap to close, not a reason to weaken the formal model.
 
