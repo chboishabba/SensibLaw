@@ -114,7 +114,7 @@ def test_real_p10322_historical_locator_can_replay_exact_source_byte_spans():
     assert case["historical_policy_oldid"] is None
     assert case["community_consensus_verified"] is False
     assert case["property_ref"] == "P10322"
-    text = "\n".join(f"source-event-{{i}} {{event['signature_needle']}} actor {{event['actor_ref']}}"
+    text = "\n".join(f"source-event-{i} {event['signature_needle']} actor {event['actor_ref']}"
                      for i,event in enumerate(case["events"]))
     snap={
         "wiki":"wikidata","title":case["proposal_title"],
