@@ -111,6 +111,7 @@ This is available through the existing `src.cli` gateway, not a second CLI:
 python -m src.cli wikidata history-snapshot-handoff \
   --proposal-snapshot .cache_local/wiki_snapshots/ACTUAL_PROPOSAL_FILE.json \
   --policy-snapshot .cache_local/wiki_snapshots/ACTUAL_HISTORICAL_POLICY_FILE.json \
+  --closure-policy-snapshot .cache_local/wiki_snapshots/ACTUAL_CLOSURE_POLICY_FILE.json \
   --case-manifest tests/fixtures/wikidata/p10322_history_primary_20220204.json \
   --policy-minimum-age-seconds 604800 \
   --output .cache_local/review/p10322_source_handoff.json
@@ -133,3 +134,5 @@ See the [single four-repo max-cut roadmap](https://github.com/chboishabba/ITIR-s
 The source handoff now supports a separately fetched **as-of-closure** policy snapshot in addition to the as-of-proposal policy. SensibLaw produces `historical_policy_drift_status=closure_policy_not_examined | unchanged_across_proposal_window | changed_during_proposal_requires_independent_rule_adjudication`, and detects same-oldid/different-byte contradictions. ITIR retains this exact state and exports `normative_policy_hold`; SLR requires `unchanged_across_proposal_window` with no normative hold before accepting native historical-source JSON into its canonical ingest/S29 path. A changed or unexamined rule remains a reviewable source-history candidate, never a silently accepted historical authority.
 
 The additional closure snapshot has not actually been fetched in this GitHub-only session. Even `unchanged_across_proposal_window` is a comparison of caller-supplied original revision snapshots, **not** independently verified Wikidata community policy/actor rights/consensus. Source-authentic historical closure, the S30 audience check, Agda kernel run and physical PG run remain separately unpaid as detailed in A00–A06.
+
+The `--closure-policy-snapshot` argument is optional for candidate inspection but **required in practice for a non-held native SLR replay**: absent closure evidence yields `closure_policy_not_examined`, and a changed policy yields a held normative rule-drift obligation. Both are refused by the SLR full-JSON intake. Capture it with the existing puller's `--at-or-before '2022-02-04T13:06:59Z'` before projection. The file paths shown are placeholders, not committed source snapshots.
