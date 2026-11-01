@@ -143,3 +143,16 @@ The `--closure-policy-snapshot` argument is optional for candidate inspection bu
 The native `build_historical_source_handoff` now returns `historical_policy_window_source_witness` (the opening and closing policy page oldids and original revision times, both source text SHA-256 references, closure query origin, candidate-only flags), or `null` when not yet examined. This travels through ITIR's full-source validator into SLR's typed `persist_deliberation_source_replay_json`; SLR rejects missing/unexamined/changed original policy evidence before canonical source ingest. The source URL and SHA are producer claims pending independent acquisition and corpus reopen, not proof of historical consensus. The original MediaWiki fetch also correctly selects API mode when asked for Wikidata with `--driver auto`; source revision-minute comparisons parse real timezone-qualified ISO timestamps.
 
 The exact K14–K17 additional obligations and A00–A06 residuals are recorded in the [canonical max-cut matrix](https://github.com/chboishabba/ITIR-suite/blob/agent/epistemic-deliberation-candidate-governance-20261101/docs/planning/wikidata_deliberation_maxcut_exact_20261101.md). No local or CI checks were run.
+
+
+### Actual historical creator-right acquisition path (unexecuted)
+
+The existing `scripts/wiki_pull_api.py` now also supports a **read-only, paginated original rights-log capture**, with strict temporal cutoffs, query continuity, bounded pages and raw event IDs. Example curation-time command (no changes to Wikidata):
+
+```sh
+python scripts/wiki_pull_api.py --wiki wikidata --driver api \
+  --rights-user 'Jura1' --rights-as-of '2022-02-04T13:07:00Z' \
+  --rights-max-pages 3 --out-dir .cache_local/wiki_snapshots
+```
+
+This is a **candidate identity lookup**, not proof that the P10322 closer signed as `Jura` was the current property-creator-list entry `Jura1` or that `Jura1` held `propertycreator` or `sysop` at closure. The current [Wikidata property creators page](https://www.wikidata.org/wiki/Wikidata:Property_creators) lists `Jura1`, but present-day membership is not 2022 membership. Complete, independently source-replayed group-change events (including admin rights), a direct actor/alias correspondence and actual `P10322` creation log are separately required. `creator_identity_research` in the P10322 manifest explicitly retains those missing receipts. Source-written tests exercise paginated log evidence and refusal on out-of-window events; **no original live historical log was fetched in this session**.
