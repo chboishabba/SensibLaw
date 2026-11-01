@@ -590,6 +590,99 @@ def _fetch_category_members(
         return members
 
 
+def _fetch_historical_rights_log(
+    *,
+    wiki: str,
+    account: str,
+    as_of: str,
+    max_pages: int,
+    timeout_s: int,
+    pacer: Optional[_RequestPacer],
+) -> dict[str, Any]:
+    """Bounded original rights-log observations, NEVER a role attestation.
+
+    Current user groups and a historical discussion signature cannot prove
+    which group was active in February 2022. A complete and independently
+    interpreted rights-change log, including inherited administrator powers,
+    is a separate provenance obligation.
+    """
+    cutoff = dt.datetime.fromisoformat(as_of.replace("Z", "+00:00"))
+    if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+        raise ValueError("rights-log date must contain an explicit timezone")
+    if not isinstance(account, str) or not account.strip() or len(account) > 128 or any(
+        ch in account for ch in "\n\r\x00#?&"
+    ):
+        raise ValueError("invalid account for bounded rights-log search")
+    if wiki != "wikidata" or not 1 <= max_pages <= 10:
+        raise ValueError("historical role inspection supports bounded Wikidata logs only")
+    cutoff_utc = cutoff.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    current_token: str | None = None
+    events: List[Dict[str, Any]] = []
+    seen_ids: set[int] = set()
+    complete = False
+    urls: List[str] = []
+    for _ in range(max_pages):
+        params: dict[str, str | int] = {
+            "action": "query",
+            "format": "json",
+            "formatversion": 2,
+            "list": "logevents",
+            "letype": "rights",
+            "letitle": f"User:{account}",
+            "leprop": "ids|title|type|user|timestamp|comment|details",
+            "lelimit": 500,
+            "ledir": "older",
+            "lestart": cutoff_utc,
+        }
+        if current_token is not None:
+            params["lecontinue"] = current_token
+        query_url = _build_url(WIKIS[wiki], params)
+        urls.append(query_url)
+        response = _get_json(query_url, timeout_s=timeout_s, pacer=pacer)
+        rows = (response.get("query") or {}).get("logevents") or []
+        if not isinstance(rows, list):
+            raise ValueError("rights-log source response is not a list")
+        for event in rows:
+            if not isinstance(event, dict) or type(event.get("logid")) is not int:
+                raise ValueError("malformed rights-log event")
+            when = event.get("timestamp")
+            if not isinstance(when, str):
+                raise ValueError("rights-log event missing timestamp")
+            occurred = dt.datetime.fromisoformat(when.replace("Z", "+00:00"))
+            if occurred.tzinfo is None or occurred.utcoffset() is None or occurred > cutoff:
+                raise ValueError("rights-log returned an event after as-of cutoff")
+            if event["logid"] in seen_ids:
+                raise ValueError("duplicate rights-log event across pagination")
+            seen_ids.add(event["logid"])
+            events.append(event)
+        new_cursor = (response.get("continue") or {}).get("lecontinue")
+        if not isinstance(new_cursor, str) or not new_cursor:
+            complete = True
+            current_token = None
+            break
+        if new_cursor == current_token:
+            raise ValueError("rights-log pagination did not advance")
+        current_token = new_cursor
+    return {
+        "schema_version": "sl.wikidata_historical_rights_log_observation.v0_1",
+        "wiki": wiki,
+        "requested_account_ref": f"wikidata:User:{account}",
+        "as_of_utc": cutoff_utc,
+        "source_query_urls": urls,
+        "raw_rights_logevents": events,
+        "events_are_complete_for_query_window": complete,
+        "continuation_cursor": current_token,
+        "candidate_only": True,
+        "discussion_signature_is_identity_proof": False,
+        "creator_account_correspondence_verified": False,
+        "historical_propertycreator_right_verified": False,
+        "historical_administrator_right_verified": False,
+        "community_consensus_verified": False,
+        "wikidata_edit_authorised": False,
+        "interpretation": "raw historical log candidates; independent group-history replay and creator identity required",
+    }
+
+
 def _write_snapshot(out_dir: Path, snap: PageSnapshot) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     # Stable-ish filename: title + revid (or "none").
@@ -627,6 +720,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--title", action="append", default=[], help="Page title (repeatable)"
     )
     p.add_argument("--titles-file", type=Path, help="File with one page title per line")
+    p.add_argument("--rights-user", help="Optional bounded historical Wikidata rights-log lookup instead of a page pull")
+    p.add_argument("--rights-as-of", help="UTC as-of time for rights-log lookup (required with --rights-user)")
+    p.add_argument("--rights-max-pages", type=int, default=3, help="Bounded original rights-log pagination cap (1..10)")
+
     p.add_argument(
         "--out-dir",
         type=Path,
@@ -702,6 +799,33 @@ def main(argv: Optional[List[str]] = None) -> int:
         if when.tzinfo is None or when.utcoffset() is None:
             p.error("--at-or-before must include an explicit timezone")
 
+    if args.rights_user:
+        if args.wiki != "wikidata" or args.title or args.titles_file or args.revid or args.at_or_before:
+            p.error("--rights-user is a separate read-only Wikidata log operation")
+        if not args.rights_as_of:
+            p.error("--rights-as-of is mandatory with --rights-user")
+        observed = _fetch_historical_rights_log(
+            wiki=args.wiki,
+            account=args.rights_user,
+            as_of=args.rights_as_of,
+            max_pages=args.rights_max_pages,
+            timeout_s=int(args.timeout_s),
+            pacer=_RequestPacer(wiki_rps=max(0.01,float(args.wiki_rps))),
+        )
+        dest = _write_history_manifest(
+            Path(args.out_dir),"wikidata",
+            "User:" + args.rights_user + ":rights",observed,
+        )
+        print(json.dumps({
+            "ok":True,"wiki":args.wiki,"rights_log":str(dest),
+            "raw_rights_event_count":len(observed["raw_rights_logevents"]),
+            "query_window_complete":observed["events_are_complete_for_query_window"],
+            "historical_propertycreator_right_verified":False,
+            "wikidata_edit_authorised":False,
+        },indent=2,sort_keys=True))
+        return 0
+    if args.rights_as_of:
+        p.error("--rights-as-of requires --rights-user")
     titles: List[str] = [t for t in (args.title or []) if t and t.strip()]
     if args.titles_file:
         raw = args.titles_file.read_text(encoding="utf-8").splitlines()
