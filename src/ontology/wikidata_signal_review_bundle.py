@@ -824,6 +824,7 @@ def build_historical_source_handoff(
     case: Mapping[str, Any],
     *,
     policy_minimum_age_seconds: int,
+    closure_policy_snapshot: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the native ITIR→SLR input shape over *two actual source snapshots*.
 
@@ -951,6 +952,39 @@ def build_historical_source_handoff(
     # The native input is included separately from the untrusted ITIR claims.
     # The consumer MUST require SLR to ingest and reopen original bytes.
     source_inputs = [proposal_input, policy_input]
+    policy_drift = "closure_policy_not_examined"
+    closure_policy_oldid = None
+    if closure_policy_snapshot is not None:
+        closing = closure_policy_snapshot
+        if not isinstance(closing, Mapping) or closing.get("wiki") != "wikidata":
+            raise ValueError("closure policy must be a Wikidata source")
+        if closing.get("title", "").replace("_", " ") != case["historical_policy_title"].replace("_", " "):
+            raise ValueError("closure policy is not the same policy page")
+        stamp = closing.get("rev_timestamp")
+        if not isinstance(stamp, str):
+            raise ValueError("closure policy source timestamp is missing")
+        try:
+            close_revision_time = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("closure policy revision time is malformed") from exc
+        if (close_revision_time.tzinfo is None or
+                close_revision_time.utcoffset() is None or
+                close_revision_time > closed):
+            raise ValueError("closure policy revision comes after the decision")
+        revision = closing.get("revid")
+        closure_text = closing.get("wikitext")
+        if type(revision) is not int or revision < 1 or not isinstance(closure_text, str) or not closure_text:
+            raise ValueError("closure policy revision lacks an exact oldid or wikitext")
+        closure_policy_oldid = revision
+        policy_drift = (
+            "unchanged_across_proposal_window"
+            if revision == revid and closure_text == content
+            else "changed_during_proposal_requires_independent_rule_adjudication"
+        )
+        # A revision ID reused with altered source text is a contradiction,
+        # not a historically stable policy.
+        if revision == revid and closure_text != content:
+            raise ValueError("identical policy oldid has different original bytes")
 
     return {
         "schema_version":"sl.wikidata_deliberation_slr_handoff_draft.v0_1",
@@ -959,6 +993,8 @@ def build_historical_source_handoff(
         "source_revision_refs":[source,policy_source_ref],
         "proposal_page_oldid":proposal_snapshot["revid"],
         "historical_policy_page_oldid":revid,
+        "closure_policy_page_oldid":closure_policy_oldid,
+        "historical_policy_drift_status":policy_drift,
         "producer_canonical_byte_digests_observed":True,
         "independent_source_provider_receipts_verified":False,
         "historical_policy_applicability_verified":False,
