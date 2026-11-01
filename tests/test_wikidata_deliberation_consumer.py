@@ -150,6 +150,17 @@ def test_real_p10322_historical_locator_can_replay_exact_source_byte_spans():
     bad["rev_timestamp"]="2022-02-05T13:07:59Z"
     with pytest.raises(ValueError,match="timestamp"):
         project_historical_source_anchors(bad,case)
+    bad=deepcopy(snap)
+    bad["rev_timestamp"]="2022-02-04T13:07this-is-not-a-timestamp"
+    with pytest.raises(ValueError,match="ISO-8601"):
+        project_historical_source_anchors(bad,case)
+    bad=deepcopy(snap)
+    bad["rev_timestamp"]="2022-02-04T23:07:59+10:00"
+    assert project_historical_source_anchors(bad,case)["candidate_only"]
+    bad=deepcopy(snap)
+    bad["rev_timestamp"]="2022-02-04T13:07:59"
+    with pytest.raises(ValueError,match="timestamp"):
+        project_historical_source_anchors(bad,case)
 
 
 def test_cli_lane_bundle_optional_deliberation_overlay_does_not_add_new_cli_gateway(tmp_path):
