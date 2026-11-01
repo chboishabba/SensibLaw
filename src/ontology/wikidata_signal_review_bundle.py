@@ -588,3 +588,128 @@ __all__ = [
     "build_hotspot_eval_bundle",
     "build_live_follow_preflight_bundle",
 ]
+
+
+# The existing signal bundle is the sole Wikidata lane review carrier. Proposal
+# discussion history is an OPTIONAL source-side projection attached after the
+# lane has already computed its candidate properties, structural diagnostics,
+# pressure and dispositions. It does not replace any of those computations.
+# Roszkowski (2024), DOI 10.1108/JD-01-2024-0008, motivates the distinction
+# between proposal, knowledge work and closure; the adapter is SL-authored.
+import re as _re
+
+_PROPERTY_ID = _re.compile(r"P[1-9][0-9]*\\Z")
+_DELIBERATION_VERSION = "itir.governance.deliberation_assessment.v1"
+_PROPOSAL_PROJECTION_VERSION = "sl.wikidata_proposal_review_projection.v0_1"
+
+
+def attach_deliberation_context(
+    bundle: Mapping[str, Any],
+    assessment: Mapping[str, Any],
+    *,
+    consumer_ref: str,
+    consumer_scope_ref: str,
+    source_alignment_ref: str,
+) -> dict[str, Any]:
+    """Attach candidate proposal context *to a concrete existing review bundle*.
+
+    A claimed equality of property IDs is navigational evidence only. The
+    original lane's source/constraint review, Wikidata edit authority and
+    community-governance assessment remain independent. This function is a
+    pure overlay; it never edits a live Wiki or admits a cohort member.
+    """
+    if not isinstance(bundle, Mapping) or bundle.get("schema_version") != WIKIDATA_SIGNAL_REVIEW_BUNDLE_SCHEMA_VERSION:
+        raise ValueError("expected a normalized existing Wikidata signal bundle")
+    if not isinstance(assessment, Mapping) or assessment.get("version") != _DELIBERATION_VERSION:
+        raise ValueError("expected source-native ITIR deliberation assessment v1")
+    for field, value in (
+        ("consumer_ref", consumer_ref),
+        ("consumer_scope_ref", consumer_scope_ref),
+        ("source_alignment_ref", source_alignment_ref),
+        ("proposal_ref", assessment.get("proposal_ref")),
+        ("proposal_source_revision_ref", assessment.get("source_revision_ref")),
+        ("historical_policy_revision_ref", assessment.get("policy_revision_ref")),
+        ("deliberation_packet_ref", assessment.get("packet_ref")),
+    ):
+        if not isinstance(value, str) or not value.strip() or len(value) > 512 or any(ord(c) < 32 for c in value):
+            raise ValueError(f"invalid {field}")
+    authority = assessment.get("authority")
+    if not isinstance(authority, Mapping) or authority.get("candidate_only") is not True:
+        raise ValueError("deliberation assessment must stay candidate-only")
+    for forbidden in ("semantic_truth_promoted", "community_consensus_verified",
+                      "actor_authority_verified", "wikidata_edit_authorised",
+                      "ao_dispatch_allowed", "slr_s29_review_bypassed"):
+        if authority.get(forbidden) is not False:
+            raise ValueError(f"deliberation must not assert {forbidden}")
+    if bundle.get("authority_posture") not in ("review_only", "diagnostic_only"):
+        raise ValueError("candidate-only original report authority posture required")
+    if bundle.get("promotion_status") not in ("blocked", "candidate_only"):
+        raise ValueError("cannot attach governance context to a promoted bundle")
+    candidates = bundle.get("candidate_properties")
+    cone = bundle.get("dependency_cone")
+    if not isinstance(candidates, list) or not isinstance(cone, Mapping):
+        raise ValueError("invalid signal bundle candidate geometry")
+    present = sorted({
+        row["pid"] for row in candidates
+        if isinstance(row, Mapping) and isinstance(row.get("pid"), str)
+        and _PROPERTY_ID.fullmatch(row["pid"])
+    })
+    focus = cone.get("focus_pids")
+    if not isinstance(focus, list):
+        raise ValueError("missing source-derived focus PID cone")
+    focus_pids = {
+        pid for pid in focus if isinstance(pid, str) and _PROPERTY_ID.fullmatch(pid)
+    }
+    # Only a property ID observed BOTH in the emitted candidate-property
+    # carrier AND in its current dependency cone may be navigated.
+    reachable = sorted(set(present) & focus_pids)
+    proposed = assessment.get("created_property_ref")
+    if proposed is not None and (not isinstance(proposed, str) or not _PROPERTY_ID.fullmatch(proposed)):
+        raise ValueError("invalid proposed property identifier")
+    hits = [proposed] if proposed in reachable else []
+    holds = assessment.get("holds")
+    if not isinstance(holds, list) or any(not isinstance(v, str) for v in holds):
+        raise ValueError("deliberation must carry explicit hold codes")
+    source_events = assessment.get("event_source_revision_refs")
+    if not isinstance(source_events, list) or not source_events or any(
+        not isinstance(v, str) or not v.strip() for v in source_events
+    ):
+        raise ValueError("deliberation event provenance is required")
+    projection = {
+        "schema_version": _PROPOSAL_PROJECTION_VERSION,
+        "consumer_ref": consumer_ref,
+        "consumer_scope_ref": consumer_scope_ref,
+        "source_alignment_ref": source_alignment_ref,
+        "proposal_ref": assessment["proposal_ref"],
+        "proposal_revision_ref": assessment["source_revision_ref"],
+        "historical_policy_revision_ref": assessment["policy_revision_ref"],
+        "deliberation_packet_ref": assessment["packet_ref"],
+        "discussion_event_revision_refs": list(source_events),
+        "recorded_judgement": assessment.get("recorded_judgement"),
+        "record_completeness": assessment.get("record_completeness"),
+        "deliberation_holds": list(holds),
+        "source_consumer_pid_intersection": hits,
+        "consumer_candidate_pid_count": len(reachable),
+        "consumer_lane_id": bundle.get("lane_id"),
+        # No bare scheme/version/packet ID is silently a revision-locked
+        # source: existing source_revision_refs may hold *packet IDs*.
+        "consumer_source_reopen_status": "not_attempted",
+        "proposal_source_reopen_status": "not_attempted",
+        "source_alignment_verification": "unverified",
+        "community_creator_role_verification": "unverified",
+        "community_consensus_verification": "unverified",
+        "cross_lingual_abi_same_object": False,
+        "independent_structural_diagnostics_retained": True,
+        "candidate_only": True,
+        "wikidata_edit_authorised": False,
+        "ao_dispatch_allowed": False,
+        "claim_truth_promoted": False,
+    }
+    # Do not alias nested source containers or reclassify even "checked safe"
+    # predecessor dispositions. The new coordinate is a separate sidecar.
+    from copy import deepcopy
+    result = deepcopy(dict(bundle))
+    if "deliberation_context" in result:
+        raise ValueError("bundle already has a deliberation context")
+    result["deliberation_context"] = projection
+    return result
