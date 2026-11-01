@@ -345,3 +345,60 @@ def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing
     wrong["api_url"]="https://attacker.invalid/fake-revision"
     with pytest.raises(ValueError,match="query origin"):
         build_historical_source_handoff(p,wrong,case,policy_minimum_age_seconds=7*86400)
+
+
+def test_historical_wikidata_rights_log_is_paginated_source_evidence_not_a_creator_attestation(monkeypatch):
+    from scripts import wiki_pull_api as mw
+
+    calls=[]
+    def pages(url, *, timeout_s, pacer):
+        calls.append(url)
+        if "lecontinue=" not in url:
+            return {
+                "query":{"logevents":[{
+                    "logid":11,"title":"User:Jura1","type":"rights",
+                    "timestamp":"2021-07-11T10:00:00Z",
+                    "user":"Reviewer","params":{"oldgroups":[],"newgroups":["propertycreator"]},
+                }]},
+                "continue":{"continue":"-||", "lecontinue":"rights-cursor"},
+            }
+        return {"query":{"logevents":[{
+            "logid":10,"title":"User:Jura1","type":"rights",
+            "timestamp":"2018-06-01T00:00:00Z",
+            "user":"OtherReviewer","params":{"oldgroups":[],"newgroups":["confirmed"]},
+        }]}}
+    monkeypatch.setattr(mw,"_get_json",pages)
+    result=mw._fetch_historical_rights_log(
+        wiki="wikidata", account="Jura1", as_of="2022-02-04T13:07:00Z",
+        max_pages=2, timeout_s=5, pacer=None,
+    )
+    assert "letitle=User%3AJura1" in calls[0]
+    assert "letype=rights" in calls[0]
+    assert "lestart=2022-02-04T13%3A07%3A00Z" in calls[0]
+    assert result["events_are_complete_for_query_window"]
+    assert [e["logid"] for e in result["raw_rights_logevents"]] == [11,10]
+    assert not result["historical_propertycreator_right_verified"]
+    assert not result["creator_account_correspondence_verified"]
+    assert not result["wikidata_edit_authorised"]
+    uncompleted=mw._fetch_historical_rights_log(
+        wiki="wikidata", account="Jura1", as_of="2022-02-04T13:07:00Z",
+        max_pages=1, timeout_s=5, pacer=None,
+    )
+    assert not uncompleted["events_are_complete_for_query_window"]
+    assert uncompleted["continuation_cursor"] == "rights-cursor"
+    with pytest.raises(ValueError, match="bounded Wikidata"):
+        mw._fetch_historical_rights_log(
+            wiki="enwiki",account="Jura1",as_of="2022-02-04T13:07:00Z",
+            max_pages=1,timeout_s=5,pacer=None,
+        )
+    def future(url, *, timeout_s, pacer):
+        return {"query":{"logevents":[{
+            "logid":12,"title":"User:Jura1","type":"rights",
+            "timestamp":"2022-02-05T01:00:00Z",
+        }]}}
+    monkeypatch.setattr(mw,"_get_json",future)
+    with pytest.raises(ValueError,match="after as-of"):
+        mw._fetch_historical_rights_log(
+            wiki="wikidata",account="Jura1",as_of="2022-02-04T13:07:00Z",
+            max_pages=1,timeout_s=5,pacer=None,
+        )
