@@ -277,6 +277,19 @@ def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing
         closure_policy_snapshot=policy,
     )
     assert stable["historical_policy_drift_status"] == "unchanged_across_proposal_window"
+    assert stable["historical_policy_window_source_witness"][
+        "opening_policy_page_oldid"
+    ] == stable["historical_policy_window_source_witness"][
+        "closing_policy_page_oldid"
+    ]
+    assert stable["historical_policy_window_source_witness"][
+        "policy_content_digest_ref"
+    ] == stable["historical_policy_window_source_witness"][
+        "closing_policy_content_digest_ref"
+    ]
+    assert stable["historical_policy_window_source_witness"][
+        "policy_normatively_verified"
+    ] is False
     altered=deepcopy(policy)
     altered["revid"]+=1
     altered["rev_timestamp"]="2022-02-03T00:00:00Z"
@@ -286,6 +299,13 @@ def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing
         closure_policy_snapshot=altered,
     )
     assert changed["historical_policy_drift_status"].startswith("changed_during")
+    untrusted_close=deepcopy(policy)
+    untrusted_close["api_url"]="https://attacker.invalid/claim"
+    with pytest.raises(ValueError,match="closure policy must carry"):
+        build_historical_source_handoff(
+            p,policy,case,policy_minimum_age_seconds=7*86400,
+            closure_policy_snapshot=untrusted_close,
+        )
     contradiction=deepcopy(policy)
     contradiction["wikitext"]="same oldid different bytes"
     with pytest.raises(ValueError,match="identical policy oldid"):
