@@ -850,11 +850,14 @@ def build_historical_source_handoff(
         raise ValueError("historical policy must include its revision time")
     try:
         selected=datetime.fromisoformat(timestamp.replace("Z","+00:00"))
+        proposed=datetime.fromisoformat(case["events"][0]["at"].replace("Z","+00:00"))
         closed=datetime.fromisoformat(case["events"][-1]["at"].replace("Z","+00:00"))
     except (ValueError,KeyError,TypeError) as exc:
         raise ValueError("policy/closure timestamps must be real UTC instants") from exc
-    if selected.tzinfo is None or selected.utcoffset() is None or selected>closed:
-        raise ValueError("policy version is newer than the proposal closure")
+    if (selected.tzinfo is None or selected.utcoffset() is None or
+            proposed.tzinfo is None or proposed.utcoffset() is None or
+            selected > proposed or selected > closed):
+        raise ValueError("policy revision was not yet in force at proposal time")
     # SLR INGEST-1 is the ONLY canonical source-revision owner.
     # Exact same framed UTF-8 field sequence as
     # crates/sl-pg-source-store/src/generic_source_content_store.rs:
