@@ -246,13 +246,20 @@ def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing
     out=build_historical_source_handoff(p,policy,case,policy_minimum_age_seconds=7*86400)
     native=out["itir_slr_input"]
     assert native["deliberation"]["created_property_ref"] == "P10322"
-    assert native["deliberation"]["policy_revision_ref"] == "wikidata:page:1300000000"
+    assert native["deliberation"]["policy_revision_ref"].startswith("source-revision:sha256:")
+    assert native["deliberation"]["source_revision_ref"].startswith("source-revision:sha256:")
+    assert native["deliberation"]["policy_revision_ref"] != native["deliberation"]["source_revision_ref"]
+    assert len(out["slr_source_inputs"]) == 2
+    assert all(row["envelope"]["source_revision_ref"].startswith("source-revision:sha256:")
+               for row in out["slr_source_inputs"])
+    assert {row["envelope"]["source_revision_ref"] for row in out["slr_source_inputs"]} == set(out["source_revision_refs"])
     assert native["deliberation"]["events"][-1]["judgement"] == "approve"
     assert "authority_receipt_ref" not in native["deliberation"]["events"][-1]
     assert len(native["source_seals"]) == 2
     assert len(native["event_anchors"]) == 7
-    assert all(row["source_revision_ref"] == "wikidata:page:1572799769"
+    assert all(row["source_revision_ref"] == native["deliberation"]["source_revision_ref"]
                for row in native["event_anchors"])
+    assert out["slr_source_inputs"][0]["envelope"]["source_ref"] == "wikidata:page:1572799769"
     assert not out["creator_role_verified"]
     assert not out["community_consensus_verified"]
     assert not out["source_ingested_and_reopened_in_slr"]
