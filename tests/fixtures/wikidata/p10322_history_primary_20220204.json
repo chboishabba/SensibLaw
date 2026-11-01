@@ -83,5 +83,18 @@
     "SensibLaw: locally authored source anchor and review projection; does not infer consensus or creator permission"
   ],
   "trust_boundary": "Observation locators only. The archived page HTML proves what that revision displays; byte-level MediaWiki wikitext must be fetched and matched separately, and historical policy and creator status independently sourced. No property edit.",
-  "observed_proposal_revision_minute_utc": "2022-02-04T13:07"
+  "observed_proposal_revision_minute_utc": "2022-02-04T13:07",
+  "creator_identity_research": {
+    "proposal_closing_signature_actor_ref": "wikidata:User:Jura",
+    "candidate_historical_account_ref": "wikidata:User:Jura1",
+    "candidate_account_correspondence_status": "unverified_possible_alias_not_a_proved_identity",
+    "present_day_property_creators_page": "https://www.wikidata.org/wiki/Wikidata:Property_creators",
+    "present_day_listing_establishes_2022_rights": false,
+    "historical_rights_log_requested": false,
+    "historical_rights_log_source_revision_ref": null,
+    "property_creation_log_source_revision_ref": null,
+    "2022_group_membership_verified": false,
+    "actual_property_creation_actor_verified": false,
+    "creator_distinct_from_proposer_verified": false
+  }
 }
