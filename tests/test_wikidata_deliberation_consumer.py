@@ -170,3 +170,50 @@ def test_cli_lane_bundle_optional_deliberation_overlay_does_not_add_new_cli_gate
     report=json.loads(output.read_text(encoding="utf-8"))
     assert report["deliberation_context"]["source_consumer_pid_intersection"] == ["P2738"]
     assert report["deliberation_context"]["source_alignment_verification"] == "unverified"
+
+
+def test_existing_mediawiki_fetcher_pins_policy_as_of_and_rejects_wrong_revision(monkeypatch):
+    from scripts import wiki_pull_api as mw
+
+    calls=[]
+    def fetched(url, *, timeout_s, pacer):
+        calls.append(url)
+        return {"query":{"pages":[{
+            "title":"Wikidata:Property creation","pageid":12345,
+            "revisions":[{
+                "revid":1180000000,"timestamp":"2022-02-02T18:22:00Z",
+                "slots":{"main":{"content":"Historically revised property policy text"}}
+            }],
+        }]}}
+    monkeypatch.setattr(mw,"_get_json",fetched)
+    snapshot=mw._fetch_latest_wikitext(
+        wiki="wikidata",title="Wikidata:Property creation",
+        max_links=0,max_categories=0,include_wikitext=True,
+        timeout_s=2,pacer=None,at_or_before="2022-02-04T13:07:00Z",
+    )
+    assert snapshot.revid == 1180000000
+    assert snapshot.wikitext == "Historically revised property policy text"
+    assert "www.wikidata.org/w/api.php" in calls[0]
+    assert "rvstart=2022-02-04T13%3A07%3A00Z" in calls[0]
+    assert "rvdir=older" in calls[0]
+    def newer(url, *, timeout_s, pacer):
+        return {"query":{"pages":[{
+            "title":"Wikidata:Property creation","pageid":12345,
+            "revisions":[{
+                "revid":12345,"timestamp":"2022-02-05T00:00:00Z",
+                "slots":{"main":{"content":"future content"}}
+            }],
+        }]}}
+    monkeypatch.setattr(mw,"_get_json",newer)
+    with pytest.raises(ValueError,match="as-of"):
+        mw._fetch_latest_wikitext(
+            wiki="wikidata",title="Wikidata:Property creation",
+            max_links=0,max_categories=0,include_wikitext=True,
+            timeout_s=2,pacer=None,at_or_before="2022-02-04T13:07:00Z",
+        )
+    with pytest.raises(ValueError,match="exact requested"):
+        mw._fetch_revision_wikitext(
+            wiki="wikidata",title="Wikidata:Property creation",revid=1572799769,
+            max_links=0,max_categories=0,include_wikitext=True,
+            timeout_s=2,pacer=None,
+        )
