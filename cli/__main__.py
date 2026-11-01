@@ -1758,6 +1758,18 @@ def _handle_wikidata_lane_bundle(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_lane_status import build_wikidata_lane_bundle
 
     report = build_wikidata_lane_bundle(args.lane)
+    if args.deliberation_assessment:
+        from src.ontology.wikidata_signal_review_bundle import attach_deliberation_context
+
+        if not args.consumer_ref or not args.consumer_scope_ref or not args.source_alignment_ref:
+            raise ValueError("deliberation overlay requires consumer, scope and candidate source-alignment refs")
+        assessment = json.loads(args.deliberation_assessment.read_text(encoding="utf-8"))
+        report = attach_deliberation_context(
+            report, assessment,
+            consumer_ref=args.consumer_ref,
+            consumer_scope_ref=args.consumer_scope_ref,
+            source_alignment_ref=args.source_alignment_ref,
+        )
     if args.output:
         args.output.write_text(
             json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -4258,6 +4270,20 @@ def build_parser() -> argparse.ArgumentParser:
         ],
     )
     wikidata_lane_bundle.add_argument("--output", type=Path)
+    wikidata_lane_bundle.add_argument(
+        "--deliberation-assessment", type=Path,
+        help="Optional ITIR source-proposal assessment JSON (candidate-only review overlay)",
+    )
+    wikidata_lane_bundle.add_argument(
+        "--consumer-ref", help="Explicit review consumer ID (required for deliberation overlay)",
+    )
+    wikidata_lane_bundle.add_argument(
+        "--consumer-scope-ref", help="S30 consumer scope ID (required for deliberation overlay)",
+    )
+    wikidata_lane_bundle.add_argument(
+        "--source-alignment-ref",
+        help="Candidate source-correspondence reference, NOT a verified identity receipt",
+    )
     wikidata_lane_bundle.set_defaults(func=_handle_wikidata_lane_bundle)
     wikidata_lane_graph = wikidata_sub.add_parser(
         "lane-graph",
