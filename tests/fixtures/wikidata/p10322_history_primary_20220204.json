@@ -1,0 +1,100 @@
+{
+  "schema_version": "sl.wikimedia_history_locator.v0_1",
+  "property_ref": "P10322",
+  "proposal_title": "Wikidata:Property proposal/time in the pouch",
+  "observed_proposal_oldid": 1572799769,
+  "observed_source_url": "https://www.wikidata.org/w/index.php?title=Wikidata:Property_proposal/time_in_the_pouch&oldid=1572799769",
+  "property_source_url": "https://www.wikidata.org/wiki/Property:P10322",
+  "archive_source_url": "https://www.wikidata.org/wiki/Wikidata:Property_proposal/Archive/2022/02",
+  "historical_policy_title": "Wikidata:Property creation",
+  "historical_policy_oldid": null,
+  "historical_policy_status": "not_yet_revision_pinned",
+  "observed_minimum_age_reference_seconds": 604800,
+  "historical_age_rule_verified": false,
+  "external_role_attribution_verified": false,
+  "community_consensus_verified": false,
+  "source_text_sha256": null,
+  "source_text_ingested_into_slr": false,
+  "events": [
+    {
+      "event_ref": "p10322:proposed",
+      "kind": "proposal",
+      "actor_ref": "wikidata:User:Arbnos",
+      "at": "2022-01-28T12:41:00Z",
+      "signature_needle": "12:41, 28 January 2022 (UTC)",
+      "observation": "Initial proposal"
+    },
+    {
+      "event_ref": "p10322:question",
+      "kind": "objection",
+      "actor_ref": "wikidata:User:UWashPrincipalCataloger",
+      "at": "2022-01-28T18:36:00Z",
+      "signature_needle": "18:36, 28 January 2022 (UTC)",
+      "observation": "Questioned generic kangaroo example; this is a comment, not necessarily a formal oppose vote"
+    },
+    {
+      "event_ref": "p10322:amendment",
+      "kind": "amendment",
+      "actor_ref": "wikidata:User:Arbnos",
+      "at": "2022-01-28T22:12:00Z",
+      "signature_needle": "22:12, 28 January 2022 (UTC)",
+      "supersedes_ref": "p10322:proposed",
+      "observation": "Reported change to uncertainty-marked example value"
+    },
+    {
+      "event_ref": "p10322:support-aliases",
+      "kind": "support",
+      "actor_ref": "wikidata:User:UWashPrincipalCataloger",
+      "at": "2022-01-29T02:26:00Z",
+      "signature_needle": "02:26, 29 January 2022 (UTC)",
+      "observation": "Supported alias set"
+    },
+    {
+      "event_ref": "p10322:support-germartin",
+      "kind": "support",
+      "actor_ref": "wikidata:User:Germartin1",
+      "at": "2022-01-29T03:35:00Z",
+      "signature_needle": "03:35, 29 January 2022 (UTC)",
+      "observation": "Support"
+    },
+    {
+      "event_ref": "p10322:support-gymnicus",
+      "kind": "support",
+      "actor_ref": "wikidata:User:Gymnicus",
+      "at": "2022-01-31T16:01:00Z",
+      "signature_needle": "16:01, 31 January 2022 (UTC)",
+      "observation": "Support"
+    },
+    {
+      "event_ref": "p10322:close",
+      "kind": "decision",
+      "actor_ref": "wikidata:User:Jura",
+      "at": "2022-02-04T13:07:00Z",
+      "signature_needle": "13:07, 4 February 2022 (UTC)",
+      "judgement": "approve",
+      "consensus_assessment_ref": null,
+      "authority_receipt_ref": null,
+      "observation": "Marked Done with P10322; source sentence not independent actor-right attestation"
+    }
+  ],
+  "attribution": [
+    "Marcin Roszkowski (2024), Navigating change: an exploration of socio-epistemic process of extending Wikidata ontology with new properties; DOI:10.1108/JD-01-2024-0008 motivates analysis, not authorship of community events",
+    "Wikidata contributors Arbnos, UWashPrincipalCataloger, Germartin1, Gymnicus and Jura: discussion authorship from the exact archived proposal URL",
+    "SensibLaw: locally authored source anchor and review projection; does not infer consensus or creator permission"
+  ],
+  "trust_boundary": "Observation locators only. The archived page HTML proves what that revision displays; byte-level MediaWiki wikitext must be fetched and matched separately, and historical policy and creator status independently sourced. No property edit.",
+  "observed_proposal_revision_minute_utc": "2022-02-04T13:07",
+  "creator_identity_research": {
+    "proposal_closing_signature_actor_ref": "wikidata:User:Jura",
+    "candidate_historical_account_ref": "wikidata:User:Jura1",
+    "candidate_account_correspondence_status": "unverified_possible_alias_not_a_proved_identity",
+    "present_day_property_creators_page": "https://www.wikidata.org/wiki/Wikidata:Property_creators",
+    "present_day_listing_establishes_2022_rights": false,
+    "historical_rights_log_requested": false,
+    "historical_rights_log_source_revision_ref": null,
+    "property_creation_log_source_revision_ref": null,
+    "2022_group_membership_verified": false,
+    "actual_property_creation_actor_verified": false,
+    "creator_distinct_from_proposer_verified": false
+  }
+}

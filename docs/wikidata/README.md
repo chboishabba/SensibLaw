@@ -375,3 +375,40 @@ bounded to the supplied slice.
   PNF/residual climate example.
 - `../planning/wikidata_temporal_pnf_constraint_contract_20260502.md`: temporal
   constraint contract for climate and bounded mereology.
+
+
+## Story 6: Source-pinned property proposal / historical Wikidata governance
+
+The same already-normalized review bundle can optionally include *candidate*
+source context about why a property was proposed, discussed, amended and
+created. Source: Marcin Roszkowski (2024), *Navigating change*, DOI
+`10.1108/JD-01-2024-0008`, and the original Wikidata contributor archive.
+
+- **Primary real specimen:** P10322 *time in the pouch*, 28 January–4 February
+  2022. `tests/fixtures/wikidata/p10322_history_primary_20220204.json`
+  pins archived oldid `1572799769`, source participants, time-stamped
+  critical comment, amendment, support, and closure. The historical policy
+  revision and actual creator rights are *not* yet authenticated.
+- **Original source acquisition:** use existing
+  `scripts/wiki_pull_api.py --wiki wikidata --revid 1572799769`
+  (reuses original curation-time fetcher, no new network stack). Fetch the
+  policy with `--at-or-before` separately rather than evaluating 2022
+  against today's property creation rules.
+- **Real source byte anchors:** `project_historical_source_anchors` requires
+  returned original revision wikitext and produces exact byte-range/digest
+  candidate witnesses. It does not authenticate authorship, policy or
+  the alleged meaning of a comment.
+- **Actual consumer overlay:** `attach_deliberation_context` is an opt-in
+  pure projection on `sl.wikidata_signal_review_bundle.v0_1`, or on the
+  existing `python -m src.cli wikidata lane-bundle` command via
+  `--deliberation-assessment` plus explicit scope/consumer/source-link refs.
+  It joins only a property PID found in **both** the source-built candidate
+  property list and the review dependency cone. It never changes legacy
+  climate A–E, change-repair, disjointness, hotspot or live-follow diagnostics.
+- **Separate authoritative native review:** SLR #76 uses the canonical
+  source store and S29 review receipts, while DASHI Agda #1447 specifies
+  the conditional historical-policy/creator/consensus/source obligations.
+  ITIR #70 emits candidate-only source/byte-span and consumer-link records.
+
+Full operator commands, source attribution, scope limitations and exact
+remaining acceptance: `docs/planning/wikidata_deliberation_primary_source_replay_20261101.md`.
