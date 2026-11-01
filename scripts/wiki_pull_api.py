@@ -725,7 +725,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     for title in titles:
         use_pywikibot = False
-        if args.revid is None and args.at_or_before is None and args.driver in ("auto", "pywikibot"):
+        # The historical Wikidata reader is API-backed. The existing
+        # pywikibot path supports enwiki/simplewiki only, and must not be
+        # selected for wikidata even if pywikibot happens to be installed.
+        if args.wiki == "wikidata" and args.driver == "pywikibot":
+            raise SystemExit("wikidata requires --driver api or auto (API)")
+        if args.wiki != "wikidata" and args.revid is None and args.at_or_before is None and args.driver in ("auto", "pywikibot"):
             try:
                 import pywikibot  # noqa: F401
 
