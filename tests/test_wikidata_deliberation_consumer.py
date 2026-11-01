@@ -99,3 +99,74 @@ def test_repeated_sidecar_is_not_silently_overwritten():
     bundle=build_wikidata_lane_bundle("disjointness_report")
     with pytest.raises(ValueError, match="already has"):
         _attach(_attach(bundle))
+
+
+def test_real_p10322_historical_locator_can_replay_exact_source_byte_spans():
+    import hashlib
+    import json
+    from pathlib import Path
+    from src.ontology.wikidata_signal_review_bundle import project_historical_source_anchors
+
+    # Synthetic text for source-span mechanics, real event metadata/oldid from
+    # archived P10322. The real wikitext must be pulled at oldid=1572799769.
+    fixture=Path(__file__).parent / "fixtures" / "wikidata" / "p10322_history_primary_20220204.json"
+    case=json.loads(fixture.read_text(encoding="utf-8"))
+    assert case["historical_policy_oldid"] is None
+    assert case["community_consensus_verified"] is False
+    assert case["property_ref"] == "P10322"
+    text = "\n".join(f"source-event-{{i}} {{event['signature_needle']}} actor {{event['actor_ref']}}"
+                     for i,event in enumerate(case["events"]))
+    snap={
+        "wiki":"wikidata","title":case["proposal_title"],
+        "revid":case["observed_proposal_oldid"],
+        "rev_timestamp":"2022-02-04T13:07:59Z", # fictional second, within observed minute
+        "wikitext":text,
+    }
+    out=project_historical_source_anchors(snap,case)
+    assert out["canonical_text_byte_length"] == len(text.encode("utf-8"))
+    assert out["source_content_digest_ref"] == "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    assert out["source_revision_ref"] == "wikidata:page:1572799769"
+    assert len(out["event_anchors"]) == 7
+    assert out["historical_policy_source_authenticated"] is False
+    assert out["source_revision_reopened_in_slr"] is False
+    assert out["wikidata_edit_authorised"] is False
+    for e,anchor in zip(case["events"],out["event_anchors"]):
+        piece=text.encode("utf-8")[anchor["start_byte"]:anchor["end_byte"]]
+        assert piece.decode("utf-8") == e["signature_needle"]
+        assert "sha256:" + hashlib.sha256(piece).hexdigest() == anchor["excerpt_digest_ref"]
+    bad=deepcopy(snap)
+    bad["revid"] += 1
+    with pytest.raises(ValueError,match="revision"):
+        project_historical_source_anchors(bad,case)
+    bad=deepcopy(snap)
+    bad["title"]="Wikidata:Property proposal/other"
+    with pytest.raises(ValueError,match="title"):
+        project_historical_source_anchors(bad,case)
+    bad=deepcopy(snap)
+    bad["wikitext"]=text + "\n" + case["events"][0]["signature_needle"]
+    with pytest.raises(ValueError,match="not uniquely"):
+        project_historical_source_anchors(bad,case)
+    bad=deepcopy(snap)
+    bad["rev_timestamp"]="2022-02-05T13:07:59Z"
+    with pytest.raises(ValueError,match="timestamp"):
+        project_historical_source_anchors(bad,case)
+
+
+def test_cli_lane_bundle_optional_deliberation_overlay_does_not_add_new_cli_gateway(tmp_path):
+    import json
+    from src.cli import main
+    assessment=tmp_path/"candidate_history.json"
+    assessment.write_text(json.dumps(HISTORY),encoding="utf-8")
+    output=tmp_path/"bundle.json"
+    status=main([
+        "wikidata","lane-bundle","--lane","disjointness_report",
+        "--deliberation-assessment",str(assessment),
+        "--consumer-ref","consumer:fixture",
+        "--consumer-scope-ref","matter:fixture",
+        "--source-alignment-ref","candidate:unverified",
+        "--output",str(output),
+    ])
+    assert status in (None,0)
+    report=json.loads(output.read_text(encoding="utf-8"))
+    assert report["deliberation_context"]["source_consumer_pid_intersection"] == ["P2738"]
+    assert report["deliberation_context"]["source_alignment_verification"] == "unverified"
