@@ -260,6 +260,28 @@ def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing
     assert all(row["source_revision_ref"] == native["deliberation"]["source_revision_ref"]
                for row in native["event_anchors"])
     assert out["slr_source_inputs"][0]["envelope"]["source_ref"] == "wikidata:page:1572799769"
+    assert out["historical_policy_drift_status"] == "closure_policy_not_examined"
+    stable=build_historical_source_handoff(
+        p,policy,case,policy_minimum_age_seconds=7*86400,
+        closure_policy_snapshot=policy,
+    )
+    assert stable["historical_policy_drift_status"] == "unchanged_across_proposal_window"
+    altered=deepcopy(policy)
+    altered["revid"]+=1
+    altered["rev_timestamp"]="2022-02-03T00:00:00Z"
+    altered["wikitext"]="a changed policy effective before closure"
+    changed=build_historical_source_handoff(
+        p,policy,case,policy_minimum_age_seconds=7*86400,
+        closure_policy_snapshot=altered,
+    )
+    assert changed["historical_policy_drift_status"].startswith("changed_during")
+    contradiction=deepcopy(policy)
+    contradiction["wikitext"]="same oldid different bytes"
+    with pytest.raises(ValueError,match="identical policy oldid"):
+        build_historical_source_handoff(
+            p,policy,case,policy_minimum_age_seconds=7*86400,
+            closure_policy_snapshot=contradiction,
+        )
     assert not out["creator_role_verified"]
     assert not out["community_consensus_verified"]
     assert not out["source_ingested_and_reopened_in_slr"]
