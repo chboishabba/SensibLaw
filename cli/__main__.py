@@ -1754,6 +1754,35 @@ def _handle_wikidata_lane_status(args: argparse.Namespace) -> None:
     _print_json(report, sort_keys=True)
 
 
+def _handle_wikidata_history_handoff(args: argparse.Namespace) -> None:
+    """Curation-time native source evidence package; never stores review state."""
+    from src.ontology.wikidata_signal_review_bundle import build_historical_source_handoff
+
+    def _read(path: Path) -> dict[str, Any]:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict):
+            raise ValueError(f"expected JSON object at {path}")
+        return value
+
+    package = build_historical_source_handoff(
+        _read(args.proposal_snapshot),
+        _read(args.policy_snapshot),
+        _read(args.case_manifest),
+        policy_minimum_age_seconds=args.policy_minimum_age_seconds,
+    )
+    if args.output:
+        args.output.write_text(
+            json.dumps(package,ensure_ascii=False,indent=2,sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json({
+            "output":str(args.output),"schema_version":package["schema_version"],
+            "candidate_only":True,"historical_policy_applicability_verified":False,
+        })
+        return
+    _print_json(package,sort_keys=True)
+
+
 def _handle_wikidata_lane_bundle(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_lane_status import build_wikidata_lane_bundle
 
@@ -4254,6 +4283,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_lane_status.add_argument("--output", type=Path)
     wikidata_lane_status.set_defaults(func=_handle_wikidata_lane_status)
+    history_handoff = wikidata_sub.add_parser(
+        "history-snapshot-handoff",
+        help="Project two exact Wikidata revision snapshots and event locators into candidate-only ITIR/SLR source-bound transport",
+    )
+    history_handoff.add_argument("--proposal-snapshot",required=True,type=Path)
+    history_handoff.add_argument("--policy-snapshot",required=True,type=Path)
+    history_handoff.add_argument("--case-manifest",required=True,type=Path)
+    history_handoff.add_argument("--policy-minimum-age-seconds",required=True,type=int)
+    history_handoff.add_argument("--output",type=Path)
+    history_handoff.set_defaults(func=_handle_wikidata_history_handoff)
     wikidata_lane_bundle = wikidata_sub.add_parser(
         "lane-bundle",
         help="Emit the normalized review bundle for one Wikidata lane",
