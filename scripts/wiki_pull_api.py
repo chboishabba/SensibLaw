@@ -167,6 +167,7 @@ def _fetch_latest_wikitext(
     include_wikitext: bool,
     timeout_s: int,
     pacer: Optional[_RequestPacer],
+    at_or_before: str | None = None,
 ) -> PageSnapshot:
     if wiki not in WIKIS:
         raise SystemExit(f"unknown wiki '{wiki}' (choices: {', '.join(sorted(WIKIS))})")
@@ -188,6 +189,10 @@ def _fetch_latest_wikitext(
         "pllimit": max(1, min(int(max_links), 500)),
         "plnamespace": 0,
     }
+    if at_or_before is not None:
+        params["rvstart"] = at_or_before
+        params["rvdir"] = "older"
+        params["rvlimit"] = 1
     url = _build_url(base, params)
     payload = _get_json(url, timeout_s=timeout_s, pacer=pacer)
 
@@ -237,6 +242,15 @@ def _fetch_latest_wikitext(
                 wikitext = content
     else:
         warnings.append("no_revisions_returned")
+
+    if at_or_before is not None:
+        if revid is None or rev_ts is None or (include_wikitext and wikitext is None):
+            raise ValueError("no source-backed historical revision at requested instant")
+        from datetime import datetime, timezone
+        selected = datetime.fromisoformat(rev_ts.replace("Z", "+00:00"))
+        cutoff = datetime.fromisoformat(at_or_before.replace("Z", "+00:00"))
+        if selected.tzinfo is None or cutoff.tzinfo is None or selected > cutoff:
+            raise ValueError("historical policy revision violates requested as-of instant")
 
     categories: List[str] = []
     for cat in page.get("categories") or []:
@@ -627,6 +641,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fetch a specific revision id instead of the latest revision",
     )
     p.add_argument(
+        "--at-or-before",
+        help="Fetch the last revision at/before a UTC ISO-8601 instant; incompatible with --revid",
+    )
+    p.add_argument(
         "--history-max-revisions",
         type=int,
         default=0,
@@ -673,6 +691,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Exclude categories (prefix match). Repeatable.",
     )
     args = p.parse_args(argv)
+    if args.revid is not None and args.at_or_before is not None:
+        p.error("--revid and --at-or-before are mutually exclusive")
+    if args.at_or_before is not None:
+        from datetime import datetime
+        try:
+            when=datetime.fromisoformat(args.at_or_before.replace("Z","+00:00"))
+        except ValueError:
+            p.error("--at-or-before requires a timezone-aware ISO-8601 instant")
+        if when.tzinfo is None or when.utcoffset() is None:
+            p.error("--at-or-before must include an explicit timezone")
 
     titles: List[str] = [t for t in (args.title or []) if t and t.strip()]
     if args.titles_file:
@@ -718,6 +746,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             flush=True,
         )
 
+        if args.at_or_before is not None:
+            use_pywikibot = False
+            driver_used = "api"
         if args.revid is not None:
             snap = _fetch_revision_wikitext(
                 wiki=args.wiki,
@@ -747,6 +778,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 include_wikitext=include_wikitext,
                 timeout_s=int(args.timeout_s),
                 pacer=pacer,
+                at_or_before=args.at_or_before,
             )
         out_path = _write_snapshot(Path(args.out_dir), snap)
         out_paths.append(str(out_path))
