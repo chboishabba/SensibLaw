@@ -217,3 +217,67 @@ def test_existing_mediawiki_fetcher_pins_policy_as_of_and_rejects_wrong_revision
             max_links=0,max_categories=0,include_wikitext=True,
             timeout_s=2,pacer=None,
         )
+
+
+def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing_policy_authority(tmp_path):
+    import json
+    from pathlib import Path
+    from cli.__main__ import main
+    from src.ontology.wikidata_signal_review_bundle import build_historical_source_handoff
+
+    fixture=Path(__file__).parent/"fixtures"/"wikidata"/"p10322_history_primary_20220204.json"
+    case=json.loads(fixture.read_text(encoding="utf-8"))
+    # A fake text body tests the exact SHA256/byte carrier and CLI contract.
+    # The fixture names the real oldid and humans, but no actual fetched source
+    # or historical policy consensus is asserted by this regression.
+    text="\n".join(row["signature_needle"] for row in case["events"])
+    p={
+        "wiki":"wikidata","title":case["proposal_title"],
+        "revid":1572799769,"rev_timestamp":"2022-02-04T13:07:32Z",
+        "wikitext":text,
+        "api_url":"https://www.wikidata.org/w/api.php?action=query&revids=1572799769",
+    }
+    policy={
+        "wiki":"wikidata","title":case["historical_policy_title"],
+        "revid":1300000000,"rev_timestamp":"2022-01-01T05:04:00Z",
+        "wikitext":"FAKE policy fixture, not authentic historical Wikidata text",
+        "api_url":"https://www.wikidata.org/w/api.php?action=query&revids=1300000000",
+    }
+    out=build_historical_source_handoff(p,policy,case,policy_minimum_age_seconds=7*86400)
+    native=out["itir_slr_input"]
+    assert native["deliberation"]["created_property_ref"] == "P10322"
+    assert native["deliberation"]["policy_revision_ref"] == "wikidata:page:1300000000"
+    assert native["deliberation"]["events"][-1]["judgement"] == "approve"
+    assert "authority_receipt_ref" not in native["deliberation"]["events"][-1]
+    assert len(native["source_seals"]) == 2
+    assert len(native["event_anchors"]) == 7
+    assert all(row["source_revision_ref"] == "wikidata:page:1572799769"
+               for row in native["event_anchors"])
+    assert not out["creator_role_verified"]
+    assert not out["community_consensus_verified"]
+    assert not out["source_ingested_and_reopened_in_slr"]
+    assert not out["wikidata_edit_authorised"]
+
+    proposals=tmp_path/"proposal.json"
+    policies=tmp_path/"policy.json"
+    output=tmp_path/"handoff.json"
+    proposals.write_text(json.dumps(p),encoding="utf-8")
+    policies.write_text(json.dumps(policy),encoding="utf-8")
+    main([
+        "wikidata","history-snapshot-handoff",
+        "--proposal-snapshot",str(proposals),
+        "--policy-snapshot",str(policies),
+        "--case-manifest",str(fixture),
+        "--policy-minimum-age-seconds",str(7*86400),
+        "--output",str(output),
+    ])
+    assert json.loads(output.read_text(encoding="utf-8"))==out
+
+    newer=deepcopy(policy)
+    newer["rev_timestamp"]="2022-02-05T00:00:00Z"
+    with pytest.raises(ValueError,match="newer"):
+        build_historical_source_handoff(p,newer,case,policy_minimum_age_seconds=7*86400)
+    wrong=deepcopy(policy)
+    wrong["api_url"]="https://attacker.invalid/fake-revision"
+    with pytest.raises(ValueError,match="query origin"):
+        build_historical_source_handoff(p,wrong,case,policy_minimum_age_seconds=7*86400)
