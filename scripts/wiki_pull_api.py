@@ -619,6 +619,7 @@ def _fetch_historical_rights_log(
     current_token: str | None = None
     events: List[Dict[str, Any]] = []
     seen_ids: set[int] = set()
+    previous_event_time: dt.datetime | None = None
     complete = False
     urls: List[str] = []
     for _ in range(max_pages):
@@ -651,11 +652,21 @@ def _fetch_historical_rights_log(
             occurred = dt.datetime.fromisoformat(when.replace("Z", "+00:00"))
             if occurred.tzinfo is None or occurred.utcoffset() is None or occurred > cutoff:
                 raise ValueError("rights-log returned an event after as-of cutoff")
+            if previous_event_time is not None and occurred > previous_event_time:
+                raise ValueError("rights-log events are not in source chronology order")
+            previous_event_time = occurred
             if event["logid"] in seen_ids:
                 raise ValueError("duplicate rights-log event across pagination")
             seen_ids.add(event["logid"])
             events.append(event)
-        new_cursor = (response.get("continue") or {}).get("lecontinue")
+        continuation = response.get("continue") or {}
+        if continuation and (
+            not isinstance(continuation, dict) or
+            not isinstance(continuation.get("lecontinue"), str) or
+            not continuation.get("lecontinue")
+        ):
+            raise ValueError("incomplete or malformed rights-log continuation")
+        new_cursor = continuation.get("lecontinue")
         if not isinstance(new_cursor, str) or not new_cursor:
             complete = True
             current_token = None
