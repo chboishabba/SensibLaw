@@ -816,3 +816,104 @@ def project_historical_source_anchors(
         "wikidata_edit_authorised": False,
     }
 
+
+
+def build_historical_source_handoff(
+    proposal_snapshot: Mapping[str, Any],
+    policy_snapshot: Mapping[str, Any],
+    case: Mapping[str, Any],
+    *,
+    policy_minimum_age_seconds: int,
+) -> dict[str, Any]:
+    """Build the native ITIR→SLR input shape over *two actual source snapshots*.
+
+    This performs byte-level source grounding, never adjudicates what historical
+    policy means or who has community authority. Its SHA/receipt coordinates
+    become SLR evidence ONLY after independent canonical ingest/reopen.
+    """
+    from datetime import datetime, timezone
+    import hashlib
+
+    if type(policy_minimum_age_seconds) is not int or not 0 <= policy_minimum_age_seconds <= 366 * 86400:
+        raise ValueError("policy minimum age must be a separate reviewed input")
+    proposal = project_historical_source_anchors(proposal_snapshot,case)
+    if not isinstance(policy_snapshot, Mapping) or policy_snapshot.get("wiki") != "wikidata":
+        raise ValueError("historical policy must be a Wikidata source")
+    if policy_snapshot.get("title", "").replace("_", " ") != case.get("historical_policy_title", "").replace("_", " "):
+        raise ValueError("wrong historical policy page")
+    revid=policy_snapshot.get("revid")
+    content=policy_snapshot.get("wikitext")
+    timestamp=policy_snapshot.get("rev_timestamp")
+    if type(revid) is not int or revid < 1 or not isinstance(content,str) or not content:
+        raise ValueError("historical policy must have a real revision and canonical text")
+    if not isinstance(timestamp,str):
+        raise ValueError("historical policy must include its revision time")
+    try:
+        selected=datetime.fromisoformat(timestamp.replace("Z","+00:00"))
+        closed=datetime.fromisoformat(case["events"][-1]["at"].replace("Z","+00:00"))
+    except (ValueError,KeyError,TypeError) as exc:
+        raise ValueError("policy/closure timestamps must be real UTC instants") from exc
+    if selected.tzinfo is None or selected.utcoffset() is None or selected>closed:
+        raise ValueError("policy version is newer than the proposal closure")
+    policy_source_ref=f"wikidata:page:{revid}"
+    if policy_source_ref == proposal["source_revision_ref"]:
+        raise ValueError("proposal and policy sources must be independently identified")
+    policy_hash="sha256:"+hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+    def seal(snapshot: Mapping[str,Any], source: str, sha: str) -> dict[str,str]:
+        # A deterministic *producer-reported* acquisition coordinate; it is
+        # not an independent trusted HTTP/revision/canonical-source receipt.
+        url=snapshot.get("api_url")
+        if not isinstance(url,str) or not url.startswith("https://www.wikidata.org/w/api.php?"):
+            raise ValueError("source must carry the actual Wikidata query origin")
+        digest=hashlib.sha256(("\n".join([source,url,sha])).encode("utf-8")).hexdigest()
+        return {"source_revision_ref":source,
+                "content_digest_ref":sha,
+                "acquisition_receipt_ref":"wiki-acquisition:sha256:"+digest}
+
+    source=proposal["source_revision_ref"]
+    native_events=[]
+    for row in case["events"]:
+        kind=row["kind"]
+        record={
+            "event_ref":row["event_ref"],"source_revision_ref":source,
+            "actor_ref":row["actor_ref"],"kind":kind,"at":row["at"],
+        }
+        for extra in ("supersedes_ref","judgement"):
+            if row.get(extra) is not None:
+                record[extra]=row[extra]
+        # Source-observed claim of decision is not the creator's authenticated
+        # role receipt or a verified consensus vote aggregation.
+        native_events.append(record)
+    result={
+        "deliberation":{
+            "proposal_ref":f"wikidata:property-proposal:{case['property_ref']}",
+            "source_revision_ref":source,
+            "policy_revision_ref":policy_source_ref,
+            "minimum_age_seconds":policy_minimum_age_seconds,
+            "events":native_events,
+            "created_property_ref":case["property_ref"],
+        },
+        "source_seals":[
+            seal(proposal_snapshot,source,proposal["source_content_digest_ref"]),
+            seal(policy_snapshot,policy_source_ref,policy_hash),
+        ],
+        "event_anchors":proposal["event_anchors"],
+    }
+    return {
+        "schema_version":"sl.wikidata_deliberation_slr_handoff_draft.v0_1",
+        "itir_slr_input":result,
+        "source_revision_refs":[source,policy_source_ref],
+        "proposal_page_oldid":proposal_snapshot["revid"],
+        "historical_policy_page_oldid":revid,
+        "producer_canonical_byte_digests_observed":True,
+        "independent_source_provider_receipts_verified":False,
+        "historical_policy_applicability_verified":False,
+        "historical_policy_interpretation_verified":False,
+        "creator_role_verified":False,
+        "community_consensus_verified":False,
+        "source_ingested_and_reopened_in_slr":False,
+        "candidate_only":True,
+        "wikidata_edit_authorised":False,
+        "ao_dispatch_allowed":False,
+    }
