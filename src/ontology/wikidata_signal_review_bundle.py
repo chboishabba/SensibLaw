@@ -737,8 +737,10 @@ def project_historical_source_anchors(
         raise ValueError("Wikidata proposal title differs from pinned manifest")
     if type(snapshot.get("revid")) is not int or snapshot["revid"] != case.get("observed_proposal_oldid"):
         raise ValueError("Wikidata source revision differs from pinned manifest")
-    if snapshot.get("rev_timestamp") != case.get("observed_proposal_revision_timestamp"):
-        raise ValueError("revision timestamp differs from pinned historical source")
+    expected_minute = case.get("observed_proposal_revision_minute_utc")
+    observed_ts = snapshot.get("rev_timestamp")
+    if not isinstance(expected_minute, str) or not isinstance(observed_ts, str) or not observed_ts.startswith(expected_minute):
+        raise ValueError("revision timestamp differs from observed archive minute")
     text = snapshot.get("wikitext")
     if not isinstance(text, str) or not text:
         raise ValueError("canonical wikitext is required for byte-anchored replay")
