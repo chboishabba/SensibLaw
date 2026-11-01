@@ -966,6 +966,7 @@ def build_historical_source_handoff(
     source_inputs = [proposal_input, policy_input]
     policy_drift = "closure_policy_not_examined"
     closure_policy_oldid = None
+    policy_window_witness = None
     if closure_policy_snapshot is not None:
         closing = closure_policy_snapshot
         if not isinstance(closing, Mapping) or closing.get("wiki") != "wikidata":
@@ -997,6 +998,25 @@ def build_historical_source_handoff(
         # not a historically stable policy.
         if revision == revid and closure_text != content:
             raise ValueError("identical policy oldid has different original bytes")
+        closing_url = closing.get("api_url")
+        if not isinstance(closing_url,str) or not closing_url.startswith(
+            "https://www.wikidata.org/w/api.php?"
+        ):
+            raise ValueError("closure policy must carry original source acquisition coordinate")
+        policy_window_witness = {
+            "opening_policy_page_oldid": revid,
+            "closing_policy_page_oldid": revision,
+            "opening_policy_revision_time": timestamp,
+            "closing_policy_revision_time": stamp,
+            "policy_content_digest_ref": policy_hash,
+            "closing_policy_content_digest_ref": "sha256:" + hashlib.sha256(
+                closure_text.encode("utf-8")
+            ).hexdigest(),
+            "closing_acquisition_url": closing_url,
+            "comparison_status": policy_drift,
+            "candidate_only": True,
+            "policy_normatively_verified": False,
+        }
 
     return {
         "schema_version":"sl.wikidata_deliberation_slr_handoff_draft.v0_1",
@@ -1007,6 +1027,7 @@ def build_historical_source_handoff(
         "historical_policy_page_oldid":revid,
         "closure_policy_page_oldid":closure_policy_oldid,
         "historical_policy_drift_status":policy_drift,
+        "historical_policy_window_source_witness":policy_window_witness,
         "producer_canonical_byte_digests_observed":True,
         "independent_source_provider_receipts_verified":False,
         "historical_policy_applicability_verified":False,
