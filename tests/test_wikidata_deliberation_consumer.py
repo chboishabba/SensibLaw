@@ -402,3 +402,26 @@ def test_historical_wikidata_rights_log_is_paginated_source_evidence_not_a_creat
             wiki="wikidata",account="Jura1",as_of="2022-02-04T13:07:00Z",
             max_pages=1,timeout_s=5,pacer=None,
         )
+
+
+def test_historical_rights_log_rejects_malformed_continuation_and_reverse_time(monkeypatch):
+    from scripts import wiki_pull_api as mw
+    def bad_continue(url, *, timeout_s, pacer):
+        return {"query":{"logevents":[]},"continue":{"continue":"-||"}}
+    monkeypatch.setattr(mw,"_get_json",bad_continue)
+    with pytest.raises(ValueError,match="continuation"):
+        mw._fetch_historical_rights_log(
+            wiki="wikidata",account="Jura1",as_of="2022-02-04T13:07:00Z",
+            max_pages=2,timeout_s=2,pacer=None,
+        )
+    def wrong_order(url, *, timeout_s, pacer):
+        return {"query":{"logevents":[
+            {"logid":1,"timestamp":"2021-01-01T00:00:00Z"},
+            {"logid":2,"timestamp":"2021-02-01T00:00:00Z"},
+        ]}}
+    monkeypatch.setattr(mw,"_get_json",wrong_order)
+    with pytest.raises(ValueError,match="chronology"):
+        mw._fetch_historical_rights_log(
+            wiki="wikidata",account="Jura1",as_of="2022-02-04T13:07:00Z",
+            max_pages=2,timeout_s=2,pacer=None,
+        )
