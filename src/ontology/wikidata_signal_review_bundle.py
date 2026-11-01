@@ -909,6 +909,7 @@ def build_historical_source_handoff(
         }
         return {"envelope": envelope, "canonical_text": text}
 
+    policy_hash = "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
     proposal_input = source_input(proposal_snapshot, proposal["source_content_digest_ref"])
     policy_input = source_input(policy_snapshot, policy_hash)
     source = proposal_input["envelope"]["source_revision_ref"]
