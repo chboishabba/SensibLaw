@@ -126,3 +126,10 @@ The resulting wrapper is consumed by ITIR-suite PR #70's read-only `itir.governa
 ### Canonical synchronized K00–K13 / A00–A07 status (2026-11-01)
 
 See the [single four-repo max-cut roadmap](https://github.com/chboishabba/ITIR-suite/blob/agent/epistemic-deliberation-candidate-governance-20261101/docs/planning/wikidata_deliberation_maxcut_exact_20261101.md) for each exact owner, source-written code, and remaining primary-source acceptance. The latest canonical source ABI uses SensibLaw's length-framed SHA-256 INGEST-1 source identity, independently reverified by ITIR against original UTF-8 text and byte anchors, and SLR's full typed JSON replay into existing INGEST-1 + atomic S29 review. This is committed source code, not an executed kernel/PG check. Historical P10322 original bytes, applicable policy, creator rights, consensus, actual S30 permission and cross-language formal proof remain independent obligations; no external Wikidata edits are authorised.
+
+
+### 2026-11-01 source-written historical policy-drift closure
+
+The source handoff now supports a separately fetched **as-of-closure** policy snapshot in addition to the as-of-proposal policy. SensibLaw produces `historical_policy_drift_status=closure_policy_not_examined | unchanged_across_proposal_window | changed_during_proposal_requires_independent_rule_adjudication`, and detects same-oldid/different-byte contradictions. ITIR retains this exact state and exports `normative_policy_hold`; SLR requires `unchanged_across_proposal_window` with no normative hold before accepting native historical-source JSON into its canonical ingest/S29 path. A changed or unexamined rule remains a reviewable source-history candidate, never a silently accepted historical authority.
+
+The additional closure snapshot has not actually been fetched in this GitHub-only session. Even `unchanged_across_proposal_window` is a comparison of caller-supplied original revision snapshots, **not** independently verified Wikidata community policy/actor rights/consensus. Source-authentic historical closure, the S30 audience check, Agda kernel run and physical PG run remain separately unpaid as detailed in A00–A06.
