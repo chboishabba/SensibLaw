@@ -598,7 +598,7 @@ __all__ = [
 # between proposal, knowledge work and closure; the adapter is SL-authored.
 import re as _re
 
-_PROPERTY_ID = _re.compile(r"P[1-9][0-9]*\\Z")
+_PROPERTY_ID = _re.compile(r"P[1-9][0-9]*\Z")
 _DELIBERATION_VERSION = "itir.governance.deliberation_assessment.v1"
 _PROPOSAL_PROJECTION_VERSION = "sl.wikidata_proposal_review_projection.v0_1"
 
