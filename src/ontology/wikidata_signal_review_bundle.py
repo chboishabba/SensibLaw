@@ -739,7 +739,19 @@ def project_historical_source_anchors(
         raise ValueError("Wikidata source revision differs from pinned manifest")
     expected_minute = case.get("observed_proposal_revision_minute_utc")
     observed_ts = snapshot.get("rev_timestamp")
-    if not isinstance(expected_minute, str) or not isinstance(observed_ts, str) or not observed_ts.startswith(expected_minute):
+    if not isinstance(expected_minute, str) or not isinstance(observed_ts, str):
+        raise ValueError("revision timestamp differs from observed archive minute")
+    try:
+        expected = datetime.strptime(expected_minute, "%Y-%m-%dT%H:%M").replace(
+            tzinfo=timezone.utc
+        )
+        actual = datetime.fromisoformat(observed_ts.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("revision timestamp is not valid ISO-8601") from exc
+    if actual.tzinfo is None or actual.utcoffset() is None or (
+        actual.astimezone(timezone.utc).replace(second=0, microsecond=0)
+        != expected
+    ):
         raise ValueError("revision timestamp differs from observed archive minute")
     text = snapshot.get("wikitext")
     if not isinstance(text, str) or not text:
