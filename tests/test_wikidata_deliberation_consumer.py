@@ -154,7 +154,7 @@ def test_real_p10322_historical_locator_can_replay_exact_source_byte_spans():
 
 def test_cli_lane_bundle_optional_deliberation_overlay_does_not_add_new_cli_gateway(tmp_path):
     import json
-    from src.cli import main
+    from cli.__main__ import main
     assessment=tmp_path/"candidate_history.json"
     assessment.write_text(json.dumps(HISTORY),encoding="utf-8")
     output=tmp_path/"bundle.json"
