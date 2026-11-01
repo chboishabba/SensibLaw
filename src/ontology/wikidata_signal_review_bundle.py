@@ -855,54 +855,103 @@ def build_historical_source_handoff(
         raise ValueError("policy/closure timestamps must be real UTC instants") from exc
     if selected.tzinfo is None or selected.utcoffset() is None or selected>closed:
         raise ValueError("policy version is newer than the proposal closure")
-    policy_source_ref=f"wikidata:page:{revid}"
-    if policy_source_ref == proposal["source_revision_ref"]:
-        raise ValueError("proposal and policy sources must be independently identified")
-    policy_hash="sha256:"+hashlib.sha256(content.encode("utf-8")).hexdigest()
+    # SLR INGEST-1 is the ONLY canonical source-revision owner.
+    # Exact same framed UTF-8 field sequence as
+    # crates/sl-pg-source-store/src/generic_source_content_store.rs:
+    # canonical_generic_source_revision_ref.
+    provider_ref = "wikidata:mediawiki-api"
+    media_type_ref = "text/x-wiki"
+    def _canonical_source_revision(source: str, acquisition: str, sha: str) -> str:
+        h = hashlib.sha256()
+        for field in (
+            "generic-source-revision:v1", source, provider_ref,
+            acquisition, sha, media_type_ref,
+        ):
+            raw = field.encode("utf-8")
+            h.update(len(raw).to_bytes(8, "big"))
+            h.update(raw)
+        return "source-revision:sha256:" + h.hexdigest()
 
-    def seal(snapshot: Mapping[str,Any], source: str, sha: str) -> dict[str,str]:
-        # A deterministic *producer-reported* acquisition coordinate; it is
-        # not an independent trusted HTTP/revision/canonical-source receipt.
-        url=snapshot.get("api_url")
-        if not isinstance(url,str) or not url.startswith("https://www.wikidata.org/w/api.php?"):
+    def source_input(snapshot: Mapping[str, Any], sha: str) -> dict[str, Any]:
+        revid = snapshot.get("revid")
+        if type(revid) is not int or revid < 1:
+            raise ValueError("source must carry an exact positive MediaWiki oldid")
+        text = snapshot.get("wikitext")
+        if not isinstance(text, str) or not text:
+            raise ValueError("source must have original UTF-8 text")
+        if "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest() != sha:
+            raise ValueError("source SHA cannot differ from canonical bytes")
+        url = snapshot.get("api_url")
+        if not isinstance(url, str) or not url.startswith(
+            "https://www.wikidata.org/w/api.php?"
+        ):
             raise ValueError("source must carry the actual Wikidata query origin")
-        digest=hashlib.sha256(("\n".join([source,url,sha])).encode("utf-8")).hexdigest()
-        return {"source_revision_ref":source,
-                "content_digest_ref":sha,
-                "acquisition_receipt_ref":"wiki-acquisition:sha256:"+digest}
-
-    source=proposal["source_revision_ref"]
-    native_events=[]
-    for row in case["events"]:
-        kind=row["kind"]
-        record={
-            "event_ref":row["event_ref"],"source_revision_ref":source,
-            "actor_ref":row["actor_ref"],"kind":kind,"at":row["at"],
+        if len(text.encode("utf-8")) > 4_000_000:
+            raise ValueError("source text exceeds 4MB capture bound")
+        source = f"wikidata:page:{revid}"
+        acquisition = "wiki-acquisition:sha256:" + hashlib.sha256(
+            ("\\n".join([source, url, sha])).encode("utf-8")
+        ).hexdigest()
+        revision = _canonical_source_revision(source, acquisition, sha)
+        envelope = {
+            "source_ref": source,
+            "source_revision_ref": revision,
+            "provider_ref": provider_ref,
+            "family": "wiki",
+            "role_class": "content_source",
+            "content_digest_ref": sha,
+            "acquisition_receipt_ref": acquisition,
+            "media_type_ref": media_type_ref,
+            "candidate_only": True,
+            "creates_semantic_authority": False,
+            "applicability_promoted": False,
+            "claim_truth_promoted": False,
         }
-        for extra in ("supersedes_ref","judgement"):
-            if row.get(extra) is not None:
-                record[extra]=row[extra]
-        # Source-observed claim of decision is not the creator's authenticated
-        # role receipt or a verified consensus vote aggregation.
+        return {"envelope": envelope, "canonical_text": text}
+
+    proposal_input = source_input(proposal_snapshot, proposal["source_content_digest_ref"])
+    policy_input = source_input(policy_snapshot, policy_hash)
+    source = proposal_input["envelope"]["source_revision_ref"]
+    policy_source_ref = policy_input["envelope"]["source_revision_ref"]
+    if source == policy_source_ref:
+        raise ValueError("proposal and policy sources require independent revisions")
+    native_events = []
+    for row in case["events"]:
+        record = {
+            "event_ref": row["event_ref"], "source_revision_ref": source,
+            "actor_ref": row["actor_ref"], "kind": row["kind"], "at": row["at"],
+        }
+        for field in ("supersedes_ref", "judgement"):
+            if row.get(field) is not None:
+                record[field] = row[field]
         native_events.append(record)
-    result={
-        "deliberation":{
-            "proposal_ref":f"wikidata:property-proposal:{case['property_ref']}",
-            "source_revision_ref":source,
-            "policy_revision_ref":policy_source_ref,
-            "minimum_age_seconds":policy_minimum_age_seconds,
-            "events":native_events,
-            "created_property_ref":case["property_ref"],
+    result = {
+        "deliberation": {
+            "proposal_ref": f"wikidata:property-proposal:{case['property_ref']}",
+            "source_revision_ref": source,
+            "policy_revision_ref": policy_source_ref,
+            "minimum_age_seconds": policy_minimum_age_seconds,
+            "events": native_events,
+            "created_property_ref": case["property_ref"],
         },
-        "source_seals":[
-            seal(proposal_snapshot,source,proposal["source_content_digest_ref"]),
-            seal(policy_snapshot,policy_source_ref,policy_hash),
+        "source_seals": [
+            {key: input_["envelope"][key] for key in (
+                "source_revision_ref", "content_digest_ref", "acquisition_receipt_ref"
+            )} for input_ in (proposal_input, policy_input)
         ],
-        "event_anchors":proposal["event_anchors"],
+        "event_anchors": [
+            {**anchor, "source_revision_ref": source}
+            for anchor in proposal["event_anchors"]
+        ],
     }
+    # The native input is included separately from the untrusted ITIR claims.
+    # The consumer MUST require SLR to ingest and reopen original bytes.
+    source_inputs = [proposal_input, policy_input]
+
     return {
         "schema_version":"sl.wikidata_deliberation_slr_handoff_draft.v0_1",
         "itir_slr_input":result,
+        "slr_source_inputs":source_inputs,
         "source_revision_refs":[source,policy_source_ref],
         "proposal_page_oldid":proposal_snapshot["revid"],
         "historical_policy_page_oldid":revid,
