@@ -99,3 +99,25 @@ G: exact historic policy, roles, consensus and external creation log require ind
 F: tests written for P10322 snapshot anchors, mismatched revision/title/time/duplicate signatures, real five-lane report equality, false authority flags, and end-to-end opt-in PG in companion SLR #76. **Tests not run by this GitHub-only worker.**
 
 Companion PRs: [ITIR-suite #70](https://github.com/chboishabba/ITIR-suite/pull/70), [SLR #76](https://github.com/chboishabba/slr/pull/76), [DASHI Agda #1447](https://github.com/chboishabba/dashi_agda/pull/1447).
+
+
+## Source-to-native transport now implemented, no manual rekeying required
+
+The original generic bundle owner also exposes `build_historical_source_handoff(proposal_snapshot, policy_snapshot, case, policy_minimum_age_seconds=...)`. It requires two original Wikidata `PageSnapshot` values with real wikitext, the archived proposal oldid and observed revision minute, a separately revision-pinned policy page older than closure, and an explicitly supplied rule-age candidate. It produces **the exact ITIR input shape** under `itir_slr_input`: `deliberation`, `source_seals` and `event_anchors`. Each digest is recomputed from the supplied canonical UTF-8 bytes and every event excerpt is located uniquely; proposed editor timestamps and assigned event kinds remain interpretive *claims* pending human review.
+
+This is available through the existing `src.cli` gateway, not a second CLI:
+
+```sh
+python -m src.cli wikidata history-snapshot-handoff \
+  --proposal-snapshot .cache_local/wiki_snapshots/ACTUAL_PROPOSAL_FILE.json \
+  --policy-snapshot .cache_local/wiki_snapshots/ACTUAL_HISTORICAL_POLICY_FILE.json \
+  --case-manifest tests/fixtures/wikidata/p10322_history_primary_20220204.json \
+  --policy-minimum-age-seconds 604800 \
+  --output .cache_local/review/p10322_source_handoff.json
+```
+
+The ALL-CAPS filenames above are placeholders for the **actual files returned** by the existing wiki snapshot pull; they are not claims that such files were created or that an exact historical-policy revision has been fetched. The `604800` value is a **candidate one-week policy interpretation** whose applicability in 2022 remains independently unverified.
+
+The resulting wrapper is consumed by ITIR-suite PR #70's read-only `itir.governance.wikidata_source_replay_handoff`, which delegates to its existing exact `deliberation_slr_handoff` ABI. SLR PR #76 now exposes `persist_deliberation_from_source_inputs`: the original `SourceIngestEnvelope` + canonical text from the **same** captured snapshots is submitted to the existing INGEST-1 writer before S29 sidecar persistence. No HTTP or permission verification is performed by a caller-supplied JSON hash; independent source acquisition/provenance, creator rights and historical consensus remain separately held. The opt-in physical PG regression now invokes this new ingestion-to-review entrypoint.
+
+**End-to-end source-code path:** exact MediaWiki revision fetch → canonical wikitext/source anchors → `src.cli wikidata history-snapshot-handoff` → ITIR read-only native validation → SLR generic source ingest and byte reopen → one atomic S29 + sidecar write → scoped S29 review/reopen → optional existing `sl.wikidata_signal_review_bundle` consumer overlay. Actual live P10322 replay and S30-authorized consumer publication are **not yet executed**.
