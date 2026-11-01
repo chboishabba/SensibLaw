@@ -725,7 +725,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     for title in titles:
         use_pywikibot = False
-        if args.driver in ("auto", "pywikibot"):
+        if args.revid is None and args.at_or_before is None and args.driver in ("auto", "pywikibot"):
             try:
                 import pywikibot  # noqa: F401
 
@@ -746,9 +746,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             flush=True,
         )
 
-        if args.at_or_before is not None:
-            use_pywikibot = False
-            driver_used = "api"
         if args.revid is not None:
             snap = _fetch_revision_wikitext(
                 wiki=args.wiki,
