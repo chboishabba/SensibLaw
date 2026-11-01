@@ -713,3 +713,104 @@ def attach_deliberation_context(
         raise ValueError("bundle already has a deliberation context")
     result["deliberation_context"] = projection
     return result
+
+def project_historical_source_anchors(
+    snapshot: Mapping[str, Any], case: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Project a *verified-by-fetcher revision match* into exact byte spans.
+
+    Consumes existing `scripts/wiki_pull_api.py --wiki wikidata --revid ...`
+    output, never performs its own network retrieval or changes Wikidata.
+    Signatures are unique locator substrings in original canonical wikitext;
+    they are NOT proof of users' permissions, statements' meanings or consensus.
+    """
+    import hashlib
+    from datetime import datetime, timezone
+
+    if not isinstance(snapshot, Mapping) or not isinstance(case, Mapping):
+        raise ValueError("snapshot and case must be mappings")
+    if case.get("schema_version") != "sl.wikimedia_history_locator.v0_1":
+        raise ValueError("unsupported historical locator")
+    if snapshot.get("wiki") != "wikidata":
+        raise ValueError("historical witness must come from Wikidata")
+    if snapshot.get("title", "").replace("_", " ") != case.get("proposal_title", "").replace("_", " "):
+        raise ValueError("Wikidata proposal title differs from pinned manifest")
+    if type(snapshot.get("revid")) is not int or snapshot["revid"] != case.get("observed_proposal_oldid"):
+        raise ValueError("Wikidata source revision differs from pinned manifest")
+    if snapshot.get("rev_timestamp") != case.get("observed_proposal_revision_timestamp"):
+        raise ValueError("revision timestamp differs from pinned historical source")
+    text = snapshot.get("wikitext")
+    if not isinstance(text, str) or not text:
+        raise ValueError("canonical wikitext is required for byte-anchored replay")
+    raw = text.encode("utf-8")
+    if len(raw) > 4_000_000:
+        raise ValueError("proposal source exceeds the bounded capture policy")
+    source_ref = f"wikidata:page:{snapshot['revid']}"
+    events = case.get("events")
+    if not isinstance(events, list) or not 1 <= len(events) <= 128:
+        raise ValueError("historical events must be bounded")
+    seen = set()
+    anchors = []
+    normalized = []
+    prior = None
+    for event in events:
+        if not isinstance(event, Mapping):
+            raise ValueError("event must be a mapping")
+        event_ref = event.get("event_ref")
+        needle = event.get("signature_needle")
+        actor = event.get("actor_ref")
+        if not isinstance(event_ref, str) or not event_ref or event_ref in seen:
+            raise ValueError("duplicate or missing event ref")
+        if not isinstance(actor, str) or not actor.startswith("wikidata:User:"):
+            raise ValueError("event actor must be a Wikidata actor locator")
+        if not isinstance(needle, str) or len(needle) < 12:
+            raise ValueError("signature locator is missing")
+        excerpt = needle.encode("utf-8")
+        start = raw.find(excerpt)
+        if start < 0 or raw.find(excerpt, start + 1) >= 0:
+            raise ValueError(f"signature locator not uniquely found for {event_ref}")
+        at = event.get("at")
+        if not isinstance(at, str):
+            raise ValueError("event timestamp required")
+        try:
+            dt = datetime.fromisoformat(at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("event timestamp is invalid") from exc
+        if dt.tzinfo is None or dt.utcoffset() is None or dt.microsecond:
+            raise ValueError("event timestamp must be timezone-qualified whole seconds")
+        instant = dt.astimezone(timezone.utc)
+        if prior is not None and instant < prior:
+            raise ValueError("events are not chronologically ordered")
+        prior = instant
+        seen.add(event_ref)
+        anchors.append({
+            "event_ref": event_ref, "source_revision_ref": source_ref,
+            "start_byte": start, "end_byte": start + len(excerpt),
+            "excerpt_digest_ref": "sha256:" + hashlib.sha256(excerpt).hexdigest(),
+        })
+        normalized.append({
+            "event_ref": event_ref,
+            "actor_ref": actor,
+            "kind": event.get("kind"),
+            "at": instant.isoformat().replace("+00:00", "Z"),
+            "source_revision_ref": source_ref,
+            "source_interpretation_verified": False,
+        })
+    return {
+        "schema_version": "sl.wikimedia_source_anchor_projection.v0_1",
+        "source_revision_ref": source_ref,
+        "original_revision_url": case.get("observed_source_url"),
+        "source_content_digest_ref": "sha256:" + hashlib.sha256(raw).hexdigest(),
+        "canonical_text_byte_length": len(raw),
+        "event_anchors": anchors,
+        "observed_events": normalized,
+        "historical_policy_revision_ref": case.get("historical_policy_oldid"),
+        "historical_policy_source_authenticated": False,
+        "creator_role_authenticated": False,
+        "community_consensus_authenticated": False,
+        "source_revision_reopened_in_slr": False,
+        "event_actor_and_meaning_authenticated": False,
+        "candidate_only": True,
+        "wikidata_edit_authorised": False,
+    }
+
