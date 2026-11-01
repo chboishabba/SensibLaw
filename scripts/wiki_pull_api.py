@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional, Tuple
 WIKIS: dict[str, str] = {
     "enwiki": "https://en.wikipedia.org/w/api.php",
     "simplewiki": "https://simple.wikipedia.org/w/api.php",
+    "wikidata": "https://www.wikidata.org/w/api.php",
 }
 
 
@@ -149,8 +150,10 @@ def _page_url(wiki: str, title: str) -> str:
         host = "https://en.wikipedia.org"
     elif wiki == "simplewiki":
         host = "https://simple.wikipedia.org"
+    elif wiki == "wikidata":
+        host = "https://www.wikidata.org"
     else:
-        host = "https://en.wikipedia.org"
+        raise ValueError(f"unrecognised wiki host: {wiki}")
     slug = title.replace(" ", "_")
     return f"{host}/wiki/{urllib.parse.quote(slug)}"
 
@@ -332,8 +335,15 @@ def _fetch_revision_wikitext(
         content = main.get("content")
         if isinstance(content, str):
             wikitext = content
+    # Never report success on a different page or older/latest revision.
+    # The old pinned path previously returned a warning while still writing
+    # ambiguous content that downstream source bindings could accidentally use.
     if found_revid != int(revid):
-        warnings.append("requested_revision_not_returned")
+        raise ValueError("exact requested MediaWiki revision not returned")
+    if actual_title.replace("_", " ").casefold() != title.replace("_", " ").casefold():
+        raise ValueError("exact revision resolved to the wrong wiki page")
+    if include_wikitext and wikitext is None:
+        raise ValueError("requested exact revision has no canonical wikitext")
     categories: List[str] = []
     for cat in page.get("categories") or []:
         if isinstance(cat, dict) and isinstance(cat.get("title"), str):
