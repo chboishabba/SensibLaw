@@ -282,8 +282,12 @@ def test_two_real_revision_shapes_emit_exact_native_slr_handoff_and_hold_missing
 
     newer=deepcopy(policy)
     newer["rev_timestamp"]="2022-02-05T00:00:00Z"
-    with pytest.raises(ValueError,match="newer"):
+    with pytest.raises(ValueError,match="proposal time"):
         build_historical_source_handoff(p,newer,case,policy_minimum_age_seconds=7*86400)
+    later=deepcopy(policy)
+    later["rev_timestamp"]="2022-02-01T00:00:00Z"  # after initiation but before closure
+    with pytest.raises(ValueError,match="proposal time"):
+        build_historical_source_handoff(p,later,case,policy_minimum_age_seconds=7*86400)
     wrong=deepcopy(policy)
     wrong["api_url"]="https://attacker.invalid/fake-revision"
     with pytest.raises(ValueError,match="query origin"):
