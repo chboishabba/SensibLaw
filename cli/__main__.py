@@ -1769,6 +1769,10 @@ def _handle_wikidata_history_handoff(args: argparse.Namespace) -> None:
         _read(args.policy_snapshot),
         _read(args.case_manifest),
         policy_minimum_age_seconds=args.policy_minimum_age_seconds,
+        closure_policy_snapshot=(
+            _read(args.closure_policy_snapshot)
+            if args.closure_policy_snapshot else None
+        ),
     )
     if args.output:
         args.output.write_text(
@@ -4289,6 +4293,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     history_handoff.add_argument("--proposal-snapshot",required=True,type=Path)
     history_handoff.add_argument("--policy-snapshot",required=True,type=Path)
+    history_handoff.add_argument(
+        "--closure-policy-snapshot",type=Path,
+        help="Optional independently fetched as-of-closure revision of the same historical policy",
+    )
     history_handoff.add_argument("--case-manifest",required=True,type=Path)
     history_handoff.add_argument("--policy-minimum-age-seconds",required=True,type=int)
     history_handoff.add_argument("--output",type=Path)
