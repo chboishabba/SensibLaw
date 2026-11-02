@@ -24,6 +24,7 @@ from src.policy.world_model import build_state_node, build_world_model
 from src.policy.world_model_projections import project_review_surface
 from src.policy.linkage_adapters import (
     build_external_bridge_adapter_fragment,
+    build_claim_adapter_fragment,
     build_review_adapter_fragment,
     build_source_adapter_fragment,
     build_tranche_adapter_fragment,
@@ -129,6 +130,10 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
                 metadata={"creator": "Kimberly Kitzerow",
                           "revision": graph["artifact_revision"]},
                 target_id=local),
+            build_claim_adapter_fragment(
+                node_id=local, label=rid, source_id=source_id,
+                metadata={"source_locator": evidence,
+                          "authority": "candidate-only"}),
             build_external_bridge_adapter_fragment(
                 node_id="rhea:external-candidate:" + rid,
                 label="Rhea external identity candidate",
