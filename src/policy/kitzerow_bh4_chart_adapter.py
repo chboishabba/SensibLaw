@@ -37,7 +37,8 @@ RHEA_ID = re.compile(r"RHEA:[0-9]+")
 SOURCE_REF = "https://www.researchgate.net/publication/377218425_BH4FolateCobalaminHomocysteine_Pathway"
 
 
-def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str, Any]:
+def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any], *,
+                creator_reactions: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Use the generic graph/PNF carriers and retain bounded review residuals."""
     if chart.get("schema") != SCHEMA or matrix.get("schema") != MATRIX_SCHEMA:
         raise ValueError("source or matrix ABI mismatch")
@@ -91,6 +92,57 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
                 "declared_month": chart["declared_publication_month"],
                 "observed_upload_date": chart["observed_full_text_upload_date"]},
     )
+    source_graph_views = [graph]
+    curated_reactions = []
+    if creator_reactions is not None:
+        receipt = creator_reactions
+        if (receipt.get("schema") != "dashi.rhea-chebi-bh4-source-chart.v1"
+                or receipt.get("creator") != "Kimberly Kitzerow"
+                or receipt.get("source_chart_publication") != SOURCE_REF
+                or receipt.get("source_chart_pdf_sha256_verified") is not False
+                or receipt.get("whole_creator_network_complete") is not False):
+            raise ValueError("creator-selected curated Rhea receipt identity/promotion invalid")
+        requested = receipt.get("source_rhea_ids_requested")
+        if not isinstance(requested, list) or requested != sorted(chart_set):
+            raise ValueError("creator Rhea acquisition selection differs from original chart")
+        curated_reactions = receipt.get("reactions")
+        errors = receipt.get("errors")
+        if not isinstance(curated_reactions, list) or not isinstance(errors, list):
+            raise ValueError("missing source curator acquisition outcomes")
+        successful = [x.get("rhea_id") for x in curated_reactions]
+        failed = [x.get("rhea_id") for x in errors]
+        if (len(successful) != len(set(successful))
+                or len(failed) != len(set(failed))
+                or sorted(successful + failed) != requested
+                or receipt.get("rhea_rows_acquired") != len(successful)
+                or receipt.get("rhea_rows_failed") != len(failed)
+                or receipt.get("complete_reaction_identity_acquisition") is not (not errors)):
+            raise ValueError("incomplete/inconsistent source-curated Rhea acquisition accounting")
+        if (not isinstance(receipt.get("source_chart_index_sha256"), str)
+                or not re.fullmatch(r"[a-f0-9]{64}", receipt["source_chart_index_sha256"])):
+            raise ValueError("missing provenance digest of selected source index")
+        for item in curated_reactions:
+            if not item.get("raw_sha256") or not item.get("participant_sparql_response_sha256"):
+                raise ValueError("curated reaction missing table/SPARQL source digests")
+            if not isinstance(item.get("participants"), list):
+                raise ValueError("curated reaction missing bounded participant list")
+        source_graph_views.append(build_graph_view(
+            graph_view_id="rhea:kitzerow:separately-curated",
+            artifact_id="rhea:creator-chart-subset",
+            artifact_revision=str(receipt.get("rhea_release_reference") or "source-release-unverified"),
+            coverage_state="incomplete",
+            coverage_policy={"selection": "creator chart observed Rhea ID subset",
+                             "source_index_sha256": receipt["source_chart_index_sha256"]},
+            unresolved_coverage=[
+                {"kind": "creator-original-network-incomplete"},
+                {"kind": "rhea-curated-acquisition-errors", "count": len(errors)},
+                {"kind": "same-compartment-and-rate-not-paid"}],
+            source={"curator": "Rhea",
+                    "Rhea_source": "https://www.rhea-db.org",
+                    "source_selection": SOURCE_REF,
+                    "source_chart_index_sha256": receipt["source_chart_index_sha256"]},
+        ))
+
     nodes = []
     links = []
     pressure = []
@@ -147,6 +199,55 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
                 metadata={"bridge": "kitzerow:rhea:bridge:" + rid},
                 upstream_node_ids=[local])
         ])
+    # Independently curated Rhea chemistry is *additional evidence*.
+    # It cannot replace Kitzerow's proposal or pay a physiological state.
+    for item in sorted(curated_reactions, key=lambda x: x["rhea_id"]):
+        rid = item["rhea_id"]
+        local = "kitzerow:chart-reaction:" + rid
+        rhea_graph = source_graph_views[1]
+        for pidx, participant in enumerate(item["participants"]):
+            cid = participant.get("chebi_id")
+            if not cid:
+                continue  # no fabricated ChEBI identity for an untyped compound
+            if not isinstance(cid, str) or not re.fullmatch(r"CHEBI:[0-9]+", cid):
+                raise ValueError("curator participant has invalid ChEBI identity")
+            if participant.get("side") not in ("substrate", "product"):
+                raise ValueError("curator participant has invalid stoichiometric side")
+            try:
+                coefficient = int(str(participant.get("coefficient")))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("invalid curator participant coefficient") from exc
+            if coefficient <= 0:
+                raise ValueError("nonpositive source reaction coefficient")
+            bridge_ref = "kitzerow:rhea:chebi:" + rid + ":" + str(pidx) + ":" + cid
+            links.append(build_external_bridge_candidate(
+                bridge_candidate_id=bridge_ref,
+                subject_ref=local, subject_kind="concept",
+                bridge_namespace="chebi", external_ref=cid,
+                attachment_kind="related_concept",
+                graph_view_ref=rhea_graph["graph_view_id"],
+                basis=[{
+                    "owner": "Rhea curated reaction participant",
+                    "rhea_id": rid, "raw_table_sha256": item["raw_sha256"],
+                    "participant_sparql_sha256": item["participant_sparql_response_sha256"],
+                    "reaction_side": participant["side"],
+                    "coefficient": coefficient,
+                    "source_revision": rhea_graph["artifact_revision"],
+                    "same_biological_pool_verified": False,
+                }],
+                external_revision_ref=rhea_graph["artifact_revision"],
+                candidate_status="review_required",
+                adapter_id="rhea-curated-chemistry-participant"))
+        pressure.append(build_external_pressure_result(
+            pressure_result_id="kitzerow:curated-rhea-context:" + rid,
+            target_ref=local, graph_view_ref=rhea_graph["graph_view_id"],
+            profile_id="curated-reaction-to-physiological-event",
+            outcome="abstain",
+            residuals=[{"kind": "unpaid-physical-interpretation",
+                        "reaction": rid,
+                        "source_owner": "Rhea",
+                        "not_enzyme_concentration": True,
+                        "not_compartment_flux": True}]))
     review_id = "kitzerow:bh4:review"
     tranche_id = "kitzerow:bh4:review-tranche"
     fragments.append(build_review_adapter_fragment(
@@ -161,7 +262,7 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
         model_status="candidate",
         source_mode="source-observed-chart",
         entities=nodes,
-        external_graph_views=[graph],
+        external_graph_views=source_graph_views,
         external_bridge_candidates=links,
         external_pressure_results=pressure,
         provenance_graph=[{"source_id": source_id, "source_uri": SOURCE_REF,
@@ -177,7 +278,12 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
                  "identifier_overlap": overlap,
                  "chart_observed_only": chart_only,
                  "finite_panel_only": panel_only,
-                 "denominator_for_whole_creator_network": None},
+                 "denominator_for_whole_creator_network": None,
+                 "creator_curated_Rhea_rows": len(curated_reactions),
+                 "creator_curated_Rhea_errors": (
+                     len(creator_reactions.get("errors", []))
+                     if creator_reactions is not None else None),
+                 "creator_Rhea_participants_are_measured_fluxes": False},
         metadata={"read_only": True, "external_identifiers_are_advisory": True,
                   "live_ontology_writes": False, "same_object_proved": False,
                   "causal_theory_verified": False},
