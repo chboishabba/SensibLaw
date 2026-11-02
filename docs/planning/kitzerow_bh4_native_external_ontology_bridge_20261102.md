@@ -24,7 +24,28 @@ Call src.policy.kitzerow_bh4_chart_adapter.build_world(chart, matrix) on two exi
 docs/biology/KitzerowPublishedRheaChartObservedIndex.v1.json and
 artifacts/biology/bh4-stoichiometric-matrix.json.
 
-The output is a native sl.candidate_world_model.v0_1 with its ordinary review projection and linkage fragment, not another bio-specific graph engine. The comparison reports exact literal Rhea ID intersection and symmetric difference. It retains an unknown total size for Kitzerow's entire proprietary network. The graph coverage state is incomplete. Bridge candidates are review_required; physical-context pressure is abstain. Identifier overlap does not pay enzyme isoform, compartment, biological rate or proposed clinical causality.
+The output is a native sl.candidate_world_model.v0_1 with its ordinary review projection and linkage fragment, not another bio-specific graph engine.
+
+The adapter also accepts an optional creator-selected Rhea curator receipt:
+    
+    build_world(chart, matrix, creator_reactions=creator_rhea_certificate)
+
+DASHI obtains this receipt by reusing its existing Rhea REST/SPARQL
+acquisition with the option --from-source-chart. The adapter validates
+the exact creator selection, source index SHA-256 shape, acquired/failed
+reaction accounting, Rhea source revision reference and each acquired
+Rhea REST/SPARQL SHA-256. It adds a **separately scoped incomplete**
+Rhea graph view and Rhea-curated ChEBI participant attachments using the
+existing generic external bridge. It never manufactures a common
+cellular pool or calls the source author's proposal a curated Rhea
+reaction. A partial curator acquisition remains explicitly incomplete.
+The retrieved Rhea live API release must be separately verified;
+acquisition-time receipts are not release certificates.
+
+Focused tests:
+    
+    python -m pytest tests/test_kitzerow_bh4_chart_adapter.py tests/test_kitzerow_rhea_receipt_bridge.py -q
+ The comparison reports exact literal Rhea ID intersection and symmetric difference. It retains an unknown total size for Kitzerow's entire proprietary network. The graph coverage state is incomplete. Bridge candidates are review_required; physical-context pressure is abstain. Identifier overlap does not pay enzyme isoform, compartment, biological rate or proposed clinical causality.
 
 Reactome already publishes SBML L3 and BioPAX L3 plus UniProt/ChEBI mapping downloads: https://reactome.org/download-data . Reuse those source-release and context-pinned standard exports rather than implementing full pathway standards from scratch.
 
