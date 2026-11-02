@@ -88,7 +88,11 @@ def test_native_chart_bridge_and_review_visibility():
         expected_terminal_ids=link["expected_terminal_ids"],
     )
     audit = audit_linkage_depth_case(case)
-    assert audit["linkage_depth_status"] in ("complete", "partial", "shallow")
+    assert audit["linkage_depth_status"] == "complete"
+    assert audit["typed_path_depth"] == 4
+    assert audit["anchor_to_tranche_reachability"]["all_reachable"] is True
+    assert audit["collapse_points"] == []
+    assert not audit["role_erasure_detected"]
 
 
 @pytest.mark.parametrize("mutation", [
