@@ -72,3 +72,24 @@ def test_wong_2022_output_is_stable_and_read_only():
     assert first["external_bridge_decisions"] == []
     assert first["relations"] == []
     assert first["metadata"]["source_data_sha256"] is None
+
+
+def test_wong_2022_cli_exports_stable_candidate_json():
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    command = [sys.executable, str(root / "scripts/export_wong2022_source_review.py")]
+    result = subprocess.run(
+        command,
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(result.stdout)
+    assert data == build_wong_2022_candidate_world()
+    assert data["metadata"]["public_ontology_mutation_allowed"] is False
+    assert data["external_bridge_decisions"] == []
