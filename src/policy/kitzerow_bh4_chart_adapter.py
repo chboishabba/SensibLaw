@@ -118,18 +118,22 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any], *,
                 or receipt.get("rhea_rows_failed") != len(failed)
                 or receipt.get("complete_reaction_identity_acquisition") is not (not errors)):
             raise ValueError("incomplete/inconsistent source-curated Rhea acquisition accounting")
+        if not isinstance(receipt.get("rhea_release_reference"), str) or not receipt["rhea_release_reference"]:
+            raise ValueError("Rhea release missing")
         if (not isinstance(receipt.get("source_chart_index_sha256"), str)
                 or not re.fullmatch(r"[a-f0-9]{64}", receipt["source_chart_index_sha256"])):
             raise ValueError("missing provenance digest of selected source index")
         for item in curated_reactions:
-            if not item.get("raw_sha256") or not item.get("participant_sparql_response_sha256"):
-                raise ValueError("curated reaction missing table/SPARQL source digests")
+            if any(not isinstance(item.get(key), str) or
+                   not re.fullmatch(r"[a-f0-9]{64}", item[key])
+                   for key in ("raw_sha256", "participant_sparql_response_sha256")):
+                raise ValueError("curated reaction missing exact table/SPARQL SHA-256")
             if not isinstance(item.get("participants"), list):
                 raise ValueError("curated reaction missing bounded participant list")
         source_graph_views.append(build_graph_view(
             graph_view_id="rhea:kitzerow:separately-curated",
             artifact_id="rhea:creator-chart-subset",
-            artifact_revision=str(receipt.get("rhea_release_reference") or "source-release-unverified"),
+            artifact_revision=receipt["rhea_release_reference"],
             coverage_state="incomplete",
             coverage_policy={"selection": "creator chart observed Rhea ID subset",
                              "source_index_sha256": receipt["source_chart_index_sha256"]},
