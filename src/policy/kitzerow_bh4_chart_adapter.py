@@ -99,11 +99,16 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
     for row in sorted(observed, key=lambda r: r["rhea_id"]):
         rid = row["rhea_id"]
         local = "kitzerow:chart-reaction:" + rid
-        evidence = f"{SOURCE_REF}#L{row['web_text_line']}"
+        # HTML text extraction line is a *reader* coordinate, not a
+        # durable URL fragment or an original PDF page/figure coordinate.
+        evidence = SOURCE_REF
+        web_text_line = row["web_text_line"]
         nodes.append(build_state_node(
             node_id=local, node_kind="creator-chart-reaction-mention",
             label=rid, status="candidate", source_anchor_ids=[source_id],
             metadata={"source_locator": evidence,
+                      "web_text_line": web_text_line,
+                      "locator_kind": "web-extracted-text-line",
                       "owner": "Kimberly Kitzerow", "observed_identifier": rid,
                       "same_biological_event_verified": False}))
         links.append(build_external_bridge_candidate(
@@ -112,6 +117,8 @@ def build_world(chart: Mapping[str, Any], matrix: Mapping[str, Any]) -> dict[str
             bridge_namespace="rhea", external_ref=rid,
             attachment_kind="related_concept", graph_view_ref=graph["graph_view_id"],
             basis=[{"source_anchor_id": source_id, "source_locator": evidence,
+                    "web_text_line": web_text_line,
+                    "locator_kind": "web-extracted-text-line",
                     "basis": "literal Rhea ID in displayed creator chart"}],
             external_revision_ref=graph["artifact_revision"],
             candidate_status="review_required",
