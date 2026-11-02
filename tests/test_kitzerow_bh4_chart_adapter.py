@@ -58,7 +58,7 @@ def test_native_chart_bridge_and_review_visibility():
     assert all(x["outcome"] == "abstain" for x in world["external_pressure_results"])
     assert world["external_graph_views"][0]["coverage_state"] == "incomplete"
     assert result["review_projection"]["projection_kind"] == "review_surface"
-    assert result["review_projection"]["payload"]["external_bridge_candidate_count"] if False else True
+    assert len(result["review_projection"]["payload"]["external_bridge_candidates"]) == 2
     assert result["source_authority"].startswith("creator-authored")
     assert world["metadata"]["live_ontology_writes"] is False
 
@@ -70,8 +70,9 @@ def test_native_chart_bridge_and_review_visibility():
         contract_id="kitzerow-rhea-native-bridge",
         domain="source-anchored-biochemistry-review",
         anchor_kind="source_anchor",
-        expected_layers=["source_anchor", "external_candidate", "review_surface", "tranche_anchor"],
-        required_bridges=[["source_anchor", "external_candidate"],
+        expected_layers=["source_anchor", "domain_candidate", "external_candidate", "review_surface", "tranche_anchor"],
+        required_bridges=[["source_anchor", "domain_candidate"],
+                          ["domain_candidate", "external_candidate"],
                           ["external_candidate", "review_surface"],
                           ["review_surface", "tranche_anchor"]],
         terminal_anchor="tranche_anchor",
@@ -79,6 +80,8 @@ def test_native_chart_bridge_and_review_visibility():
     )
     case = build_linkage_depth_case(
         case_id="kitzerow-rhea-source-native",
+        case_kind="biology_external_graph",
+        contract_id=contract["contract_id"],
         contract=contract,
         nodes=link["nodes"], edges=link["edges"],
         expected_anchor_ids=link["expected_anchor_ids"],
