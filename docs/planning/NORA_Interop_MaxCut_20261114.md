@@ -171,3 +171,19 @@ Do not relabel external contributions as local mathematical theorems.
 - https://github.com/chboishabba/dashi_agda/pull/1029
 - https://github.com/chboishabba/dashi_agda/pull/1143
 - https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Core/ConsumerDescentMinimalObserverExact.agda
+
+
+## 2026-11-14 source implementation delta — NORA ⇄ physically audited name plane
+
+On **existing PR #514**, `plan_nora_zelph_scoped_review` in `src/ontology/wikidata_nora_review_handoff.py` now checks ITIR's new exact byte-audited name-lookup and query-closure receipt schemas alongside a replayed attributed NORA handoff. It requires explicit source subject QID, equality across the lookup/closure graph revision, retention of consumer standpoint and five-choice judgement, physical candidate nodes for positive routes, and zero negative authority for missing-name results. Source revision and graph revision remain separate. Its digest-labelled output is a **review plan**, not a verified NORA native export, S29 persisted review, or external Wikidata edit.
+
+Added negative tests to `tests/test_wikidata_nora_review_handoff.py` for mixed graph revisions, false negative promotion, missing-name abstention, and preservation of named source/standpoint. This does not duplicate the ITIR byte decoder or the SLR production store.
+
+Acceptance command:
+```bash
+python -m pytest -q tests/test_wikidata_nora_review_handoff.py
+```
+
+Outstanding exact gates: native NORA fixture from Éder Porto (C5/N7), Agda kernel replay (C4/N9), original P14143/P854 source evidence and non-promoting S29 persistent review (B5/B6/C3), full revision-aware Nat `(QID, GUID)` population exhaustion (C6), and external edits only with operator permission and post-state/rollback receipts. None was established by the new tests.
+
+[Golden exact lemma and P0–P5 ledger](https://github.com/chboishabba/dashi_agda/blob/agent/nora-perspective-consumer-maxcut-20261114/Docs/ZelphTrieHyperfabricNatNoraMaximumCut20261114.md).
