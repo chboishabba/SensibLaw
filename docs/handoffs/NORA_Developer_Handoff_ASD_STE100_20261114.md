@@ -55,7 +55,7 @@ Do not insert unknown authors. Use an explicit unknown value when the source doe
 
 ## 5. A concrete test: the Nat climate pilot
 
-The pinned pilot has 57 candidate slots. One slot permits checked reference transfer. The other 56 slots need a split in the rebuilt pilot slice.
+The original Wikimedia migration scope was **57,989 P5991 statements**. This is the historical project population, not a verified current live count. Our pinned five-entity test has 57 statement slots. One slot permits checked reference transfer. The other 56 slots need a split in the rebuilt test slice. The 57 slots are a test sample. They are not the migration workload.
 
 For one split, we need the original statement GUID. We also need the proposed target statements. The proposal must keep the original qualifiers and references.
 
@@ -75,7 +75,22 @@ Our first exchange test will use a safe sample, not a public Wikidata edit.
 
 **Wikipedia languages:** A first-link navigation edge is not a subclass statement. Keep the language, article revision, and edge rule.
 
-## 7. What our adapter does now
+## 7. User stories and existing tools
+
+The user stories already cover much of the proposed workflow.
+
+- **ITIR-US-17** calls for a fixed wiki revision, bounded cited-link follow, and a reviewer packet.
+- **WIKI-US-01 / SL-US-38** calls for a strict read-only statement review packet. It includes qualifier, rank, reference, and item checks.
+- **WIKI-US-02 / SL-US-39** calls for an external-tool profile. It separates tool capability from edit permission.
+- **WIKI-US-03 / SL-US-40** calls for ontology-constraint checks and a candidate repair packet.
+- **WIKI-US-04 / SL-US-41** calls for a source-attributed comparison with non-wiki evidence.
+- The SensibLaw **Wikidata editor / ontology reviewer** story calls for review and split help. The implementation-coverage document says some ordinary wiki-page source-follow paths remain partial.
+
+ITIR already defines `itir.wikidata.review_packet.v1` and `itir.wikidata.migration_candidate.v1`. SensibLaw already has split-plan and checked-safe export tools. SLR has a recurrent acquisition engine. The new NORA adapter does not replace these tools.
+
+At scale, one live page is not proof of whole-population coverage. A complete Nat scan needs a source revision, a composite subject-QID and statement-GUID cursor, and proof that no page or statement was missed.
+
+## 12. What our adapter does now
 
 SensibLaw has a new candidate-only adapter, `wikidata_nora_review_handoff.py`. It receives a supplied candidate and review record. It does not parse an unverified NORA export.
 
@@ -125,6 +140,9 @@ The adapter's consumer results are reported claims, not Agda kernel certificates
 
 - NORA technical plan: https://commons.wikimedia.org/wiki/File:Ontology_Mapper_-_Technical_Development_Plan_-_en.pdf
 - Nat migration status: https://github.com/chboishabba/SensibLaw/blob/main/docs/wikidata_working_group_status.md
+- ITIR Wiki stories: https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md
+- SensibLaw story coverage: https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/user_story_implementation_coverage_20260326.md
+- Nat whole-population and cursor plan: https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md
 - Nat source acquisition PR: https://github.com/chboishabba/SensibLaw/pull/493
 - SLR recurrent acquisition PR: https://github.com/chboishabba/slr/pull/28
 - SLR Wikidata review handoff: https://github.com/chboishabba/slr/pull/10
