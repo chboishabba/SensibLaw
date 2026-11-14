@@ -1,5 +1,14 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## 2026-11-15 exact source verification / original HF physical cut
+
+Reported operator local acceptance: ITIR previous 58/58 + 32/32 newly repaired Python synthetic physical controls = 90/90 in the patched worktree; the original unpatched ITIR head failed 9 tests. Source fixes are now committed, but the later ITIR native packed Cap'n Proto four-section roundtrip, source-offset hardening and same-run `--source-bin` re-verification remain **not yet locally replayed**. DASHI conditional Agda A1–A6 seven-target head `4c89edb` is verified in a clean local 2.9 run.
+
+NORA must consume an attributed, real externally-authored original fixture before source-credit or reviewer authority changes. Neither source-bin equality nor graph one-hop exactness certifies native GUID, reference/P854 evidence or SLR S29. Preserve Éder Porto's original NORA authorship and separate read-only graph candidates from actual source adjudication.
+
+
+
+
 ## Agda 2.9 and ITIR 58-test checkpoint (after local verification report)
 
 ITIR PR #14's targeted local suite now reports **58/58 tests passing** (earlier 41 superseded for those targets); SLR's candidate graph/native join reports **4/4** and this PR's NORA source/review reference adapter reports **17/17**. DASHI PR #1506 has now integrated the explicitly diagnosed A1 route-scoping fix, the coverage parse fix, query-indexed collision-repair implicit arguments and the original `0dc254eabe` core Set-sort changes. Agda was reported clean in the local patched worktree; only a **new exact-committed-head kernel run** will certify this PR head's golden mathematical import path.
