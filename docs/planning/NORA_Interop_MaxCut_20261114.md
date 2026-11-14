@@ -1,5 +1,14 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## New exact-head verified upstream gate / remaining true-NORA work — 15 November 2026
+
+**ITIR #14 operator exact-head PASS at `e64c04f32f791502f6feccd3d918ece9a426c122`: 95/95 Python plus 4 real Cap'n Proto section roundtrips and 5 fail-closed native controls, clean tracked checkout.** This supersedes the earlier patched-worktree 90/90 state. **DASHI seven-module Agda 2.9 source gate passed** at source commit `4c89edbe`; both accepted results are *offline/formal source* checks, not the original live HF physical query proof.
+
+**NORA still OPEN:** C5 requires the original Éder Porto NORA export/API fixture and source semantics (five choices, reviewer standpoint and consumer retained), with actual author attribution. B6 must join *the same source/revision/QID/GUID/consumer* to SLR's persistent S29 reviewed state and preserve held/rejected alternatives across a restart. C6 requires a current `(QID,statement GUID)` full Nat cursor and explicit exhaustion; historic 57,989 P5991 statements and five-entity fixtures do not pay this. No source payment or external edits from graph-only decisions.
+
+**Production boundary:** SLR owns native statement/P854 provenance, S29 durability, reopen and external authorisation. SensibLaw #514 remains read-only reference/code handoff, not a second production execution owner. The [current golden A/B/C P0–P5 ledger](https://github.com/chboishabba/dashi_agda/blob/agent/nora-perspective-consumer-maxcut-20261114/Docs/ZelphTrieHyperfabricNatNoraMaximumCut20261114.md) supersedes dated older checkpoint paragraphs below.
+
+
 ## 2026-11-15 exact source verification / original HF physical cut
 
 Reported operator local acceptance: ITIR previous 58/58 + 32/32 newly repaired Python synthetic physical controls = 90/90 in the patched worktree; the original unpatched ITIR head failed 9 tests. Source fixes are now committed, but the later ITIR native packed Cap'n Proto four-section roundtrip, source-offset hardening and same-run `--source-bin` re-verification remain **not yet locally replayed**. DASHI conditional Agda A1–A6 seven-target head `4c89edb` is verified in a clean local 2.9 run.
