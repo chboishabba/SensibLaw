@@ -2,6 +2,8 @@
 
 Date: 2026-11-14. Scope: candidate-only NORA import and review replay.
 
+**Population separation:** historical Wikimedia scope **57,989 P5991 statements**; the pinned **57-statement / five-entity sample** is only a regression fixture. No current full-population count or exhaustion receipt was checked in this tranche.
+
 ## Reuse-first ownership
 
 | Source owner | Reused contract | New code permitted |
@@ -32,6 +34,22 @@ Date: 2026-11-14. Scope: candidate-only NORA import and review replay.
 | N9 | Agda proof and cross-language witness | Source-written on separate Agda PR; Agda kernel acceptance OPEN |
 | N10 | Actual Nat source proposition payment | OPEN: 42 ready / 15 blocked in prior executed receipt; zero paid |
 | N11 | External checked-safe edit and rollback receipt | OPEN: requires operator rights, post-state and rollback |
+
+## User-story reconciliation
+
+| User-story owner | Existing accepted intent | Remaining NORA-specific obligation |
+|---|---|---|
+| ITIR-US-17 | Revision-locked wiki sections, cited links, bounded follows, explicit uncertainty | Replay an actual NORA source-revision/export into that workflow |
+| WIKI-US-01 / SL-US-38 | `itir.wikidata.review_packet.v1`, strict read-only statement/qualifier/reference review | Map the NORA decision and target bundles into the original packet ABI |
+| WIKI-US-02 / SL-US-39 | Versioned `itir.wikiproject.tooling_profile.v1` and governed external-tool capability | Add NORA as a verified candidate-only tool profile |
+| WIKI-US-03 / SL-US-40 | `itir.wikidata.migration_candidate.v1`, disjointness and structural pressure | Show exact NORA relation and modelling-gap context in existing diagnostic output |
+| WIKI-US-04 / SL-US-41 | `sl.wikidata_signal_review_bundle.v0_1`, wiki vs independent-source provenance | Preserve author/source/revision and never promote wiki prose into primary evidence |
+| SensibLaw Wikidata editor story | Review-first split planning, bounded follow, source revisions | Real NORA export test and operator experience |
+| SLR acquisition and review | PR #28 recurrent acquisition, #57 materialisation, #10 source handoff; PR #76 S29 candidate review | Actual provider queue, persisted selective reopening, returned verification receipts |
+
+**Additional backlog-scale cut:** Existing Nat contract discovery demands a lossless composite `(QID, GUID)` cursor. The first two cumulative pages covered 400 revision-pinned statements; `population_exhausted=false`. To claim completeness, obtain full coverage and no-overlap/gap receipts for the current live population. Do not infer present backlog from the historical 57,989 figure.
+
+The user stories specify intended behaviour; they do not establish that every workflow is compiled, deployed, reviewed or accepted.
 
 ## Test cases and expected results
 
