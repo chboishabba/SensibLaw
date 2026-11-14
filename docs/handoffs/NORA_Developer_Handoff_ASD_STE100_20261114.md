@@ -91,6 +91,8 @@ The user stories already cover much of the proposed workflow.
 
 At scale, one live page is not proof of whole-population coverage. A complete Nat scan needs a source revision, a composite subject-QID and statement-GUID cursor, and proof that no page or statement was missed.
 
+**Current HF locator (14 November 2026):** [ITIR MCP canonical Zelph/Wikidata HF locator](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/docs/planning/zelph_hf_wikidata_mcp_locator_20261114.md) identifies upstream's documented `acrion/zelph` full and pruned-small manifest paths, exact QID/name lookup versus internal node routing, and the missing live immutable SHA/sidecar readback. The old July 2026 “no published metadata” finding is a historical checkpoint, not a current absence claim. ITIR MCP already exposes Wikidata review, migration, disjointness, and Zelph manifest/shard planning interfaces; these are not yet a verified NORA production round trip.
+
 ## 8. Zelph: reuse the existing graph evidence path
 
 **Zelph is an existing part of our Nat and ontology work.** It can help find candidate relations and type links. It is not a source of automatic truth or edit permission.
