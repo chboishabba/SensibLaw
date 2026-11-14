@@ -95,6 +95,10 @@ At scale, one live page is not proof of whole-population coverage. A complete Na
 
 ## 8. Zelph: reuse the existing graph evidence path
 
+**Latest implementation crosswalk (14 November 2026):** [ITIR Wiki user stories including WIKI-US-05](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/docs/user_stories.md) now list the existing MCP tool library and state that Agda is golden, SLR is production, and Python SensibLaw is historical reference. [ITIR PR #14](https://github.com/chboishabba/ITIR-suite/pull/14) adds the strict `itir.shard.exact_wikidata_name_route` candidate-only MCP interface with negative tests and a [revision-pinned HF metadata probe](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/tools/probe_zelph_hf_nat_routes.py). [SLR PR #10's production user stories](https://github.com/chboishabba/slr/blob/agent/source-unit-wikimedia-handoff/docs/user_stories_wikidata_zelph_mcp_20261114.md) assign actual persisted Nat/S29 review to Rust. The live HF read was blocked by DNS; an actual QID→shard receipt and native NORA round trip remain open.
+
+
+
 **Zelph is an existing part of our Nat and ontology work.** It can help find candidate relations and type links. It is not a source of automatic truth or edit permission.
 
 [SLR's production acquisition order](https://github.com/chboishabba/slr/blob/main/README.md) is: local revisioned P31/P279 evidence, then a route-aware Zelph/HF snapshot, then a governed live Wikidata fallback. A missing result from a partial shard is not proof that a Wikidata statement does not exist.
