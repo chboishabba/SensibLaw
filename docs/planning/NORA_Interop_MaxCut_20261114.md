@@ -84,6 +84,8 @@ ITIR implementation entry points: [review packet and migration candidate](https:
 
 **Do not** create a second Zelph service, a second Nat graph index or a new review store. Zelph execution and SLR provider acquisition remain candidate-evidence surfaces.
 
+**Shard audit and exact remaining physical gates:** [NORA Zelph Shard Transport Audit (Z4–Z10)](https://github.com/chboishabba/SensibLaw/blob/agent/nora-review-source-preserving-maxcut-20261114/docs/planning/NORA_Zelph_Shard_Transport_Audit_20261114.md). In particular, the prior v2 path has a measured ~51.95 MiB median node fetch envelope, ~700.53 MiB maximum, prior manifest fallbacks, stale-manifest cache risks and section-global name index corrections. Do not promote an unpinned transport plan or a passing sequential fallback.
+
 ## Test cases and expected results
 
 1. NORA valid does not create semantic truth or edit authority.
