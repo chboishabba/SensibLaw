@@ -109,6 +109,8 @@ For NORA, we propose this use: a reviewer selects **Manual search** or **Modelin
 
 **What remains:** a true NORA input/output fixture; a native SLR request-and-result adapter that uses the existing Zelph transport; and a tested round trip that shows what happens when a QID is absent from a partial shard.
 
+For the measured shard failure cases and next tests, see the [Zelph shard/transport audit](https://github.com/chboishabba/SensibLaw/blob/agent/nora-review-source-preserving-maxcut-20261114/docs/planning/NORA_Zelph_Shard_Transport_Audit_20261114.md). It records an earlier manifest fallback problem, a later cache-staleness problem and large remote fetch costs. Our NORA integration must first prove that direct shard reads work on the same pinned artifact. A route plan is not that proof.
+
 ## 9. What our adapter does now
 
 The [SensibLaw reference branch](https://github.com/chboishabba/SensibLaw/pull/514) has a new candidate-only adapter, [`wikidata_nora_review_handoff.py`](https://github.com/chboishabba/SensibLaw/blob/agent/nora-review-source-preserving-maxcut-20261114/src/ontology/wikidata_nora_review_handoff.py). It receives a supplied candidate and review record. It does not parse an unverified NORA export.
@@ -169,6 +171,7 @@ The adapter's consumer results are reported claims, not Agda kernel certificates
 - ITIR filtered Nat route: https://github.com/chboishabba/ITIR-suite/pull/14
 - SensibLaw Nat Zelph and source coverage: https://github.com/chboishabba/SensibLaw/pull/493
 - DASHI Nat-Zelph formal boundary: https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Interop/SensibLawNatZelphPipelineExact.agda
+- Zelph shard/transport audit: https://github.com/chboishabba/SensibLaw/blob/agent/nora-review-source-preserving-maxcut-20261114/docs/planning/NORA_Zelph_Shard_Transport_Audit_20261114.md
 - SLR Nat/Wikidata statement-bundle handoff: https://github.com/chboishabba/slr/pull/10
 - SLR production reader: https://github.com/chboishabba/slr/pull/18
 - SLR native ontology and comparison: https://github.com/chboishabba/slr/pull/51
