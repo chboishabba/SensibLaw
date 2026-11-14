@@ -1,5 +1,13 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## Agda 2.9 and ITIR 58-test checkpoint (after local verification report)
+
+ITIR PR #14's targeted local suite now reports **58/58 tests passing** (earlier 41 superseded for those targets); SLR's candidate graph/native join reports **4/4** and this PR's NORA source/review reference adapter reports **17/17**. DASHI PR #1506 has now integrated the explicitly diagnosed A1 route-scoping fix, the coverage parse fix, query-indexed collision-repair implicit arguments and the original `0dc254eabe` core Set-sort changes. Agda was reported clean in the local patched worktree; only a **new exact-committed-head kernel run** will certify this PR head's golden mathematical import path.
+
+**NORA/attribution status unchanged:** Éder Porto's authentic NORA native export/API fixture has not been received here, SLR S29 persistence and P854 source adjudication are open, and external Wikidata edit authority is not created by a pass, digest or graph candidate. Use [the same golden A1–A6/P0–P5 ledger](https://github.com/chboishabba/dashi_agda/blob/agent/nora-perspective-consumer-maxcut-20261114/Docs/ZelphTrieHyperfabricNatNoraMaximumCut20261114.md).
+
+
+
 ## 2026-11-14 verification checkpoint / updated upstream proof cut
 
 Operator reported 17/17 scoped NORA handoff tests passing at PR #514 head `8a6605c`; this is a **reference adapter acceptance**, not an actual native export from Éder Porto or SLR S29 production persistence.
