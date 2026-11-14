@@ -65,6 +65,10 @@ ITIR implementation entry points: [review packet and migration candidate](https:
 
 ## Zelph cross-pollination — reuse and evidence gates
 
+**Current source-written follow-up:** [ITIR #14 strict `itir.shard.exact_wikidata_name_route` registration and tests](https://github.com/chboishabba/ITIR-suite/pull/14), [revision-pinned metadata-only HF probe](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/tools/probe_zelph_hf_nat_routes.py), [ITIR WIKI-US-05 and tool catalogue](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/docs/user_stories.md), [SLR production story crosswalk](https://github.com/chboishabba/slr/blob/agent/source-unit-wikimedia-handoff/docs/user_stories_wikidata_zelph_mcp_20261114.md). Agda golden, SLR production, SensibLaw historical reference. Exact-route code has source/tests but no new native test or live HF SHA/digest. The current blocker is network/DNS access for the live probe, not unknown canonical document paths.
+
+
+
 **Existing production order:** [SLR README](https://github.com/chboishabba/slr/blob/main/README.md): revisioned local P31/P279 → route-aware Zelph/HF graph snapshot → governed revision-pinned Wikidata fallback. This is a **source route**, not a truth predicate.
 
 | Existing exact owner | What it actually contributes | NORA cut |
