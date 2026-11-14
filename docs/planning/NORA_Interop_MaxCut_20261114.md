@@ -1,5 +1,12 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## New A2 finite source boundary + B5 native SLR evidence gate — 15 November 2026
+
+**Previously accepted baseline preserved:** DASHI seven Agda 2.9 modules PASS at `4c89edb`; ITIR 95/95 Python and four native packed Cap'n Proto roundtrips plus five controls PASS at `e64c04f`. Following these accepted commits, DASHI #1506 added a constructive (not yet kernel-checked) finite-query-word induction; ITIR #14 added explicit unnamed numeric frontier `--node` source routing and a finite left/right boundary closure reporter that refuses missing intermediate observations; SLR #10 added a source-written, not yet cargo-checked native Wikibase GUID/mainsnak/rank/qualifier/reference/P854 candidate join.
+
+**NORA and Nat remain genuinely external/production:** retrieve an authentic source export of original Éder Porto NORA with original five choices, review provenance and per-consumer/standpoint semantics. Test real author-attributed read-only adapter → SLR native statement and durable S29 review/restart, retaining held/rejected choices. Current Nat full `(QID, statement GUID)` cursor and exhaustion receipt remains missing; the historical 57,989 P5991 statements and five-QID graph samples cannot substitute. No citation/source payment or external Wikidata edits follow from finite graph closure.
+
+
 ## New exact-head verified upstream gate / remaining true-NORA work — 15 November 2026
 
 **ITIR #14 operator exact-head PASS at `e64c04f32f791502f6feccd3d918ece9a426c122`: 95/95 Python plus 4 real Cap'n Proto section roundtrips and 5 fail-closed native controls, clean tracked checkout.** This supersedes the earlier patched-worktree 90/90 state. **DASHI seven-module Agda 2.9 source gate passed** at source commit `4c89edbe`; both accepted results are *offline/formal source* checks, not the original live HF physical query proof.
