@@ -91,7 +91,25 @@ The user stories already cover much of the proposed workflow.
 
 At scale, one live page is not proof of whole-population coverage. A complete Nat scan needs a source revision, a composite subject-QID and statement-GUID cursor, and proof that no page or statement was missed.
 
-## 8. What our adapter does now
+## 8. Zelph: reuse the existing graph evidence path
+
+**Zelph is an existing part of our Nat and ontology work.** It can help find candidate relations and type links. It is not a source of automatic truth or edit permission.
+
+[SLR's production acquisition order](https://github.com/chboishabba/slr/blob/main/README.md) is: local revisioned P31/P279 evidence, then a route-aware Zelph/HF snapshot, then a governed live Wikidata fallback. A missing result from a partial shard is not proof that a Wikidata statement does not exist.
+
+The [SensibLaw Nat prerequisite work](https://github.com/chboishabba/SensibLaw/pull/493) already used Zelph for all five QIDs in the pinned test and paid 57 of 57 native P14143 coverage coordinates. It paid **zero** source-support propositions. This distinction matters: a graph relation, a Wikidata reference URL, and support from the referenced document are different types of evidence.
+
+The [ITIR Nat filtered-route work](https://github.com/chboishabba/ITIR-suite/pull/14) defines `zelph-filtered-route/v1` and `itir.zelph_filtered_route_receipt.v0_1`. It does not need a full global graph sidecar. It keeps missing QIDs and incomplete coverage visible.
+
+The [DASHI Nat/Zelph pipeline](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Interop/SensibLawNatZelphPipelineExact.agda) keeps routed P31/P279 observations separate from native Wikidata statement authority. It also keeps partial-graph soundness separate from complete absence evidence.
+
+[Existing SensibLaw Zelph lane planning](https://github.com/chboishabba/SensibLaw/blob/main/src/ontology/wikidata_zelph_lane_plan.py) proposes bounded discovery around the source climate property, target property, and split cases. The [bounded disjointness proof surface](https://github.com/chboishabba/SensibLaw/blob/main/src/ontology/wikidata_zelph_lane_proof.py) covers P2738/P11260. The [ITIR Zelph 0.9.6 lane audit](https://github.com/chboishabba/ITIR-suite/blob/main/docs/planning/wikidata_lanes_zelph_096_status_20260703.md) says the climate demonstrator and Nat live-follow preflight do not have to wait for full hosted-shard acceptance.
+
+For NORA, we propose this use: a reviewer selects **Manual search** or **Modeling gap**. SLR can prepare a bounded graph query through its existing Zelph route. The returned candidate must retain the query, graph revision, coverage receipt, source and reviewer decision. It must not become a verified Wikidata statement or migration decision without independent checks.
+
+**What remains:** a true NORA input/output fixture; a native SLR request-and-result adapter that uses the existing Zelph transport; and a tested round trip that shows what happens when a QID is absent from a partial shard.
+
+## 9. What our adapter does now
 
 The [SensibLaw reference branch](https://github.com/chboishabba/SensibLaw/pull/514) has a new candidate-only adapter, [`wikidata_nora_review_handoff.py`](https://github.com/chboishabba/SensibLaw/blob/agent/nora-review-source-preserving-maxcut-20261114/src/ontology/wikidata_nora_review_handoff.py). It receives a supplied candidate and review record. It does not parse an unverified NORA export.
 
@@ -101,7 +119,7 @@ The adapter refuses a missing source revision. It refuses a split with fewer tha
 
 **Manual search** creates a request record. The adapter does not run a network request. The production work is an adapter into SLR's existing source/producer queue and selective reopening. That adapter has not been implemented or accepted in this PR.
 
-## 9. What we ask you to do
+## 10. What we ask you to do
 
 1. Send one sample NORA export with the five review choices.
 2. Include one example that maps one source field to two target statements, if NORA supports that case.
@@ -110,10 +128,11 @@ The adapter refuses a missing source revision. It refuses a split with fewer tha
 5. State whether NORA can keep an external residual or evidence reference.
 6. Confirm how NORA handles later source changes and earlier review decisions.
 7. Confirm which export actions require a person to approve them.
+8. State whether NORA already uses Zelph, SPARQL, or another graph-query backend. If yes, identify its repository or query/output contract. We will reuse it rather than duplicate it.
 
 If a field is not available, tell us. We can retain the missing detail in a separate review record.
 
-## 10. Test and decision rules
+## 11. Test and decision rules
 
 **Pass:** We can import the supplied export and retain the complete source and review record. We can reproduce the original data from our saved handoff.
 
@@ -123,7 +142,7 @@ If a field is not available, tell us. We can retain the missing detail in a sepa
 
 We will report each test separately. We will not claim that source collection proves a source proposition.
 
-## 11. Attribution and source ownership
+## 12. Attribution and source ownership
 
 Éder Porto owns the original NORA design and implementation claims. DASHI owns its local formal mapping. **SLR owns the production runtime.** SensibLaw owns the original Python Nat implementation and the bounded reference adapter in [PR #514](https://github.com/chboishabba/SensibLaw/pull/514).
 
@@ -131,7 +150,7 @@ James Michael DuPont owns the original Wikidata Lean checker work. SLR keeps tha
 
 The mapping standards and the cited scientific sources retain their original authors. A software import does not transfer those claims to a new author.
 
-## 12. Current limits
+## 13. Current limits
 
 We have not checked the native NORA export format. We have not run a live NORA session. We have not performed a new SLR database replay for this adapter.
 
@@ -146,6 +165,10 @@ The adapter's consumer results are reported claims, not Agda kernel certificates
 - Nat whole-population and cursor plan: https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md
 - Nat source acquisition PR: https://github.com/chboishabba/SensibLaw/pull/493
 - SLR recurrent acquisition PR: https://github.com/chboishabba/slr/pull/28
+- SLR classification and Zelph source order: https://github.com/chboishabba/slr/blob/main/README.md
+- ITIR filtered Nat route: https://github.com/chboishabba/ITIR-suite/pull/14
+- SensibLaw Nat Zelph and source coverage: https://github.com/chboishabba/SensibLaw/pull/493
+- DASHI Nat-Zelph formal boundary: https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Interop/SensibLawNatZelphPipelineExact.agda
 - SLR Nat/Wikidata statement-bundle handoff: https://github.com/chboishabba/slr/pull/10
 - SLR production reader: https://github.com/chboishabba/slr/pull/18
 - SLR native ontology and comparison: https://github.com/chboishabba/slr/pull/51
