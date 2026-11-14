@@ -47,6 +47,10 @@ The programme already models Zelph transportation, coverage, partial/sharded gra
 
 ## Decisive gates (Z4–Z10), all OPEN without fresh immutable-revision receipts
 
+**Implementation advance, not runtime closure:** [ITIR PR #14](https://github.com/chboishabba/ITIR-suite/pull/14) now has the strict [exact-QID MCP route tool and tests](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/itir-mcp/tests/test_exact_wikidata_name_route.py) plus a [live HF metadata-route probe](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/tools/probe_zelph_hf_nat_routes.py). It explicitly declines coarse route-family fallback. The same PR is now synchronised to current ITIR main. No live dataset SHA, shard bytes or Cap'n Proto decode were obtained here because HF DNS was unavailable; Z4–Z10 remain open pending runtime receipts. [Production SLR story](https://github.com/chboishabba/slr/blob/agent/source-unit-wikimedia-handoff/docs/user_stories_wikidata_zelph_mcp_20261114.md) and [ITIR operator stories](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/docs/user_stories.md) contain the cross-repo acceptance ownership.
+
+
+
 | Gate | Exact required evidence | Negative control |
 |---|---|---|
 | **Z4 — Same-artifact pinning** | Blessed Zelph commit, manifest URI+revision/ETag, shard tree+digest, route sidecar+digest, query/selector, graph revision; reject mixed-source snapshots | Patch manifest in place; ensure revalidation prevents use of stale source.binPath |
