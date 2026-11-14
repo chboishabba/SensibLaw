@@ -157,3 +157,72 @@ def test_source_is_detached_and_unknown_fields_survive_replay():
     assert out["source_candidate"]["source_qualifiers"] == {"P585": "2019"}
     assert out["source_candidate"]["source_references"] == [{"P854": "source:report:2019"}]
     assert replay_nora_review_handoff(out) == out
+
+
+def _scope_receipts():
+    name = {
+        "version": "itir.zelph.audited_name_lookup.v1",
+        "qid": "Q10403939",
+        "graph_revision": "hf:immutable-full-graph",
+        "status": "found-in-inspected-objects",
+        "candidate_nodes": [{"shard_id": "name-1", "node_id": 24721153}],
+        "collision": False,
+        "complete_for_source_graph": False,
+        "negative_query_authority": False,
+        "candidate_only": True,
+    }
+    closure = {
+        "version": "itir.zelph.query_family_closure_audit.v1",
+        "graph_revision": "hf:immutable-full-graph",
+        "coverage_status": "incomplete",
+        "missing_dependencies": {"P14143": ["native-statement-bundle"]},
+        "scoped_negative_answer_permitted": False,
+        "candidate_only": True,
+    }
+    return name, closure
+
+
+def test_scoped_zelph_plan_keeps_graph_and_nora_evidence_separate():
+    from src.ontology.wikidata_nora_review_handoff import plan_nora_zelph_scoped_review
+    s = source()
+    s["subject_qid"] = "Q10403939"
+    handoff = build_nora_review_handoff(source_candidate=s, review=review("ambiguous"))
+    name, closure = _scope_receipts()
+    out = plan_nora_zelph_scoped_review(
+        handoff, subject_qid="Q10403939", name_lookup=name, query_closure=closure
+    )
+    assert out["physical_candidate_nodes"][0]["node_id"] == 24721153
+    assert out["review_choice"] == "ambiguous"
+    assert out["unresolved_dependencies"] == {"P14143": ["native-statement-bundle"]}
+    assert out["source_revision_ref"] != out["graph_revision"]
+    assert not out["source_support_paid"] and not out["global_absence_proved"]
+    assert not out["slr_s29_persistence_performed"]
+
+
+def test_scoped_zelph_plan_cannot_promote_absence_or_mix_revisions():
+    from src.ontology.wikidata_nora_review_handoff import plan_nora_zelph_scoped_review
+    s = source()
+    s["subject_qid"] = "Q10403939"
+    handoff = build_nora_review_handoff(source_candidate=s, review=review("manual_search"))
+    name, closure = _scope_receipts()
+    from copy import deepcopy
+    wrong_revision = deepcopy(closure)
+    wrong_revision["graph_revision"] = "hf:another-graph"
+    with pytest.raises(ValueError, match="revision mismatch"):
+        plan_nora_zelph_scoped_review(
+            handoff, subject_qid="Q10403939", name_lookup=name, query_closure=wrong_revision
+        )
+    promoted = deepcopy(name)
+    promoted["negative_query_authority"] = True
+    with pytest.raises(ValueError, match="negative authority"):
+        plan_nora_zelph_scoped_review(
+            handoff, subject_qid="Q10403939", name_lookup=promoted, query_closure=closure
+        )
+    missing = deepcopy(name)
+    missing["status"] = "unresolved-in-original-graph"
+    missing["candidate_nodes"] = []
+    out = plan_nora_zelph_scoped_review(
+        handoff, subject_qid="Q10403939", name_lookup=missing, query_closure=closure
+    )
+    assert out["global_absence_proved"] is False
+    assert out["name_route_status"] == "unresolved-in-original-graph"
