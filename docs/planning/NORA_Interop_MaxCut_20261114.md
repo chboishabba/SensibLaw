@@ -1,5 +1,17 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## 2026-11-14 verification checkpoint / updated upstream proof cut
+
+Operator reported 17/17 scoped NORA handoff tests passing at PR #514 head `8a6605c`; this is a **reference adapter acceptance**, not an actual native export from Éder Porto or SLR S29 production persistence.
+
+ITIR #14 now source-implements raw file-to-receipt replay, verified full **manifest-listed** name chunk cover and same-source-bin one-hop `left/right` adjacency comparison to independently decoded physical chunk bytes. They carry no native source/payment/editor authority, and the newer tests/C++ have not been rerun in this audit.
+
+NORA acceptance remains: real author-attributed native export; subject/QID/revision/consumer/standpoint join; independent Wikidata GUID/mainsnak/quantity/qualifier/reference and P854 verification in SLR; S29 persistent review with dependency-scoped reopening; full current Nat population cursor/exhaustion; external edits only after separate authorisation. Preserve the original Éder Porto NORA credit and do not claim that candidate graph routing is a verified native reviewer decision.
+
+[Golden A1–A6 and B/C/P0–P5 ledger](https://github.com/chboishabba/dashi_agda/blob/agent/nora-perspective-consumer-maxcut-20261114/Docs/ZelphTrieHyperfabricNatNoraMaximumCut20261114.md).
+
+
+
 Date: 2026-11-14. Scope: candidate-only NORA import and review replay.
 
 **Population separation:** historical Wikimedia scope **57,989 P5991 statements**; the pinned **57-statement / five-entity sample** is only a regression fixture. No current full-population count or exhaustion receipt was checked in this tranche.
