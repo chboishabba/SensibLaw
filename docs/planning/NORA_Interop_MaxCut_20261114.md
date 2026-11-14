@@ -20,6 +20,12 @@ Date: 2026-11-14. Scope: candidate-only NORA import and review replay.
 | DASHI ESD #1451/#1458 | Higher-order collision and evidence accounting | No fieldwise-sufficiency assumption |
 | NORA (Éder Porto) | Original five-choice UI design | Await real export fixture |
 
+## Golden trie / hyperfabric foundational reconciliation
+
+**[DASHI golden unified Zelph ↔ trie/ultrametric ↔ hyperfabric ↔ Nat/NORA max-cut](https://github.com/chboishabba/dashi_agda/blob/agent/nora-perspective-consumer-maxcut-20261114/Docs/ZelphTrieHyperfabricNatNoraMaximumCut20261114.md)** now classifies the work into six genuinely new mathematical propositions (A1–A6), six transport/semantic adapter obligations (B1–B6), and six empirical/production acceptance gates (C1–C6), organised as P0–P5 phases. It reuses the existing balanced-ternary `PrefixAgreement`, residual tree, indexed fabric, sheaf-style gluing, query-indexed sufficiency and nine-axis Nat admissibility. No new flat three-valued truth score or duplicate shard database.
+
+An HF name chunk is **not automatically a ternary trie prefix ball**; a physical sorted-key/range map must be verified separately. The five-QID result is a reported exact physical name lookup, not native quantitative P14143 or P854 source payment. Actual NORA export remains separate.
+
 ## Exact max-cut gates
 
 | Gate | Deliverable | Current status |
