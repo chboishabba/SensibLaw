@@ -61,6 +61,8 @@ Production route: NORA pinned export → [SLR source-unit / Nat statement bundle
 
 ITIR implementation entry points: [review packet and migration candidate](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/domain_tools.py) and [object review bundle](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/wikidata_object_review.py).
 
+**Current HF locator (14 November 2026):** [ITIR MCP canonical Zelph/Wikidata HF locator](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/docs/planning/zelph_hf_wikidata_mcp_locator_20261114.md) identifies upstream's documented `acrion/zelph` full and pruned-small manifest paths, exact QID/name lookup versus internal node routing, and the missing live immutable SHA/sidecar readback. The old July 2026 “no published metadata” finding is a historical checkpoint, not a current absence claim. ITIR MCP already exposes Wikidata review, migration, disjointness, and Zelph manifest/shard planning interfaces; these are not yet a verified NORA production round trip.
+
 ## Zelph cross-pollination — reuse and evidence gates
 
 **Existing production order:** [SLR README](https://github.com/chboishabba/slr/blob/main/README.md): revisioned local P31/P279 → route-aware Zelph/HF graph snapshot → governed revision-pinned Wikidata fallback. This is a **source route**, not a truth predicate.
