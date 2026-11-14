@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-NORA helps a reviewer match a source field to a Wikidata property or class. NORA offers five review choices. A reviewer can use these choices to make a decision about a suggested match.
+NORA helps a reviewer match a source field to a Wikidata property or class. The NORA development plan lists five review choices. A reviewer can use these choices to make a decision about a suggested match.
 
 Our projects also review Wikidata statements. They keep the source data, the review decision, and the reason for that decision separate. We propose a small data exchange between these tools.
 
