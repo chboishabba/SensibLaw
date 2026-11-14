@@ -1,17 +1,19 @@
-# NORA / SensibLaw / SLR / DASHI integration: exact max-cut
+# NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
 Date: 2026-11-14. Scope: candidate-only NORA import and review replay.
 
 **Population separation:** historical Wikimedia scope **57,989 P5991 statements**; the pinned **57-statement / five-entity sample** is only a regression fixture. No current full-population count or exhaustion receipt was checked in this tranche.
 
+**Execution ownership:** SLR is the Rust production successor to SensibLaw. New NORA runtime transport and selective-review reopening must target SLR, not a parallel Python production pipeline. SensibLaw remains the source of Nat reference fixtures and its candidate-only adapter. [SLR production roadmap](https://github.com/chboishabba/slr/pull/18), [Nat/Wikidata native bundle](https://github.com/chboishabba/slr/pull/10), [native ontology comparison](https://github.com/chboishabba/slr/pull/51), [S29 governance](https://github.com/chboishabba/slr/pull/76).
+
 ## Reuse-first ownership
 
 | Source owner | Reused contract | New code permitted |
 |---|---|---|
-| SensibLaw canonical carrier | Typed canonical hashing | None; imported in adapter |
-| SensibLaw Nat PR #493 | Source support and 1-to-N repair | Adapter-side snapshot and guard |
-| SLR PR #28 / #57 | Recurrent acquisition and provider-pinned materialisation | No new scheduler, provider or database |
-| SLR PR #10 / #76 | Source-unit review and S29/S30 boundaries | No SLR persistence claim |
+| [SensibLaw Python](https://github.com/chboishabba/SensibLaw) | Typed canonical hashing and Nat reference fixtures | Reference adapter only, not production execution |
+| [SensibLaw Nat PR #493](https://github.com/chboishabba/SensibLaw/pull/493) | Source support and 1-to-N calibration | Reuse tests and source contracts in SLR |
+| [SLR PR #28](https://github.com/chboishabba/slr/pull/28) / [#57](https://github.com/chboishabba/slr/pull/57) | Production recurrent acquisition and provider-pinned materialisation | Reuse, no new scheduler/provider/database |
+| [SLR PR #10](https://github.com/chboishabba/slr/pull/10) / [#76](https://github.com/chboishabba/slr/pull/76) | Existing Nat source-unit, statement bundle, S29/S30 review and governance | Wire NORA into these owners, not a new review store |
 | DASHI ConsumerDescentMinimalObserverExact | Sectioned FactorsThrough and ConsumerSufficient | No substitute theorem |
 | DASHI WikidataConsumerResidualRefinementExact | Noncollapse of failure origin | No new global truth score |
 | DASHI SixfoldLogic / TetralemmaBridge | Qualified viewpoints and residuals | No C6/C3 same-object identity |
@@ -37,19 +39,27 @@ Date: 2026-11-14. Scope: candidate-only NORA import and review replay.
 
 ## User-story reconciliation
 
+Requirement owners: [ITIR user stories](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md), [SensibLaw editor story](https://github.com/chboishabba/SensibLaw/blob/main/docs/user_stories.md#wikidata-editor--ontology-reviewer), [SensibLaw story implementation coverage](https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/user_story_implementation_coverage_20260326.md). SLR production contracts are expressed in the PRs and code below; this audit did not establish a separate SLR Nat user-story file.
+
 | User-story owner | Existing accepted intent | Remaining NORA-specific obligation |
 |---|---|---|
-| ITIR-US-17 | Revision-locked wiki sections, cited links, bounded follows, explicit uncertainty | Replay an actual NORA source-revision/export into that workflow |
-| WIKI-US-01 / SL-US-38 | `itir.wikidata.review_packet.v1`, strict read-only statement/qualifier/reference review | Map the NORA decision and target bundles into the original packet ABI |
-| WIKI-US-02 / SL-US-39 | Versioned `itir.wikiproject.tooling_profile.v1` and governed external-tool capability | Add NORA as a verified candidate-only tool profile |
-| WIKI-US-03 / SL-US-40 | `itir.wikidata.migration_candidate.v1`, disjointness and structural pressure | Show exact NORA relation and modelling-gap context in existing diagnostic output |
-| WIKI-US-04 / SL-US-41 | `sl.wikidata_signal_review_bundle.v0_1`, wiki vs independent-source provenance | Preserve author/source/revision and never promote wiki prose into primary evidence |
-| SensibLaw Wikidata editor story | Review-first split planning, bounded follow, source revisions | Real NORA export test and operator experience |
-| SLR acquisition and review | PR #28 recurrent acquisition, #57 materialisation, #10 source handoff; PR #76 S29 candidate review | Actual provider queue, persisted selective reopening, returned verification receipts |
+| [ITIR-US-17](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#itir-us-17-wiki-revision-review-assist) | Revision-locked wiki sections, cited links, bounded follows, explicit uncertainty | Replay an actual NORA source-revision/export into that workflow |
+| [WIKI-US-01 / SL-US-38](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-01--sl-us-38-wikidata-statement-review-packet--batch-review-surface) | `itir.wikidata.review_packet.v1`, strict read-only statement/qualifier/reference review | Map the NORA decision and target bundles into the original packet ABI |
+| [WIKI-US-02 / SL-US-39](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-02--sl-us-39-wikiproject-tooling--governance-profiles) | Versioned `itir.wikiproject.tooling_profile.v1` and governed external-tool capability | Add NORA as a verified candidate-only tool profile |
+| [WIKI-US-03 / SL-US-40](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-03--sl-us-40-ontology-constraint--disjointness-violation-triaging) | `itir.wikidata.migration_candidate.v1`, disjointness and structural pressure | Show exact NORA relation and modelling-gap context in existing diagnostic output |
+| [WIKI-US-04 / SL-US-41](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-04--sl-us-41-cross-corpus-wiki-to-sensiblaw-evidence-reconciliation) | `sl.wikidata_signal_review_bundle.v0_1`, wiki vs independent-source provenance | Preserve author/source/revision and never promote wiki prose into primary evidence |
+| [SensibLaw Wikidata editor story](https://github.com/chboishabba/SensibLaw/blob/main/docs/user_stories.md#wikidata-editor--ontology-reviewer) | Review-first split planning, bounded follow, source revisions | Real NORA export test and operator experience |
+| [SLR production acquisition/review](https://github.com/chboishabba/slr/pull/10) | PR #28 recurrent acquisition, #57 materialisation, #10 source handoff; PR #76 S29 candidate review | Actual provider queue, persisted selective reopening, returned verification receipts |
 
 **Additional backlog-scale cut:** Existing Nat contract discovery demands a lossless composite `(QID, GUID)` cursor. The first two cumulative pages covered 400 revision-pinned statements; `population_exhausted=false`. To claim completeness, obtain full coverage and no-overlap/gap receipts for the current live population. Do not infer present backlog from the historical 57,989 figure.
 
 The user stories specify intended behaviour; they do not establish that every workflow is compiled, deployed, reviewed or accepted.
+
+## Native integration seam
+
+Production route: NORA pinned export → [SLR source-unit / Nat statement bundle](https://github.com/chboishabba/slr/pull/10) → [SLR WIKI-1/relational diagnostics](https://github.com/chboishabba/slr/pull/51) → [existing S29 review path](https://github.com/chboishabba/slr/pull/76) → [recurrent source acquisition](https://github.com/chboishabba/slr/pull/28) → dependency-scoped reopening → review-first checked-safe export and separately authorised external execution. This is the **intended composition**, not a verified live end-to-end run. The Python NORA adapter in [SensibLaw #514](https://github.com/chboishabba/SensibLaw/pull/514) remains a test/reference producer.
+
+ITIR implementation entry points: [review packet and migration candidate](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/domain_tools.py) and [object review bundle](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/wikidata_object_review.py).
 
 ## Test cases and expected results
 
