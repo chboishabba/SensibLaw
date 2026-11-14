@@ -999,3 +999,29 @@ The report now exposes:
    frozen semantic v1.1 model rather than using it as a reason to widen the
    canonical schema before GWB + Australian cross-testing fails in a concrete
    way.
+
+
+### 2026-11-01 primary proposal-history source integration (candidate-only)
+
+The existing wiki user stories, Peter/Ege P2738, Rosario hotspot, climate/Nat
+migration and generic `ChangeReviewPacket` lanes now share an optional
+source-history overlay through `src/ontology/wikidata_signal_review_bundle.py`.
+It consumes an existing emitted bundle, never reconstructs those diagnostics,
+and joins only an actual candidate PID in the dependency cone. No local
+discussion closure bypasses the retained normative, S29, S30 and edit gates.
+
+A real P10322 proposal observation manifest records exact Wikidata archived
+oldid `1572799769`, the 28 January–4 February 2022 authors/event chronology,
+and precisely which policy/role/consensus/source-byte receipts remain unpaid.
+The existing MediaWiki snapshot helper now supports `--wiki wikidata`,
+strict historical `--revid` and `--at-or-before` policy retrieval.
+`project_historical_source_anchors` derives byte spans only from original
+retrieved wikitext. Source-authentication is still **not equivalent** to
+historical community permission.
+
+The new source-reviewed operator path is documented at
+`docs/planning/wikidata_deliberation_primary_source_replay_20261101.md`.
+Companion [ITIR-suite #70](https://github.com/chboishabba/ITIR-suite/pull/70),
+[SLR #76](https://github.com/chboishabba/slr/pull/76) and
+[DASHI Agda #1447](https://github.com/chboishabba/dashi_agda/pull/1447).
+No tests/kernel/PG receipts or live Wikidata edits claimed.
