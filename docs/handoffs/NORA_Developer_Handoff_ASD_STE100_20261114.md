@@ -90,7 +90,7 @@ ITIR already defines `itir.wikidata.review_packet.v1` and `itir.wikidata.migrati
 
 At scale, one live page is not proof of whole-population coverage. A complete Nat scan needs a source revision, a composite subject-QID and statement-GUID cursor, and proof that no page or statement was missed.
 
-## 12. What our adapter does now
+## 8. What our adapter does now
 
 SensibLaw has a new candidate-only adapter, `wikidata_nora_review_handoff.py`. It receives a supplied candidate and review record. It does not parse an unverified NORA export.
 
@@ -100,7 +100,7 @@ The adapter refuses a missing source revision. It refuses a split with fewer tha
 
 **Manual search** creates a request record. The adapter does not run a network request. A later SLR connector can perform that work.
 
-## 8. What we ask you to do
+## 9. What we ask you to do
 
 1. Send one sample NORA export with the five review choices.
 2. Include one example that maps one source field to two target statements, if NORA supports that case.
@@ -112,7 +112,7 @@ The adapter refuses a missing source revision. It refuses a split with fewer tha
 
 If a field is not available, tell us. We can retain the missing detail in a separate review record.
 
-## 9. Test and decision rules
+## 10. Test and decision rules
 
 **Pass:** We can import the supplied export and retain the complete source and review record. We can reproduce the original data from our saved handoff.
 
@@ -122,7 +122,7 @@ If a field is not available, tell us. We can retain the missing detail in a sepa
 
 We will report each test separately. We will not claim that source collection proves a source proposition.
 
-## 10. Attribution and source ownership
+## 11. Attribution and source ownership
 
 Éder Porto owns the original NORA design and implementation claims. DASHI owns its local mapping and formal proof adapters. SensibLaw owns its Nat review implementation.
 
@@ -130,7 +130,7 @@ James Michael DuPont owns the original Wikidata Lean checker work. SLR keeps tha
 
 The mapping standards and the cited scientific sources retain their original authors. A software import does not transfer those claims to a new author.
 
-## 11. Current limits
+## 12. Current limits
 
 We have not checked the native NORA export format. We have not run a live NORA session. We have not performed a new SLR database replay for this adapter.
 
