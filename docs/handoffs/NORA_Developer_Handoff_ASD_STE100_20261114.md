@@ -1,7 +1,7 @@
 # NORA and the Wikidata review tools: developer handoff
 
 **To:** Éder Porto, NORA developer and project author  
-**From:** DASHI / SensibLaw / ITIR interoperability work  
+**From:** DASHI / SLR / ITIR interoperability work (SensibLaw Nat reference lineage)  
 **Date:** 14 November 2026  
 **Status:** Technical proposal. No live NORA data exchange has passed a test.  
 **Writing method:** ASD-STE100 Issue 9 style. This document has not passed a full controlled-dictionary audit.
@@ -16,9 +16,9 @@ The data exchange must not change Wikidata. It must not treat a review choice as
 
 ## 2. What we already have
 
-**SensibLaw** checks statement bundles, source revisions, qualifiers, references, and proposed changes. Its Nat climate pilot examines the change from `P5991` to `P14143`. A source statement can require more than one target statement.
+**SLR is the Rust production successor to SensibLaw.** [SLR PR #18](https://github.com/chboishabba/slr/pull/18) defines the production runtime. [SLR PR #10](https://github.com/chboishabba/slr/pull/10) already ports the Nat/Wikidata source-unit and statement-bundle review contracts. [SLR PR #28](https://github.com/chboishabba/slr/pull/28) adds recurrent acquisition. [SLR PR #51](https://github.com/chboishabba/slr/pull/51) adds source-native Wikidata diagnostics and comparison. [SLR PR #76](https://github.com/chboishabba/slr/pull/76) extends native review and governance. These PRs have different test and merge states.
 
-**SLR** can plan and run bounded source collection jobs. It stores a record of each source. It can re-open affected work after source data change.
+**SensibLaw Python remains a Nat reference and calibration implementation.** [Nat PR #493](https://github.com/chboishabba/SensibLaw/pull/493) records the source acquisition and verification work. Its pinned climate pilot examines `P5991` to `P14143`. One source statement can require multiple target statements. Do not create a second production source collector or review store for NORA.
 
 **ITIR** makes review packets. It keeps source identity, the review context, and access rules separate.
 
@@ -79,26 +79,27 @@ Our first exchange test will use a safe sample, not a public Wikidata edit.
 
 The user stories already cover much of the proposed workflow.
 
-- **ITIR-US-17** calls for a fixed wiki revision, bounded cited-link follow, and a reviewer packet.
-- **WIKI-US-01 / SL-US-38** calls for a strict read-only statement review packet. It includes qualifier, rank, reference, and item checks.
-- **WIKI-US-02 / SL-US-39** calls for an external-tool profile. It separates tool capability from edit permission.
-- **WIKI-US-03 / SL-US-40** calls for ontology-constraint checks and a candidate repair packet.
-- **WIKI-US-04 / SL-US-41** calls for a source-attributed comparison with non-wiki evidence.
-- The SensibLaw **Wikidata editor / ontology reviewer** story calls for review and split help. The implementation-coverage document says some ordinary wiki-page source-follow paths remain partial.
+- [**ITIR-US-17 — Wiki Revision Review Assist**](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#itir-us-17-wiki-revision-review-assist) calls for a fixed wiki revision, bounded cited-link follow, and a reviewer packet.
+- [**WIKI-US-01 / SL-US-38 — Statement Review Packet**](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-01--sl-us-38-wikidata-statement-review-packet--batch-review-surface) calls for strict read-only statement review with qualifiers, rank, references, and item IDs.
+- [**WIKI-US-02 / SL-US-39 — Tool Governance**](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-02--sl-us-39-wikiproject-tooling--governance-profiles) calls for an external-tool profile and clear edit permissions.
+- [**WIKI-US-03 / SL-US-40 — Constraint Triage**](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-03--sl-us-40-ontology-constraint--disjointness-violation-triaging) calls for ontology constraints and candidate repair packets.
+- [**WIKI-US-04 / SL-US-41 — Cross-Corpus Reconciliation**](https://github.com/chboishabba/ITIR-suite/blob/main/docs/user_stories.md#wiki-us-04--sl-us-41-cross-corpus-wiki-to-sensiblaw-evidence-reconciliation) calls for source-attributed comparison with non-wiki evidence.
+- The [**SensibLaw Wikidata editor / ontology reviewer** story](https://github.com/chboishabba/SensibLaw/blob/main/docs/user_stories.md#wikidata-editor--ontology-reviewer) calls for review and split help. The [implementation-coverage record](https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/user_story_implementation_coverage_20260326.md) says some ordinary wiki-page source-follow paths remain partial.
+- [**SLR PR #10**](https://github.com/chboishabba/slr/pull/10), [**SLR PR #28**](https://github.com/chboishabba/slr/pull/28), [**SLR PR #51**](https://github.com/chboishabba/slr/pull/51), and [**SLR PR #76**](https://github.com/chboishabba/slr/pull/76) carry the Nat review, acquisition, ontology diagnostics, and governed review work. SLR has no separate Nat user-story file established by this audit; the shared requirements live in ITIR and SensibLaw.
 
-ITIR already defines `itir.wikidata.review_packet.v1` and `itir.wikidata.migration_candidate.v1`. SensibLaw already has split-plan and checked-safe export tools. SLR has a recurrent acquisition engine. The new NORA adapter does not replace these tools.
+[ITIR's review API](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/domain_tools.py) already defines `itir.wikidata.review_packet.v1` and `itir.wikidata.migration_candidate.v1`. [SensibLaw's Nat plan](https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md) has split-plan and checked-safe export reference tools. [SLR's production recurrent acquisition](https://github.com/chboishabba/slr/pull/28) is the intended execution owner. Reuse its source and review contracts; the new NORA Python adapter must not become a parallel production runtime.
 
 At scale, one live page is not proof of whole-population coverage. A complete Nat scan needs a source revision, a composite subject-QID and statement-GUID cursor, and proof that no page or statement was missed.
 
 ## 8. What our adapter does now
 
-SensibLaw has a new candidate-only adapter, `wikidata_nora_review_handoff.py`. It receives a supplied candidate and review record. It does not parse an unverified NORA export.
+The [SensibLaw reference branch](https://github.com/chboishabba/SensibLaw/pull/514) has a new candidate-only adapter, [`wikidata_nora_review_handoff.py`](https://github.com/chboishabba/SensibLaw/blob/agent/nora-review-source-preserving-maxcut-20261114/src/ontology/wikidata_nora_review_handoff.py). It receives a supplied candidate and review record. It does not parse an unverified NORA export.
 
 The adapter retains the full supplied source. It retains the review and each consumer check. It uses the existing SensibLaw typed hash for replay.
 
 The adapter refuses a missing source revision. It refuses a split with fewer than two target bundles. It also refuses changed review data during replay.
 
-**Manual search** creates a request record. The adapter does not run a network request. A later SLR connector can perform that work.
+**Manual search** creates a request record. The adapter does not run a network request. The production work is an adapter into SLR's existing source/producer queue and selective reopening. That adapter has not been implemented or accepted in this PR.
 
 ## 9. What we ask you to do
 
@@ -124,7 +125,7 @@ We will report each test separately. We will not claim that source collection pr
 
 ## 11. Attribution and source ownership
 
-Éder Porto owns the original NORA design and implementation claims. DASHI owns its local mapping and formal proof adapters. SensibLaw owns its Nat review implementation.
+Éder Porto owns the original NORA design and implementation claims. DASHI owns its local formal mapping. **SLR owns the production runtime.** SensibLaw owns the original Python Nat implementation and the bounded reference adapter in [PR #514](https://github.com/chboishabba/SensibLaw/pull/514).
 
 James Michael DuPont owns the original Wikidata Lean checker work. SLR keeps that source attribution when it imports the checker. Wikidata community policy controls public editing.
 
@@ -145,7 +146,12 @@ The adapter's consumer results are reported claims, not Agda kernel certificates
 - Nat whole-population and cursor plan: https://github.com/chboishabba/SensibLaw/blob/main/docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md
 - Nat source acquisition PR: https://github.com/chboishabba/SensibLaw/pull/493
 - SLR recurrent acquisition PR: https://github.com/chboishabba/slr/pull/28
-- SLR Wikidata review handoff: https://github.com/chboishabba/slr/pull/10
+- SLR Nat/Wikidata statement-bundle handoff: https://github.com/chboishabba/slr/pull/10
+- SLR production reader: https://github.com/chboishabba/slr/pull/18
+- SLR native ontology and comparison: https://github.com/chboishabba/slr/pull/51
+- SLR S29 ontology review: https://github.com/chboishabba/slr/pull/76
+- ITIR review packet API: https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/domain_tools.py
+- SensibLaw Nat editor story: https://github.com/chboishabba/SensibLaw/blob/main/docs/user_stories.md#wikidata-editor--ontology-reviewer
 - Agda mapping PR: https://github.com/chboishabba/dashi_agda/pull/1143
 - Agda sixfold logic: https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Algebra/SixfoldLogic.agda
 - Agda consumer proof: https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Core/ConsumerDescentMinimalObserverExact.agda
