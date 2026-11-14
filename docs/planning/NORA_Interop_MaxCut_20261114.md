@@ -61,6 +61,29 @@ Production route: NORA pinned export → [SLR source-unit / Nat statement bundle
 
 ITIR implementation entry points: [review packet and migration candidate](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/domain_tools.py) and [object review bundle](https://github.com/chboishabba/ITIR-suite/blob/main/itir-mcp/src/itir_mcp/wikidata_object_review.py).
 
+## Zelph cross-pollination — reuse and evidence gates
+
+**Existing production order:** [SLR README](https://github.com/chboishabba/slr/blob/main/README.md): revisioned local P31/P279 → route-aware Zelph/HF graph snapshot → governed revision-pinned Wikidata fallback. This is a **source route**, not a truth predicate.
+
+| Existing exact owner | What it actually contributes | NORA cut |
+|---|---|---|
+| [SensibLaw Nat PR #493](https://github.com/chboishabba/SensibLaw/pull/493) | Five QIDs resolved via Zelph; 57/57 native P14143 coverage coordinates paid; zero source-support admissions; hosted HF source acquisition and reasoned holds | Reuse revision-pinned native/graph evidence split; no automatic source support |
+| [ITIR #14](https://github.com/chboishabba/ITIR-suite/pull/14) | Bounded `zelph-filtered-route/v1`, `itir.zelph_filtered_route_receipt.v0_1`; unresolved QID negative controls | No full graph sidecar or completeness assumption |
+| [SensibLaw Zelph lane plan](https://github.com/chboishabba/SensibLaw/blob/main/src/ontology/wikidata_zelph_lane_plan.py) | Source-property broadening, migration target confirmation, split pressure; bounded SPARQL/route/partial-load proposals | Route `manual_search` and `modeling_gap` to evidence requests, not approvals |
+| [SensibLaw disjointness lane proof](https://github.com/chboishabba/SensibLaw/blob/main/src/ontology/wikidata_zelph_lane_proof.py) | Bounded P2738/P11260 selector and transport receipt | Reuse WIKI-US-03 modelling diagnostics |
+| [ITIR Zelph 0.9.6 lane audit](https://github.com/chboishabba/ITIR-suite/blob/main/docs/planning/wikidata_lanes_zelph_096_status_20260703.md) | Distinguishes directly supported disjointness lane from adjacent Nat/climate discovery; hosted shard acceptance still distinct | Do not block other review work on full hosted graph publication |
+| [DASHI Nat Zelph pipeline](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Interop/SensibLawNatZelphPipelineExact.agda) | Routed P31/P279 graph evidence vs native statements; sound positive type module does **not** imply negative completeness, migration safety or edit rights | Preserve type, coverage and authority boundaries |
+| [DASHI pruned artifact preservation](https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Interop/ZelphPrunedArtifactQueryPreservationExact.agda) | Query-family preservation is explicitly scoped to the pruned artifact | Never infer a global absence from an incomplete graph |
+
+**New gates Z0–Z3 (all OPEN for NORA production):**
+
+- **Z0:** Ground a NORA `manual_search` / `modeling_gap` request against a real pinned NORA fixture.
+- **Z1:** Route through **SLR's existing** Zelph/local/live source-order and return exact snapshot, selector, query-family, execution and coverage receipts.
+- **Z2:** Replay a positive and a missing-QID/partial-shard negative control without treating missing graph evidence as native Wikidata `novalue` or global contradiction.
+- **Z3:** Transport candidate graph findings into the existing S29/ITIR read-only review packets; require independent P854 source-evidence adjudication and migration rights for any further step.
+
+**Do not** create a second Zelph service, a second Nat graph index or a new review store. Zelph execution and SLR provider acquisition remain candidate-evidence surfaces.
+
 ## Test cases and expected results
 
 1. NORA valid does not create semantic truth or edit authority.
@@ -121,6 +144,10 @@ The local adapters and negative controls are new integration work.
 Do not relabel external contributions as local mathematical theorems.
 
 ## Reference URLs
+
+- https://github.com/chboishabba/ITIR-suite/pull/14
+- https://github.com/chboishabba/slr/blob/main/README.md
+- https://github.com/chboishabba/dashi_agda/blob/master/DASHI/Interop/SensibLawNatZelphPipelineExact.agda
 
 - https://github.com/chboishabba/SensibLaw/pull/493
 - https://github.com/chboishabba/slr/pull/28
