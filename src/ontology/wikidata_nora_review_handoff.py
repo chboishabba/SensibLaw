@@ -169,3 +169,72 @@ def nora_acquisition_route(handoff: Mapping[str, Any]) -> dict[str, Any]:
         "candidate_only": True,
         "provider_execution_performed": False,
     }
+
+
+def plan_nora_zelph_scoped_review(
+    handoff: Mapping[str, Any],
+    *,
+    subject_qid: str,
+    name_lookup: Mapping[str, Any],
+    query_closure: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Candidate-only adapter for ITIR's byte-audited *scoped* route receipts.
+
+    Keeps graph identity, source revision, and NORA standpoint as different
+    axes.  Does not import an ITIR runtime or claim native NORA API support.
+    An absent QID in the declared shards is always unresolved globally.
+    """
+    pinned = replay_nora_review_handoff(handoff)
+    source = pinned["source_candidate"]
+    if require_text(source.get("subject_qid"), "source.subject_qid") != subject_qid:
+        raise ValueError("NORA source/route subject QID mismatch")
+    route = _mapping(name_lookup, "name_lookup")
+    closure = _mapping(query_closure, "query_closure")
+    if route.get("version") != "itir.zelph.audited_name_lookup.v1":
+        raise ValueError("ITIR byte-audited name lookup contract required")
+    if closure.get("version") != "itir.zelph.query_family_closure_audit.v1":
+        raise ValueError("ITIR query-family closure contract required")
+    if route.get("qid") != subject_qid:
+        raise ValueError("NORA source/route QID mismatch")
+    graph_revision = require_text(route.get("graph_revision"), "name_lookup.graph_revision")
+    if graph_revision != closure.get("graph_revision"):
+        raise ValueError("ITIR name/closure revision mismatch")
+    if route.get("complete_for_source_graph") is not False:
+        raise ValueError("graph-source completeness cannot be inferred from name shards")
+    if route.get("negative_query_authority") is not False:
+        raise ValueError("scoped missing name may not create global negative authority")
+    if closure.get("scoped_negative_answer_permitted") is not False:
+        raise ValueError("unchecked closure may not create negative authority")
+    if route.get("candidate_only") is not True or closure.get("candidate_only") is not True:
+        raise ValueError("ITIR graph receipts must remain candidate-only")
+    status = route.get("status")
+    if status not in {"found-in-inspected-objects", "unresolved-in-original-graph"}:
+        raise ValueError("unknown ITIR route status")
+    if status == "found-in-inspected-objects" and not route.get("candidate_nodes"):
+        raise ValueError("positive route must retain physical node witnesses")
+    if status == "unresolved-in-original-graph" and route.get("candidate_nodes"):
+        raise ValueError("unresolved route cannot silently retain positive witnesses")
+    result = {
+        "version": "sl.nora_zelph_scoped_review_plan.v1",
+        "subject_qid": subject_qid,
+        "source_revision_ref": source["source_revision_ref"],
+        "graph_revision": graph_revision,
+        "handoff_ref": pinned["handoff_ref"],
+        "name_route_status": status,
+        "physical_candidate_nodes": route.get("candidate_nodes", []),
+        "candidate_collision": bool(route.get("collision", False)),
+        "graph_family_coverage_status": closure.get("coverage_status"),
+        "unresolved_dependencies": closure.get("missing_dependencies", {}),
+        "review_choice": pinned["review"]["choice"],
+        "review_standpoint": pinned["review"]["standpoint_ref"],
+        "source_attribution": source["attribution"],
+        "native_statement_evidence_required": True,
+        "external_nora_export_verified": False,
+        "slr_s29_persistence_performed": False,
+        "source_support_paid": False,
+        "global_absence_proved": False,
+        "candidate_only": True,
+        "external_edit_authority_paid": False,
+    }
+    result["receipt_ref"] = "nora-zelph:" + canonical_sha256(result)
+    return result
