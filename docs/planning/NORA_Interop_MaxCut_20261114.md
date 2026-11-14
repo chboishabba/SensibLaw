@@ -1,5 +1,12 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## Upstream native statement byte transport and SLR crosswalk — 15 November 2026
+
+**Latest operator checks:** DASHI Agda 9/9, ITIR Python 120/120 + native mini-original `.bin` producer, SLR Rust 19/19, SensibLaw NORA Python 17/17 passed at the exact earlier source heads recorded in each PR. Since then ITIR #14 added an offline full Wikibase JSON raw SHA/QID/GUID/P14143/P854 verifier (19 isolated synthetic local tests) and a single original `.bin` source→native replay orchestrator (6 isolated tests). SLR #10 added typed raw-receipt ↔ graph/native candidate coordinate alignment (4 Rust tests source-written, not yet cargo checked).
+
+**NORA role unchanged:** the historical SensibLaw read-only reference adapter cannot substitute for original Éder Porto NORA export, genuine five-choice/multi-consumer semantics, native primary source or persisted S29 production review. The new byte-level source artifacts should be treated as *candidate inputs*, not decisions or external Wikidata actions. Next production acceptance: actual original entity bytes, P854 source document review, SLR S29 restart and sparse dependency reopen, then authentic NORA source replay with current Nat full-GUID cursor.
+
+
 ## New A2 finite source boundary + B5 native SLR evidence gate — 15 November 2026
 
 **Previously accepted baseline preserved:** DASHI seven Agda 2.9 modules PASS at `4c89edb`; ITIR 95/95 Python and four native packed Cap'n Proto roundtrips plus five controls PASS at `e64c04f`. Following these accepted commits, DASHI #1506 added a constructive (not yet kernel-checked) finite-query-word induction; ITIR #14 added explicit unnamed numeric frontier `--node` source routing and a finite left/right boundary closure reporter that refuses missing intermediate observations; SLR #10 added a source-written, not yet cargo-checked native Wikibase GUID/mainsnak/rank/qualifier/reference/P854 candidate join.
