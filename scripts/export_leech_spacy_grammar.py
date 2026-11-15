@@ -28,7 +28,7 @@ def export_manifest(*, database_url:str, manifest:Path, output:Path) -> dict:
     entries=json.loads(manifest.read_text(encoding="utf-8"))
     if not isinstance(entries,list) or not entries:
         raise ValueError("nonempty source manifest list required")
-    documents=[]
+    validated=[]
     ids=set()
     hashes={}
     for item in entries:
@@ -60,14 +60,19 @@ def export_manifest(*, database_url:str, manifest:Path, output:Path) -> dict:
         if actual_sha in hashes and hashes[actual_sha]!=split:
             raise ValueError("duplicate source bytes across train/development")
         hashes[actual_sha]=split
+        validated.append((run,ref,split,text,actual_sha))
+    # Finish global source/split/F5 validation BEFORE the first DB access.
+    # A late forbidden F5 row must not trigger earlier parser reads.
+    if {split for _,_,split,_,_ in validated}!={"train","development"}:
+        raise ValueError("train and development original documents required")
+    documents=[]
+    for run,ref,split,text,actual_sha in validated:
         exported=query_leech_grammar_observation(
             database_url=database_url,run_ref=run,document_ref=ref,
             split=split,source_text=text)
         if exported["source_sha256"]!=actual_sha:
             raise AssertionError("database source digest diverged after export")
         documents.append(exported)
-    if not {x["split"] for x in documents}=={"train","development"}:
-        raise ValueError("train and development original documents required")
     output.parent.mkdir(parents=True,exist_ok=True)
     tmp=output.with_suffix(output.suffix+".tmp")
     try:
