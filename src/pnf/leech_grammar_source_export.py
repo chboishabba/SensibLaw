@@ -7,7 +7,8 @@ uncommitted/cross-sentence dependency heads and reserved/test partitions.
 
 The caller supplies the *same immutable source text* under explicit
 train/development split; database SHA256 must match exactly. Database-local
-BIGINT IDs retain their original identity. Leech compacts them using train
+BIGINT occurrence IDs retain their original identity. Stable symbol/morph
+hashes accompany database-local category IDs; Leech compacts by digest using train
 documents only. This is an export, never a hot-path PNF computation.
 """
 from __future__ import annotations
@@ -40,8 +41,13 @@ ORDER BY p.sequence_no, p.partition_ref
 TOKEN_SQL = """
 SELECT t.token_id, t.start_char, t.end_char, t.pos_symbol_id,
        t.dependency_symbol_id, t.morph_set_id, t.head_token_id,
-       t.sentence_id, t.token_digest, t.representation_version
+       t.sentence_id, t.token_digest, t.representation_version,
+       pos.symbol_digest, dep.symbol_digest, morph.morph_digest
 FROM execution.semantic_parser_token AS t
+JOIN execution.semantic_symbol AS pos ON pos.symbol_id=t.pos_symbol_id
+JOIN execution.semantic_symbol AS dep ON dep.symbol_id=t.dependency_symbol_id
+LEFT JOIN execution.semantic_morph_set AS morph
+       ON morph.morph_set_id=t.morph_set_id
 WHERE t.run_ref = %s AND t.document_ref = %s
 ORDER BY t.start_char, t.end_char, t.token_id
 """
@@ -114,7 +120,8 @@ def build_leech_grammar_observation(
     previous_end=0
     for row in token_rows:
         (token_id,start,end,pos_id,dependency_id,morph_id,head_id,
-         sentence_id,token_digest,representation)=row
+         sentence_id,token_digest,representation,
+         pos_digest,dependency_digest,morph_digest)=row
         if (representation!=2 or
             any(type(x)!=int or x<1 for x in (token_id,sentence_id)) or
             type(start)!=int or type(end)!=int or
@@ -126,12 +133,22 @@ def build_leech_grammar_observation(
         if pos_id is None or dependency_id is None or head_id is None:
             raise ValueError("declared parser POS/dependency/head capability missing")
         _bytes32(token_digest,"original token digest")
+        pos_digest=_bytes32(pos_digest,"stable POS symbol digest")
+        dependency_digest=_bytes32(dependency_digest,"stable dependency symbol digest")
+        if morph_id is not None:
+            morph_digest=_bytes32(morph_digest,"stable morphology-set digest")
+        elif morph_digest is not None:
+            raise ValueError("morphology digest supplied without source set ID")
         if token_id in token_by_id:
             raise ValueError("duplicate original SLR token occurrence")
         token_by_id[token_id]=sentence_id
         tokens.append(dict(token_id=token_id,start_char=start,end_char=end,
                            pos_symbol_id=pos_id,dependency_id=dependency_id,
-                           morph_set_id=morph_id,head_token_id=head_id))
+                           morph_set_id=morph_id,head_token_id=head_id,
+                           pos_symbol_digest=pos_digest.hex(),
+                           dependency_digest=dependency_digest.hex(),
+                           morph_set_digest=(morph_digest.hex()
+                               if morph_digest is not None else None)))
         previous_end=end
     for token in tokens:
         head=token["head_token_id"]
