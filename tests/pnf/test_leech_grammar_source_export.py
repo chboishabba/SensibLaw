@@ -28,7 +28,10 @@ def rows(source="Lily saw Max.",run="run:1",doc="story:1",
     partitions=[("partition:1","parser:strict:1","completed",
                  sha256(b"parser receipt").digest(),"en_core_web_sm","3.x")]
     tokens=[(101+i,start,end,201+i,301+i,401+i,102,
-             sentence_id,sha256(f"token:{i}".encode()).digest(),2)
+             sentence_id,sha256(f"token:{i}".encode()).digest(),2,
+             sha256(f"pos:{i}".encode()).digest(),
+             sha256(f"dep:{i}".encode()).digest(),
+             sha256(f"morph:{i}".encode()).digest())
             for i,(start,end) in enumerate(token_spans)]
     return dict(run_ref=run,document_ref=doc,split=split,
                 source_text=source,source_rows=source_rows,
@@ -47,6 +50,9 @@ class TestNumericGrammarSourceReceipt(unittest.TestCase):
                          sha256(item["source_text"].encode()).hexdigest())
         self.assertEqual(first["slr_tokens"][0]["token_id"],101)
         self.assertEqual(first["slr_tokens"][0]["head_token_id"],102)
+        self.assertEqual(len(first["slr_tokens"][0]["pos_symbol_digest"]),64)
+        self.assertEqual(len(first["slr_tokens"][0]["dependency_digest"]),64)
+        self.assertEqual(len(first["slr_tokens"][0]["morph_set_digest"]),64)
         self.assertTrue(first["world_resolution_deferred"])
         self.assertFalse(first["parser_observation_is_semantic_authority"])
         self.assertEqual(len(first["parser_receipt_sha256"]),64)
@@ -75,6 +81,10 @@ class TestNumericGrammarSourceReceipt(unittest.TestCase):
         bad=dict(base,source_rows=[])
         with self.assertRaisesRegex(ValueError,"one original source"):
             build_leech_grammar_observation(**bad)
+        bad=list(base["token_rows"])
+        first=list(bad[0]); first[10]=None; bad[0]=tuple(first)
+        with self.assertRaisesRegex(ValueError,"stable POS"):
+            build_leech_grammar_observation(**dict(base,token_rows=bad))
         bad=dict(base,partition_rows=[(
             "p","contract","completed",None,"en_core_web_sm","3.x")])
         with self.assertRaisesRegex(ValueError,"receipt"):
