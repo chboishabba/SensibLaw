@@ -226,3 +226,80 @@ def test_scoped_zelph_plan_cannot_promote_absence_or_mix_revisions():
     )
     assert out["global_absence_proved"] is False
     assert out["name_route_status"] == "unresolved-in-original-graph"
+
+
+def _source_bound_receipts():
+    import hashlib
+    import json
+    from src.ontology.wikidata_nora_review_handoff import build_nora_review_handoff
+    s = source()
+    s["subject_qid"] = "Q10403939"
+    s["wikibase_native_revision_id"] = 101
+    handoff = build_nora_review_handoff(source_candidate=s, review=review("ambiguous"))
+    cohort = {
+        "version": "itir.zelph_wikibase_source_bound_candidate.v1",
+        "qid": "Q10403939", "statement_guid": "Q10403939$source-guid",
+        "property_id": "P14143", "wikibase_native_entity_revision_id": 101,
+        "graph_dataset_revision": "a" * 40,
+        "zelph_internal_node_id": 24721153,
+        "original_bin_sha256_matched_supplied_pin": "1" * 64,
+        "wikibase_native_raw_entity_sha256": "2" * 64,
+        "selected_root_bidirectional_source_adjacency_equal": True,
+        "declared_lr_query_family_complete": True,
+        "source_support_paid": False, "creates_world_truth": False,
+        "edit_authority": False, "persisted_s29_review_verified": False,
+        "p854_primary_documents_independently_verified": False,
+        "wikipedia_oldid_first_qualified_link_same_as_zelph_edge_proved": False,
+    }
+    digest = hashlib.sha256(
+        json.dumps(cohort, sort_keys=True, ensure_ascii=False,
+                   separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
+    db = {
+        "receipt_digest": digest, "db_readback_verified": True,
+        "db_write_committed": True, "edit_authority": False,
+        "source_support_paid": False,
+        "readback_sources": [
+            ["zelph:acrion/zelph:Q10403939", "a" * 40, "1" * 64],
+            ["wikibase:Q10403939:Q10403939$source-guid", "101", "2" * 64],
+        ],
+    }
+    return handoff, cohort, db
+
+
+def test_original_itir_s29_nora_join_retains_candidate_only_authority():
+    from src.ontology.wikidata_nora_review_handoff import plan_nora_source_bound_persisted_review
+    handoff, cohort, db = _source_bound_receipts()
+    result = plan_nora_source_bound_persisted_review(
+        handoff, original_cohort=cohort, s29_readback_receipt=db)
+    assert result["slr_readback_coordinates_match"]
+    assert result["readback_performed_independently_by_this_adapter"] is False
+    assert result["nora_native_export_verified"] is False
+    assert result["source_support_paid"] is False
+    assert result["wikipedia_first_link_equivalence_paid"] is False
+
+
+@pytest.mark.parametrize("location,key,value", [
+    ("cohort", "statement_guid", "Q10403939$forged"),
+    ("cohort", "graph_dataset_revision", "b" * 40),
+    ("cohort", "source_support_paid", True),
+    ("cohort", "wikibase_native_entity_revision_id", 102),
+    ("db", "db_readback_verified", False),
+    ("db", "receipt_digest", "0" * 64),
+])
+def test_original_itir_s29_nora_join_refuses_drift_and_promotion(location, key, value):
+    from src.ontology.wikidata_nora_review_handoff import plan_nora_source_bound_persisted_review
+    handoff, cohort, db = _source_bound_receipts()
+    (cohort if location == "cohort" else db)[key] = value
+    with pytest.raises(ValueError):
+        plan_nora_source_bound_persisted_review(
+            handoff, original_cohort=cohort, s29_readback_receipt=db)
+
+
+def test_original_itir_s29_nora_join_refuses_forged_database_source_coordinates():
+    from src.ontology.wikidata_nora_review_handoff import plan_nora_source_bound_persisted_review
+    handoff, cohort, db = _source_bound_receipts()
+    db["readback_sources"][1][2] = "f" * 64
+    with pytest.raises(ValueError, match="source DB rows"):
+        plan_nora_source_bound_persisted_review(
+            handoff, original_cohort=cohort, s29_readback_receipt=db)
