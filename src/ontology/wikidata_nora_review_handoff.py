@@ -238,3 +238,95 @@ def plan_nora_zelph_scoped_review(
     }
     result["receipt_ref"] = "nora-zelph:" + canonical_sha256(result)
     return result
+
+
+def plan_nora_source_bound_persisted_review(
+    handoff: Mapping[str, Any],
+    *,
+    original_cohort: Mapping[str, Any],
+    s29_readback_receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Strict read-only cross-owner join of actual source coordinates.
+
+    Replays NORA's original choice/attribution first. ITIR's cohort remains
+    a physical/native *candidate*, SLR's JSON readback is evidence of an
+    operator-reported DB run but NOT cryptographic proof of a real DB query
+    when processed by this I/O-free Python reference adapter.
+    """
+    from hashlib import sha256
+    import json
+
+    review = replay_nora_review_handoff(handoff)
+    source = review["source_candidate"]
+    cohort = _mapping(original_cohort, "original_cohort")
+    s29 = _mapping(s29_readback_receipt, "s29_readback_receipt")
+    if cohort.get("version") != "itir.zelph_wikibase_source_bound_candidate.v1":
+        raise ValueError("ITIR same-run original cohort version required")
+    if cohort.get("qid") != source.get("subject_qid"):
+        raise ValueError("NORA subject QID and physically sourced QID mismatch")
+    if cohort.get("property_id") != source.get("target_property_ref"):
+        raise ValueError("NORA target property and actual native property mismatch")
+    expected_revision = source.get("wikibase_native_revision_id")
+    if (type(expected_revision) is not int or expected_revision <= 0
+            or cohort.get("wikibase_native_entity_revision_id") != expected_revision):
+        raise ValueError("NORA original native entity revision not independently pinned")
+    if (source.get("classification") == "split_required"
+            and cohort.get("statement_guid") not in
+            source["split_plan"]["source_statement_guids"]):
+        raise ValueError("ITIR source native GUID differs from NORA retained source split")
+    for field in ("source_support_paid", "creates_world_truth", "edit_authority",
+                  "p854_primary_documents_independently_verified",
+                  "persisted_s29_review_verified",
+                  "wikipedia_oldid_first_qualified_link_same_as_zelph_edge_proved"):
+        if cohort.get(field) is not False:
+            raise ValueError("source-bound cohort attempted authority/equivalence promotion")
+    if (cohort.get("selected_root_bidirectional_source_adjacency_equal") is not True
+            or cohort.get("declared_lr_query_family_complete") is not True):
+        raise ValueError("incomplete original source-based graph query family")
+    canonical = json.dumps(cohort, sort_keys=True, ensure_ascii=False,
+                           separators=(",", ":"), allow_nan=False).encode("utf-8")
+    expected_digest = sha256(canonical).hexdigest()
+    if s29.get("receipt_digest") != expected_digest:
+        raise ValueError("SLR persisted candidate digest differs from source cohort")
+    if (s29.get("db_readback_verified") is not True
+            or s29.get("db_write_committed") is not True
+            or s29.get("edit_authority") is not False
+            or s29.get("source_support_paid") is not False):
+        raise ValueError("SLR source-review readback receipt incomplete/unsafe")
+    source_rows = s29.get("readback_sources")
+    if not isinstance(source_rows, list):
+        raise ValueError("actual DB readback source-coordinate rows required")
+    qid, guid = cohort["qid"], cohort["statement_guid"]
+    expected_rows = {
+        ("zelph:acrion/zelph:" + qid,
+         cohort["graph_dataset_revision"],
+         cohort["original_bin_sha256_matched_supplied_pin"]),
+        ("wikibase:" + qid + ":" + guid,
+         str(expected_revision),
+         cohort["wikibase_native_raw_entity_sha256"]),
+    }
+    if ({tuple(row) for row in source_rows if isinstance(row, list) and len(row) == 3}
+            != expected_rows or len(source_rows) != 2):
+        raise ValueError("SLR source DB rows mismatch physical/native original coordinates")
+    result = {
+        "version": "sl.nora_itir_s29_original_source_review.v1",
+        "nora_handoff_ref": review["handoff_ref"],
+        "subject_qid": qid, "statement_guid": guid,
+        "native_entity_revision_id": expected_revision,
+        "graph_dataset_revision": cohort["graph_dataset_revision"],
+        "zelph_internal_node_id": cohort["zelph_internal_node_id"],
+        "source_cohort_digest": expected_digest,
+        "slr_readback_receipt_digest": s29["receipt_digest"],
+        "slr_readback_coordinates_match": True,
+        "readback_performed_independently_by_this_adapter": False,
+        "review_choice": review["review"]["choice"],
+        "review_standpoint_ref": review["review"]["standpoint_ref"],
+        "source_attribution": source["attribution"],
+        "reported_consumer_results_not_kernel_proofs": True,
+        "source_support_paid": False, "semantic_truth_paid": False,
+        "wikipedia_first_link_equivalence_paid": False,
+        "nora_native_export_verified": False,
+        "external_edit_authority_paid": False,
+    }
+    result["receipt_ref"] = "nora-s29:" + canonical_sha256(result)
+    return result
