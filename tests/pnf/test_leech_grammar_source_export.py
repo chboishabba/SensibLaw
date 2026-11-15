@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from src.pnf.leech_grammar_source_export import (
-    SCHEMA,build_leech_grammar_observation)
+    SCHEMA,build_leech_grammar_observation,query_leech_grammar_observation)
 from scripts.export_leech_spacy_grammar import export_manifest
 
 
@@ -124,6 +124,48 @@ class TestNumericGrammarSourceReceipt(unittest.TestCase):
         changed[1]=(101,*row[1:])
         with self.assertRaisesRegex(ValueError,"duplicate"):
             build_leech_grammar_observation(**dict(base,token_rows=changed))
+
+    def test_database_read_uses_one_repeatable_read_snapshot_and_document_scope(self):
+        base=rows()
+        class FakeCursor:
+            def __init__(self):
+                self.query=None
+                self.observed=[]
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def execute(self,sql,params=None):
+                self.query=sql
+                self.observed.append((sql,params))
+            def fetchall(self):
+                if "semantic_parser_source" in self.query:
+                    return base["source_rows"]
+                if "semantic_parser_document_coverage" in self.query:
+                    return base["coverage_rows"]
+                if "semantic_parser_partition AS p" in self.query:
+                    return base["partition_rows"]
+                if "semantic_parser_token AS t" in self.query:
+                    return base["token_rows"]
+                raise AssertionError("unexpected SLR source table")
+        class FakeConnection:
+            def __init__(self):
+                self.cur=FakeCursor()
+                self.closed=False
+            def cursor(self):return self.cur
+            def close(self):self.closed=True
+        conn=FakeConnection()
+        with patch("src.storage.postgres.spacy_parser_model.connect",
+                   return_value=conn):
+            output=query_leech_grammar_observation(
+                database_url="opaque",run_ref=base["run_ref"],
+                document_ref=base["document_ref"],split=base["split"],
+                source_text=base["source_text"])
+        self.assertTrue(conn.closed)
+        self.assertEqual(output["source_sha256"],sha256(
+            base["source_text"].encode()).hexdigest())
+        self.assertIn("REPEATABLE READ READ ONLY",conn.cur.observed[0][0])
+        self.assertEqual(conn.cur.observed[1][1],("run:1","story:1"))
+        self.assertEqual(conn.cur.observed[3][1],("run:1","story:1","source:1"))
+        self.assertEqual(conn.cur.observed[4][1],("run:1","story:1"))
 
     @staticmethod
     def fake_db_export(*,database_url,run_ref,document_ref,split,source_text):
