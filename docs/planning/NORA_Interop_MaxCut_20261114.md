@@ -1,5 +1,18 @@
 # NORA / production SLR / SensibLaw-reference / ITIR / DASHI integration: exact max-cut
 
+## 15 November — original ITIR cohort ↔ actual SLR source DB receipt read-only consumer (new source)
+
+**Operator prior reference:** SensibLaw `8a6605c27999f6e28041228354621f2d7d8e0bbb` **17/17 pytest**; later `f77b28f2` contains only prior documentation. **New tests and code below are SOURCE-WRITTEN / NEW HEAD UNVERIFIED.**
+
+The existing `src/ontology/wikidata_nora_review_handoff.py` now includes `plan_nora_source_bound_persisted_review`. It first replays the NORA five-choice source-preserving handoff; requires a distinct explicit `wikibase_native_revision_id` rather than equating an article oldid, graph git SHA and Wikibase entity revision; binds actual ITIR physical cohort QID, original native statement GUID, target property, split references, original bin/graph rev/native SHA; recomputes SLR canonical candidate SHA and matches *both* committed PostgreSQL source-coordinate rows. It never pays source/semantic truth, Wikipedia first-link identity, native NORA export or edit authority. The supplied SLR JSON receipt is treated as **reported** DB evidence: this Python function does not itself run a DB query.
+
+New adversarial tests are in `tests/test_wikidata_nora_review_handoff.py`; run `pytest tests/test_wikidata_nora_review_handoff.py`. Any provenance drift or caller-supplied authority flag fails closed.
+
+Real NORA-author export, actual primary P854 reading/review, S29 legacy production consumer mapping and original publication authorization remain **OPEN**. See [ITIR physical cohort runbook](https://github.com/chboishabba/ITIR-suite/blob/agent/nat-filtered-route-producer/docs/planning/zelph_live_original_cohort_operator_runbook_20261115.md) and [SLR real DB bridge](https://github.com/chboishabba/slr/blob/agent/source-unit-wikimedia-handoff/docs/S29_REAL_SOURCE_REPLAY_20261115.md).
+
+---
+
+
 ## Upstream native statement byte transport and SLR crosswalk — 15 November 2026
 
 **Latest operator checks:** DASHI Agda 9/9, ITIR Python 120/120 + native mini-original `.bin` producer, SLR Rust 19/19, SensibLaw NORA Python 17/17 passed at the exact earlier source heads recorded in each PR. Since then ITIR #14 added an offline full Wikibase JSON raw SHA/QID/GUID/P14143/P854 verifier (19 isolated synthetic local tests) and a single original `.bin` source→native replay orchestrator (6 isolated tests). SLR #10 added typed raw-receipt ↔ graph/native candidate coordinate alignment (4 Rust tests source-written, not yet cargo checked).
