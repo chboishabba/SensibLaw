@@ -97,10 +97,13 @@ def export_manifest(*, database_url:str, manifest:Path, output:Path) -> dict:
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--database-url",required=True)
+    p.add_argument("--database-url",default=os.environ.get("DATABASE_URL"),
+        help="database URL; defaults to DATABASE_URL environment (not argv)")
     p.add_argument("--manifest",type=Path,required=True)
     p.add_argument("--output",type=Path,required=True)
     args=p.parse_args()
+    if not args.database_url:
+        p.error("DATABASE_URL env or explicit --database-url required")
     print(json.dumps(export_manifest(
         database_url=args.database_url,manifest=args.manifest,
         output=args.output),sort_keys=True,indent=2))
