@@ -252,3 +252,42 @@ python -m pytest -q tests/test_wikidata_nora_review_handoff.py
 Outstanding exact gates: native NORA fixture from Éder Porto (C5/N7), Agda kernel replay (C4/N9), original P14143/P854 source evidence and non-promoting S29 persistent review (B5/B6/C3), full revision-aware Nat `(QID, GUID)` population exhaustion (C6), and external edits only with operator permission and post-state/rollback receipts. None was established by the new tests.
 
 [Golden exact lemma and P0–P5 ledger](https://github.com/chboishabba/dashi_agda/blob/agent/nora-perspective-consumer-maxcut-20261114/Docs/ZelphTrieHyperfabricNatNoraMaximumCut20261114.md).
+
+
+## 21. NORA incremental-value gate: original author plan versus our existing suite (15 November 2026)
+
+**Correction to earlier framing:** Candidate review, validation, provenance, migration diagnostics, residual-driven acquisition, reviewed evidence payment and selective reopening are already functions of ITIR/SensibLaw/SLR. NORA must not be placed as a mandatory review stage or awarded value for simply replicating them. This is a GO/NO-GO evaluation, not a claim that the native NORA alpha has been tested end to end.
+
+### Original author primary source
+
+Éder Porto's own [September 2026 Ontology Mapper technical plan](https://commons.wikimedia.org/wiki/File:Ontology_Mapper_-_Technical_Development_Plan_-_pt.pdf) (eight pages, Wikimedia Brasil, uploaded 14 September 2026) states the actual product goal: help museums, archives, libraries and research institutions crosswalk **their own source metadata fields and ontologies** into Wikidata properties/classes. The five review options are explicitly author-documented on page 2: *válida, inválida, ambígua, busca manual, lacuna de modelagem*. This corrects our earlier impression that the categories were only an internal DASHI invention. The in-repo NORA review model matches these intended option labels; it is **not a verified parser of a live NORA export/API**.
+
+The plan's potentially differentiating authoring workflow comprises: embedding-based property suggestions and optional reasoned LLM disambiguation; per-field human review; drafting property proposals for unrepresentable source fields; shared versioned mapping decisions; structural datatype/value-constraint checks; an example-item preview; QuickStatements/OpenRefine-compatible CSV; and both direct Wikidata and institution-owned federated Wikibase modes. This describes **intended features**, not independently verified behaviour of the November alpha.
+
+### Incremental-value baseline and hypothesis
+
+| Existing owner | Already provides | NORA must show something more |
+| --- | --- | --- |
+| ITIR MCP: review_packet, object_review_bundle | source-linked Wikidata statement/qualifier/reference review | Faster usable source-field-to-target-property crosswalk for a non-specialist |
+| ITIR MCP: disjointness_report, migration_candidate | constraint audits and migration proposal packets | Better detection/explanation of actual field-level modelling gaps and proposal drafting |
+| SensibLaw extractor/ontology and Wikidata lanes | deterministic lexical mapping, candidate ontology issues and 1-to-N split diagnostics | Better ranked *metadata field* suggestions and reuse of decisions across unseen institutional schemas |
+| SLR recurrent evidence, admission, persistence | residual to bounded producer to candidate to explicit payment, reviewed state, restart and sparse reopen | No new producer/database; only proven improved review workflow interoperation |
+| DASHI Agda | FactorsThrough, ConsumerSufficient, non-descent and typed hyperfabric | A real source-bound instance that uses proofs without falsely promoting human judgement to a theorem |
+
+**Our open gap** is a fully demonstrated contributor-facing institutional schema crosswalk with sample-item preview, reusable human decisions, property-gap proposal and checked CSV export. We should not claim that our existing MCP diagnostics alone already solve this end-user workflow; conversely we cannot claim NORA does so in production without running its alpha.
+
+### Fair comparative acceptance: B vs N vs B+N
+
+- **B (ours):** Existing ITIR/SensibLaw/SLR surfaces as-is, explicitly noting missing UI/export steps.
+- **N (author's):** Actual Éder Porto deployed alpha against the same real institution corpus; no invented NORA export schema or mocked outcome.
+- **B+N (optional combination):** Only after genuine native source/decision interchange exists; reuse SLR production evidence/review and ITIR MCP, no parallel review store.
+
+Use an immutable, permissioned **real museum/library/archive metadata sample** with independently adjudicated source-field definitions and acceptable Wikidata target property/class relationships. Test correct/incorrect close synonyms, same-label different meaning, datatype/value constraints, source field requiring 1-to-N mapping, unrepresentable source concept, overlapping temporal/institutional contexts, source revision drift, federated Wikibase versus direct Wikidata, and denied public-edit authority. The Nat P5991→P14143/P854 exercise is a valuable subsequent stress test but **not** an adequate stand-in for institutional metadata UX.
+
+Primary score: **fully adjudicated-correct crosswalks per reviewer-hour**, counting any unsafe approval or lost required 1-to-N target as incorrect. Secondary: median time per correct field, top-k mapping recall, modelling-gap precision/recall, cross-institution decision reuse, loss of source/consumer context (must be zero), datatype failures (must be zero), and total operating/maintenance cost. Reviewer minutes and gold verdicts must be independently measured, not self-reported model confidence.
+
+**Proposed preregistered decision rule, not an observed performance result:** GO for at least 20% lower median human time at noninferior accuracy **or** at least 10 percentage-point improvement in fully correct mappings at comparable time, with no additional source, authority, datatype or context violations. LIMITED-ADOPT if only one narrow workflow clearly improves (such as a useful property-gap draft); borrow that feature or use a tiny optional adapter. NO-GO if it merely duplicates existing tools, adds risk, or cannot justify integration/maintenance. NOT-YET-TESTABLE if original NORA input/output specimen, institution corpus, independent baseline trace or blind gold is absent: report missing evidence, not a zero score or success.
+
+### Exact next deliverable
+
+Obtain one original-author NORA export/API fixture (with attribution, permission and source identifiers); use the *same source fields* in the existing ITIR/SensibLaw baseline; capture two comparable reviewer traces; blind-adjudicate and run the benchmark; decide GO/LIMITED/NO-GO before implementing native SLR integration. Existing Agda #1506, ITIR #14, SensibLaw #514 and SLR native owners remain the correct PRs. The rest of the WebKB/hyperfabric/SLR proof and physical-source programme continues regardless of NORA's outcome.
