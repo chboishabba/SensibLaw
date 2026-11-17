@@ -1,5 +1,6 @@
 import pytest
 import json
+import hashlib
 
 from src.policy.entity_resolution import (
     CandidateCatalogEntry,
@@ -234,6 +235,84 @@ def test_builds_deterministic_lazy_mention_licenses_with_lattice_receipt(
         document_ref="document:demo",
         context_refs=("context:sentence:1",),
     )
+
+
+def test_p0b_source_sha256_is_raw_utf8_not_json_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # UTF-8 source identity is stable across equivalent JSON transport
+    # encodings. Escaped quotes, newlines and non-ASCII must not alter it.
+    text = 'Bush said "yes".\nCafé 東京'
+    tokens = (
+        ("Bush", 0, 4),
+        ("said", 5, 9),
+        ('"yes".', 10, 16),
+        ("Café", 17, 21),
+        ("東京", 22, 24),
+    )
+    monkeypatch.setattr(
+        "src.policy.entity_resolution.tokenize_canonical_with_spans",
+        lambda _text: pytest.fail("pre-tokenised source must be reused"),
+    )
+    carrier = build_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:utf8",
+        document_ref="document:utf8",
+        parsed_document={"text": text, "sents": []},
+        tokens=tokens,
+    )
+    expected = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    legacy = hashlib.sha256(
+        json.dumps(text, ensure_ascii=False, sort_keys=True,
+                   separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    assert expected != legacy
+    assert carrier["canonical_text_sha256"] == expected
+    assert carrier["canonical_text_sha256"] != legacy
+    assert hashlib.sha256(
+        json.loads(json.dumps(text, ensure_ascii=True)).encode("utf-8")
+    ).hexdigest() == expected
+
+
+def test_p0b_expansion_rejects_legacy_json_string_hash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    text = "Bush spoke."
+    parsed = {"text": text, "sents": [
+        {"tokens": [
+            {"text": "Bush", "start": 0, "end": 4, "pos": "PROPN"},
+            {"text": "spoke", "start": 5, "end": 10, "pos": "VERB"},
+            {"text": ".", "start": 10, "end": 11, "pos": "PUNCT"},
+        ]},
+    ]}
+    tokens = (("Bush", 0, 4), ("spoke", 5, 10), (".", 10, 11))
+    licensing = build_mention_licensing_carrier(
+        canonical_text=text,
+        source_ref="source:demo",
+        document_ref="document:demo",
+        parsed_document=parsed,
+        tokens=tokens,
+    )
+    assert licensing["canonical_text_sha256"] == hashlib.sha256(
+        text.encode("utf-8")
+    ).hexdigest()
+    legacy = dict(licensing)
+    legacy["canonical_text_sha256"] = hashlib.sha256(
+        json.dumps(text, ensure_ascii=False, sort_keys=True,
+                   separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    with pytest.raises(ValueError, match="legacy JSON-string digests"):
+        build_mention_expansion_carrier(
+            canonical_text=text,
+            licensing_carrier=legacy,
+            requests=[],
+        )
+    expansion = build_mention_expansion_carrier(
+        canonical_text=text,
+        licensing_carrier=licensing,
+        requests=[],
+    )
+    assert expansion["canonical_text_sha256"] == licensing["canonical_text_sha256"]
 
 
 def test_mention_licensing_reuses_tokens_and_reports_incremental_work(
