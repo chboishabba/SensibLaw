@@ -165,6 +165,16 @@ def _refs(values: Sequence[Any] | None) -> tuple[str, ...]:
     return tuple(sorted({_text(value, "reference") for value in values or ()}))
 
 
+def _source_text_sha256(text: str) -> str:
+    """Canonical source identity: SHA-256 of decoded UTF-8 text bytes.
+
+    JSON may transport the text, but its quotation/escaping/encoding is NOT
+    part of source identity. This matches the SLR source hash and the
+    existing numeric PNF compiler's canonical_text_sha256 contract.
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def _canonical_digest(value: object) -> str:
     encoded = json.dumps(
         value,
@@ -1821,9 +1831,11 @@ def build_mention_expansion_carrier(
     text = str(canonical_text)
     if not text:
         raise ValueError("mention expansion requires canonical_text")
-    if licensing_carrier.get("canonical_text_sha256") != _canonical_digest(text):
+    if licensing_carrier.get("canonical_text_sha256") != _source_text_sha256(text):
         raise ValueError(
-            "mention expansion canonical_text digest does not match carrier"
+            "mention expansion canonical_text digest is not raw UTF-8 SHA-256 "
+            "or does not match source; legacy JSON-string digests require "
+            "explicit reissuance of the P0b carrier"
         )
     source = _text(licensing_carrier.get("source_ref"), "licensing source_ref")
     document = _text(licensing_carrier.get("document_ref"), "licensing document_ref")
@@ -1920,7 +1932,7 @@ def build_mention_expansion_carrier(
         "authority": authority,
         "source_ref": source,
         "document_ref": document,
-        "canonical_text_sha256": _canonical_digest(text),
+        "canonical_text_sha256": _source_text_sha256(text),
         "licensing_carrier_ref": _text(
             licensing_carrier.get("carrier_ref"), "licensing carrier_ref"
         ),
@@ -2069,7 +2081,7 @@ def build_alias_expansion_requests(
         "authority": authority,
         "source_ref": source,
         "document_ref": document,
-        "canonical_text_sha256": _canonical_digest(text),
+        "canonical_text_sha256": _source_text_sha256(text),
         "alias_entries": entry_rows,
         "requests": request_rows,
         "matches": match_rows,
@@ -2209,7 +2221,7 @@ def build_grammar_expansion_requests(
         "authority": authority,
         "source_ref": source,
         "document_ref": document,
-        "canonical_text_sha256": _canonical_digest(text),
+        "canonical_text_sha256": _source_text_sha256(text),
         "grammar_profile": _NOMINAL_GRAMMAR_PROFILE,
         "context_refs": list(canonical_context_refs),
         "requests": request_rows,
@@ -3974,7 +3986,7 @@ def build_mention_licensing_carrier(
         "authority": ENTITY_RESOLUTION_AUTHORITY,
         "source_ref": source,
         "document_ref": document,
-        "canonical_text_sha256": _canonical_digest(text),
+        "canonical_text_sha256": _source_text_sha256(text),
         "lattice": {
             "token_count": len(token_rows),
             "token_boundary_count": len(token_rows) + 1,
