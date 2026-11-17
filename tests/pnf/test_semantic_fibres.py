@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import pytest
+from dataclasses import replace
 
 from src.pnf.semantic_fibres import (
     AxisObligation,
     FibreBoundaryObligation,
     FibreElement,
+    FibreDerivation,
     OntologyAxis,
     SemanticCoordinate,
     SemanticFibreLedger,
@@ -76,6 +78,56 @@ def test_fibre_ledger_join_is_associative_commutative_and_idempotent() -> None:
         == first.join(second.join(third)).ledger_ref
     )
     assert len(first.join(second).fibre(coordinate.coordinate_ref)) == 2
+
+
+def test_fibre_aci_rejects_same_identity_different_execution_metadata() -> None:
+    coordinate = _coordinate()
+    original = _element(
+        coordinate, content_ref="statement:1", role="support"
+    )
+    replay = replace(original, execution_metadata={"batch": 2})
+    assert original.element_ref == replay.element_ref
+    first = SemanticFibreLedger(elements=(original,))
+    second = SemanticFibreLedger(elements=(replay,))
+    with pytest.raises(ValueError, match="conflicting fibre element"):
+        first.join(second)
+    with pytest.raises(ValueError, match="conflicting fibre element"):
+        second.join(first)
+    # Equal values must still satisfy the original ACI laws.
+    assert first.join(first) == first
+
+
+def test_fibre_aci_rejects_same_identity_different_derivation_metrics() -> None:
+    original = FibreDerivation(
+        document_ref="document:1", operation_kind="closure",
+        declaration_ref="rule:1",
+        producer_contract="integrated-semantic-producer:v0_1",
+        input_element_refs=("a",), output_element_refs=("b",),
+        sub_executor_ref="worker:1", rule_set_revision="v1",
+        metrics={"elapsed_ns": 1},
+    )
+    replay = replace(original, metrics={"elapsed_ns": 2})
+    assert original.derivation_ref == replay.derivation_ref
+    first = SemanticFibreLedger(derivations=(original,))
+    second = SemanticFibreLedger(derivations=(replay,))
+    with pytest.raises(ValueError, match="conflicting fibre derivation"):
+        first.join(second)
+    with pytest.raises(ValueError, match="conflicting fibre derivation"):
+        second.join(first)
+
+
+def test_fibre_aci_rejects_conflicting_ontology_axis_ref() -> None:
+    original = OntologyAxis(
+        axis_ref="axis:same", label="first", authority_ref="authority:1",
+        relation_refs=(), root_refs=("root:A",),
+    )
+    incompatible = replace(original, root_refs=("root:B",))
+    left = SemanticFibreLedger(ontology_axes=(original,))
+    right = SemanticFibreLedger(ontology_axes=(incompatible,))
+    with pytest.raises(ValueError, match="conflicting ontology axis"):
+        left.join(right)
+    with pytest.raises(ValueError, match="conflicting ontology axis"):
+        right.join(left)
 
 
 def test_validation_is_computed_from_fibre_shape() -> None:
