@@ -482,27 +482,51 @@ class SemanticFibreLedger:
     boundary_obligations: tuple[FibreBoundaryObligation, ...] = ()
 
     def join(self, other: "SemanticFibreLedger") -> "SemanticFibreLedger":
-        coordinates = {
-            row.coordinate_ref: row for row in (*self.coordinates, *other.coordinates)
-        }
-        elements = {row.element_ref: row for row in (*self.elements, *other.elements)}
-        transports = {
-            row.transport_ref: row for row in (*self.transports, *other.transports)
-        }
-        derivations = {
-            row.derivation_ref: row for row in (*self.derivations, *other.derivations)
-        }
-        axes = {
-            row.axis_ref: row for row in (*self.ontology_axes, *other.ontology_axes)
-        }
-        axis_obligations = {
-            row.obligation_ref: row
-            for row in (*self.axis_obligations, *other.axis_obligations)
-        }
-        boundaries = {
-            row.boundary_ref: row
-            for row in (*self.boundary_obligations, *other.boundary_obligations)
-        }
+        # ACI merger requires stable, unambiguous values for each identity.
+        # Some IDs intentionally exclude execution_metadata or metrics; an
+        # earlier right-biased dict silently made the full ledger depend on
+        # merge order. Never discard either side's provenance in that case.
+        # Reject the collision until a separate explicitly joined metadata
+        # carrier is available. The operation is ACI on conflict-free ledgers.
+        def unique_by_ref(rows, attr: str, family: str):
+            indexed = {}
+            for row in rows:
+                ref = getattr(row, attr)
+                prior = indexed.get(ref)
+                if prior is not None and prior != row:
+                    raise ValueError(
+                        f"conflicting {family} with identical reference: {ref}"
+                    )
+                indexed[ref] = row
+            return indexed
+
+        coordinates = unique_by_ref(
+            (*self.coordinates, *other.coordinates),
+            "coordinate_ref", "semantic coordinate",
+        )
+        elements = unique_by_ref(
+            (*self.elements, *other.elements), "element_ref", "fibre element",
+        )
+        transports = unique_by_ref(
+            (*self.transports, *other.transports),
+            "transport_ref", "semantic transport",
+        )
+        derivations = unique_by_ref(
+            (*self.derivations, *other.derivations),
+            "derivation_ref", "fibre derivation",
+        )
+        axes = unique_by_ref(
+            (*self.ontology_axes, *other.ontology_axes),
+            "axis_ref", "ontology axis",
+        )
+        axis_obligations = unique_by_ref(
+            (*self.axis_obligations, *other.axis_obligations),
+            "obligation_ref", "axis obligation",
+        )
+        boundaries = unique_by_ref(
+            (*self.boundary_obligations, *other.boundary_obligations),
+            "boundary_ref", "fibre boundary",
+        )
         return SemanticFibreLedger(
             coordinates=tuple(coordinates[key] for key in sorted(coordinates)),
             elements=tuple(elements[key] for key in sorted(elements)),
